@@ -1,0 +1,168 @@
+// Copyright Epic Games, Inc. All Rights Reserved.
+
+#pragma once
+
+#include "AbilitySystemInterface.h"
+#include "AbilitySystem/FortRogueAbilitySet.h"
+#include "Characters/FortRogueCharacterDefinition.h"
+#include "CoreMinimal.h"
+#include "GameFramework/Pawn.h"
+#include "Weapons/FortRogueWeaponDefinition.h"
+#include "FortRogueBattleCharacter.generated.h"
+
+class UFortRogueAbilitySet;
+class UFortRogueAbilitySystemComponent;
+class UFortRogueCombatSet;
+class UStaticMeshComponent;
+class UFortRogueItemDefinition;
+class UFortRoguePerkDefinition;
+
+UCLASS()
+class FORTROGUE_API AFortRogueBattleCharacter : public APawn, public IAbilitySystemInterface
+{
+	GENERATED_BODY()
+
+public:
+	AFortRogueBattleCharacter();
+
+	virtual void BeginPlay() override;
+	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Character")
+	void InitializeFromDefinition(UFortRogueCharacterDefinition* CharacterDefinition);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Character")
+	void ConfigureAsEnemy(bool bNewEnemy);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Turn")
+	void BeginTurn();
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Turn")
+	void EndTurn();
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Turn")
+	void MoveHorizontal(float Axis, float DeltaSeconds);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
+	void AdjustAim(float Axis, float DeltaSeconds);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
+	void AdjustPower(float Axis, float DeltaSeconds);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
+	void SelectWeapon(int32 WeaponIndex);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
+	int32 FireSelectedWeapon();
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|AI")
+	void FireAtTarget(AFortRogueBattleCharacter* Target);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
+	void ApplyDamage(float DamageAmount);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Items")
+	bool UseItemByType(EFortRogueItemType ItemType);
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
+	void ApplyRewardDamage(float BonusDamage);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
+	void ApplyRewardHealth(float BonusHealth);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
+	void ApplyRewardProjectiles(int32 BonusProjectiles);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
+	void ApplyPerkDefinition(UFortRoguePerkDefinition* PerkDefinition);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Weapons")
+	void AddWeaponDefinition(UFortRogueWeaponDefinition* WeaponDefinition);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Items")
+	void AddItemDefinition(UFortRogueItemDefinition* ItemDefinition, int32 ChargesOverride = -1);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Character")
+	bool IsEnemy() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Turn")
+	bool IsActiveTurn() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Turn")
+	bool HasFiredThisTurn() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Character")
+	bool IsDefeated() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
+	float GetHealth() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
+	float GetMaxHealth() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
+	float GetMoveBudget() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	float GetAimAngle() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	float GetShotPower() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
+	int32 GetItemCharges(EFortRogueItemType ItemType) const;
+
+	const FFortRogueWeaponSpec& GetCurrentWeapon() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
+	FFortRogueWeaponSpec GetCurrentWeaponSpec() const;
+
+	const TArray<FFortRogueWeaponSpec>& GetWeaponLoadout() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
+	TArray<FFortRogueWeaponSpec> GetWeaponLoadoutForBlueprint() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
+	int32 GetSelectedWeaponIndex() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Character")
+	FText GetCharacterDisplayName() const;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Abilities")
+	TArray<TObjectPtr<UFortRogueAbilitySet>> StartupAbilitySets;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Character")
+	TObjectPtr<UFortRogueCharacterDefinition> CharacterDefinition;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Weapons")
+	TArray<FFortRogueWeaponSpec> WeaponLoadout;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Items")
+	TArray<FFortRogueItemStack> ItemLoadout;
+
+private:
+	void GrantStartupAbilitySets();
+	void EnsureDefaultLoadout();
+
+	UPROPERTY(VisibleAnywhere, Category = "FortRogue")
+	TObjectPtr<USceneComponent> Root;
+
+	UPROPERTY(VisibleAnywhere, Category = "FortRogue")
+	TObjectPtr<UStaticMeshComponent> Body;
+
+	UPROPERTY(VisibleAnywhere, Category = "FortRogue|Abilities")
+	TObjectPtr<UFortRogueAbilitySystemComponent> AbilitySystemComponent;
+
+	UPROPERTY(VisibleAnywhere, Category = "FortRogue|Abilities")
+	TObjectPtr<UFortRogueCombatSet> CombatSet;
+
+	TArray<FFortRogueAbilitySet_GrantedHandles> StartupAbilitySetHandles;
+	FText CharacterDisplayName;
+	bool bEnemy = false;
+	bool bActiveTurn = false;
+	bool bFiredThisTurn = false;
+	bool bFacingRight = true;
+	float AimAngle = 45.0f;
+	float ShotPower = 0.78f;
+	float PendingAttackMultiplier = 1.0f;
+	int32 SelectedWeaponIndex = 0;
+};
