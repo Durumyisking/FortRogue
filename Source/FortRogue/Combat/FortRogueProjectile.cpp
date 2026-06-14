@@ -32,9 +32,10 @@ AFortRogueProjectile::AFortRogueProjectile()
 	}
 }
 
-void AFortRogueProjectile::InitializeProjectile(AFortRogueBattleCharacter* InOwnerCharacter, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity)
+void AFortRogueProjectile::InitializeProjectile(AFortRogueBattleCharacter* InOwnerCharacter, AFortRogueDestructibleTerrain* InTerrain, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity)
 {
 	OwnerCharacter = InOwnerCharacter;
+	AssignedTerrain = InTerrain;
 	Velocity = InVelocity;
 	Damage = InDamage;
 	BlastRadius = InBlastRadius;
@@ -60,13 +61,25 @@ void AFortRogueProjectile::Tick(float DeltaSeconds)
 	const FVector NewLocation = OldLocation + Velocity * DeltaSeconds;
 	SetActorLocation(NewLocation);
 
-	for (TActorIterator<AFortRogueDestructibleTerrain> It(GetWorld()); It; ++It)
+	if (AssignedTerrain)
 	{
 		FVector ImpactLocation = FVector::ZeroVector;
-		if (It->FindFirstSolidAlongWorldSegment(OldLocation, NewLocation, ImpactLocation))
+		if (AssignedTerrain->FindFirstSolidAlongWorldSegment(OldLocation, NewLocation, ImpactLocation))
 		{
 			ResolveImpact(ImpactLocation);
 			return;
+		}
+	}
+	else
+	{
+		for (TActorIterator<AFortRogueDestructibleTerrain> It(GetWorld()); It; ++It)
+		{
+			FVector ImpactLocation = FVector::ZeroVector;
+			if (It->FindFirstSolidAlongWorldSegment(OldLocation, NewLocation, ImpactLocation))
+			{
+				ResolveImpact(ImpactLocation);
+				return;
+			}
 		}
 	}
 
@@ -95,9 +108,16 @@ void AFortRogueProjectile::ResolveImpact(const FVector& ImpactLocation)
 
 	bResolved = true;
 
-	for (TActorIterator<AFortRogueDestructibleTerrain> It(GetWorld()); It; ++It)
+	if (AssignedTerrain)
 	{
-		It->CarveCircle(ImpactLocation, BlastRadius);
+		AssignedTerrain->CarveCircle(ImpactLocation, BlastRadius);
+	}
+	else
+	{
+		for (TActorIterator<AFortRogueDestructibleTerrain> It(GetWorld()); It; ++It)
+		{
+			It->CarveCircle(ImpactLocation, BlastRadius);
+		}
 	}
 
 	for (TActorIterator<AFortRogueBattleCharacter> It(GetWorld()); It; ++It)

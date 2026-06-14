@@ -6,6 +6,7 @@
 
 #include "Combat/FortRogueBattleCharacter.h"
 #include "Combat/FortRogueDestructibleTerrain.h"
+#include "Combat/FortRogueProjectile.h"
 #include "Combat/FortRogueTerrainMapDefinition.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/Engine.h"
@@ -205,6 +206,12 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	Map->PlayerSpawnLocal = FVector(-999.0f, 0.0f, 5.0f);
 	Map->EnemySpawnLocal = FVector(999.0f, 0.0f, 5.0f);
 
+	UFortRogueTerrainMapDefinition* OverlappingMap = NewObject<UFortRogueTerrainMapDefinition>();
+	OverlappingMap->Resize(20, 6);
+	OverlappingMap->CellSize = 10.0f;
+	OverlappingMap->Clear(false);
+	OverlappingMap->FillRect(0, 0, 19, 0, true);
+
 	FActorSpawnParameters SpawnParams;
 	AFortRogueDestructibleTerrain* Terrain = World->SpawnActor<AFortRogueDestructibleTerrain>(AFortRogueDestructibleTerrain::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
 	TestNotNull(TEXT("Terrain actor is spawned"), Terrain);
@@ -223,6 +230,13 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	}
 
 	Terrain->MapDefinition = Map;
+
+	AFortRogueDestructibleTerrain* OverlappingTerrain = World->SpawnActor<AFortRogueDestructibleTerrain>(AFortRogueDestructibleTerrain::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+	TestNotNull(TEXT("Overlapping terrain actor is spawned"), OverlappingTerrain);
+	if (OverlappingTerrain)
+	{
+		OverlappingTerrain->MapDefinition = OverlappingMap;
+	}
 
 	FURL URL;
 	World->SetGameMode(URL);
@@ -312,6 +326,16 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	FVector ImpactLocation = FVector::ZeroVector;
 	TestTrue(TEXT("Segment query hits solid terrain"), Terrain->FindFirstSolidAlongWorldSegment(FVector(-15.0f, 0.0f, 25.0f), FVector(-15.0f, 0.0f, 5.0f), ImpactLocation));
 	TestTrue(TEXT("Segment impact lies inside the solid band"), ImpactLocation.Z >= 0.0f && ImpactLocation.Z < 10.0f);
+
+	AFortRogueProjectile* AssignedTerrainProjectile = World->SpawnActor<AFortRogueProjectile>(AFortRogueProjectile::StaticClass(), FVector(-75.0f, 0.0f, 25.0f), FRotator::ZeroRotator, SpawnParams);
+	TestNotNull(TEXT("Assigned-terrain projectile is spawned"), AssignedTerrainProjectile);
+	if (AssignedTerrainProjectile && OverlappingTerrain)
+	{
+		AssignedTerrainProjectile->InitializeProjectile(Character, Terrain, FVector(0.0f, 0.0f, -100.0f), 0.0f, 24.0f, 0.0f);
+		AssignedTerrainProjectile->Tick(0.25f);
+		TestFalse(TEXT("Projectile carves its assigned terrain"), Terrain->IsSolidAtWorldLocation(FVector(-75.0f, 0.0f, 5.0f)));
+		TestTrue(TEXT("Projectile does not carve overlapping unassigned terrain"), OverlappingTerrain->IsSolidAtWorldLocation(FVector(-75.0f, 0.0f, 5.0f)));
+	}
 
 	AFortRogueBattleCharacter* FallingCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(45.0f, 0.0f, 55.0f), FRotator::ZeroRotator, SpawnParams);
 	TestNotNull(TEXT("Falling battle character is spawned"), FallingCharacter);

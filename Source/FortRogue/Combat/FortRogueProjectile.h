@@ -7,6 +7,7 @@
 #include "FortRogueProjectile.generated.h"
 
 class AFortRogueBattleCharacter;
+class AFortRogueDestructibleTerrain;
 class USphereComponent;
 class UStaticMeshComponent;
 
@@ -20,7 +21,7 @@ public:
 
 	virtual void Tick(float DeltaSeconds) override;
 
-	void InitializeProjectile(AFortRogueBattleCharacter* InOwnerCharacter, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity);
+	void InitializeProjectile(AFortRogueBattleCharacter* InOwnerCharacter, AFortRogueDestructibleTerrain* InTerrain, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity);
 
 private:
 	void ResolveImpact(const FVector& ImpactLocation);
@@ -33,6 +34,9 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<AFortRogueBattleCharacter> OwnerCharacter;
+
+	UPROPERTY()
+	TObjectPtr<AFortRogueDestructibleTerrain> AssignedTerrain;
 
 	FVector Velocity = FVector::ZeroVector;
 	float Damage = 35.0f;
