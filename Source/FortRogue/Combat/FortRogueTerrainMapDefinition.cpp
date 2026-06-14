@@ -109,6 +109,78 @@ int32 GetNearestImportSourceY(int32 TargetY, int32 TargetHeight, const FIntRect&
 {
 	return FMath::Clamp(SourceRegion.Min.Y + FMath::FloorToInt((static_cast<float>(TargetY) + 0.5f) * SourceRegion.Height() / FMath::Max(1, TargetHeight)), SourceRegion.Min.Y, SourceRegion.Max.Y - 1);
 }
+
+float GetImportSourceCoordinate(int32 Target, int32 TargetSize, int32 SourceMin, int32 SourceSize)
+{
+	return SourceMin + (static_cast<float>(Target) + 0.5f) * SourceSize / FMath::Max(1, TargetSize) - 0.5f;
+}
+
+uint8 GetImportMaskSample(const TArray<FColor>& Pixels, int32 TextureWidth, const FIntRect& SourceRegion, int32 TargetX, int32 TargetY, int32 TargetWidth, int32 TargetHeight, bool bUseAlpha)
+{
+	const bool bUpscaling = TargetWidth > SourceRegion.Width() || TargetHeight > SourceRegion.Height();
+	if (!bUpscaling)
+	{
+		const int32 TextureX = GetNearestImportSourceX(TargetX, TargetWidth, SourceRegion);
+		const int32 TextureY = GetNearestImportSourceY(TargetY, TargetHeight, SourceRegion);
+		const FColor Pixel = Pixels[TextureY * TextureWidth + TextureX];
+		return bUseAlpha ? Pixel.A : static_cast<uint8>((static_cast<int32>(Pixel.R) + Pixel.G + Pixel.B) / 3);
+	}
+
+	const float SourceX = FMath::Clamp(GetImportSourceCoordinate(TargetX, TargetWidth, SourceRegion.Min.X, SourceRegion.Width()), static_cast<float>(SourceRegion.Min.X), static_cast<float>(SourceRegion.Max.X - 1));
+	const float SourceY = FMath::Clamp(GetImportSourceCoordinate(TargetY, TargetHeight, SourceRegion.Min.Y, SourceRegion.Height()), static_cast<float>(SourceRegion.Min.Y), static_cast<float>(SourceRegion.Max.Y - 1));
+	const int32 X0 = FMath::Clamp(FMath::FloorToInt(SourceX), SourceRegion.Min.X, SourceRegion.Max.X - 1);
+	const int32 Y0 = FMath::Clamp(FMath::FloorToInt(SourceY), SourceRegion.Min.Y, SourceRegion.Max.Y - 1);
+	const int32 X1 = FMath::Clamp(X0 + 1, SourceRegion.Min.X, SourceRegion.Max.X - 1);
+	const int32 Y1 = FMath::Clamp(Y0 + 1, SourceRegion.Min.Y, SourceRegion.Max.Y - 1);
+	const float LerpX = SourceX - X0;
+	const float LerpY = SourceY - Y0;
+
+	auto ReadSample = [&Pixels, TextureWidth, bUseAlpha](int32 X, int32 Y)
+	{
+		const FColor Pixel = Pixels[Y * TextureWidth + X];
+		return static_cast<float>(bUseAlpha ? Pixel.A : static_cast<uint8>((static_cast<int32>(Pixel.R) + Pixel.G + Pixel.B) / 3));
+	};
+
+	const float Top = FMath::Lerp(ReadSample(X0, Y0), ReadSample(X1, Y0), LerpX);
+	const float Bottom = FMath::Lerp(ReadSample(X0, Y1), ReadSample(X1, Y1), LerpX);
+	return static_cast<uint8>(FMath::Clamp(FMath::RoundToInt(FMath::Lerp(Top, Bottom, LerpY)), 0, 255));
+}
+
+bool IsImportColorMatch(const FColor& Pixel, const FColor& Target, uint8 ToleranceByte)
+{
+	return FMath::Abs(static_cast<int32>(Pixel.R) - Target.R) <= ToleranceByte
+		&& FMath::Abs(static_cast<int32>(Pixel.G) - Target.G) <= ToleranceByte
+		&& FMath::Abs(static_cast<int32>(Pixel.B) - Target.B) <= ToleranceByte;
+}
+
+bool GetImportColorMatch(const TArray<FColor>& Pixels, int32 TextureWidth, const FIntRect& SourceRegion, int32 TargetX, int32 TargetY, int32 TargetWidth, int32 TargetHeight, const FColor& Target, uint8 ToleranceByte)
+{
+	const bool bUpscaling = TargetWidth > SourceRegion.Width() || TargetHeight > SourceRegion.Height();
+	if (!bUpscaling)
+	{
+		const int32 TextureX = GetNearestImportSourceX(TargetX, TargetWidth, SourceRegion);
+		const int32 TextureY = GetNearestImportSourceY(TargetY, TargetHeight, SourceRegion);
+		return IsImportColorMatch(Pixels[TextureY * TextureWidth + TextureX], Target, ToleranceByte);
+	}
+
+	const float SourceX = FMath::Clamp(GetImportSourceCoordinate(TargetX, TargetWidth, SourceRegion.Min.X, SourceRegion.Width()), static_cast<float>(SourceRegion.Min.X), static_cast<float>(SourceRegion.Max.X - 1));
+	const float SourceY = FMath::Clamp(GetImportSourceCoordinate(TargetY, TargetHeight, SourceRegion.Min.Y, SourceRegion.Height()), static_cast<float>(SourceRegion.Min.Y), static_cast<float>(SourceRegion.Max.Y - 1));
+	const int32 X0 = FMath::Clamp(FMath::FloorToInt(SourceX), SourceRegion.Min.X, SourceRegion.Max.X - 1);
+	const int32 Y0 = FMath::Clamp(FMath::FloorToInt(SourceY), SourceRegion.Min.Y, SourceRegion.Max.Y - 1);
+	const int32 X1 = FMath::Clamp(X0 + 1, SourceRegion.Min.X, SourceRegion.Max.X - 1);
+	const int32 Y1 = FMath::Clamp(Y0 + 1, SourceRegion.Min.Y, SourceRegion.Max.Y - 1);
+	const float LerpX = SourceX - X0;
+	const float LerpY = SourceY - Y0;
+
+	auto MatchWeight = [&Pixels, TextureWidth, &Target, ToleranceByte](int32 X, int32 Y)
+	{
+		return IsImportColorMatch(Pixels[Y * TextureWidth + X], Target, ToleranceByte) ? 1.0f : 0.0f;
+	};
+
+	const float Top = FMath::Lerp(MatchWeight(X0, Y0), MatchWeight(X1, Y0), LerpX);
+	const float Bottom = FMath::Lerp(MatchWeight(X0, Y1), MatchWeight(X1, Y1), LerpX);
+	return FMath::Lerp(Top, Bottom, LerpY) >= 0.5f;
+}
 }
 
 UFortRogueTerrainMapDefinition::UFortRogueTerrainMapDefinition()
@@ -287,10 +359,7 @@ bool UFortRogueTerrainMapDefinition::ImportSolidMaskFromTextureRegion(UTexture2D
 	{
 		for (int32 X = 0; X < CellsX; ++X)
 		{
-			const int32 TextureX = GetNearestImportSourceX(X, CellsX, SourceRegion);
-			const int32 TextureY = GetNearestImportSourceY(TargetY, CellsZ, SourceRegion);
-			const FColor Pixel = Pixels[TextureY * TextureWidth + TextureX];
-			const uint8 Sample = bUseAlpha ? Pixel.A : static_cast<uint8>((static_cast<int32>(Pixel.R) + Pixel.G + Pixel.B) / 3);
+			const uint8 Sample = GetImportMaskSample(Pixels, TextureWidth, SourceRegion, X, TargetY, CellsX, CellsZ, bUseAlpha);
 			const bool bSolid = Sample >= ThresholdByte;
 			const int32 Index = ToIndex(X, CellsZ - 1 - TargetY);
 			SolidMask[Index] = bSolid ? 1 : 0;
@@ -330,12 +399,7 @@ bool UFortRogueTerrainMapDefinition::ImportSolidMaskFromTextureRegionByColor(UTe
 	{
 		for (int32 X = 0; X < CellsX; ++X)
 		{
-			const int32 TextureX = GetNearestImportSourceX(X, CellsX, SourceRegion);
-			const int32 TextureY = GetNearestImportSourceY(TargetY, CellsZ, SourceRegion);
-			const FColor Pixel = Pixels[TextureY * TextureWidth + TextureX];
-			const bool bSolid = FMath::Abs(static_cast<int32>(Pixel.R) - Target.R) <= ToleranceByte
-				&& FMath::Abs(static_cast<int32>(Pixel.G) - Target.G) <= ToleranceByte
-				&& FMath::Abs(static_cast<int32>(Pixel.B) - Target.B) <= ToleranceByte;
+			const bool bSolid = GetImportColorMatch(Pixels, TextureWidth, SourceRegion, X, TargetY, CellsX, CellsZ, Target, ToleranceByte);
 			const int32 Index = ToIndex(X, CellsZ - 1 - TargetY);
 			SolidMask[Index] = bSolid ? 1 : 0;
 			TextureLayerMask[Index] = bSolid ? ClampedLayer : 0;

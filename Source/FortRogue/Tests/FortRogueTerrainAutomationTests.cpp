@@ -136,6 +136,37 @@ bool FFortRogueTerrainMapDefinitionImportTest::RunTest(const FString& Parameters
 	TestEqual(TEXT("High-resolution import preserves empty source areas"), HighResolutionMap->SolidMask[HighResolutionMap->ToIndex(800, 959)], static_cast<uint8>(0));
 	TestEqual(TEXT("High-resolution imported solid cells receive requested texture layer"), HighResolutionMap->TextureLayerMask[HighResolutionMap->ToIndex(400, 479)], static_cast<uint8>(8));
 
+	UTexture2D* EdgeTexture = UTexture2D::CreateTransient(2, 1, PF_B8G8R8A8);
+	TestNotNull(TEXT("Transient edge texture is created"), EdgeTexture);
+	if (!EdgeTexture || !EdgeTexture->GetPlatformData() || EdgeTexture->GetPlatformData()->Mips.Num() == 0)
+	{
+		return false;
+	}
+
+	FTexture2DMipMap& EdgeMip = EdgeTexture->GetPlatformData()->Mips[0];
+	void* EdgeTextureData = EdgeMip.BulkData.Lock(LOCK_READ_WRITE);
+	TestNotNull(TEXT("Transient edge texture mip locks"), EdgeTextureData);
+	if (!EdgeTextureData)
+	{
+		EdgeMip.BulkData.Unlock();
+		return false;
+	}
+
+	FColor* EdgePixels = static_cast<FColor*>(EdgeTextureData);
+	EdgePixels[0] = FColor(0, 0, 0, 0);
+	EdgePixels[1] = FColor(255, 255, 255, 255);
+	EdgeMip.BulkData.Unlock();
+
+	UFortRogueTerrainMapDefinition* UpscaledEdgeMap = NewObject<UFortRogueTerrainMapDefinition>();
+	TestNotNull(TEXT("Upscaled edge import map asset object is created"), UpscaledEdgeMap);
+	UpscaledEdgeMap->Resize(4, 1);
+	const bool bUpscaledEdgeImported = UpscaledEdgeMap->ImportSolidMaskFromTexture(EdgeTexture, true, 0.2f, 3, false);
+	TestTrue(TEXT("Low-resolution edge mask imports into a larger map"), bUpscaledEdgeImported);
+	TestEqual(TEXT("Upscaled import keeps the first edge cell empty"), UpscaledEdgeMap->SolidMask[UpscaledEdgeMap->ToIndex(0, 0)], static_cast<uint8>(0));
+	TestEqual(TEXT("Upscaled import interpolates the edge instead of nearest-only sampling"), UpscaledEdgeMap->SolidMask[UpscaledEdgeMap->ToIndex(1, 0)], static_cast<uint8>(1));
+	TestEqual(TEXT("Upscaled import keeps the solid side filled"), UpscaledEdgeMap->SolidMask[UpscaledEdgeMap->ToIndex(2, 0)], static_cast<uint8>(1));
+	TestEqual(TEXT("Upscaled import assigns the requested layer on interpolated cells"), UpscaledEdgeMap->TextureLayerMask[UpscaledEdgeMap->ToIndex(1, 0)], static_cast<uint8>(3));
+
 	UFortRogueTerrainMapDefinition* RegionMap = NewObject<UFortRogueTerrainMapDefinition>();
 	TestNotNull(TEXT("Region import map asset object is created"), RegionMap);
 	const bool bRegionImported = RegionMap->ImportSolidMaskFromTextureRegion(Texture, 1, 1, 2, 2, true, 0.5f, 5);
