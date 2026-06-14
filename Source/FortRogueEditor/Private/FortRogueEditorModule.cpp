@@ -50,6 +50,7 @@ public:
 		SLATE_ATTRIBUTE(int32, EditMode)
 		SLATE_ATTRIBUTE(int32, BrushRadius)
 		SLATE_ATTRIBUTE(int32, TextureLayer)
+		SLATE_ATTRIBUTE(int32, CanvasCellPixels)
 		SLATE_EVENT(FSimpleDelegate, OnEdited)
 	SLATE_END_ARGS()
 
@@ -59,11 +60,19 @@ public:
 		EditModeAttribute = InArgs._EditMode;
 		BrushRadiusAttribute = InArgs._BrushRadius;
 		TextureLayerAttribute = InArgs._TextureLayer;
+		CanvasCellPixelsAttribute = InArgs._CanvasCellPixels;
 		OnEdited = InArgs._OnEdited;
 	}
 
 	virtual FVector2D ComputeDesiredSize(float LayoutScaleMultiplier) const override
 	{
+		const UFortRogueTerrainMapDefinition* Map = MapAttribute.Get();
+		const int32 FixedCellPixels = GetFixedCellPixels();
+		if (Map && FixedCellPixels > 0)
+		{
+			return FVector2D(Map->CellsX * FixedCellPixels, Map->CellsZ * FixedCellPixels);
+		}
+
 		return FVector2D(760.0f, 420.0f);
 	}
 
@@ -209,8 +218,19 @@ private:
 			return 1.0f;
 		}
 
+		const int32 FixedCellPixels = GetFixedCellPixels();
+		if (FixedCellPixels > 0)
+		{
+			return static_cast<float>(FixedCellPixels);
+		}
+
 		const FVector2D Size = Geometry.GetLocalSize();
 		return FMath::Max(0.05f, FMath::Min(Size.X / Map->CellsX, Size.Y / Map->CellsZ));
+	}
+
+	int32 GetFixedCellPixels() const
+	{
+		return FMath::Max(0, CanvasCellPixelsAttribute.Get());
 	}
 
 	static FVector2D GetCellDrawSize(float CellPixels, int32 CellCountX, int32 CellCountZ)
@@ -330,6 +350,7 @@ private:
 	TAttribute<int32> EditModeAttribute;
 	TAttribute<int32> BrushRadiusAttribute;
 	TAttribute<int32> TextureLayerAttribute;
+	TAttribute<int32> CanvasCellPixelsAttribute;
 	FSimpleDelegate OnEdited;
 	mutable bool bDragging = false;
 	mutable FIntPoint DragStart = FIntPoint(-1, -1);
@@ -379,12 +400,18 @@ public:
 				.FillHeight(1.0f)
 				.Padding(8.0f)
 				[
-					SNew(SFortRogueTerrainMapCanvas)
-					.Map_Lambda([this]() { return EditingAsset.Get(); })
-					.EditMode_Lambda([this]() { return EditMode; })
-					.BrushRadius_Lambda([this]() { return CircleRadius; })
-					.TextureLayer_Lambda([this]() { return TextureLayerIndex; })
-					.OnEdited(FSimpleDelegate::CreateSP(this, &SFortRogueTerrainMapEditor::OnCanvasEdited))
+					SNew(SScrollBox)
+					.Orientation(Orient_Horizontal)
+					+ SScrollBox::Slot()
+					[
+						SNew(SFortRogueTerrainMapCanvas)
+						.Map_Lambda([this]() { return EditingAsset.Get(); })
+						.EditMode_Lambda([this]() { return EditMode; })
+						.BrushRadius_Lambda([this]() { return CircleRadius; })
+						.TextureLayer_Lambda([this]() { return TextureLayerIndex; })
+						.CanvasCellPixels_Lambda([this]() { return CanvasCellPixels; })
+						.OnEdited(FSimpleDelegate::CreateSP(this, &SFortRogueTerrainMapEditor::OnCanvasEdited))
+					]
 				]
 				+ SVerticalBox::Slot()
 				.AutoHeight()
@@ -463,6 +490,17 @@ private:
 				+ SHorizontalBox::Slot().AutoWidth().Padding(0.0f, 0.0f, 6.0f, 0.0f)[MakeModeButton(LOCTEXT("ModeEraseRect", "Erase Rect"), static_cast<int32>(EFortRogueTerrainEditMode::EraseRect))]
 				+ SHorizontalBox::Slot().AutoWidth().Padding(0.0f, 0.0f, 6.0f, 0.0f)[MakeModeButton(LOCTEXT("ModeTexturePaint", "Texture Paint"), static_cast<int32>(EFortRogueTerrainEditMode::TextureCircle))]
 				+ SHorizontalBox::Slot().AutoWidth()[MakeModeButton(LOCTEXT("ModeTextureRect", "Texture Rect"), static_cast<int32>(EFortRogueTerrainEditMode::TextureRect))]
+			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0.0f, 4.0f)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot().AutoWidth().Padding(0.0f, 0.0f, 6.0f, 0.0f)[MakeCanvasZoomButton(LOCTEXT("ZoomFit", "Fit"), 0)]
+				+ SHorizontalBox::Slot().AutoWidth().Padding(0.0f, 0.0f, 6.0f, 0.0f)[MakeCanvasZoomButton(LOCTEXT("Zoom1x", "1x"), 1)]
+				+ SHorizontalBox::Slot().AutoWidth().Padding(0.0f, 0.0f, 6.0f, 0.0f)[MakeCanvasZoomButton(LOCTEXT("Zoom2x", "2x"), 2)]
+				+ SHorizontalBox::Slot().AutoWidth().Padding(0.0f, 0.0f, 6.0f, 0.0f)[MakeCanvasZoomButton(LOCTEXT("Zoom4x", "4x"), 4)]
+				+ SHorizontalBox::Slot().AutoWidth()[MakeCanvasZoomButton(LOCTEXT("Zoom8x", "8x"), 8)]
 			];
 	}
 
@@ -478,6 +516,22 @@ private:
 			{
 				EditMode = NewMode;
 				StatusText = LOCTEXT("ModeChanged", "Changed canvas edit mode.");
+				return FReply::Handled();
+			});
+	}
+
+	TSharedRef<SWidget> MakeCanvasZoomButton(const FText& Label, int32 NewCellPixels)
+	{
+		return SNew(SButton)
+			.Text(Label)
+			.ButtonColorAndOpacity_Lambda([this, NewCellPixels]()
+			{
+				return CanvasCellPixels == NewCellPixels ? FLinearColor(0.30f, 0.48f, 0.75f, 1.0f) : FLinearColor::White;
+			})
+			.OnClicked_Lambda([this, NewCellPixels]()
+			{
+				CanvasCellPixels = NewCellPixels;
+				StatusText = LOCTEXT("ZoomChanged", "Changed canvas zoom.");
 				return FReply::Handled();
 			});
 	}
@@ -1029,6 +1083,7 @@ private:
 	int32 CircleZ = 120;
 	int32 CircleRadius = 8;
 	int32 TextureLayerIndex = 0;
+	int32 CanvasCellPixels = 0;
 	int32 ImportSourceX = 0;
 	int32 ImportSourceY = 0;
 	int32 ImportSourceWidth = 0;
