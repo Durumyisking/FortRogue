@@ -16,6 +16,13 @@
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 
+namespace
+{
+constexpr float TerrainCameraPadding = 240.0f;
+constexpr float MinimumTerrainCameraOrthoWidth = 1200.0f;
+constexpr float ExpectedWideViewportAspectRatio = 16.0f / 9.0f;
+}
+
 AFortRogueGameMode::AFortRogueGameMode()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -224,7 +231,7 @@ void AFortRogueGameMode::SpawnMVPBattle()
 		if (BattleCamera && BattleCamera->GetCameraComponent())
 		{
 			BattleCamera->GetCameraComponent()->ProjectionMode = ECameraProjectionMode::Orthographic;
-			BattleCamera->GetCameraComponent()->OrthoWidth = CameraOrthoWidth;
+			BattleCamera->GetCameraComponent()->OrthoWidth = GetInitialCameraOrthoWidth();
 			PlayerController->SetViewTarget(BattleCamera);
 		}
 	}
@@ -366,6 +373,18 @@ void AFortRogueGameMode::ResetShotCameraState()
 	ActiveProjectiles.Reset();
 	bHoldingImpactCamera = false;
 	GetWorldTimerManager().ClearTimer(ShotResolutionTimerHandle);
+}
+
+float AFortRogueGameMode::GetInitialCameraOrthoWidth() const
+{
+	if (!Terrain || !TerrainMapDefinition)
+	{
+		return CameraOrthoWidth;
+	}
+
+	const float WidthFit = Terrain->Width + TerrainCameraPadding;
+	const float HeightFit = Terrain->Height * ExpectedWideViewportAspectRatio + TerrainCameraPadding;
+	return FMath::Max(MinimumTerrainCameraOrthoWidth, FMath::Max(WidthFit, HeightFit));
 }
 
 FVector AFortRogueGameMode::GetDesiredCameraLocation() const

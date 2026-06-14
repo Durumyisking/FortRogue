@@ -77,6 +77,7 @@ private:
 	void SetStatus(const FString& NewStatus);
 	void UpdateBattleCamera(float DeltaSeconds);
 	void ResetShotCameraState();
+	float GetInitialCameraOrthoWidth() const;
 	FVector GetDesiredCameraLocation() const;
 	FVector GetCameraFocusLocation() const;
 
