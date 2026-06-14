@@ -471,7 +471,7 @@ void AFortRogueDestructibleTerrain::UpdateRuntimeTexture()
 
 void AFortRogueDestructibleTerrain::UpdateRuntimeTextureRegion(int32 MinX, int32 MinZ, int32 MaxX, int32 MaxZ)
 {
-	if (!RuntimeTerrainTexture || !RuntimeTerrainTexture->GetPlatformData() || RuntimeTerrainTexture->GetPlatformData()->Mips.Num() == 0 || RuntimeTexturePixels.Num() != CellsX * CellsZ)
+	if (!RuntimeTerrainTexture || RuntimeTexturePixels.Num() != CellsX * CellsZ)
 	{
 		return;
 	}
@@ -494,23 +494,35 @@ void AFortRogueDestructibleTerrain::UpdateRuntimeTextureRegion(int32 MinX, int32
 		}
 	}
 
-	FTexture2DMipMap& Mip = RuntimeTerrainTexture->GetPlatformData()->Mips[0];
-	void* TextureData = Mip.BulkData.Lock(LOCK_READ_WRITE);
-	if (!TextureData)
+	const int32 RegionWidth = MaxX - MinX + 1;
+	const int32 RegionHeight = MaxZ - MinZ + 1;
+	const int32 TextureMinY = CellsZ - 1 - MaxZ;
+	FColor* RegionPixels = static_cast<FColor*>(FMemory::Malloc(RegionWidth * RegionHeight * sizeof(FColor)));
+	if (!RegionPixels)
 	{
-		Mip.BulkData.Unlock();
 		return;
 	}
 
-	FColor* TexturePixels = static_cast<FColor*>(TextureData);
-	for (int32 Z = MinZ; Z <= MaxZ; ++Z)
+	for (int32 Row = 0; Row < RegionHeight; ++Row)
 	{
-		const int32 TextureY = CellsZ - 1 - Z;
+		const int32 TextureY = TextureMinY + Row;
 		const int32 TextureIndex = TextureY * CellsX + MinX;
-		FMemory::Memcpy(TexturePixels + TextureIndex, RuntimeTexturePixels.GetData() + TextureIndex, (MaxX - MinX + 1) * sizeof(FColor));
+		FMemory::Memcpy(RegionPixels + Row * RegionWidth, RuntimeTexturePixels.GetData() + TextureIndex, RegionWidth * sizeof(FColor));
 	}
-	Mip.BulkData.Unlock();
-	RuntimeTerrainTexture->UpdateResource();
+
+	FUpdateTextureRegion2D* Region = new FUpdateTextureRegion2D(MinX, TextureMinY, 0, 0, RegionWidth, RegionHeight);
+	RuntimeTerrainTexture->UpdateTextureRegions(
+		0,
+		1,
+		Region,
+		RegionWidth * sizeof(FColor),
+		sizeof(FColor),
+		reinterpret_cast<uint8*>(RegionPixels),
+		[](uint8* SrcData, const FUpdateTextureRegion2D* Regions)
+		{
+			FMemory::Free(SrcData);
+			delete Regions;
+		});
 }
 
 FColor AFortRogueDestructibleTerrain::GetTerrainPixelColor(int32 X, int32 Z) const
