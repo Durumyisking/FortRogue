@@ -437,8 +437,8 @@ bool AFortRogueDestructibleTerrain::TryGetLayerTextureColor(uint8 LayerIndex, in
 		return false;
 	}
 
-	const int32 TextureX = FMath::Abs(X) % TextureSize.X;
-	const int32 TextureY = TextureSize.Y - 1 - (FMath::Abs(Z) % TextureSize.Y);
+	const int32 TextureX = FMath::Clamp(FMath::FloorToInt((static_cast<float>(X) + 0.5f) * TextureSize.X / FMath::Max(1, CellsX)), 0, TextureSize.X - 1);
+	const int32 TextureY = FMath::Clamp(FMath::FloorToInt((static_cast<float>(CellsZ - 1 - Z) + 0.5f) * TextureSize.Y / FMath::Max(1, CellsZ)), 0, TextureSize.Y - 1);
 	OutColor = TexturePixels[TextureY * TextureSize.X + TextureX];
 	OutColor.A = 255;
 	return true;

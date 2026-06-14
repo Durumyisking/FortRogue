@@ -207,6 +207,25 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	Map->PlayerSpawnLocal = FVector(-999.0f, 0.0f, 5.0f);
 	Map->EnemySpawnLocal = FVector(999.0f, 0.0f, 5.0f);
 
+	UTexture2D* LayerTexture = UTexture2D::CreateTransient(2, 2, PF_B8G8R8A8);
+	TestNotNull(TEXT("Layer source texture is created"), LayerTexture);
+	if (LayerTexture && LayerTexture->GetPlatformData() && LayerTexture->GetPlatformData()->Mips.Num() > 0)
+	{
+		FTexture2DMipMap& LayerMip = LayerTexture->GetPlatformData()->Mips[0];
+		void* LayerData = LayerMip.BulkData.Lock(LOCK_READ_WRITE);
+		TestNotNull(TEXT("Layer source texture mip locks"), LayerData);
+		if (LayerData)
+		{
+			FColor* LayerPixels = static_cast<FColor*>(LayerData);
+			LayerPixels[0] = FColor::Red;
+			LayerPixels[1] = FColor::Green;
+			LayerPixels[2] = FColor::Blue;
+			LayerPixels[3] = FColor::Yellow;
+		}
+		LayerMip.BulkData.Unlock();
+		Map->SetTextureLayer(0, LayerTexture);
+	}
+
 	UFortRogueTerrainMapDefinition* OverlappingMap = NewObject<UFortRogueTerrainMapDefinition>();
 	OverlappingMap->Resize(20, 6);
 	OverlappingMap->CellSize = 10.0f;
@@ -255,6 +274,16 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	{
 		TestTrue(TEXT("Runtime terrain texture uses bilinear filtering to avoid chunky upscale"), RuntimeTexture->Filter == TF_Bilinear);
 		TestTrue(TEXT("Runtime terrain texture does not stream"), RuntimeTexture->NeverStream);
+		FTexture2DMipMap& RuntimeMip = RuntimeTexture->GetPlatformData()->Mips[0];
+		const FColor* RuntimePixels = static_cast<const FColor*>(RuntimeMip.BulkData.LockReadOnly());
+		TestNotNull(TEXT("Runtime terrain texture mip locks"), RuntimePixels);
+		if (RuntimePixels)
+		{
+			TestEqual(TEXT("Layer texture maps across bottom-left terrain cells"), RuntimePixels[5 * 20 + 2], FColor::Blue);
+			TestEqual(TEXT("Layer texture maps across bottom-right terrain cells"), RuntimePixels[5 * 20 + 17], FColor::Yellow);
+			TestEqual(TEXT("Layer texture maps across top-right terrain cells"), RuntimePixels[0 * 20 + 10], FColor::Green);
+		}
+		RuntimeMip.BulkData.Unlock();
 	}
 	if (TexturePlane)
 	{
