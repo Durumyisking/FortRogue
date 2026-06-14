@@ -27,6 +27,7 @@ class SFortRogueTerrainMapEditor;
 namespace FortRogueEditor
 {
 static const FName TerrainMapEditorTabName(TEXT("FortRogueTerrainMapEditor"));
+constexpr float DefaultSpawnClearance = 80.0f;
 static TWeakObjectPtr<UFortRogueTerrainMapDefinition> PendingTerrainMapAsset;
 static TWeakPtr<SFortRogueTerrainMapEditor> ActiveTerrainMapEditor;
 static void OpenTerrainMapEditorForAsset(UFortRogueTerrainMapDefinition* Asset);
@@ -39,7 +40,9 @@ enum class EFortRogueTerrainEditMode : int32
 	FillRect,
 	EraseRect,
 	TextureCircle,
-	TextureRect
+	TextureRect,
+	PlayerSpawn,
+	EnemySpawn
 };
 
 class SFortRogueTerrainMapCanvas : public SLeafWidget
@@ -123,6 +126,9 @@ public:
 			}
 		}
 
+		DrawSpawnMarker(AllottedGeometry, OutDrawElements, LayerId + 2, Origin, CellPixels, *Map, Map->PlayerSpawnLocal, FLinearColor(0.12f, 0.42f, 1.0f, 0.85f));
+		DrawSpawnMarker(AllottedGeometry, OutDrawElements, LayerId + 3, Origin, CellPixels, *Map, Map->EnemySpawnLocal, FLinearColor(1.0f, 0.18f, 0.12f, 0.85f));
+
 		if (bDragging && DragStart.X >= 0 && DragCurrent.X >= 0 && IsRectMode(GetEditMode()))
 		{
 			const int32 MinX = FMath::Min(DragStart.X, DragCurrent.X);
@@ -131,10 +137,10 @@ public:
 			const int32 MaxZ = FMath::Max(DragStart.Y, DragCurrent.Y);
 			const FVector2D RectPosition = Origin + FVector2D(MinX * CellPixels, (Map->CellsZ - 1 - MaxZ) * CellPixels);
 			const FVector2D RectSize = GetCellDrawSize(CellPixels, MaxX - MinX + 1, MaxZ - MinZ + 1);
-			FSlateDrawElement::MakeBox(OutDrawElements, LayerId + 2, AllottedGeometry.ToPaintGeometry(RectSize, FSlateLayoutTransform(RectPosition)), FCoreStyle::Get().GetBrush("WhiteBrush"), ESlateDrawEffect::None, FLinearColor(1.0f, 1.0f, 1.0f, 0.18f));
+			FSlateDrawElement::MakeBox(OutDrawElements, LayerId + 4, AllottedGeometry.ToPaintGeometry(RectSize, FSlateLayoutTransform(RectPosition)), FCoreStyle::Get().GetBrush("WhiteBrush"), ESlateDrawEffect::None, FLinearColor(1.0f, 1.0f, 1.0f, 0.18f));
 		}
 
-		return LayerId + 3;
+		return LayerId + 5;
 	}
 
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
@@ -300,6 +306,14 @@ private:
 		{
 			Map->ApplyTextureCircle(Cell.X, Cell.Y, Radius, TextureLayerAttribute.Get());
 		}
+		else if (EditMode == static_cast<int32>(EFortRogueTerrainEditMode::PlayerSpawn))
+		{
+			SetSpawnAtCell(*Map, Cell, false);
+		}
+		else if (EditMode == static_cast<int32>(EFortRogueTerrainEditMode::EnemySpawn))
+		{
+			SetSpawnAtCell(*Map, Cell, true);
+		}
 
 		Map->MarkPackageDirty();
 		OnEdited.ExecuteIfBound();
@@ -344,6 +358,31 @@ private:
 		};
 
 		return Colors[Layer % UE_ARRAY_COUNT(Colors)];
+	}
+
+	static void SetSpawnAtCell(UFortRogueTerrainMapDefinition& Map, const FIntPoint& Cell, bool bEnemySpawn)
+	{
+		const float LocalX = (static_cast<float>(Cell.X) + 0.5f) * Map.CellSize - Map.CellsX * Map.CellSize * 0.5f;
+		const float LocalZ = Map.CellsZ * Map.CellSize + FortRogueEditor::DefaultSpawnClearance;
+		if (bEnemySpawn)
+		{
+			Map.EnemySpawnLocal = FVector(LocalX, 0.0f, LocalZ);
+		}
+		else
+		{
+			Map.PlayerSpawnLocal = FVector(LocalX, 0.0f, LocalZ);
+		}
+	}
+
+	static void DrawSpawnMarker(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FVector2D& Origin, float CellPixels, const UFortRogueTerrainMapDefinition& Map, const FVector& SpawnLocal, const FLinearColor& Color)
+	{
+		const float MapWidth = Map.CellsX * Map.CellSize;
+		const float ClampedLocalX = FMath::Clamp(static_cast<float>(SpawnLocal.X), MapWidth * -0.5f, MapWidth * 0.5f);
+		const float MarkerX = Origin.X + (ClampedLocalX + MapWidth * 0.5f) / FMath::Max(Map.CellSize, UE_SMALL_NUMBER) * CellPixels;
+		const float CanvasHeight = Map.CellsZ * CellPixels;
+		const FVector2D MarkerPosition(MarkerX - 1.0f, Origin.Y);
+		const FVector2D MarkerSize(2.0f, CanvasHeight);
+		FSlateDrawElement::MakeBox(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(MarkerSize, FSlateLayoutTransform(MarkerPosition)), FCoreStyle::Get().GetBrush("WhiteBrush"), ESlateDrawEffect::None, Color);
 	}
 
 	TAttribute<UFortRogueTerrainMapDefinition*> MapAttribute;
@@ -489,7 +528,9 @@ private:
 				+ SHorizontalBox::Slot().AutoWidth().Padding(0.0f, 0.0f, 6.0f, 0.0f)[MakeModeButton(LOCTEXT("ModeFillRect", "Fill Rect"), static_cast<int32>(EFortRogueTerrainEditMode::FillRect))]
 				+ SHorizontalBox::Slot().AutoWidth().Padding(0.0f, 0.0f, 6.0f, 0.0f)[MakeModeButton(LOCTEXT("ModeEraseRect", "Erase Rect"), static_cast<int32>(EFortRogueTerrainEditMode::EraseRect))]
 				+ SHorizontalBox::Slot().AutoWidth().Padding(0.0f, 0.0f, 6.0f, 0.0f)[MakeModeButton(LOCTEXT("ModeTexturePaint", "Texture Paint"), static_cast<int32>(EFortRogueTerrainEditMode::TextureCircle))]
-				+ SHorizontalBox::Slot().AutoWidth()[MakeModeButton(LOCTEXT("ModeTextureRect", "Texture Rect"), static_cast<int32>(EFortRogueTerrainEditMode::TextureRect))]
+				+ SHorizontalBox::Slot().AutoWidth().Padding(0.0f, 0.0f, 6.0f, 0.0f)[MakeModeButton(LOCTEXT("ModeTextureRect", "Texture Rect"), static_cast<int32>(EFortRogueTerrainEditMode::TextureRect))]
+				+ SHorizontalBox::Slot().AutoWidth().Padding(0.0f, 0.0f, 6.0f, 0.0f)[MakeModeButton(LOCTEXT("ModePlayerSpawn", "Player Spawn"), static_cast<int32>(EFortRogueTerrainEditMode::PlayerSpawn))]
+				+ SHorizontalBox::Slot().AutoWidth()[MakeModeButton(LOCTEXT("ModeEnemySpawn", "Enemy Spawn"), static_cast<int32>(EFortRogueTerrainEditMode::EnemySpawn))]
 			]
 			+ SVerticalBox::Slot()
 			.AutoHeight()
