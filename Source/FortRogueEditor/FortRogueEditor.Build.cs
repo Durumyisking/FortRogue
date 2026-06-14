@@ -18,7 +18,8 @@ public class FortRogueEditor : ModuleRules
 			"SlateCore",
 			"ToolMenus",
 			"UnrealEd",
-			"PropertyEditor"
+			"PropertyEditor",
+			"AssetTools"
 		});
 	}
 }

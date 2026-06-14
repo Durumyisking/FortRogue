@@ -1,10 +1,13 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Combat/FortRogueTerrainMapDefinition.h"
+#include "AssetToolsModule.h"
+#include "AssetTypeActions_Base.h"
 #include "Editor.h"
 #include "Engine/Texture2D.h"
 #include "FileHelpers.h"
 #include "Framework/Docking/TabManager.h"
+#include "IAssetTools.h"
 #include "Modules/ModuleManager.h"
 #include "PropertyCustomizationHelpers.h"
 #include "ToolMenus.h"
@@ -19,9 +22,14 @@
 
 #define LOCTEXT_NAMESPACE "FortRogueEditor"
 
+class SFortRogueTerrainMapEditor;
+
 namespace FortRogueEditor
 {
 static const FName TerrainMapEditorTabName(TEXT("FortRogueTerrainMapEditor"));
+static TWeakObjectPtr<UFortRogueTerrainMapDefinition> PendingTerrainMapAsset;
+static TWeakPtr<SFortRogueTerrainMapEditor> ActiveTerrainMapEditor;
+static void OpenTerrainMapEditorForAsset(UFortRogueTerrainMapDefinition* Asset);
 }
 
 enum class EFortRogueTerrainEditMode : int32
@@ -324,10 +332,13 @@ class SFortRogueTerrainMapEditor : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS(SFortRogueTerrainMapEditor) {}
+		SLATE_ARGUMENT(UFortRogueTerrainMapDefinition*, InitialAsset)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs)
 	{
+		SetEditingAsset(InArgs._InitialAsset);
+
 		ChildSlot
 		[
 			SNew(SScrollBox)
@@ -406,6 +417,21 @@ public:
 				]
 			]
 		];
+	}
+
+	void SetEditingAsset(UFortRogueTerrainMapDefinition* Asset)
+	{
+		EditingAsset = Asset;
+		if (EditingAsset.IsValid())
+		{
+			CellsX = EditingAsset->CellsX;
+			CellsZ = EditingAsset->CellsZ;
+			StatusText = LOCTEXT("AssetLoaded", "Loaded terrain map asset.");
+		}
+		else
+		{
+			StatusText = LOCTEXT("NoAsset", "No terrain map asset selected.");
+		}
 	}
 
 private:
@@ -795,17 +821,7 @@ private:
 
 	void OnAssetChanged(const FAssetData& AssetData)
 	{
-		EditingAsset = Cast<UFortRogueTerrainMapDefinition>(AssetData.GetAsset());
-		if (EditingAsset.IsValid())
-		{
-			CellsX = EditingAsset->CellsX;
-			CellsZ = EditingAsset->CellsZ;
-			StatusText = LOCTEXT("AssetLoaded", "Loaded terrain map asset.");
-		}
-		else
-		{
-			StatusText = LOCTEXT("NoAsset", "No terrain map asset selected.");
-		}
+		SetEditingAsset(Cast<UFortRogueTerrainMapDefinition>(AssetData.GetAsset()));
 	}
 
 	void OnTextureChanged(const FAssetData& AssetData)
@@ -1018,6 +1034,56 @@ private:
 	float ImportColorTolerance = 0.08f;
 };
 
+namespace FortRogueEditor
+{
+static void OpenTerrainMapEditorForAsset(UFortRogueTerrainMapDefinition* Asset)
+{
+	PendingTerrainMapAsset = Asset;
+	if (TSharedPtr<SFortRogueTerrainMapEditor> Editor = ActiveTerrainMapEditor.Pin())
+	{
+		Editor->SetEditingAsset(Asset);
+	}
+
+	FGlobalTabmanager::Get()->TryInvokeTab(TerrainMapEditorTabName);
+}
+}
+
+class FFortRogueTerrainMapAssetTypeActions : public FAssetTypeActions_Base
+{
+public:
+	virtual FText GetName() const override
+	{
+		return LOCTEXT("TerrainMapAssetTypeName", "FortRogue Terrain Map Definition");
+	}
+
+	virtual FColor GetTypeColor() const override
+	{
+		return FColor(110, 87, 54);
+	}
+
+	virtual UClass* GetSupportedClass() const override
+	{
+		return UFortRogueTerrainMapDefinition::StaticClass();
+	}
+
+	virtual uint32 GetCategories() override
+	{
+		return EAssetTypeCategories::Misc;
+	}
+
+	virtual void OpenAssetEditor(const TArray<UObject*>& InObjects, TSharedPtr<IToolkitHost> EditWithinLevelEditor = TSharedPtr<IToolkitHost>()) override
+	{
+		for (UObject* Object : InObjects)
+		{
+			if (UFortRogueTerrainMapDefinition* Map = Cast<UFortRogueTerrainMapDefinition>(Object))
+			{
+				FortRogueEditor::OpenTerrainMapEditorForAsset(Map);
+				return;
+			}
+		}
+	}
+};
+
 class FFortRogueEditorModule : public IModuleInterface
 {
 public:
@@ -1028,10 +1094,23 @@ public:
 			.SetMenuType(ETabSpawnerMenuType::Hidden);
 
 		UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FFortRogueEditorModule::RegisterMenus));
+
+		FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+		TerrainMapAssetTypeActions = MakeShared<FFortRogueTerrainMapAssetTypeActions>();
+		AssetToolsModule.Get().RegisterAssetTypeActions(TerrainMapAssetTypeActions.ToSharedRef());
 	}
 
 	virtual void ShutdownModule() override
 	{
+		if (TerrainMapAssetTypeActions.IsValid() && FModuleManager::Get().IsModuleLoaded("AssetTools"))
+		{
+			FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
+			AssetToolsModule.Get().UnregisterAssetTypeActions(TerrainMapAssetTypeActions.ToSharedRef());
+		}
+		TerrainMapAssetTypeActions.Reset();
+		FortRogueEditor::ActiveTerrainMapEditor.Reset();
+		FortRogueEditor::PendingTerrainMapAsset.Reset();
+
 		if (UObjectInitialized())
 		{
 			UToolMenus::UnRegisterStartupCallback(this);
@@ -1044,10 +1123,14 @@ public:
 private:
 	TSharedRef<SDockTab> SpawnTerrainMapEditorTab(const FSpawnTabArgs& Args)
 	{
+		TSharedRef<SFortRogueTerrainMapEditor> Editor = SNew(SFortRogueTerrainMapEditor)
+			.InitialAsset(FortRogueEditor::PendingTerrainMapAsset.Get());
+		FortRogueEditor::ActiveTerrainMapEditor = Editor;
+
 		return SNew(SDockTab)
 			.TabRole(ETabRole::NomadTab)
 			[
-				SNew(SFortRogueTerrainMapEditor)
+				Editor
 			];
 	}
 
@@ -1068,6 +1151,8 @@ private:
 	{
 		FGlobalTabmanager::Get()->TryInvokeTab(FortRogueEditor::TerrainMapEditorTabName);
 	}
+
+	TSharedPtr<IAssetTypeActions> TerrainMapAssetTypeActions;
 };
 
 IMPLEMENT_MODULE(FFortRogueEditorModule, FortRogueEditor)
