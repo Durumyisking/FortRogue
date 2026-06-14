@@ -291,6 +291,15 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 	}
 	TerrainMapProperty->SetObjectPropertyValue_InContainer(GameMode, Map);
 
+	if (FFloatProperty* MinWindProperty = FindFProperty<FFloatProperty>(GameMode->GetClass(), TEXT("MinWind")))
+	{
+		MinWindProperty->SetPropertyValue_InContainer(GameMode, 120.0f);
+	}
+	if (FFloatProperty* MaxWindProperty = FindFProperty<FFloatProperty>(GameMode->GetClass(), TEXT("MaxWind")))
+	{
+		MaxWindProperty->SetPropertyValue_InContainer(GameMode, 120.0f);
+	}
+
 	World->InitializeActorsForPlay(URL);
 	World->BeginPlay();
 
@@ -313,6 +322,16 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 	}
 	TestNotNull(TEXT("Game mode spawns the player character"), GameMode->GetPlayerCharacter());
 	TestNotNull(TEXT("Game mode spawns the enemy character"), GameMode->GetEnemyCharacter());
+	TestEqual(TEXT("Game mode turn wind can be fixed for deterministic projectile tests"), GameMode->GetWind(), 120.0f);
+
+	AFortRogueProjectile* WindProjectile = World->SpawnActor<AFortRogueProjectile>(AFortRogueProjectile::StaticClass(), FVector(0.0f, 0.0f, 500.0f), FRotator::ZeroRotator);
+	TestNotNull(TEXT("Wind test projectile is spawned"), WindProjectile);
+	if (WindProjectile)
+	{
+		WindProjectile->InitializeProjectile(nullptr, nullptr, FVector::ZeroVector, 0.0f, 0.0f, 0.0f);
+		WindProjectile->Tick(0.5f);
+		TestEqual(TEXT("Projectile drift follows the current wind acceleration"), static_cast<float>(WindProjectile->GetActorLocation().X), 30.0f);
+	}
 
 	ACameraActor* BattleCamera = nullptr;
 	for (TActorIterator<ACameraActor> It(World); It; ++It)
