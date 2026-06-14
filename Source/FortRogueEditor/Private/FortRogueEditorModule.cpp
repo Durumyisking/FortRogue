@@ -177,8 +177,13 @@ public:
 		FIntPoint Cell;
 		if (LocalPositionToCell(MyGeometry, MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition()), Cell))
 		{
+			const FIntPoint PreviousCell = DragCurrent;
 			DragCurrent = Cell;
-			if (!IsRectMode(GetEditMode()))
+			if (IsStrokeMode(GetEditMode()) && PreviousCell.X >= 0)
+			{
+				ApplyCircleStroke(PreviousCell, Cell);
+			}
+			else if (!IsRectMode(GetEditMode()))
 			{
 				ApplyCircleAt(Cell);
 			}
@@ -214,6 +219,13 @@ private:
 		return EditMode == static_cast<int32>(EFortRogueTerrainEditMode::FillRect)
 			|| EditMode == static_cast<int32>(EFortRogueTerrainEditMode::EraseRect)
 			|| EditMode == static_cast<int32>(EFortRogueTerrainEditMode::TextureRect);
+	}
+
+	static bool IsStrokeMode(int32 EditMode)
+	{
+		return EditMode == static_cast<int32>(EFortRogueTerrainEditMode::PaintCircle)
+			|| EditMode == static_cast<int32>(EFortRogueTerrainEditMode::EraseCircle)
+			|| EditMode == static_cast<int32>(EFortRogueTerrainEditMode::TextureCircle);
 	}
 
 	float GetCellPixels(const FGeometry& Geometry) const
@@ -313,6 +325,34 @@ private:
 		else if (EditMode == static_cast<int32>(EFortRogueTerrainEditMode::EnemySpawn))
 		{
 			SetSpawnAtCell(*Map, Cell, true);
+		}
+
+		Map->MarkPackageDirty();
+		OnEdited.ExecuteIfBound();
+	}
+
+	void ApplyCircleStroke(const FIntPoint& StartCell, const FIntPoint& EndCell)
+	{
+		UFortRogueTerrainMapDefinition* Map = MapAttribute.Get();
+		if (!Map)
+		{
+			return;
+		}
+
+		Map->Modify();
+		const int32 EditMode = GetEditMode();
+		const int32 Radius = FMath::Max(0, BrushRadiusAttribute.Get());
+		if (EditMode == static_cast<int32>(EFortRogueTerrainEditMode::PaintCircle))
+		{
+			Map->ApplyCircleStroke(StartCell.X, StartCell.Y, EndCell.X, EndCell.Y, Radius, true);
+		}
+		else if (EditMode == static_cast<int32>(EFortRogueTerrainEditMode::EraseCircle))
+		{
+			Map->ApplyCircleStroke(StartCell.X, StartCell.Y, EndCell.X, EndCell.Y, Radius, false);
+		}
+		else if (EditMode == static_cast<int32>(EFortRogueTerrainEditMode::TextureCircle))
+		{
+			Map->ApplyTextureCircleStroke(StartCell.X, StartCell.Y, EndCell.X, EndCell.Y, Radius, TextureLayerAttribute.Get());
 		}
 
 		Map->MarkPackageDirty();

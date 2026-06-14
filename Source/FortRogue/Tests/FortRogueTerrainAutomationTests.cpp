@@ -57,6 +57,20 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	Map->ApplyTextureCircle(6, 2, 1, 5);
 	TestEqual(TEXT("Texture circle paints solid center"), Map->TextureLayerMask[Map->ToIndex(6, 2)], static_cast<uint8>(5));
 
+	UFortRogueTerrainMapDefinition* StrokeMap = NewObject<UFortRogueTerrainMapDefinition>();
+	TestNotNull(TEXT("Stroke map asset object is created"), StrokeMap);
+	StrokeMap->Resize(10, 3);
+	StrokeMap->Clear(false);
+	StrokeMap->ApplyCircleStroke(1, 1, 8, 1, 0, true);
+	TestEqual(TEXT("Circle stroke paints the start cell"), StrokeMap->SolidMask[StrokeMap->ToIndex(1, 1)], static_cast<uint8>(1));
+	TestEqual(TEXT("Circle stroke fills skipped drag cells"), StrokeMap->SolidMask[StrokeMap->ToIndex(5, 1)], static_cast<uint8>(1));
+	TestEqual(TEXT("Circle stroke paints the end cell"), StrokeMap->SolidMask[StrokeMap->ToIndex(8, 1)], static_cast<uint8>(1));
+	StrokeMap->ApplyTextureCircleStroke(1, 1, 8, 1, 0, 4);
+	TestEqual(TEXT("Texture circle stroke paints skipped solid drag cells"), StrokeMap->TextureLayerMask[StrokeMap->ToIndex(5, 1)], static_cast<uint8>(4));
+	StrokeMap->ApplyCircleStroke(4, 1, 6, 1, 0, false);
+	TestEqual(TEXT("Erase circle stroke clears skipped drag cells"), StrokeMap->SolidMask[StrokeMap->ToIndex(5, 1)], static_cast<uint8>(0));
+	TestEqual(TEXT("Erase circle stroke clears skipped texture cells"), StrokeMap->TextureLayerMask[StrokeMap->ToIndex(5, 1)], static_cast<uint8>(0));
+
 	UFortRogueTerrainMapDefinition* ResizedMap = NewObject<UFortRogueTerrainMapDefinition>();
 	TestNotNull(TEXT("Resample resize map asset object is created"), ResizedMap);
 	ResizedMap->Resize(4, 2);

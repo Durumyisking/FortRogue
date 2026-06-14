@@ -350,6 +350,24 @@ void UFortRogueTerrainMapDefinition::ApplyCircle(int32 CenterX, int32 CenterZ, i
 	}
 }
 
+void UFortRogueTerrainMapDefinition::ApplyCircleStroke(int32 StartX, int32 StartZ, int32 EndX, int32 EndZ, int32 RadiusCells, bool bSolid)
+{
+	const int32 StepCount = FMath::Max(FMath::Abs(EndX - StartX), FMath::Abs(EndZ - StartZ));
+	if (StepCount <= 0)
+	{
+		ApplyCircle(StartX, StartZ, RadiusCells, bSolid);
+		return;
+	}
+
+	for (int32 Step = 0; Step <= StepCount; ++Step)
+	{
+		const float Alpha = static_cast<float>(Step) / static_cast<float>(StepCount);
+		const int32 CenterX = FMath::RoundToInt(FMath::Lerp(static_cast<float>(StartX), static_cast<float>(EndX), Alpha));
+		const int32 CenterZ = FMath::RoundToInt(FMath::Lerp(static_cast<float>(StartZ), static_cast<float>(EndZ), Alpha));
+		ApplyCircle(CenterX, CenterZ, RadiusCells, bSolid);
+	}
+}
+
 void UFortRogueTerrainMapDefinition::SetTextureLayer(int32 LayerIndex, UTexture2D* Texture)
 {
 	if (LayerIndex < 0)
@@ -406,6 +424,24 @@ void UFortRogueTerrainMapDefinition::ApplyTextureCircle(int32 CenterX, int32 Cen
 				TextureLayerMask[Index] = ClampedLayer;
 			}
 		}
+	}
+}
+
+void UFortRogueTerrainMapDefinition::ApplyTextureCircleStroke(int32 StartX, int32 StartZ, int32 EndX, int32 EndZ, int32 RadiusCells, int32 LayerIndex)
+{
+	const int32 StepCount = FMath::Max(FMath::Abs(EndX - StartX), FMath::Abs(EndZ - StartZ));
+	if (StepCount <= 0)
+	{
+		ApplyTextureCircle(StartX, StartZ, RadiusCells, LayerIndex);
+		return;
+	}
+
+	for (int32 Step = 0; Step <= StepCount; ++Step)
+	{
+		const float Alpha = static_cast<float>(Step) / static_cast<float>(StepCount);
+		const int32 CenterX = FMath::RoundToInt(FMath::Lerp(static_cast<float>(StartX), static_cast<float>(EndX), Alpha));
+		const int32 CenterZ = FMath::RoundToInt(FMath::Lerp(static_cast<float>(StartZ), static_cast<float>(EndZ), Alpha));
+		ApplyTextureCircle(CenterX, CenterZ, RadiusCells, LayerIndex);
 	}
 }
 

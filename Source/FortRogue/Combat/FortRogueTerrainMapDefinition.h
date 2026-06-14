@@ -47,6 +47,9 @@ public:
 	void ApplyCircle(int32 CenterX, int32 CenterZ, int32 RadiusCells, bool bSolid);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
+	void ApplyCircleStroke(int32 StartX, int32 StartZ, int32 EndX, int32 EndZ, int32 RadiusCells, bool bSolid);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
 	void SetTextureLayer(int32 LayerIndex, UTexture2D* Texture);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
@@ -54,6 +57,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
 	void ApplyTextureCircle(int32 CenterX, int32 CenterZ, int32 RadiusCells, int32 LayerIndex);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
+	void ApplyTextureCircleStroke(int32 StartX, int32 StartZ, int32 EndX, int32 EndZ, int32 RadiusCells, int32 LayerIndex);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
 	bool ImportSolidMaskFromTexture(UTexture2D* SourceTexture, bool bUseAlpha, float Threshold, int32 LayerIndex, bool bResizeToTexture = true);
