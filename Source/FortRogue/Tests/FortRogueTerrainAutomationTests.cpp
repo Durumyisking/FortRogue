@@ -207,10 +207,24 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	Map->PlayerSpawnLocal = FVector(-999.0f, 0.0f, 5.0f);
 	Map->EnemySpawnLocal = FVector(999.0f, 0.0f, 5.0f);
 
-	UTexture2D* LayerTexture = UTexture2D::CreateTransient(2, 2, PF_B8G8R8A8);
+	UTexture2D* LayerTexture = nullptr;
+#if WITH_EDITOR
+	LayerTexture = NewObject<UTexture2D>();
+#else
+	LayerTexture = UTexture2D::CreateTransient(2, 2, PF_B8G8R8A8);
+#endif
 	TestNotNull(TEXT("Layer source texture is created"), LayerTexture);
-	if (LayerTexture && LayerTexture->GetPlatformData() && LayerTexture->GetPlatformData()->Mips.Num() > 0)
+	if (LayerTexture)
 	{
+#if WITH_EDITOR
+		const uint8 SourcePixels[] = {
+			0, 0, 255, 255,
+			0, 255, 0, 255,
+			255, 0, 0, 255,
+			0, 255, 255, 255
+		};
+		LayerTexture->Source.Init(2, 2, 1, 1, TSF_BGRA8, SourcePixels);
+#else
 		FTexture2DMipMap& LayerMip = LayerTexture->GetPlatformData()->Mips[0];
 		void* LayerData = LayerMip.BulkData.Lock(LOCK_READ_WRITE);
 		TestNotNull(TEXT("Layer source texture mip locks"), LayerData);
@@ -223,6 +237,7 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 			LayerPixels[3] = FColor::Yellow;
 		}
 		LayerMip.BulkData.Unlock();
+#endif
 		Map->SetTextureLayer(0, LayerTexture);
 	}
 

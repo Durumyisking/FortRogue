@@ -11,6 +11,83 @@
 #include "Engine/StaticMesh.h"
 #include "UObject/ConstructorHelpers.h"
 
+namespace
+{
+bool ReadLayerTexturePixels(UTexture2D* SourceTexture, TArray<FColor>& OutPixels, FIntPoint& OutSize)
+{
+	if (!SourceTexture)
+	{
+		return false;
+	}
+
+#if WITH_EDITOR
+	if (SourceTexture->Source.IsValid())
+	{
+		TArray64<uint8> SourceMipData;
+		if (SourceTexture->Source.GetMipData(SourceMipData, 0))
+		{
+			const int32 SourceWidth = static_cast<int32>(SourceTexture->Source.GetSizeX());
+			const int32 SourceHeight = static_cast<int32>(SourceTexture->Source.GetSizeY());
+			const ETextureSourceFormat SourceFormat = SourceTexture->Source.GetFormat();
+			if (SourceWidth > 0 && SourceHeight > 0 && (SourceFormat == TSF_BGRA8 || SourceFormat == TSF_G8))
+			{
+				const int64 BytesPerPixel = SourceFormat == TSF_BGRA8 ? 4 : 1;
+				if (SourceMipData.Num() < static_cast<int64>(SourceWidth) * SourceHeight * BytesPerPixel)
+				{
+					return false;
+				}
+
+				OutSize = FIntPoint(SourceWidth, SourceHeight);
+				OutPixels.SetNumUninitialized(SourceWidth * SourceHeight);
+				for (int32 SourceY = 0; SourceY < SourceHeight; ++SourceY)
+				{
+					for (int32 X = 0; X < SourceWidth; ++X)
+					{
+						const int64 SourceIndex = static_cast<int64>(SourceY) * SourceWidth + X;
+						if (SourceFormat == TSF_BGRA8)
+						{
+							const uint8* PixelData = SourceMipData.GetData() + SourceIndex * 4;
+							OutPixels[SourceIndex] = FColor(PixelData[2], PixelData[1], PixelData[0], PixelData[3]);
+						}
+						else
+						{
+							const uint8 Value = SourceMipData[SourceIndex];
+							OutPixels[SourceIndex] = FColor(Value, Value, Value, Value);
+						}
+					}
+				}
+				return true;
+			}
+		}
+	}
+#endif
+
+	if (!SourceTexture->GetPlatformData() || SourceTexture->GetPlatformData()->Mips.Num() == 0 || SourceTexture->GetPixelFormat() != PF_B8G8R8A8)
+	{
+		return false;
+	}
+
+	FTexture2DMipMap& Mip = SourceTexture->GetPlatformData()->Mips[0];
+	if (Mip.SizeX <= 0 || Mip.SizeY <= 0)
+	{
+		return false;
+	}
+
+	const void* TextureData = Mip.BulkData.LockReadOnly();
+	if (!TextureData)
+	{
+		Mip.BulkData.Unlock();
+		return false;
+	}
+
+	OutSize = FIntPoint(Mip.SizeX, Mip.SizeY);
+	OutPixels.SetNumUninitialized(Mip.SizeX * Mip.SizeY);
+	FMemory::Memcpy(OutPixels.GetData(), TextureData, OutPixels.Num() * sizeof(FColor));
+	Mip.BulkData.Unlock();
+	return true;
+}
+}
+
 AFortRogueDestructibleTerrain::AFortRogueDestructibleTerrain()
 {
 	PrimaryActorTick.bCanEverTick = false;
@@ -318,35 +395,7 @@ void AFortRogueDestructibleTerrain::CacheLayerTextures()
 	for (int32 LayerIndex = 0; LayerIndex < LayerCount; ++LayerIndex)
 	{
 		UTexture2D* SourceTexture = MapDefinition->TextureLayers[LayerIndex].Texture;
-		if (!SourceTexture || !SourceTexture->GetPlatformData() || SourceTexture->GetPlatformData()->Mips.Num() == 0)
-		{
-			continue;
-		}
-
-		if (SourceTexture->GetPixelFormat() != PF_B8G8R8A8)
-		{
-			continue;
-		}
-
-		FTexture2DMipMap& Mip = SourceTexture->GetPlatformData()->Mips[0];
-		const int32 TextureWidth = Mip.SizeX;
-		const int32 TextureHeight = Mip.SizeY;
-		if (TextureWidth <= 0 || TextureHeight <= 0)
-		{
-			continue;
-		}
-
-		const void* TextureData = Mip.BulkData.LockReadOnly();
-		if (!TextureData)
-		{
-			Mip.BulkData.Unlock();
-			continue;
-		}
-
-		CachedLayerTexturePixels[LayerIndex].SetNumUninitialized(TextureWidth * TextureHeight);
-		FMemory::Memcpy(CachedLayerTexturePixels[LayerIndex].GetData(), TextureData, TextureWidth * TextureHeight * sizeof(FColor));
-		CachedLayerTextureSizes[LayerIndex] = FIntPoint(TextureWidth, TextureHeight);
-		Mip.BulkData.Unlock();
+		ReadLayerTexturePixels(SourceTexture, CachedLayerTexturePixels[LayerIndex], CachedLayerTextureSizes[LayerIndex]);
 	}
 }
 
