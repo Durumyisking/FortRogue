@@ -657,11 +657,28 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		TestTrue(TEXT("Fast segment query hits a one-cell vertical wall"), FastProjectileTerrain->FindFirstSolidAlongWorldSegment(FVector(203.0f, 0.0f, 35.0f), FVector(397.0f, 0.0f, 35.0f), FastImpactLocation));
 		TestTrue(TEXT("Fast segment impact lies inside the one-cell wall"), FastImpactLocation.X >= 300.0f && FastImpactLocation.X < 310.0f && FastImpactLocation.Z >= 30.0f && FastImpactLocation.Z < 40.0f);
 
+		AFortRogueBattleCharacter* FastProjectileTarget = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(260.0f, 0.0f, 35.0f), FRotator::ZeroRotator, SpawnParams);
+		TestNotNull(TEXT("Fast projectile target is spawned before the wall"), FastProjectileTarget);
+		if (FastProjectileTarget)
+		{
+			FastProjectileTarget->SetActorLocation(FVector(260.0f, 0.0f, 35.0f));
+			const float TargetHealthBeforeHit = FastProjectileTarget->GetHealth();
+			AFortRogueProjectile* FastCharacterProjectile = World->SpawnActor<AFortRogueProjectile>(AFortRogueProjectile::StaticClass(), FVector(203.0f, 0.0f, 35.0f), FRotator::ZeroRotator, SpawnParams);
+			TestNotNull(TEXT("Fast character projectile is spawned"), FastCharacterProjectile);
+			if (FastCharacterProjectile)
+			{
+				FastCharacterProjectile->InitializeProjectile(nullptr, FastProjectileTerrain, FVector(1940.0f, 0.0f, 0.0f), 20.0f, 12.0f, 0.0f);
+				FastCharacterProjectile->Tick(0.1f);
+				TestTrue(TEXT("Fast projectile hits the character before later terrain"), FastProjectileTarget->GetHealth() < TargetHealthBeforeHit);
+				TestTrue(TEXT("Later terrain remains solid when the earlier character is hit"), FastProjectileTerrain->IsSolidAtWorldLocation(FVector(305.0f, 0.0f, 35.0f)));
+			}
+		}
+
 		AFortRogueProjectile* FastProjectile = World->SpawnActor<AFortRogueProjectile>(AFortRogueProjectile::StaticClass(), FVector(203.0f, 0.0f, 35.0f), FRotator::ZeroRotator, SpawnParams);
 		TestNotNull(TEXT("Fast projectile is spawned"), FastProjectile);
 		if (FastProjectile)
 		{
-			FastProjectile->InitializeProjectile(nullptr, FastProjectileTerrain, FVector(1940.0f, 0.0f, 0.0f), 0.0f, 6.0f, 0.0f);
+			FastProjectile->InitializeProjectile(FastProjectileTarget, FastProjectileTerrain, FVector(1940.0f, 0.0f, 0.0f), 0.0f, 6.0f, 0.0f);
 			FastProjectile->Tick(0.1f);
 			TestFalse(TEXT("Fast projectile carves the one-cell vertical wall instead of tunneling through it"), FastProjectileTerrain->IsSolidAtWorldLocation(FVector(305.0f, 0.0f, 35.0f)));
 		}

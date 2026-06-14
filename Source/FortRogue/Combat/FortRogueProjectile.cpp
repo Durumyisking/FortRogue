@@ -11,6 +11,26 @@
 #include "Kismet/GameplayStatics.h"
 #include "UObject/ConstructorHelpers.h"
 
+namespace
+{
+float GetSegmentAlpha(const FVector& StartLocation, const FVector& EndLocation, const FVector& TestLocation)
+{
+	const FVector Segment = EndLocation - StartLocation;
+	const float SegmentLengthSq = Segment.SizeSquared();
+	if (SegmentLengthSq <= KINDA_SMALL_NUMBER)
+	{
+		return 0.0f;
+	}
+
+	return FMath::Clamp(FVector::DotProduct(TestLocation - StartLocation, Segment) / SegmentLengthSq, 0.0f, 1.0f);
+}
+
+FVector GetClosestPointOnSegment(const FVector& StartLocation, const FVector& EndLocation, const FVector& TestLocation)
+{
+	return FMath::Lerp(StartLocation, EndLocation, GetSegmentAlpha(StartLocation, EndLocation, TestLocation));
+}
+}
+
 AFortRogueProjectile::AFortRogueProjectile()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -61,13 +81,27 @@ void AFortRogueProjectile::Tick(float DeltaSeconds)
 	const FVector NewLocation = OldLocation + Velocity * DeltaSeconds;
 	SetActorLocation(NewLocation);
 
+	bool bHasImpact = false;
+	float BestImpactAlpha = TNumericLimits<float>::Max();
+	FVector BestImpactLocation = NewLocation;
+
+	auto ConsiderImpact = [&](const FVector& CandidateImpactLocation)
+	{
+		const float CandidateAlpha = GetSegmentAlpha(OldLocation, NewLocation, CandidateImpactLocation);
+		if (!bHasImpact || CandidateAlpha < BestImpactAlpha)
+		{
+			bHasImpact = true;
+			BestImpactAlpha = CandidateAlpha;
+			BestImpactLocation = CandidateImpactLocation;
+		}
+	};
+
 	if (AssignedTerrain)
 	{
 		FVector ImpactLocation = FVector::ZeroVector;
 		if (AssignedTerrain->FindFirstSolidAlongWorldSegment(OldLocation, NewLocation, ImpactLocation))
 		{
-			ResolveImpact(ImpactLocation);
-			return;
+			ConsiderImpact(ImpactLocation);
 		}
 	}
 	else
@@ -77,8 +111,7 @@ void AFortRogueProjectile::Tick(float DeltaSeconds)
 			FVector ImpactLocation = FVector::ZeroVector;
 			if (It->FindFirstSolidAlongWorldSegment(OldLocation, NewLocation, ImpactLocation))
 			{
-				ResolveImpact(ImpactLocation);
-				return;
+				ConsiderImpact(ImpactLocation);
 			}
 		}
 	}
@@ -86,11 +119,22 @@ void AFortRogueProjectile::Tick(float DeltaSeconds)
 	for (TActorIterator<AFortRogueBattleCharacter> It(GetWorld()); It; ++It)
 	{
 		AFortRogueBattleCharacter* Character = *It;
-		if (Character && Character != OwnerCharacter && !Character->IsDefeated() && FVector::DistSquared(Character->GetActorLocation(), NewLocation) <= FMath::Square(34.0f))
+		if (!Character || Character == OwnerCharacter || Character->IsDefeated())
 		{
-			ResolveImpact(NewLocation);
-			return;
+			continue;
 		}
+
+		const FVector ClosestPoint = GetClosestPointOnSegment(OldLocation, NewLocation, Character->GetActorLocation());
+		if (FVector::DistSquared(Character->GetActorLocation(), ClosestPoint) <= FMath::Square(34.0f))
+		{
+			ConsiderImpact(ClosestPoint);
+		}
+	}
+
+	if (bHasImpact)
+	{
+		ResolveImpact(BestImpactLocation);
+		return;
 	}
 
 	if (LifeSeconds > 8.0f || FMath::Abs(NewLocation.X) > 4000.0f || NewLocation.Z < -400.0f || NewLocation.Z > 3000.0f)
