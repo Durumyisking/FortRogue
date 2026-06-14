@@ -8,6 +8,8 @@
 #include "Combat/FortRogueDestructibleTerrain.h"
 #include "Combat/FortRogueProjectile.h"
 #include "Combat/FortRogueTerrainMapDefinition.h"
+#include "Camera/CameraActor.h"
+#include "Camera/CameraComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -247,6 +249,24 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 	}
 	TestNotNull(TEXT("Game mode spawns the player character"), GameMode->GetPlayerCharacter());
 	TestNotNull(TEXT("Game mode spawns the enemy character"), GameMode->GetEnemyCharacter());
+
+	ACameraActor* BattleCamera = nullptr;
+	for (TActorIterator<ACameraActor> It(World); It; ++It)
+	{
+		BattleCamera = *It;
+		break;
+	}
+
+	TestNotNull(TEXT("Game mode spawns a battle camera"), BattleCamera);
+	if (BattleCamera)
+	{
+		TestEqual(TEXT("Battle camera faces the X/Z gameplay plane without requiring terrain rotation"), BattleCamera->GetActorRotation(), FRotator(0.0f, 90.0f, 0.0f));
+		TestNotNull(TEXT("Battle camera has a camera component"), BattleCamera->GetCameraComponent());
+		if (BattleCamera->GetCameraComponent())
+		{
+			TestEqual(TEXT("Battle camera uses orthographic projection"), BattleCamera->GetCameraComponent()->ProjectionMode, ECameraProjectionMode::Orthographic);
+		}
+	}
 
 	CleanupWorld();
 	return true;

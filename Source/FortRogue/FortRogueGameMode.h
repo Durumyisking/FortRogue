@@ -78,6 +78,7 @@ private:
 	void UpdateBattleCamera(float DeltaSeconds);
 	void ResetShotCameraState();
 	float GetInitialCameraOrthoWidth() const;
+	FRotator GetBattleCameraRotation() const;
 	FVector GetDesiredCameraLocation() const;
 	FVector GetCameraFocusLocation() const;
 
@@ -131,9 +132,6 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup")
 	FVector CameraLocation = FVector(0.0f, -3000.0f, 860.0f);
-
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup")
-	FRotator CameraRotation = FRotator(-5.0f, 90.0f, 0.0f);
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup")
 	float CameraOrthoWidth = 2700.0f;

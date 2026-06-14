@@ -21,6 +21,7 @@ namespace
 constexpr float TerrainCameraPadding = 240.0f;
 constexpr float MinimumTerrainCameraOrthoWidth = 1200.0f;
 constexpr float ExpectedWideViewportAspectRatio = 16.0f / 9.0f;
+const FRotator BattleCameraRotation(0.0f, 90.0f, 0.0f);
 }
 
 AFortRogueGameMode::AFortRogueGameMode()
@@ -222,18 +223,19 @@ void AFortRogueGameMode::SpawnMVPBattle()
 		EnemyCharacter->ConfigureAsEnemy(true);
 	}
 
+	const TSubclassOf<ACameraActor> ActualCameraClass = CameraClass ? CameraClass : TSubclassOf<ACameraActor>(ACameraActor::StaticClass());
+	BattleCamera = World->SpawnActor<ACameraActor>(ActualCameraClass, GetDesiredCameraLocation(), GetBattleCameraRotation());
+	if (BattleCamera && BattleCamera->GetCameraComponent())
+	{
+		BattleCamera->SetActorRotation(GetBattleCameraRotation());
+		BattleCamera->GetCameraComponent()->ProjectionMode = ECameraProjectionMode::Orthographic;
+		BattleCamera->GetCameraComponent()->OrthoWidth = GetInitialCameraOrthoWidth();
+	}
+
 	if (APlayerController* PlayerController = UGameplayStatics::GetPlayerController(World, 0))
 	{
 		PlayerController->Possess(PlayerCharacter);
-
-		const TSubclassOf<ACameraActor> ActualCameraClass = CameraClass ? CameraClass : TSubclassOf<ACameraActor>(ACameraActor::StaticClass());
-		BattleCamera = World->SpawnActor<ACameraActor>(ActualCameraClass, CameraLocation, CameraRotation);
-		if (BattleCamera && BattleCamera->GetCameraComponent())
-		{
-			BattleCamera->GetCameraComponent()->ProjectionMode = ECameraProjectionMode::Orthographic;
-			BattleCamera->GetCameraComponent()->OrthoWidth = GetInitialCameraOrthoWidth();
-			PlayerController->SetViewTarget(BattleCamera);
-		}
+		PlayerController->SetViewTarget(BattleCamera);
 	}
 }
 
@@ -366,6 +368,7 @@ void AFortRogueGameMode::UpdateBattleCamera(float DeltaSeconds)
 	const FVector DesiredLocation = GetDesiredCameraLocation();
 	const FVector NewLocation = FMath::VInterpTo(CurrentLocation, DesiredLocation, DeltaSeconds, CameraFollowInterpSpeed);
 	BattleCamera->SetActorLocation(NewLocation);
+	BattleCamera->SetActorRotation(GetBattleCameraRotation());
 }
 
 void AFortRogueGameMode::ResetShotCameraState()
@@ -385,6 +388,11 @@ float AFortRogueGameMode::GetInitialCameraOrthoWidth() const
 	const float WidthFit = Terrain->Width + TerrainCameraPadding;
 	const float HeightFit = Terrain->Height * ExpectedWideViewportAspectRatio + TerrainCameraPadding;
 	return FMath::Max(MinimumTerrainCameraOrthoWidth, FMath::Max(WidthFit, HeightFit));
+}
+
+FRotator AFortRogueGameMode::GetBattleCameraRotation() const
+{
+	return BattleCameraRotation;
 }
 
 FVector AFortRogueGameMode::GetDesiredCameraLocation() const
