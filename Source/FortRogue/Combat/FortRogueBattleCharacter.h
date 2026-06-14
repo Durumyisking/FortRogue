@@ -26,6 +26,7 @@ public:
 	AFortRogueBattleCharacter();
 
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Character")
@@ -50,6 +51,15 @@ public:
 	void AdjustPower(float Axis, float DeltaSeconds);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
+	void BeginShotCharge();
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
+	void UpdateShotCharge(float DeltaSeconds);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
+	int32 ReleaseShotCharge();
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
 	void SelectWeapon(int32 WeaponIndex);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
@@ -60,6 +70,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
 	void ApplyDamage(float DamageAmount);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
+	void ReevaluateTerrainSupport();
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Items")
 	bool UseItemByType(EFortRogueItemType ItemType);
@@ -108,6 +121,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
 	float GetShotPower() const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	float GetShotChargeAlpha() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	bool IsChargingShot() const;
+
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
 	int32 GetItemCharges(EFortRogueItemType ItemType) const;
 
@@ -139,7 +158,23 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Items")
 	TArray<FFortRogueItemStack> ItemLoadout;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Charge", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float MinShotPower = 0.25f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Charge", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float MaxShotPower = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Charge", meta = (ClampMin = "0.01"))
+	float ShotChargeSeconds = 1.25f;
+
 private:
+	class AFortRogueDestructibleTerrain* FindTerrain() const;
+	bool FindFootprintSurfaceZ(const AFortRogueDestructibleTerrain& Terrain, float CenterWorldX, float StartWorldZ, float SearchDistance, float& OutSurfaceZ) const;
+	bool IsFootprintBlocked(const AFortRogueDestructibleTerrain& Terrain, const FVector& CenterLocation, float FootWorldZ) const;
+	bool IsSlopeTraversable(float CurrentFootWorldZ, float NextSurfaceWorldZ, float HorizontalDistance, float TerrainCellSize) const;
+	void UpdateBodyTerrainAlignment(const AFortRogueDestructibleTerrain* Terrain);
+	void ApplyTerrainGravity(float DeltaSeconds);
+	void SnapToTerrain();
 	void GrantStartupAbilitySets();
 	void EnsureDefaultLoadout();
 
@@ -162,7 +197,33 @@ private:
 	bool bFiredThisTurn = false;
 	bool bFacingRight = true;
 	float AimAngle = 45.0f;
-	float ShotPower = 0.78f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Charge", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ClampMax = "1.0"))
+	float ShotPower = 0.25f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float MoveSpeed = 260.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float FootOffsetZ = 45.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float FootProbeHalfWidth = 22.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float MaxStepUp = 34.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float MaxStepDown = 56.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float MaxSlopeAngleDegrees = 52.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float GroundSnapDistance = 12.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float BodySlopeProbeHalfWidth = 28.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float MaxBodySlopeVisualDegrees = 45.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float GravityAcceleration = 980.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float MaxFallSpeed = 1600.0f;
+	float ShotChargeElapsed = 0.0f;
+	float VerticalVelocity = 0.0f;
+	bool bChargingShot = false;
 	float PendingAttackMultiplier = 1.0f;
 	int32 SelectedWeaponIndex = 0;
 };

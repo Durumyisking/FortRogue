@@ -56,14 +56,16 @@ void AFortRogueProjectile::Tick(float DeltaSeconds)
 	const float Wind = GameMode ? GameMode->GetWind() : 0.0f;
 	Velocity += FVector(Wind, 0.0f, -Gravity) * DeltaSeconds;
 
-	const FVector NewLocation = GetActorLocation() + Velocity * DeltaSeconds;
+	const FVector OldLocation = GetActorLocation();
+	const FVector NewLocation = OldLocation + Velocity * DeltaSeconds;
 	SetActorLocation(NewLocation);
 
 	for (TActorIterator<AFortRogueDestructibleTerrain> It(GetWorld()); It; ++It)
 	{
-		if (It->IsSolidAtWorldLocation(NewLocation))
+		FVector ImpactLocation = FVector::ZeroVector;
+		if (It->FindFirstSolidAlongWorldSegment(OldLocation, NewLocation, ImpactLocation))
 		{
-			ResolveImpact(NewLocation);
+			ResolveImpact(ImpactLocation);
 			return;
 		}
 	}
@@ -112,6 +114,8 @@ void AFortRogueProjectile::ResolveImpact(const FVector& ImpactLocation)
 			const float Falloff = 1.0f - FMath::Clamp(Distance / BlastRadius, 0.0f, 1.0f);
 			Character->ApplyDamage(Damage * FMath::Max(0.25f, Falloff));
 		}
+
+		Character->ReevaluateTerrainSupport();
 	}
 
 	if (AFortRogueGameMode* GameMode = GetWorld()->GetAuthGameMode<AFortRogueGameMode>())

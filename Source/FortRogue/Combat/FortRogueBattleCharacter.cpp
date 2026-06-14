@@ -5,18 +5,21 @@
 #include "AbilitySystem/FortRogueAbilitySet.h"
 #include "AbilitySystem/FortRogueAbilitySystemComponent.h"
 #include "AbilitySystem/Attributes/FortRogueCombatSet.h"
+#include "Combat/FortRogueDestructibleTerrain.h"
 #include "Combat/FortRogueProjectile.h"
+#include "FortRogueGameMode.h"
 #include "FortRogueGameplayTags.h"
 #include "Items/FortRogueItemDefinition.h"
 #include "Perks/FortRoguePerkDefinition.h"
 #include "Weapons/FortRogueWeaponDefinition.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/StaticMesh.h"
+#include "EngineUtils.h"
 #include "UObject/ConstructorHelpers.h"
 
 AFortRogueBattleCharacter::AFortRogueBattleCharacter()
 {
-	PrimaryActorTick.bCanEverTick = false;
+	PrimaryActorTick.bCanEverTick = true;
 
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	SetRootComponent(Root);
@@ -47,6 +50,14 @@ void AFortRogueBattleCharacter::BeginPlay()
 	InitializeFromDefinition(CharacterDefinition);
 	EnsureDefaultLoadout();
 	GrantStartupAbilitySets();
+	SnapToTerrain();
+}
+
+void AFortRogueBattleCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	ApplyTerrainGravity(DeltaSeconds);
 }
 
 UAbilitySystemComponent* AFortRogueBattleCharacter::GetAbilitySystemComponent() const
@@ -97,12 +108,15 @@ void AFortRogueBattleCharacter::BeginTurn()
 {
 	bActiveTurn = true;
 	bFiredThisTurn = false;
+	bChargingShot = false;
+	ShotChargeElapsed = 0.0f;
 	CombatSet->ResetTurnBudget();
 }
 
 void AFortRogueBattleCharacter::EndTurn()
 {
 	bActiveTurn = false;
+	bChargingShot = false;
 }
 
 void AFortRogueBattleCharacter::MoveHorizontal(float Axis, float DeltaSeconds)
@@ -112,7 +126,7 @@ void AFortRogueBattleCharacter::MoveHorizontal(float Axis, float DeltaSeconds)
 		return;
 	}
 
-	const float RequestedDelta = Axis * 260.0f * DeltaSeconds;
+	const float RequestedDelta = Axis * MoveSpeed * DeltaSeconds;
 	const float Budget = CombatSet->GetMoveBudget();
 	const float AppliedDelta = FMath::Clamp(RequestedDelta, -Budget, Budget);
 	if (FMath::IsNearlyZero(AppliedDelta))
@@ -120,9 +134,60 @@ void AFortRogueBattleCharacter::MoveHorizontal(float Axis, float DeltaSeconds)
 		return;
 	}
 
-	AddActorWorldOffset(FVector(AppliedDelta, 0.0f, 0.0f));
-	CombatSet->SetMoveBudget(Budget - FMath::Abs(AppliedDelta));
-	bFacingRight = AppliedDelta >= 0.0f;
+	FVector NewLocation = GetActorLocation();
+	float ActualDelta = 0.0f;
+
+	if (AFortRogueDestructibleTerrain* Terrain = FindTerrain())
+	{
+		const float StepLength = FMath::Max(1.0f, Terrain->CellSize * 0.5f);
+		const int32 StepCount = FMath::Max(1, FMath::CeilToInt(FMath::Abs(AppliedDelta) / StepLength));
+		const float StepDelta = AppliedDelta / static_cast<float>(StepCount);
+
+		for (int32 Step = 0; Step < StepCount; ++Step)
+		{
+			FVector StepLocation = NewLocation;
+			StepLocation.X += StepDelta;
+
+			const float CurrentFootZ = NewLocation.Z - FootOffsetZ;
+			float SurfaceZ = 0.0f;
+			if (FindFootprintSurfaceZ(*Terrain, StepLocation.X, CurrentFootZ + MaxStepUp, MaxStepUp + MaxStepDown, SurfaceZ))
+			{
+				if (!IsSlopeTraversable(CurrentFootZ, SurfaceZ, StepDelta, Terrain->CellSize))
+				{
+					break;
+				}
+
+				StepLocation.Z = SurfaceZ + FootOffsetZ;
+				if (IsFootprintBlocked(*Terrain, StepLocation, SurfaceZ))
+				{
+					break;
+				}
+				VerticalVelocity = 0.0f;
+			}
+			else if (IsFootprintBlocked(*Terrain, StepLocation, CurrentFootZ))
+			{
+				break;
+			}
+
+			NewLocation = StepLocation;
+			ActualDelta += StepDelta;
+		}
+	}
+	else
+	{
+		NewLocation.X += AppliedDelta;
+		ActualDelta = AppliedDelta;
+	}
+
+	if (FMath::IsNearlyZero(ActualDelta))
+	{
+		return;
+	}
+
+	SetActorLocation(NewLocation);
+	UpdateBodyTerrainAlignment(FindTerrain());
+	CombatSet->SetMoveBudget(Budget - FMath::Abs(ActualDelta));
+	bFacingRight = ActualDelta >= 0.0f;
 }
 
 void AFortRogueBattleCharacter::AdjustAim(float Axis, float DeltaSeconds)
@@ -142,7 +207,43 @@ void AFortRogueBattleCharacter::AdjustPower(float Axis, float DeltaSeconds)
 		return;
 	}
 
-	ShotPower = FMath::Clamp(ShotPower + Axis * 0.75f * DeltaSeconds, 0.25f, 1.0f);
+	ShotPower = FMath::Clamp(ShotPower + Axis * 0.75f * DeltaSeconds, FMath::Min(MinShotPower, MaxShotPower), FMath::Max(MinShotPower, MaxShotPower));
+}
+
+void AFortRogueBattleCharacter::BeginShotCharge()
+{
+	if (!bActiveTurn || bFiredThisTurn || IsDefeated())
+	{
+		return;
+	}
+
+	bChargingShot = true;
+	ShotChargeElapsed = 0.0f;
+	ShotPower = FMath::Min(MinShotPower, MaxShotPower);
+}
+
+void AFortRogueBattleCharacter::UpdateShotCharge(float DeltaSeconds)
+{
+	if (!bChargingShot || !bActiveTurn || bFiredThisTurn || IsDefeated())
+	{
+		return;
+	}
+
+	ShotChargeElapsed += DeltaSeconds;
+	const float ChargeDuration = FMath::Max(ShotChargeSeconds, KINDA_SMALL_NUMBER);
+	const float ChargeAlpha = FMath::Clamp(ShotChargeElapsed / ChargeDuration, 0.0f, 1.0f);
+	ShotPower = FMath::Lerp(FMath::Min(MinShotPower, MaxShotPower), FMath::Max(MinShotPower, MaxShotPower), ChargeAlpha);
+}
+
+int32 AFortRogueBattleCharacter::ReleaseShotCharge()
+{
+	if (!bChargingShot)
+	{
+		return 0;
+	}
+
+	bChargingShot = false;
+	return FireSelectedWeapon();
 }
 
 void AFortRogueBattleCharacter::SelectWeapon(int32 WeaponIndex)
@@ -160,6 +261,7 @@ int32 AFortRogueBattleCharacter::FireSelectedWeapon()
 		return 0;
 	}
 
+	bChargingShot = false;
 	bFiredThisTurn = true;
 
 	const FFortRogueWeaponSpec& Weapon = GetCurrentWeapon();
@@ -185,6 +287,10 @@ int32 AFortRogueBattleCharacter::FireSelectedWeapon()
 		if (Projectile)
 		{
 			Projectile->InitializeProjectile(this, Direction * Speed, Damage, Weapon.BlastRadius, Weapon.Gravity);
+			if (AFortRogueGameMode* GameMode = GetWorld()->GetAuthGameMode<AFortRogueGameMode>())
+			{
+				GameMode->NotifyProjectileSpawned(Projectile);
+			}
 			++SpawnedProjectiles;
 		}
 	}
@@ -208,6 +314,11 @@ void AFortRogueBattleCharacter::FireAtTarget(AFortRogueBattleCharacter* Target)
 void AFortRogueBattleCharacter::ApplyDamage(float DamageAmount)
 {
 	CombatSet->ApplyDamage(DamageAmount);
+}
+
+void AFortRogueBattleCharacter::ReevaluateTerrainSupport()
+{
+	ApplyTerrainGravity(1.0f / 60.0f);
 }
 
 bool AFortRogueBattleCharacter::UseItemByType(EFortRogueItemType ItemType)
@@ -349,6 +460,23 @@ float AFortRogueBattleCharacter::GetShotPower() const
 	return ShotPower;
 }
 
+float AFortRogueBattleCharacter::GetShotChargeAlpha() const
+{
+	const float MinPower = FMath::Min(MinShotPower, MaxShotPower);
+	const float MaxPower = FMath::Max(MinShotPower, MaxShotPower);
+	if (FMath::IsNearlyEqual(MinPower, MaxPower))
+	{
+		return 1.0f;
+	}
+
+	return FMath::Clamp((ShotPower - MinPower) / (MaxPower - MinPower), 0.0f, 1.0f);
+}
+
+bool AFortRogueBattleCharacter::IsChargingShot() const
+{
+	return bChargingShot;
+}
+
 int32 AFortRogueBattleCharacter::GetItemCharges(EFortRogueItemType ItemType) const
 {
 	int32 TotalCharges = 0;
@@ -396,6 +524,160 @@ int32 AFortRogueBattleCharacter::GetSelectedWeaponIndex() const
 FText AFortRogueBattleCharacter::GetCharacterDisplayName() const
 {
 	return CharacterDisplayName;
+}
+
+AFortRogueDestructibleTerrain* AFortRogueBattleCharacter::FindTerrain() const
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return nullptr;
+	}
+
+	for (TActorIterator<AFortRogueDestructibleTerrain> It(World); It; ++It)
+	{
+		return *It;
+	}
+
+	return nullptr;
+}
+
+bool AFortRogueBattleCharacter::FindFootprintSurfaceZ(const AFortRogueDestructibleTerrain& Terrain, float CenterWorldX, float StartWorldZ, float SearchDistance, float& OutSurfaceZ) const
+{
+	bool bFoundSurface = false;
+	float BestSurfaceZ = -TNumericLimits<float>::Max();
+	const float SampleOffsets[] = { -FootProbeHalfWidth, 0.0f, FootProbeHalfWidth };
+	for (const float SampleOffset : SampleOffsets)
+	{
+		float SampleSurfaceZ = 0.0f;
+		if (Terrain.FindSurfaceZAtWorldX(CenterWorldX + SampleOffset, StartWorldZ, SearchDistance, SampleSurfaceZ))
+		{
+			BestSurfaceZ = FMath::Max(BestSurfaceZ, SampleSurfaceZ);
+			bFoundSurface = true;
+		}
+	}
+
+	if (bFoundSurface)
+	{
+		OutSurfaceZ = BestSurfaceZ;
+	}
+
+	return bFoundSurface;
+}
+
+bool AFortRogueBattleCharacter::IsFootprintBlocked(const AFortRogueDestructibleTerrain& Terrain, const FVector& CenterLocation, float FootWorldZ) const
+{
+	const float SampleOffsets[] = { -FootProbeHalfWidth, 0.0f, FootProbeHalfWidth };
+	for (const float SampleOffset : SampleOffsets)
+	{
+		const FVector FootProbe(CenterLocation.X + SampleOffset, CenterLocation.Y, FootWorldZ + 1.0f);
+		const FVector BodyProbe(CenterLocation.X + SampleOffset, CenterLocation.Y, FootWorldZ + FootOffsetZ * 0.5f);
+		if (Terrain.IsSolidAtWorldLocation(FootProbe) || Terrain.IsSolidAtWorldLocation(BodyProbe))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool AFortRogueBattleCharacter::IsSlopeTraversable(float CurrentFootWorldZ, float NextSurfaceWorldZ, float HorizontalDistance, float TerrainCellSize) const
+{
+	if (NextSurfaceWorldZ <= CurrentFootWorldZ)
+	{
+		return true;
+	}
+
+	const float HorizontalSpan = FMath::Max(FMath::Abs(HorizontalDistance), FMath::Max(TerrainCellSize, 1.0f));
+	const float MaxVerticalDelta = FMath::Tan(FMath::DegreesToRadians(MaxSlopeAngleDegrees)) * HorizontalSpan;
+	return NextSurfaceWorldZ - CurrentFootWorldZ <= MaxVerticalDelta + KINDA_SMALL_NUMBER;
+}
+
+void AFortRogueBattleCharacter::UpdateBodyTerrainAlignment(const AFortRogueDestructibleTerrain* Terrain)
+{
+	if (!Body)
+	{
+		return;
+	}
+
+	if (!Terrain)
+	{
+		Body->SetRelativeRotation(FRotator::ZeroRotator);
+		return;
+	}
+
+	const FVector CurrentLocation = GetActorLocation();
+	const float CurrentFootZ = CurrentLocation.Z - FootOffsetZ;
+	const float ProbeHalfWidth = FMath::Max(BodySlopeProbeHalfWidth, Terrain->CellSize);
+	float LeftSurfaceZ = 0.0f;
+	float RightSurfaceZ = 0.0f;
+	const bool bLeftSurface = Terrain->FindSurfaceZAtWorldX(CurrentLocation.X - ProbeHalfWidth, CurrentFootZ + GroundSnapDistance, GroundSnapDistance + MaxStepDown, LeftSurfaceZ);
+	const bool bRightSurface = Terrain->FindSurfaceZAtWorldX(CurrentLocation.X + ProbeHalfWidth, CurrentFootZ + GroundSnapDistance, GroundSnapDistance + MaxStepDown, RightSurfaceZ);
+	if (!bLeftSurface || !bRightSurface)
+	{
+		Body->SetRelativeRotation(FRotator::ZeroRotator);
+		return;
+	}
+
+	const float SlopeAngleDegrees = FMath::RadiansToDegrees(FMath::Atan2(RightSurfaceZ - LeftSurfaceZ, ProbeHalfWidth * 2.0f));
+	const float ClampedPitch = FMath::Clamp(SlopeAngleDegrees, -MaxBodySlopeVisualDegrees, MaxBodySlopeVisualDegrees);
+	Body->SetRelativeRotation(FRotator(ClampedPitch, 0.0f, 0.0f));
+}
+
+void AFortRogueBattleCharacter::ApplyTerrainGravity(float DeltaSeconds)
+{
+	if (IsDefeated())
+	{
+		return;
+	}
+
+	AFortRogueDestructibleTerrain* Terrain = FindTerrain();
+	if (!Terrain)
+	{
+		return;
+	}
+
+	const FVector CurrentLocation = GetActorLocation();
+	const float CurrentFootZ = CurrentLocation.Z - FootOffsetZ;
+	float SurfaceZ = 0.0f;
+	if (FindFootprintSurfaceZ(*Terrain, CurrentLocation.X, CurrentFootZ + GroundSnapDistance, GroundSnapDistance + 1.0f, SurfaceZ))
+	{
+		SetActorLocation(FVector(CurrentLocation.X, CurrentLocation.Y, SurfaceZ + FootOffsetZ));
+		VerticalVelocity = 0.0f;
+		UpdateBodyTerrainAlignment(Terrain);
+		return;
+	}
+
+	VerticalVelocity = FMath::Max(VerticalVelocity - GravityAcceleration * DeltaSeconds, -MaxFallSpeed);
+	const float FallDistance = FMath::Abs(VerticalVelocity * DeltaSeconds);
+	if (FindFootprintSurfaceZ(*Terrain, CurrentLocation.X, CurrentFootZ, FallDistance + GroundSnapDistance, SurfaceZ))
+	{
+		SetActorLocation(FVector(CurrentLocation.X, CurrentLocation.Y, SurfaceZ + FootOffsetZ));
+		VerticalVelocity = 0.0f;
+		UpdateBodyTerrainAlignment(Terrain);
+		return;
+	}
+
+	AddActorWorldOffset(FVector(0.0f, 0.0f, VerticalVelocity * DeltaSeconds));
+	UpdateBodyTerrainAlignment(nullptr);
+}
+
+void AFortRogueBattleCharacter::SnapToTerrain()
+{
+	AFortRogueDestructibleTerrain* Terrain = FindTerrain();
+	if (!Terrain)
+	{
+		return;
+	}
+
+	const FVector CurrentLocation = GetActorLocation();
+	float SurfaceZ = 0.0f;
+	if (FindFootprintSurfaceZ(*Terrain, CurrentLocation.X, CurrentLocation.Z, 2000.0f, SurfaceZ))
+	{
+		SetActorLocation(FVector(CurrentLocation.X, CurrentLocation.Y, SurfaceZ + FootOffsetZ));
+		VerticalVelocity = 0.0f;
+		UpdateBodyTerrainAlignment(Terrain);
+	}
 }
 
 void AFortRogueBattleCharacter::GrantStartupAbilitySets()

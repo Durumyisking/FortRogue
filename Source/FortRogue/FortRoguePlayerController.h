@@ -33,8 +33,8 @@ private:
 
 	void HandleMove(const FInputActionValue& Value);
 	void HandleAim(const FInputActionValue& Value);
-	void HandlePower(const FInputActionValue& Value);
-	void HandleFire();
+	void HandleFirePressed();
+	void HandleFireReleased();
 	void HandleWeapon1();
 	void HandleWeapon2();
 	void HandleAttackItem();
@@ -44,8 +44,9 @@ private:
 	void HandleReward3();
 	void ApplyMoveAxis(float Axis, float DeltaSeconds);
 	void ApplyAimAxis(float Axis, float DeltaSeconds);
-	void ApplyPowerAxis(float Axis, float DeltaSeconds);
-	void FirePlayerWeapon();
+	void BeginPlayerWeaponCharge();
+	void TickPlayerWeaponCharge(float DeltaSeconds);
+	void ReleasePlayerWeaponCharge();
 	void SelectPlayerWeapon(int32 WeaponIndex);
 	void UsePlayerItem(EFortRogueItemType ItemType);
 	void ChooseReward(int32 ChoiceIndex);
@@ -61,9 +62,6 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Input")
 	TObjectPtr<UInputAction> AimAction;
-
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Input")
-	TObjectPtr<UInputAction> PowerAction;
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Input")
 	TObjectPtr<UInputAction> FireAction;
@@ -103,5 +101,4 @@ private:
 
 	float EnhancedMoveAxis = 0.0f;
 	float EnhancedAimAxis = 0.0f;
-	float EnhancedPowerAxis = 0.0f;
 };

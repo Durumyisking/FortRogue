@@ -74,14 +74,11 @@ void AFortRoguePlayerController::SetupInputComponent()
 		EnhancedInput->BindAction(AimAction, ETriggerEvent::Triggered, this, &AFortRoguePlayerController::HandleAim);
 		EnhancedInput->BindAction(AimAction, ETriggerEvent::Completed, this, &AFortRoguePlayerController::HandleAim);
 	}
-	if (PowerAction)
-	{
-		EnhancedInput->BindAction(PowerAction, ETriggerEvent::Triggered, this, &AFortRoguePlayerController::HandlePower);
-		EnhancedInput->BindAction(PowerAction, ETriggerEvent::Completed, this, &AFortRoguePlayerController::HandlePower);
-	}
 	if (FireAction)
 	{
-		EnhancedInput->BindAction(FireAction, ETriggerEvent::Started, this, &AFortRoguePlayerController::HandleFire);
+		EnhancedInput->BindAction(FireAction, ETriggerEvent::Started, this, &AFortRoguePlayerController::HandleFirePressed);
+		EnhancedInput->BindAction(FireAction, ETriggerEvent::Completed, this, &AFortRoguePlayerController::HandleFireReleased);
+		EnhancedInput->BindAction(FireAction, ETriggerEvent::Canceled, this, &AFortRoguePlayerController::HandleFireReleased);
 	}
 	if (Weapon1Action)
 	{
@@ -123,7 +120,7 @@ void AFortRoguePlayerController::Tick(float DeltaSeconds)
 	{
 		ApplyMoveAxis(EnhancedMoveAxis, DeltaSeconds);
 		ApplyAimAxis(EnhancedAimAxis, DeltaSeconds);
-		ApplyPowerAxis(EnhancedPowerAxis, DeltaSeconds);
+		TickPlayerWeaponCharge(DeltaSeconds);
 		return;
 	}
 
@@ -145,9 +142,8 @@ void AFortRoguePlayerController::TickBattleInput(float DeltaSeconds)
 		return;
 	}
 
-	ApplyMoveAxis((IsInputKeyDown(EKeys::D) ? 1.0f : 0.0f) + (IsInputKeyDown(EKeys::A) ? -1.0f : 0.0f), DeltaSeconds);
-	ApplyAimAxis((IsInputKeyDown(EKeys::W) ? 1.0f : 0.0f) + (IsInputKeyDown(EKeys::S) ? -1.0f : 0.0f), DeltaSeconds);
-	ApplyPowerAxis((IsInputKeyDown(EKeys::Up) ? 1.0f : 0.0f) + (IsInputKeyDown(EKeys::Down) ? -1.0f : 0.0f), DeltaSeconds);
+	ApplyMoveAxis((IsInputKeyDown(EKeys::D) ? 1.0f : 0.0f) + (IsInputKeyDown(EKeys::S) ? -1.0f : 0.0f), DeltaSeconds);
+	ApplyAimAxis((IsInputKeyDown(EKeys::W) ? 1.0f : 0.0f) + (IsInputKeyDown(EKeys::A) ? -1.0f : 0.0f), DeltaSeconds);
 
 	if (WasInputKeyJustPressed(EKeys::One))
 	{
@@ -168,7 +164,15 @@ void AFortRoguePlayerController::TickBattleInput(float DeltaSeconds)
 
 	if (WasInputKeyJustPressed(EKeys::SpaceBar))
 	{
-		FirePlayerWeapon();
+		BeginPlayerWeaponCharge();
+	}
+	if (IsInputKeyDown(EKeys::SpaceBar))
+	{
+		TickPlayerWeaponCharge(DeltaSeconds);
+	}
+	if (WasInputKeyJustReleased(EKeys::SpaceBar))
+	{
+		ReleasePlayerWeaponCharge();
 	}
 }
 
@@ -216,7 +220,7 @@ void AFortRoguePlayerController::UpdateOptionalWidgets()
 
 bool AFortRoguePlayerController::HasEnhancedInputBindings() const
 {
-	return MoveAction || AimAction || PowerAction || FireAction || Weapon1Action || Weapon2Action || AttackItemAction || HealItemAction || Reward1Action || Reward2Action || Reward3Action;
+	return MoveAction || AimAction || FireAction || Weapon1Action || Weapon2Action || AttackItemAction || HealItemAction || Reward1Action || Reward2Action || Reward3Action;
 }
 
 void AFortRoguePlayerController::HandleMove(const FInputActionValue& Value)
@@ -229,14 +233,14 @@ void AFortRoguePlayerController::HandleAim(const FInputActionValue& Value)
 	EnhancedAimAxis = Value.Get<float>();
 }
 
-void AFortRoguePlayerController::HandlePower(const FInputActionValue& Value)
+void AFortRoguePlayerController::HandleFirePressed()
 {
-	EnhancedPowerAxis = Value.Get<float>();
+	BeginPlayerWeaponCharge();
 }
 
-void AFortRoguePlayerController::HandleFire()
+void AFortRoguePlayerController::HandleFireReleased()
 {
-	FirePlayerWeapon();
+	ReleasePlayerWeaponCharge();
 }
 
 void AFortRoguePlayerController::HandleWeapon1()
@@ -292,16 +296,25 @@ void AFortRoguePlayerController::ApplyAimAxis(float Axis, float DeltaSeconds)
 	}
 }
 
-void AFortRoguePlayerController::ApplyPowerAxis(float Axis, float DeltaSeconds)
+void AFortRoguePlayerController::BeginPlayerWeaponCharge()
 {
 	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
 	if (GameMode && GameMode->GetBattleState() == EFortRogueBattleState::PlayerTurn && GameMode->GetPlayerCharacter())
 	{
-		GameMode->GetPlayerCharacter()->AdjustPower(Axis, DeltaSeconds);
+		GameMode->GetPlayerCharacter()->BeginShotCharge();
 	}
 }
 
-void AFortRoguePlayerController::FirePlayerWeapon()
+void AFortRoguePlayerController::TickPlayerWeaponCharge(float DeltaSeconds)
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetBattleState() == EFortRogueBattleState::PlayerTurn && GameMode->GetPlayerCharacter())
+	{
+		GameMode->GetPlayerCharacter()->UpdateShotCharge(DeltaSeconds);
+	}
+}
+
+void AFortRoguePlayerController::ReleasePlayerWeaponCharge()
 {
 	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
 	if (!GameMode || GameMode->GetBattleState() != EFortRogueBattleState::PlayerTurn || !GameMode->GetPlayerCharacter())
@@ -309,7 +322,7 @@ void AFortRoguePlayerController::FirePlayerWeapon()
 		return;
 	}
 
-	const int32 SpawnedProjectiles = GameMode->GetPlayerCharacter()->FireSelectedWeapon();
+	const int32 SpawnedProjectiles = GameMode->GetPlayerCharacter()->ReleaseShotCharge();
 	GameMode->NotifyShotFired(GameMode->GetPlayerCharacter(), SpawnedProjectiles);
 }
 

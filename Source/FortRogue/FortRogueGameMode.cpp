@@ -4,6 +4,7 @@
 
 #include "Combat/FortRogueBattleCharacter.h"
 #include "Combat/FortRogueDestructibleTerrain.h"
+#include "Combat/FortRogueProjectile.h"
 #include "FortRogueGameplayTags.h"
 #include "FortRogueHUD.h"
 #include "FortRoguePlayerController.h"
@@ -17,6 +18,7 @@
 
 AFortRogueGameMode::AFortRogueGameMode()
 {
+	PrimaryActorTick.bCanEverTick = true;
 	PlayerControllerClass = AFortRoguePlayerController::StaticClass();
 	HUDClass = AFortRogueHUD::StaticClass();
 	DefaultPawnClass = nullptr;
@@ -35,6 +37,21 @@ void AFortRogueGameMode::BeginPlay()
 	StartPlayerTurn();
 }
 
+void AFortRogueGameMode::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	UpdateBattleCamera(DeltaSeconds);
+}
+
+void AFortRogueGameMode::NotifyProjectileSpawned(AFortRogueProjectile* Projectile)
+{
+	if (Projectile)
+	{
+		ActiveProjectiles.Add(Projectile);
+	}
+}
+
 void AFortRogueGameMode::NotifyShotFired(AFortRogueBattleCharacter* Shooter, int32 ProjectileCount)
 {
 	if (!Shooter || ProjectileCount <= 0)
@@ -51,10 +68,20 @@ void AFortRogueGameMode::NotifyShotFired(AFortRogueBattleCharacter* Shooter, int
 
 void AFortRogueGameMode::NotifyProjectileResolved(AFortRogueProjectile* Projectile)
 {
+	if (Projectile)
+	{
+		LastImpactCameraLocation = Projectile->GetActorLocation();
+		ActiveProjectiles.RemoveAll([Projectile](const TWeakObjectPtr<AFortRogueProjectile>& ActiveProjectile)
+		{
+			return !ActiveProjectile.IsValid() || ActiveProjectile.Get() == Projectile;
+		});
+	}
+
 	PendingProjectiles = FMath::Max(0, PendingProjectiles - 1);
 	if (PendingProjectiles == 0)
 	{
-		FinishShotResolution();
+		bHoldingImpactCamera = true;
+		GetWorldTimerManager().SetTimer(ShotResolutionTimerHandle, this, &AFortRogueGameMode::FinishShotResolution, ShotImpactCameraHoldSeconds, false);
 	}
 }
 
@@ -141,13 +168,25 @@ void AFortRogueGameMode::SpawnMVPBattle()
 	}
 
 	const TSubclassOf<AFortRogueDestructibleTerrain> ActualTerrainClass = TerrainClass ? TerrainClass : TSubclassOf<AFortRogueDestructibleTerrain>(AFortRogueDestructibleTerrain::StaticClass());
-	Terrain = World->SpawnActor<AFortRogueDestructibleTerrain>(ActualTerrainClass, TerrainLocation, FRotator::ZeroRotator);
+	Terrain = World->SpawnActorDeferred<AFortRogueDestructibleTerrain>(ActualTerrainClass, FTransform(FRotator::ZeroRotator, TerrainLocation));
+	if (Terrain)
+	{
+		Terrain->MapDefinition = TerrainMapDefinition;
+		UGameplayStatics::FinishSpawningActor(Terrain, FTransform(FRotator::ZeroRotator, TerrainLocation));
+	}
 
-	const float SurfaceZ = Terrain ? Terrain->GetSurfaceZ() : TerrainLocation.Z + 520.0f;
 	FVector PlayerLocation = TerrainLocation + PlayerSpawnOffset;
 	FVector EnemyLocation = TerrainLocation + EnemySpawnOffset;
-	PlayerLocation.Z = SurfaceZ + PlayerSpawnOffset.Z;
-	EnemyLocation.Z = SurfaceZ + EnemySpawnOffset.Z;
+	if (Terrain)
+	{
+		PlayerLocation = Terrain->GetPlayerSpawnWorldLocation();
+		EnemyLocation = Terrain->GetEnemySpawnWorldLocation();
+	}
+	else
+	{
+		PlayerLocation.Z = TerrainLocation.Z + 520.0f + PlayerSpawnOffset.Z;
+		EnemyLocation.Z = TerrainLocation.Z + 520.0f + EnemySpawnOffset.Z;
+	}
 
 	const TSubclassOf<AFortRogueBattleCharacter> ActualPlayerClass = PlayerCharacterClass ? PlayerCharacterClass : TSubclassOf<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass());
 	PlayerCharacter = World->SpawnActorDeferred<AFortRogueBattleCharacter>(ActualPlayerClass, FTransform(FRotator::ZeroRotator, PlayerLocation));
@@ -179,18 +218,19 @@ void AFortRogueGameMode::SpawnMVPBattle()
 		PlayerController->Possess(PlayerCharacter);
 
 		const TSubclassOf<ACameraActor> ActualCameraClass = CameraClass ? CameraClass : TSubclassOf<ACameraActor>(ACameraActor::StaticClass());
-		ACameraActor* Camera = World->SpawnActor<ACameraActor>(ActualCameraClass, CameraLocation, CameraRotation);
-		if (Camera && Camera->GetCameraComponent())
+		BattleCamera = World->SpawnActor<ACameraActor>(ActualCameraClass, CameraLocation, CameraRotation);
+		if (BattleCamera && BattleCamera->GetCameraComponent())
 		{
-			Camera->GetCameraComponent()->ProjectionMode = ECameraProjectionMode::Orthographic;
-			Camera->GetCameraComponent()->OrthoWidth = CameraOrthoWidth;
-			PlayerController->SetViewTarget(Camera);
+			BattleCamera->GetCameraComponent()->ProjectionMode = ECameraProjectionMode::Orthographic;
+			BattleCamera->GetCameraComponent()->OrthoWidth = CameraOrthoWidth;
+			PlayerController->SetViewTarget(BattleCamera);
 		}
 	}
 }
 
 void AFortRogueGameMode::StartPlayerTurn()
 {
+	ResetShotCameraState();
 	BattleState = EFortRogueBattleState::PlayerTurn;
 	Wind = FMath::RandRange(MinWind, MaxWind);
 	if (PlayerCharacter)
@@ -202,6 +242,7 @@ void AFortRogueGameMode::StartPlayerTurn()
 
 void AFortRogueGameMode::StartEnemyTurn()
 {
+	ResetShotCameraState();
 	BattleState = EFortRogueBattleState::EnemyTurn;
 	Wind = FMath::RandRange(MinWind, MaxWind);
 	if (EnemyCharacter)
@@ -253,6 +294,7 @@ void AFortRogueGameMode::FinishShotResolution()
 
 void AFortRogueGameMode::EnterRewardState()
 {
+	ResetShotCameraState();
 	BattleState = EFortRogueBattleState::Reward;
 	BuildRewardChoices();
 	SetStatus(TEXT("Victory - choose a reward"));
@@ -302,4 +344,77 @@ void AFortRogueGameMode::BuildRewardChoices()
 void AFortRogueGameMode::SetStatus(const FString& NewStatus)
 {
 	StatusText = FText::FromString(NewStatus);
+}
+
+void AFortRogueGameMode::UpdateBattleCamera(float DeltaSeconds)
+{
+	if (!BattleCamera)
+	{
+		return;
+	}
+
+	const FVector CurrentLocation = BattleCamera->GetActorLocation();
+	const FVector DesiredLocation = GetDesiredCameraLocation();
+	const FVector NewLocation = FMath::VInterpTo(CurrentLocation, DesiredLocation, DeltaSeconds, CameraFollowInterpSpeed);
+	BattleCamera->SetActorLocation(NewLocation);
+}
+
+void AFortRogueGameMode::ResetShotCameraState()
+{
+	ActiveProjectiles.Reset();
+	bHoldingImpactCamera = false;
+	GetWorldTimerManager().ClearTimer(ShotResolutionTimerHandle);
+}
+
+FVector AFortRogueGameMode::GetDesiredCameraLocation() const
+{
+	FVector DesiredLocation = CameraLocation;
+	if (BattleCamera)
+	{
+		DesiredLocation = BattleCamera->GetActorLocation();
+		DesiredLocation.Y = CameraLocation.Y;
+	}
+
+	const FVector FocusLocation = GetCameraFocusLocation();
+	DesiredLocation.X = FocusLocation.X;
+	DesiredLocation.Z = FocusLocation.Z;
+	return DesiredLocation;
+}
+
+FVector AFortRogueGameMode::GetCameraFocusLocation() const
+{
+	if (BattleState == EFortRogueBattleState::ResolvingShot)
+	{
+		for (const TWeakObjectPtr<AFortRogueProjectile>& Projectile : ActiveProjectiles)
+		{
+			if (Projectile.IsValid())
+			{
+				const FVector ProjectileLocation = Projectile->GetActorLocation();
+				return FVector(ProjectileLocation.X, CameraLocation.Y, ProjectileLocation.Z + CameraProjectileZOffset);
+			}
+		}
+
+		if (bHoldingImpactCamera)
+		{
+			return FVector(LastImpactCameraLocation.X, CameraLocation.Y, LastImpactCameraLocation.Z + CameraProjectileZOffset);
+		}
+	}
+
+	const AFortRogueBattleCharacter* FocusCharacter = nullptr;
+	if (BattleState == EFortRogueBattleState::EnemyTurn)
+	{
+		FocusCharacter = EnemyCharacter;
+	}
+	else
+	{
+		FocusCharacter = PlayerCharacter;
+	}
+
+	if (FocusCharacter)
+	{
+		const FVector CharacterLocation = FocusCharacter->GetActorLocation();
+		return FVector(CharacterLocation.X, CameraLocation.Y, CharacterLocation.Z + CameraTurnZOffset);
+	}
+
+	return CameraLocation;
 }

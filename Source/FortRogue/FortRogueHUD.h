@@ -17,4 +17,5 @@ public:
 private:
 	void DrawBattleHUD(class AFortRogueGameMode* GameMode, float X, float& Y);
 	void DrawRewardHUD(class AFortRogueGameMode* GameMode, float X, float& Y);
+	void DrawPowerGauge(class AFortRogueBattleCharacter* Player, float X, float& Y);
 };

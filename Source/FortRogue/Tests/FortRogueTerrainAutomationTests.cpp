@@ -1,0 +1,338 @@
+// Copyright Epic Games, Inc. All Rights Reserved.
+
+#if WITH_DEV_AUTOMATION_TESTS
+
+#include "Misc/AutomationTest.h"
+
+#include "Combat/FortRogueBattleCharacter.h"
+#include "Combat/FortRogueDestructibleTerrain.h"
+#include "Combat/FortRogueTerrainMapDefinition.h"
+#include "Components/StaticMeshComponent.h"
+#include "Engine/Engine.h"
+#include "Engine/GameInstance.h"
+#include "Engine/Texture2D.h"
+#include "Engine/World.h"
+#include "UObject/UnrealType.h"
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFortRogueTerrainMapDefinitionEditTest, "FortRogue.Terrain.MapDefinition.Edits", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
+{
+	UFortRogueTerrainMapDefinition* Map = NewObject<UFortRogueTerrainMapDefinition>();
+	TestNotNull(TEXT("Map asset object is created"), Map);
+	TestEqual(TEXT("Default map width uses 4x Fortress screen pixels"), Map->CellsX, 1280);
+	TestEqual(TEXT("Default map height uses 4x Fortress screen pixels"), Map->CellsZ, 960);
+	TestEqual(TEXT("Default map uses one-unit world cells"), Map->CellSize, 1.0f);
+	const float HalfMapWidth = Map->CellsX * Map->CellSize * 0.5f;
+	TestTrue(TEXT("Default player spawn is inside the map width"), FMath::Abs(Map->PlayerSpawnLocal.X) < HalfMapWidth);
+	TestTrue(TEXT("Default enemy spawn is inside the map width"), FMath::Abs(Map->EnemySpawnLocal.X) < HalfMapWidth);
+	TestTrue(TEXT("Default spawns start above the map"), Map->PlayerSpawnLocal.Z > Map->CellsZ * Map->CellSize && Map->EnemySpawnLocal.Z > Map->CellsZ * Map->CellSize);
+
+	Map->Resize(8, 4);
+	Map->Clear(false);
+	TestEqual(TEXT("Resize updates SolidMask size"), Map->SolidMask.Num(), 32);
+	TestEqual(TEXT("Resize updates TextureLayerMask size"), Map->TextureLayerMask.Num(), 32);
+
+	Map->FillRect(2, 1, 4, 2, true);
+	TestEqual(TEXT("Filled rect sets minimum cell solid"), Map->SolidMask[Map->ToIndex(2, 1)], static_cast<uint8>(1));
+	TestEqual(TEXT("Filled rect sets maximum cell solid"), Map->SolidMask[Map->ToIndex(4, 2)], static_cast<uint8>(1));
+	TestEqual(TEXT("Outside rect stays empty"), Map->SolidMask[Map->ToIndex(1, 1)], static_cast<uint8>(0));
+
+	Map->ApplyTextureRect(2, 1, 4, 2, 3);
+	TestEqual(TEXT("Texture rect paints existing solid cell"), Map->TextureLayerMask[Map->ToIndex(3, 1)], static_cast<uint8>(3));
+	TestEqual(TEXT("Texture rect does not paint empty cell"), Map->TextureLayerMask[Map->ToIndex(1, 1)], static_cast<uint8>(0));
+
+	Map->ApplyCircle(3, 1, 1, false);
+	TestEqual(TEXT("Erase circle clears center solid"), Map->SolidMask[Map->ToIndex(3, 1)], static_cast<uint8>(0));
+	TestEqual(TEXT("Erase circle clears center texture layer"), Map->TextureLayerMask[Map->ToIndex(3, 1)], static_cast<uint8>(0));
+
+	Map->ApplyCircle(6, 2, 1, true);
+	Map->ApplyTextureCircle(6, 2, 1, 5);
+	TestEqual(TEXT("Texture circle paints solid center"), Map->TextureLayerMask[Map->ToIndex(6, 2)], static_cast<uint8>(5));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFortRogueTerrainMapDefinitionImportTest, "FortRogue.Terrain.MapDefinition.ImportTextureMask", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FFortRogueTerrainMapDefinitionImportTest::RunTest(const FString& Parameters)
+{
+	UTexture2D* Texture = UTexture2D::CreateTransient(4, 3, PF_B8G8R8A8);
+	TestNotNull(TEXT("Transient mask texture is created"), Texture);
+	if (!Texture || !Texture->GetPlatformData() || Texture->GetPlatformData()->Mips.Num() == 0)
+	{
+		return false;
+	}
+
+	FTexture2DMipMap& Mip = Texture->GetPlatformData()->Mips[0];
+	void* TextureData = Mip.BulkData.Lock(LOCK_READ_WRITE);
+	TestNotNull(TEXT("Transient mask texture mip locks"), TextureData);
+	if (!TextureData)
+	{
+		Mip.BulkData.Unlock();
+		return false;
+	}
+
+	FColor* Pixels = static_cast<FColor*>(TextureData);
+	for (int32 Index = 0; Index < 12; ++Index)
+	{
+		Pixels[Index] = FColor(0, 0, 0, 0);
+	}
+
+	Pixels[0] = FColor(255, 255, 255, 255);
+	Pixels[5] = FColor(255, 255, 255, 255);
+	Pixels[11] = FColor(255, 255, 255, 255);
+	Mip.BulkData.Unlock();
+
+	UFortRogueTerrainMapDefinition* Map = NewObject<UFortRogueTerrainMapDefinition>();
+	TestNotNull(TEXT("Map asset object is created"), Map);
+	const bool bImported = Map->ImportSolidMaskFromTexture(Texture, true, 0.5f, 7);
+	TestTrue(TEXT("Texture alpha mask imports"), bImported);
+	TestEqual(TEXT("Import updates map width"), Map->CellsX, 4);
+	TestEqual(TEXT("Import updates map height"), Map->CellsZ, 3);
+
+	TestEqual(TEXT("Top-left source pixel maps to top map cell"), Map->SolidMask[Map->ToIndex(0, 2)], static_cast<uint8>(1));
+	TestEqual(TEXT("Middle source pixel maps to middle map cell"), Map->SolidMask[Map->ToIndex(1, 1)], static_cast<uint8>(1));
+	TestEqual(TEXT("Bottom-right source pixel maps to bottom map cell"), Map->SolidMask[Map->ToIndex(3, 0)], static_cast<uint8>(1));
+	TestEqual(TEXT("Imported solid cells receive requested texture layer"), Map->TextureLayerMask[Map->ToIndex(1, 1)], static_cast<uint8>(7));
+	TestEqual(TEXT("Transparent cells remain empty"), Map->SolidMask[Map->ToIndex(2, 2)], static_cast<uint8>(0));
+
+	UFortRogueTerrainMapDefinition* ColorMap = NewObject<UFortRogueTerrainMapDefinition>();
+	TestNotNull(TEXT("Color import map asset object is created"), ColorMap);
+	const bool bColorImported = ColorMap->ImportSolidMaskFromTextureByColor(Texture, FLinearColor::White, 0.01f, 2);
+	TestTrue(TEXT("Texture color mask imports"), bColorImported);
+	TestEqual(TEXT("Color import updates map width"), ColorMap->CellsX, 4);
+	TestEqual(TEXT("Color import updates map height"), ColorMap->CellsZ, 3);
+	TestEqual(TEXT("Color-matched source pixel maps to solid terrain"), ColorMap->SolidMask[ColorMap->ToIndex(0, 2)], static_cast<uint8>(1));
+	TestEqual(TEXT("Color-matched solid cells receive requested texture layer"), ColorMap->TextureLayerMask[ColorMap->ToIndex(1, 1)], static_cast<uint8>(2));
+	TestEqual(TEXT("Nonmatching color cells remain empty"), ColorMap->SolidMask[ColorMap->ToIndex(2, 2)], static_cast<uint8>(0));
+
+	UFortRogueTerrainMapDefinition* ResampledMap = NewObject<UFortRogueTerrainMapDefinition>();
+	TestNotNull(TEXT("Resampled import map asset object is created"), ResampledMap);
+	ResampledMap->Resize(2, 2);
+	const bool bResampledImported = ResampledMap->ImportSolidMaskFromTextureByColor(Texture, FLinearColor::White, 0.01f, 4, false);
+	TestTrue(TEXT("Texture color mask imports while keeping current map size"), bResampledImported);
+	TestEqual(TEXT("Keep-size import preserves map width"), ResampledMap->CellsX, 2);
+	TestEqual(TEXT("Keep-size import preserves map height"), ResampledMap->CellsZ, 2);
+	TestEqual(TEXT("Keep-size import samples matching source color"), ResampledMap->SolidMask[ResampledMap->ToIndex(1, 0)], static_cast<uint8>(1));
+	TestEqual(TEXT("Keep-size import assigns requested texture layer"), ResampledMap->TextureLayerMask[ResampledMap->ToIndex(1, 0)], static_cast<uint8>(4));
+
+	UFortRogueTerrainMapDefinition* HighResolutionMap = NewObject<UFortRogueTerrainMapDefinition>();
+	TestNotNull(TEXT("High-resolution import map asset object is created"), HighResolutionMap);
+	const bool bHighResolutionImported = HighResolutionMap->ImportSolidMaskFromTexture(Texture, true, 0.5f, 8, false);
+	TestTrue(TEXT("Small source texture imports into the current high-resolution map size"), bHighResolutionImported);
+	TestEqual(TEXT("High-resolution keep-size import preserves default map width"), HighResolutionMap->CellsX, 1280);
+	TestEqual(TEXT("High-resolution keep-size import preserves default map height"), HighResolutionMap->CellsZ, 960);
+	TestEqual(TEXT("High-resolution import samples top-left source pixel"), HighResolutionMap->SolidMask[HighResolutionMap->ToIndex(100, 959)], static_cast<uint8>(1));
+	TestEqual(TEXT("High-resolution import samples middle source pixel"), HighResolutionMap->SolidMask[HighResolutionMap->ToIndex(400, 479)], static_cast<uint8>(1));
+	TestEqual(TEXT("High-resolution import samples bottom-right source pixel"), HighResolutionMap->SolidMask[HighResolutionMap->ToIndex(1100, 159)], static_cast<uint8>(1));
+	TestEqual(TEXT("High-resolution import preserves empty source areas"), HighResolutionMap->SolidMask[HighResolutionMap->ToIndex(800, 959)], static_cast<uint8>(0));
+	TestEqual(TEXT("High-resolution imported solid cells receive requested texture layer"), HighResolutionMap->TextureLayerMask[HighResolutionMap->ToIndex(400, 479)], static_cast<uint8>(8));
+
+	UFortRogueTerrainMapDefinition* RegionMap = NewObject<UFortRogueTerrainMapDefinition>();
+	TestNotNull(TEXT("Region import map asset object is created"), RegionMap);
+	const bool bRegionImported = RegionMap->ImportSolidMaskFromTextureRegion(Texture, 1, 1, 2, 2, true, 0.5f, 5);
+	TestTrue(TEXT("Texture region alpha mask imports"), bRegionImported);
+	TestEqual(TEXT("Region import updates map width to source region width"), RegionMap->CellsX, 2);
+	TestEqual(TEXT("Region import updates map height to source region height"), RegionMap->CellsZ, 2);
+	TestEqual(TEXT("Region top-left source pixel maps to top map cell"), RegionMap->SolidMask[RegionMap->ToIndex(0, 1)], static_cast<uint8>(1));
+	TestEqual(TEXT("Region nonmatching source pixel remains empty"), RegionMap->SolidMask[RegionMap->ToIndex(1, 1)], static_cast<uint8>(0));
+	TestEqual(TEXT("Region imported solid cell receives requested texture layer"), RegionMap->TextureLayerMask[RegionMap->ToIndex(0, 1)], static_cast<uint8>(5));
+
+	UFortRogueTerrainMapDefinition* RegionColorMap = NewObject<UFortRogueTerrainMapDefinition>();
+	TestNotNull(TEXT("Region color import map asset object is created"), RegionColorMap);
+	RegionColorMap->Resize(2, 2);
+	const bool bRegionColorImported = RegionColorMap->ImportSolidMaskFromTextureRegionByColor(Texture, 1, 1, 2, 2, FLinearColor::White, 0.01f, 6, false);
+	TestTrue(TEXT("Texture region color mask imports while keeping current map size"), bRegionColorImported);
+	TestEqual(TEXT("Region color import preserves map width"), RegionColorMap->CellsX, 2);
+	TestEqual(TEXT("Region color import preserves map height"), RegionColorMap->CellsZ, 2);
+	TestEqual(TEXT("Region color import samples matching source color"), RegionColorMap->SolidMask[RegionColorMap->ToIndex(0, 1)], static_cast<uint8>(1));
+	TestEqual(TEXT("Region color import assigns requested texture layer"), RegionColorMap->TextureLayerMask[RegionColorMap->ToIndex(0, 1)], static_cast<uint8>(6));
+
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFortRogueDestructibleTerrainRuntimeTest, "FortRogue.Terrain.DestructibleTerrain.RuntimeQueries", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
+{
+	UGameInstance* GameInstance = NewObject<UGameInstance>(GEngine);
+	TestNotNull(TEXT("Transient game instance is created"), GameInstance);
+	if (!GameInstance)
+	{
+		return false;
+	}
+
+	UWorld* World = UWorld::CreateWorld(EWorldType::Game, false);
+	TestNotNull(TEXT("Transient test world is created"), World);
+	if (!World)
+	{
+		return false;
+	}
+
+	World->SetShouldTick(false);
+	World->AddToRoot();
+
+	FWorldContext& WorldContext = GEngine->CreateNewWorldContext(EWorldType::Game);
+	WorldContext.OwningGameInstance = GameInstance;
+	World->SetGameInstance(GameInstance);
+	WorldContext.SetCurrentWorld(World);
+	GameInstance->Init();
+
+	auto CleanupWorld = [&World, &GameInstance]()
+	{
+		if (World->HasBegunPlay())
+		{
+			World->BeginTearingDown();
+			World->EndPlay(EEndPlayReason::Quit);
+		}
+
+		World->RemoveFromRoot();
+		GameInstance->Shutdown();
+		GEngine->DestroyWorldContext(World);
+		World->DestroyWorld(false);
+	};
+
+	UFortRogueTerrainMapDefinition* Map = NewObject<UFortRogueTerrainMapDefinition>();
+	Map->Resize(20, 6);
+	Map->CellSize = 10.0f;
+	Map->Clear(false);
+	Map->FillRect(0, 0, 19, 0, true);
+	Map->FillRect(3, 1, 3, 1, true);
+	Map->FillRect(4, 1, 4, 2, true);
+	Map->FillRect(7, 1, 7, 3, true);
+	Map->FillRect(10, 0, 10, 5, true);
+	Map->PlayerSpawnLocal = FVector(-999.0f, 0.0f, 5.0f);
+	Map->EnemySpawnLocal = FVector(999.0f, 0.0f, 5.0f);
+
+	FActorSpawnParameters SpawnParams;
+	AFortRogueDestructibleTerrain* Terrain = World->SpawnActor<AFortRogueDestructibleTerrain>(AFortRogueDestructibleTerrain::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+	TestNotNull(TEXT("Terrain actor is spawned"), Terrain);
+	if (!Terrain)
+	{
+		CleanupWorld();
+		return false;
+	}
+
+	TestEqual(TEXT("Fallback terrain uses high-resolution cells"), Terrain->CellSize, 1.0f);
+	UStaticMeshComponent* TexturePlane = Cast<UStaticMeshComponent>(Terrain->GetDefaultSubobjectByName(TEXT("TerrainTexturePlane")));
+	TestNotNull(TEXT("Terrain texture plane exists"), TexturePlane);
+	if (TexturePlane)
+	{
+		TestEqual(TEXT("Terrain texture plane is aligned to the X/Z gameplay plane"), TexturePlane->GetRelativeRotation(), FRotator(0.0f, 0.0f, 90.0f));
+	}
+
+	Terrain->MapDefinition = Map;
+
+	FURL URL;
+	World->SetGameMode(URL);
+	World->InitializeActorsForPlay(URL);
+	World->BeginPlay();
+
+	UTexture2D* RuntimeTexture = Terrain->GetRuntimeTerrainTexture();
+	TestNotNull(TEXT("Runtime terrain texture is created"), RuntimeTexture);
+	if (RuntimeTexture)
+	{
+		TestTrue(TEXT("Runtime terrain texture uses bilinear filtering to avoid chunky upscale"), RuntimeTexture->Filter == TF_Bilinear);
+		TestTrue(TEXT("Runtime terrain texture does not stream"), RuntimeTexture->NeverStream);
+	}
+	if (TexturePlane)
+	{
+		TestEqual(TEXT("Terrain texture plane width follows the map definition"), static_cast<float>(TexturePlane->GetRelativeScale3D().X), 2.0f);
+		TestEqual(TEXT("Terrain texture plane height follows the map definition"), static_cast<float>(TexturePlane->GetRelativeScale3D().Y), 0.6f);
+	}
+
+	const FVector PlayerSpawn = Terrain->GetPlayerSpawnWorldLocation();
+	const FVector EnemySpawn = Terrain->GetEnemySpawnWorldLocation();
+	TestTrue(TEXT("Player spawn is clamped inside terrain width"), PlayerSpawn.X > -100.0f && PlayerSpawn.X < 100.0f);
+	TestTrue(TEXT("Enemy spawn is clamped inside terrain width"), EnemySpawn.X > -100.0f && EnemySpawn.X < 100.0f);
+	TestTrue(TEXT("Spawns below map top are lifted above terrain height"), PlayerSpawn.Z > 60.0f && EnemySpawn.Z > 60.0f);
+
+	TestTrue(TEXT("Bottom cell is solid in world space"), Terrain->IsSolidAtWorldLocation(FVector(-15.0f, 0.0f, 5.0f)));
+	TestFalse(TEXT("Empty air cell is not solid in world space"), Terrain->IsSolidAtWorldLocation(FVector(-15.0f, 0.0f, 15.0f)));
+
+	float SurfaceZ = 0.0f;
+	TestTrue(TEXT("Surface can be found above a solid column"), Terrain->FindSurfaceZAtWorldX(-15.0f, 30.0f, 40.0f, SurfaceZ));
+	TestEqual(TEXT("Surface Z matches the top of the solid cell"), SurfaceZ, 10.0f);
+	TestFalse(TEXT("Buried wall cells are not treated as walkable surfaces"), Terrain->FindSurfaceZAtWorldX(5.0f, 44.0f, 90.0f, SurfaceZ));
+	TestTrue(TEXT("Exposed wall top is still found from above"), Terrain->FindSurfaceZAtWorldX(5.0f, 65.0f, 90.0f, SurfaceZ));
+	TestEqual(TEXT("Exposed wall top surface matches the column height"), SurfaceZ, 60.0f);
+
+	AFortRogueBattleCharacter* Character = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(-5.0f, 0.0f, 55.0f), FRotator::ZeroRotator, SpawnParams);
+	TestNotNull(TEXT("Battle character is spawned"), Character);
+	if (Character)
+	{
+		Character->BeginTurn();
+		Character->MoveHorizontal(1.0f, 0.05f);
+		TestTrue(TEXT("Battle character advances until a steep terrain wall blocks it"), Character->GetActorLocation().X > -5.0f);
+		TestTrue(TEXT("Battle character does not tunnel into the steep terrain wall"), Character->GetActorLocation().X < 0.0f);
+	}
+
+	auto SetFloatProperty = [](UObject* Object, const FName PropertyName, float Value)
+	{
+		if (FFloatProperty* Property = FindFProperty<FFloatProperty>(Object->GetClass(), PropertyName))
+		{
+			Property->SetPropertyValue_InContainer(Object, Value);
+		}
+	};
+
+	AFortRogueBattleCharacter* RampCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(-95.0f, 0.0f, 55.0f), FRotator::ZeroRotator, SpawnParams);
+	TestNotNull(TEXT("Ramp battle character is spawned"), RampCharacter);
+	if (RampCharacter)
+	{
+		SetFloatProperty(RampCharacter, TEXT("FootProbeHalfWidth"), 0.0f);
+		SetFloatProperty(RampCharacter, TEXT("BodySlopeProbeHalfWidth"), 5.0f);
+		RampCharacter->SetActorLocation(FVector(-95.0f, 0.0f, 55.0f));
+		RampCharacter->BeginTurn();
+		RampCharacter->MoveHorizontal(1.0f, 0.12f);
+		TestTrue(TEXT("Battle character climbs a traversable gentle slope"), RampCharacter->GetActorLocation().X > -70.0f && RampCharacter->GetActorLocation().Z >= 65.0f);
+		UStaticMeshComponent* RampBody = Cast<UStaticMeshComponent>(RampCharacter->GetDefaultSubobjectByName(TEXT("Body")));
+		TestNotNull(TEXT("Ramp battle character body exists"), RampBody);
+		if (RampBody)
+		{
+			TestTrue(TEXT("Battle character body visually aligns to terrain slope"), RampBody->GetRelativeRotation().Pitch > 15.0f);
+		}
+	}
+
+	AFortRogueBattleCharacter* SteepSlopeCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(-45.0f, 0.0f, 55.0f), FRotator::ZeroRotator, SpawnParams);
+	TestNotNull(TEXT("Steep slope battle character is spawned"), SteepSlopeCharacter);
+	if (SteepSlopeCharacter)
+	{
+		SetFloatProperty(SteepSlopeCharacter, TEXT("FootProbeHalfWidth"), 0.0f);
+		SteepSlopeCharacter->SetActorLocation(FVector(-45.0f, 0.0f, 55.0f));
+		SteepSlopeCharacter->BeginTurn();
+		SteepSlopeCharacter->MoveHorizontal(1.0f, 0.12f);
+		TestTrue(TEXT("Battle character stops at terrain steeper than the slope limit"), SteepSlopeCharacter->GetActorLocation().X < -30.0f);
+		TestEqual(TEXT("Battle character does not climb the rejected steep slope"), static_cast<float>(SteepSlopeCharacter->GetActorLocation().Z), 55.0f);
+	}
+
+	FVector ImpactLocation = FVector::ZeroVector;
+	TestTrue(TEXT("Segment query hits solid terrain"), Terrain->FindFirstSolidAlongWorldSegment(FVector(-15.0f, 0.0f, 25.0f), FVector(-15.0f, 0.0f, 5.0f), ImpactLocation));
+	TestTrue(TEXT("Segment impact lies inside the solid band"), ImpactLocation.Z >= 0.0f && ImpactLocation.Z < 10.0f);
+
+	AFortRogueBattleCharacter* FallingCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(45.0f, 0.0f, 55.0f), FRotator::ZeroRotator, SpawnParams);
+	TestNotNull(TEXT("Falling battle character is spawned"), FallingCharacter);
+	if (FallingCharacter)
+	{
+		const float BeforeReevaluateZ = FallingCharacter->GetActorLocation().Z;
+		TestTrue(TEXT("Carve circle removes support under the falling character"), Terrain->CarveCircle(FVector(45.0f, 0.0f, 5.0f), 25.0f));
+		FallingCharacter->ReevaluateTerrainSupport();
+		TestTrue(TEXT("Battle character starts falling immediately after support terrain is destroyed"), FallingCharacter->GetActorLocation().Z < BeforeReevaluateZ);
+	}
+
+	TestTrue(TEXT("Carve circle reports a terrain change"), Terrain->CarveCircle(FVector(-15.0f, 0.0f, 5.0f), 6.0f));
+	TestFalse(TEXT("Carved bottom cell is no longer solid"), Terrain->IsSolidAtWorldLocation(FVector(-15.0f, 0.0f, 5.0f)));
+	TestFalse(TEXT("No surface remains after carving that column"), Terrain->FindSurfaceZAtWorldX(-15.0f, 30.0f, 40.0f, SurfaceZ));
+
+	AFortRogueDestructibleTerrain* RotatedTerrain = World->SpawnActor<AFortRogueDestructibleTerrain>(AFortRogueDestructibleTerrain::StaticClass(), FVector(200.0f, 0.0f, 0.0f), FRotator(0.0f, 90.0f, 90.0f), SpawnParams);
+	TestNotNull(TEXT("Rotated terrain actor is spawned"), RotatedTerrain);
+	if (RotatedTerrain)
+	{
+		TestTrue(TEXT("Terrain actor rotation is normalized for the gameplay X/Z plane"), RotatedTerrain->GetActorRotation().IsNearlyZero());
+	}
+
+	CleanupWorld();
+	return true;
+}
+
+#endif
