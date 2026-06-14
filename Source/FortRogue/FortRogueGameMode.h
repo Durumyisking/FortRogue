@@ -81,6 +81,7 @@ private:
 	FRotator GetBattleCameraRotation() const;
 	FVector GetDesiredCameraLocation() const;
 	FVector GetCameraFocusLocation() const;
+	FVector ClampCameraLocationToTerrainBounds(const FVector& DesiredLocation) const;
 
 	UPROPERTY()
 	TObjectPtr<AFortRogueBattleCharacter> PlayerCharacter;

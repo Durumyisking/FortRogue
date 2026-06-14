@@ -344,6 +344,7 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 	if (BattleCamera)
 	{
 		TestEqual(TEXT("Battle camera faces the X/Z gameplay plane without requiring terrain rotation"), BattleCamera->GetActorRotation(), FRotator(0.0f, 90.0f, 0.0f));
+		TestEqual(TEXT("Battle camera X stays centered when the full terrain fits in view"), static_cast<float>(BattleCamera->GetActorLocation().X), 0.0f);
 		TestNotNull(TEXT("Battle camera has a camera component"), BattleCamera->GetCameraComponent());
 		if (BattleCamera->GetCameraComponent())
 		{

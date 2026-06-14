@@ -407,7 +407,7 @@ FVector AFortRogueGameMode::GetDesiredCameraLocation() const
 	const FVector FocusLocation = GetCameraFocusLocation();
 	DesiredLocation.X = FocusLocation.X;
 	DesiredLocation.Z = FocusLocation.Z;
-	return DesiredLocation;
+	return ClampCameraLocationToTerrainBounds(DesiredLocation);
 }
 
 FVector AFortRogueGameMode::GetCameraFocusLocation() const
@@ -446,4 +446,41 @@ FVector AFortRogueGameMode::GetCameraFocusLocation() const
 	}
 
 	return CameraLocation;
+}
+
+FVector AFortRogueGameMode::ClampCameraLocationToTerrainBounds(const FVector& DesiredLocation) const
+{
+	if (!Terrain)
+	{
+		return DesiredLocation;
+	}
+
+	float OrthoWidth = CameraOrthoWidth;
+	if (BattleCamera && BattleCamera->GetCameraComponent())
+	{
+		OrthoWidth = BattleCamera->GetCameraComponent()->OrthoWidth;
+	}
+	else
+	{
+		OrthoWidth = GetInitialCameraOrthoWidth();
+	}
+
+	const float ViewHalfWidth = OrthoWidth * 0.5f;
+	const float TerrainHalfWidth = Terrain->Width * 0.5f;
+	const float PaddingHalf = TerrainCameraPadding * 0.5f;
+	const float TerrainCenterX = Terrain->GetActorLocation().X;
+
+	FVector ClampedLocation = DesiredLocation;
+	if (ViewHalfWidth >= TerrainHalfWidth + PaddingHalf)
+	{
+		ClampedLocation.X = TerrainCenterX;
+	}
+	else
+	{
+		const float MinCameraX = TerrainCenterX - TerrainHalfWidth - PaddingHalf + ViewHalfWidth;
+		const float MaxCameraX = TerrainCenterX + TerrainHalfWidth + PaddingHalf - ViewHalfWidth;
+		ClampedLocation.X = FMath::Clamp(static_cast<float>(DesiredLocation.X), MinCameraX, MaxCameraX);
+	}
+
+	return ClampedLocation;
 }
