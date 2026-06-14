@@ -108,7 +108,7 @@ public:
 
 				const int32 RunLength = X - RunStartX;
 				const FVector2D RunPosition = Origin + FVector2D(RunStartX * CellPixels, (Map->CellsZ - 1 - Z) * CellPixels);
-				const FVector2D RunSize(FMath::Max(1.0f, RunLength * CellPixels - 1.0f), FMath::Max(1.0f, CellPixels - 1.0f));
+				const FVector2D RunSize = GetCellDrawSize(CellPixels, RunLength, 1);
 				const FPaintGeometry RunGeometry = AllottedGeometry.ToPaintGeometry(RunSize, FSlateLayoutTransform(RunPosition));
 				FSlateDrawElement::MakeBox(OutDrawElements, LayerId + 1, RunGeometry, FCoreStyle::Get().GetBrush("WhiteBrush"), ESlateDrawEffect::None, GetLayerColor(Layer));
 			}
@@ -121,7 +121,7 @@ public:
 			const int32 MinZ = FMath::Min(DragStart.Y, DragCurrent.Y);
 			const int32 MaxZ = FMath::Max(DragStart.Y, DragCurrent.Y);
 			const FVector2D RectPosition = Origin + FVector2D(MinX * CellPixels, (Map->CellsZ - 1 - MaxZ) * CellPixels);
-			const FVector2D RectSize((MaxX - MinX + 1) * CellPixels, (MaxZ - MinZ + 1) * CellPixels);
+			const FVector2D RectSize = GetCellDrawSize(CellPixels, MaxX - MinX + 1, MaxZ - MinZ + 1);
 			FSlateDrawElement::MakeBox(OutDrawElements, LayerId + 2, AllottedGeometry.ToPaintGeometry(RectSize, FSlateLayoutTransform(RectPosition)), FCoreStyle::Get().GetBrush("WhiteBrush"), ESlateDrawEffect::None, FLinearColor(1.0f, 1.0f, 1.0f, 0.18f));
 		}
 
@@ -210,7 +210,15 @@ private:
 		}
 
 		const FVector2D Size = Geometry.GetLocalSize();
-		return FMath::Max(1.0f, FMath::Min(Size.X / Map->CellsX, Size.Y / Map->CellsZ));
+		return FMath::Max(0.05f, FMath::Min(Size.X / Map->CellsX, Size.Y / Map->CellsZ));
+	}
+
+	static FVector2D GetCellDrawSize(float CellPixels, int32 CellCountX, int32 CellCountZ)
+	{
+		const float GapPixels = CellPixels >= 2.0f ? 1.0f : 0.0f;
+		return FVector2D(
+			FMath::Max(CellPixels, CellCountX * CellPixels - GapPixels),
+			FMath::Max(CellPixels, CellCountZ * CellPixels - GapPixels));
 	}
 
 	FVector2D GetCanvasOrigin(const FGeometry& Geometry, float CellPixels) const
