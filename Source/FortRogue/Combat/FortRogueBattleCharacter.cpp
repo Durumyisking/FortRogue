@@ -321,6 +321,11 @@ void AFortRogueBattleCharacter::ReevaluateTerrainSupport()
 	ApplyTerrainGravity(1.0f / 60.0f);
 }
 
+void AFortRogueBattleCharacter::SetTerrain(AFortRogueDestructibleTerrain* InTerrain)
+{
+	AssignedTerrain = InTerrain;
+}
+
 bool AFortRogueBattleCharacter::UseItemByType(EFortRogueItemType ItemType)
 {
 	if (!bActiveTurn || IsDefeated())
@@ -528,6 +533,11 @@ FText AFortRogueBattleCharacter::GetCharacterDisplayName() const
 
 AFortRogueDestructibleTerrain* AFortRogueBattleCharacter::FindTerrain() const
 {
+	if (AssignedTerrain)
+	{
+		return AssignedTerrain;
+	}
+
 	UWorld* World = GetWorld();
 	if (!World)
 	{

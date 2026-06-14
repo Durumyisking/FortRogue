@@ -193,6 +193,7 @@ void AFortRogueGameMode::SpawnMVPBattle()
 	if (PlayerCharacter)
 	{
 		PlayerCharacter->CharacterDefinition = PlayerDefinition;
+		PlayerCharacter->SetTerrain(Terrain);
 		UGameplayStatics::FinishSpawningActor(PlayerCharacter, FTransform(FRotator::ZeroRotator, PlayerLocation));
 	}
 
@@ -201,6 +202,7 @@ void AFortRogueGameMode::SpawnMVPBattle()
 	if (EnemyCharacter)
 	{
 		EnemyCharacter->CharacterDefinition = EnemyDefinition;
+		EnemyCharacter->SetTerrain(Terrain);
 		UGameplayStatics::FinishSpawningActor(EnemyCharacter, FTransform(FRotator::ZeroRotator, EnemyLocation));
 	}
 

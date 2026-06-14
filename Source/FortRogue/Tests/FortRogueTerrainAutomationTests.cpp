@@ -262,6 +262,7 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	TestNotNull(TEXT("Battle character is spawned"), Character);
 	if (Character)
 	{
+		Character->SetTerrain(Terrain);
 		Character->BeginTurn();
 		Character->MoveHorizontal(1.0f, 0.05f);
 		TestTrue(TEXT("Battle character advances until a steep terrain wall blocks it"), Character->GetActorLocation().X > -5.0f);
@@ -280,6 +281,7 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	TestNotNull(TEXT("Ramp battle character is spawned"), RampCharacter);
 	if (RampCharacter)
 	{
+		RampCharacter->SetTerrain(Terrain);
 		SetFloatProperty(RampCharacter, TEXT("FootProbeHalfWidth"), 0.0f);
 		SetFloatProperty(RampCharacter, TEXT("BodySlopeProbeHalfWidth"), 5.0f);
 		RampCharacter->SetActorLocation(FVector(-95.0f, 0.0f, 55.0f));
@@ -298,6 +300,7 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	TestNotNull(TEXT("Steep slope battle character is spawned"), SteepSlopeCharacter);
 	if (SteepSlopeCharacter)
 	{
+		SteepSlopeCharacter->SetTerrain(Terrain);
 		SetFloatProperty(SteepSlopeCharacter, TEXT("FootProbeHalfWidth"), 0.0f);
 		SteepSlopeCharacter->SetActorLocation(FVector(-45.0f, 0.0f, 55.0f));
 		SteepSlopeCharacter->BeginTurn();
@@ -314,6 +317,7 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	TestNotNull(TEXT("Falling battle character is spawned"), FallingCharacter);
 	if (FallingCharacter)
 	{
+		FallingCharacter->SetTerrain(Terrain);
 		const float BeforeReevaluateZ = FallingCharacter->GetActorLocation().Z;
 		TestTrue(TEXT("Carve circle removes support under the falling character"), Terrain->CarveCircle(FVector(45.0f, 0.0f, 5.0f), 25.0f));
 		FallingCharacter->ReevaluateTerrainSupport();

@@ -16,6 +16,7 @@ class UFortRogueCombatSet;
 class UStaticMeshComponent;
 class UFortRogueItemDefinition;
 class UFortRoguePerkDefinition;
+class AFortRogueDestructibleTerrain;
 
 UCLASS()
 class FORTROGUE_API AFortRogueBattleCharacter : public APawn, public IAbilitySystemInterface
@@ -73,6 +74,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
 	void ReevaluateTerrainSupport();
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
+	void SetTerrain(AFortRogueDestructibleTerrain* InTerrain);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Items")
 	bool UseItemByType(EFortRogueItemType ItemType);
@@ -168,7 +172,7 @@ public:
 	float ShotChargeSeconds = 1.25f;
 
 private:
-	class AFortRogueDestructibleTerrain* FindTerrain() const;
+	AFortRogueDestructibleTerrain* FindTerrain() const;
 	bool FindFootprintSurfaceZ(const AFortRogueDestructibleTerrain& Terrain, float CenterWorldX, float StartWorldZ, float SearchDistance, float& OutSurfaceZ) const;
 	bool IsFootprintBlocked(const AFortRogueDestructibleTerrain& Terrain, const FVector& CenterLocation, float FootWorldZ) const;
 	bool IsSlopeTraversable(float CurrentFootWorldZ, float NextSurfaceWorldZ, float HorizontalDistance, float TerrainCellSize) const;
@@ -189,6 +193,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue|Abilities")
 	TObjectPtr<UFortRogueCombatSet> CombatSet;
+
+	UPROPERTY()
+	TObjectPtr<AFortRogueDestructibleTerrain> AssignedTerrain;
 
 	TArray<FFortRogueAbilitySet_GrantedHandles> StartupAbilitySetHandles;
 	FText CharacterDisplayName;
