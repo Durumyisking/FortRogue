@@ -176,6 +176,7 @@ private:
 	bool FindFootprintSurfaceZ(const AFortRogueDestructibleTerrain& Terrain, float CenterWorldX, float StartWorldZ, float SearchDistance, float& OutSurfaceZ) const;
 	bool IsFootprintBlocked(const AFortRogueDestructibleTerrain& Terrain, const FVector& CenterLocation, float FootWorldZ) const;
 	bool IsSlopeTraversable(float CurrentFootWorldZ, float NextSurfaceWorldZ, float HorizontalDistance, float TerrainCellSize) const;
+	float ClampWorldXToTerrainBounds(const AFortRogueDestructibleTerrain& Terrain, float WorldX) const;
 	void UpdateBodyTerrainAlignment(const AFortRogueDestructibleTerrain* Terrain);
 	void ApplyTerrainGravity(float DeltaSeconds);
 	void SnapToTerrain();

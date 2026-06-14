@@ -147,12 +147,18 @@ void AFortRogueBattleCharacter::MoveHorizontal(float Axis, float DeltaSeconds)
 		{
 			FVector StepLocation = NewLocation;
 			StepLocation.X += StepDelta;
+			StepLocation.X = ClampWorldXToTerrainBounds(*Terrain, StepLocation.X);
+			const float ClampedStepDelta = StepLocation.X - NewLocation.X;
+			if (FMath::IsNearlyZero(ClampedStepDelta))
+			{
+				break;
+			}
 
 			const float CurrentFootZ = NewLocation.Z - FootOffsetZ;
 			float SurfaceZ = 0.0f;
 			if (FindFootprintSurfaceZ(*Terrain, StepLocation.X, CurrentFootZ + MaxStepUp, MaxStepUp + MaxStepDown, SurfaceZ))
 			{
-				if (!IsSlopeTraversable(CurrentFootZ, SurfaceZ, StepDelta, Terrain->CellSize))
+				if (!IsSlopeTraversable(CurrentFootZ, SurfaceZ, ClampedStepDelta, Terrain->CellSize))
 				{
 					break;
 				}
@@ -170,7 +176,7 @@ void AFortRogueBattleCharacter::MoveHorizontal(float Axis, float DeltaSeconds)
 			}
 
 			NewLocation = StepLocation;
-			ActualDelta += StepDelta;
+			ActualDelta += ClampedStepDelta;
 		}
 	}
 	else
@@ -325,16 +331,21 @@ void AFortRogueBattleCharacter::ReevaluateTerrainSupport()
 	}
 
 	const FVector CurrentLocation = GetActorLocation();
+	const float ClampedWorldX = ClampWorldXToTerrainBounds(*Terrain, CurrentLocation.X);
 	const float CurrentFootZ = CurrentLocation.Z - FootOffsetZ;
 	float SurfaceZ = 0.0f;
-	if (FindFootprintSurfaceZ(*Terrain, CurrentLocation.X, CurrentFootZ + GroundSnapDistance, GroundSnapDistance + MaxStepDown, SurfaceZ))
+	if (FindFootprintSurfaceZ(*Terrain, ClampedWorldX, CurrentFootZ + GroundSnapDistance, GroundSnapDistance + MaxStepDown, SurfaceZ))
 	{
-		SetActorLocation(FVector(CurrentLocation.X, CurrentLocation.Y, SurfaceZ + FootOffsetZ));
+		SetActorLocation(FVector(ClampedWorldX, CurrentLocation.Y, SurfaceZ + FootOffsetZ));
 		VerticalVelocity = 0.0f;
 		UpdateBodyTerrainAlignment(Terrain);
 		return;
 	}
 
+	if (!FMath::IsNearlyEqual(ClampedWorldX, static_cast<float>(CurrentLocation.X)))
+	{
+		SetActorLocation(FVector(ClampedWorldX, CurrentLocation.Y, CurrentLocation.Z));
+	}
 	ApplyTerrainGravity(1.0f / 60.0f);
 }
 
@@ -624,6 +635,20 @@ bool AFortRogueBattleCharacter::IsSlopeTraversable(float CurrentFootWorldZ, floa
 	return NextSurfaceWorldZ - CurrentFootWorldZ <= MaxVerticalDelta + KINDA_SMALL_NUMBER;
 }
 
+float AFortRogueBattleCharacter::ClampWorldXToTerrainBounds(const AFortRogueDestructibleTerrain& Terrain, float WorldX) const
+{
+	const float HalfWidth = Terrain.Width * 0.5f;
+	const float EdgePadding = FMath::Clamp(FootProbeHalfWidth, 0.0f, HalfWidth);
+	const float MinX = Terrain.GetActorLocation().X - HalfWidth + EdgePadding;
+	const float MaxX = Terrain.GetActorLocation().X + HalfWidth - EdgePadding;
+	if (MinX > MaxX)
+	{
+		return Terrain.GetActorLocation().X;
+	}
+
+	return FMath::Clamp(WorldX, MinX, MaxX);
+}
+
 void AFortRogueBattleCharacter::UpdateBodyTerrainAlignment(const AFortRogueDestructibleTerrain* Terrain)
 {
 	if (!Body)
@@ -669,11 +694,12 @@ void AFortRogueBattleCharacter::ApplyTerrainGravity(float DeltaSeconds)
 	}
 
 	const FVector CurrentLocation = GetActorLocation();
+	const float ClampedWorldX = ClampWorldXToTerrainBounds(*Terrain, CurrentLocation.X);
 	const float CurrentFootZ = CurrentLocation.Z - FootOffsetZ;
 	float SurfaceZ = 0.0f;
-	if (FindFootprintSurfaceZ(*Terrain, CurrentLocation.X, CurrentFootZ + GroundSnapDistance, GroundSnapDistance + 1.0f, SurfaceZ))
+	if (FindFootprintSurfaceZ(*Terrain, ClampedWorldX, CurrentFootZ + GroundSnapDistance, GroundSnapDistance + 1.0f, SurfaceZ))
 	{
-		SetActorLocation(FVector(CurrentLocation.X, CurrentLocation.Y, SurfaceZ + FootOffsetZ));
+		SetActorLocation(FVector(ClampedWorldX, CurrentLocation.Y, SurfaceZ + FootOffsetZ));
 		VerticalVelocity = 0.0f;
 		UpdateBodyTerrainAlignment(Terrain);
 		return;
@@ -681,15 +707,15 @@ void AFortRogueBattleCharacter::ApplyTerrainGravity(float DeltaSeconds)
 
 	VerticalVelocity = FMath::Max(VerticalVelocity - GravityAcceleration * DeltaSeconds, -MaxFallSpeed);
 	const float FallDistance = FMath::Abs(VerticalVelocity * DeltaSeconds);
-	if (FindFootprintSurfaceZ(*Terrain, CurrentLocation.X, CurrentFootZ, FallDistance + GroundSnapDistance, SurfaceZ))
+	if (FindFootprintSurfaceZ(*Terrain, ClampedWorldX, CurrentFootZ, FallDistance + GroundSnapDistance, SurfaceZ))
 	{
-		SetActorLocation(FVector(CurrentLocation.X, CurrentLocation.Y, SurfaceZ + FootOffsetZ));
+		SetActorLocation(FVector(ClampedWorldX, CurrentLocation.Y, SurfaceZ + FootOffsetZ));
 		VerticalVelocity = 0.0f;
 		UpdateBodyTerrainAlignment(Terrain);
 		return;
 	}
 
-	AddActorWorldOffset(FVector(0.0f, 0.0f, VerticalVelocity * DeltaSeconds));
+	SetActorLocation(FVector(ClampedWorldX, CurrentLocation.Y, CurrentLocation.Z + VerticalVelocity * DeltaSeconds));
 	UpdateBodyTerrainAlignment(nullptr);
 }
 
@@ -702,10 +728,11 @@ void AFortRogueBattleCharacter::SnapToTerrain()
 	}
 
 	const FVector CurrentLocation = GetActorLocation();
+	const float ClampedWorldX = ClampWorldXToTerrainBounds(*Terrain, CurrentLocation.X);
 	float SurfaceZ = 0.0f;
-	if (FindFootprintSurfaceZ(*Terrain, CurrentLocation.X, CurrentLocation.Z, 2000.0f, SurfaceZ))
+	if (FindFootprintSurfaceZ(*Terrain, ClampedWorldX, CurrentLocation.Z, 2000.0f, SurfaceZ))
 	{
-		SetActorLocation(FVector(CurrentLocation.X, CurrentLocation.Y, SurfaceZ + FootOffsetZ));
+		SetActorLocation(FVector(ClampedWorldX, CurrentLocation.Y, SurfaceZ + FootOffsetZ));
 		VerticalVelocity = 0.0f;
 		UpdateBodyTerrainAlignment(Terrain);
 	}

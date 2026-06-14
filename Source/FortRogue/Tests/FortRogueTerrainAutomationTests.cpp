@@ -546,6 +546,20 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		return FallbackValue;
 	};
 
+	AFortRogueBattleCharacter* BoundaryCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(500.0f, 0.0f, 200.0f), FRotator::ZeroRotator, SpawnParams);
+	TestNotNull(TEXT("Boundary battle character is spawned"), BoundaryCharacter);
+	if (BoundaryCharacter)
+	{
+		BoundaryCharacter->SetActorLocation(FVector(500.0f, 0.0f, 200.0f));
+		BoundaryCharacter->SetTerrain(Terrain);
+		const float FootProbeHalfWidth = GetFloatProperty(BoundaryCharacter, TEXT("FootProbeHalfWidth"), 22.0f);
+		const float MaxCharacterX = Terrain->GetActorLocation().X + Terrain->Width * 0.5f - FootProbeHalfWidth;
+		TestEqual(TEXT("Assigning terrain clamps character inside terrain width"), static_cast<float>(BoundaryCharacter->GetActorLocation().X), MaxCharacterX);
+		BoundaryCharacter->BeginTurn();
+		BoundaryCharacter->MoveHorizontal(1.0f, 1.0f);
+		TestEqual(TEXT("Battle character movement stays inside terrain width"), static_cast<float>(BoundaryCharacter->GetActorLocation().X), MaxCharacterX);
+	}
+
 	AFortRogueBattleCharacter* LateBoundCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(-15.0f, 0.0f, 200.0f), FRotator::ZeroRotator, SpawnParams);
 	TestNotNull(TEXT("Late-bound terrain battle character is spawned"), LateBoundCharacter);
 	if (LateBoundCharacter)
