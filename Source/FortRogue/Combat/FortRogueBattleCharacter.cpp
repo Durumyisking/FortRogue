@@ -341,6 +341,10 @@ void AFortRogueBattleCharacter::ReevaluateTerrainSupport()
 void AFortRogueBattleCharacter::SetTerrain(AFortRogueDestructibleTerrain* InTerrain)
 {
 	AssignedTerrain = InTerrain;
+	if (HasActorBegunPlay())
+	{
+		SnapToTerrain();
+	}
 }
 
 bool AFortRogueBattleCharacter::UseItemByType(EFortRogueItemType ItemType)

@@ -503,6 +503,26 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		}
 	};
 
+	auto GetFloatProperty = [](UObject* Object, const FName PropertyName, float FallbackValue)
+	{
+		if (FFloatProperty* Property = FindFProperty<FFloatProperty>(Object->GetClass(), PropertyName))
+		{
+			return Property->GetPropertyValue_InContainer(Object);
+		}
+
+		return FallbackValue;
+	};
+
+	AFortRogueBattleCharacter* LateBoundCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(-15.0f, 0.0f, 200.0f), FRotator::ZeroRotator, SpawnParams);
+	TestNotNull(TEXT("Late-bound terrain battle character is spawned"), LateBoundCharacter);
+	if (LateBoundCharacter)
+	{
+		LateBoundCharacter->SetActorLocation(FVector(-15.0f, 0.0f, 200.0f));
+		LateBoundCharacter->SetTerrain(Terrain);
+		const float FootOffsetZ = GetFloatProperty(LateBoundCharacter, TEXT("FootOffsetZ"), 45.0f);
+		TestEqual(TEXT("Assigning terrain after BeginPlay snaps character feet onto the highest footprint surface"), static_cast<float>(LateBoundCharacter->GetActorLocation().Z), 60.0f + FootOffsetZ);
+	}
+
 	AFortRogueBattleCharacter* RampCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(-95.0f, 0.0f, 55.0f), FRotator::ZeroRotator, SpawnParams);
 	TestNotNull(TEXT("Ramp battle character is spawned"), RampCharacter);
 	if (RampCharacter)
