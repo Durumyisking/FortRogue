@@ -181,6 +181,41 @@ bool GetImportColorMatch(const TArray<FColor>& Pixels, int32 TextureWidth, const
 	const float Bottom = FMath::Lerp(MatchWeight(X0, Y1), MatchWeight(X1, Y1), LerpX);
 	return FMath::Lerp(Top, Bottom, LerpY) >= 0.5f;
 }
+
+int32 GetNearestResampleSource(int32 Target, int32 TargetSize, int32 SourceSize)
+{
+	return FMath::Clamp(FMath::FloorToInt((static_cast<float>(Target) + 0.5f) * SourceSize / FMath::Max(1, TargetSize)), 0, SourceSize - 1);
+}
+
+uint8 GetResampledSolid(const TArray<uint8>& SourceMask, int32 SourceCellsX, int32 SourceCellsZ, int32 TargetX, int32 TargetZ, int32 TargetCellsX, int32 TargetCellsZ)
+{
+	const float SourceX = FMath::Clamp(GetImportSourceCoordinate(TargetX, TargetCellsX, 0, SourceCellsX), 0.0f, static_cast<float>(SourceCellsX - 1));
+	const float SourceZ = FMath::Clamp(GetImportSourceCoordinate(TargetZ, TargetCellsZ, 0, SourceCellsZ), 0.0f, static_cast<float>(SourceCellsZ - 1));
+	const int32 X0 = FMath::Clamp(FMath::FloorToInt(SourceX), 0, SourceCellsX - 1);
+	const int32 Z0 = FMath::Clamp(FMath::FloorToInt(SourceZ), 0, SourceCellsZ - 1);
+	const int32 X1 = FMath::Clamp(X0 + 1, 0, SourceCellsX - 1);
+	const int32 Z1 = FMath::Clamp(Z0 + 1, 0, SourceCellsZ - 1);
+	const float LerpX = SourceX - X0;
+	const float LerpZ = SourceZ - Z0;
+
+	auto ReadMask = [&SourceMask, SourceCellsX](int32 X, int32 Z)
+	{
+		return SourceMask[Z * SourceCellsX + X] != 0 ? 1.0f : 0.0f;
+	};
+
+	const float Bottom = FMath::Lerp(ReadMask(X0, Z0), ReadMask(X1, Z0), LerpX);
+	const float Top = FMath::Lerp(ReadMask(X0, Z1), ReadMask(X1, Z1), LerpX);
+	return FMath::Lerp(Bottom, Top, LerpZ) >= 0.5f ? 1 : 0;
+}
+
+FVector GetResampledSpawn(const FVector& SourceSpawn, float SourceWidth, float SourceHeight, float TargetWidth, float TargetHeight)
+{
+	FVector ResampledSpawn = SourceSpawn;
+	const float SourceAlphaX = SourceWidth > 0.0f ? (SourceSpawn.X + SourceWidth * 0.5f) / SourceWidth : 0.5f;
+	ResampledSpawn.X = FMath::Clamp(SourceAlphaX, 0.0f, 1.0f) * TargetWidth - TargetWidth * 0.5f;
+	ResampledSpawn.Z = TargetHeight + (SourceSpawn.Z - SourceHeight);
+	return ResampledSpawn;
+}
 }
 
 UFortRogueTerrainMapDefinition::UFortRogueTerrainMapDefinition()
@@ -211,6 +246,59 @@ void UFortRogueTerrainMapDefinition::Resize(int32 NewCellsX, int32 NewCellsZ)
 	CellsZ = FMath::Max(1, NewCellsZ);
 	SolidMask.SetNumZeroed(CellsX * CellsZ);
 	TextureLayerMask.SetNumZeroed(CellsX * CellsZ);
+}
+
+void UFortRogueTerrainMapDefinition::ResizeResampled(int32 NewCellsX, int32 NewCellsZ)
+{
+	const int32 TargetCellsX = FMath::Max(1, NewCellsX);
+	const int32 TargetCellsZ = FMath::Max(1, NewCellsZ);
+	if (TargetCellsX == CellsX && TargetCellsZ == CellsZ)
+	{
+		return;
+	}
+
+	if (CellsX <= 0 || CellsZ <= 0 || SolidMask.Num() != CellsX * CellsZ || TextureLayerMask.Num() != CellsX * CellsZ)
+	{
+		Resize(TargetCellsX, TargetCellsZ);
+		return;
+	}
+
+	const int32 SourceCellsX = CellsX;
+	const int32 SourceCellsZ = CellsZ;
+	const float SourceWidth = SourceCellsX * CellSize;
+	const float SourceHeight = SourceCellsZ * CellSize;
+	const TArray<uint8> SourceSolidMask = SolidMask;
+	const TArray<uint8> SourceTextureLayerMask = TextureLayerMask;
+
+	TArray<uint8> ResampledSolidMask;
+	TArray<uint8> ResampledTextureLayerMask;
+	ResampledSolidMask.SetNumZeroed(TargetCellsX * TargetCellsZ);
+	ResampledTextureLayerMask.SetNumZeroed(TargetCellsX * TargetCellsZ);
+
+	for (int32 Z = 0; Z < TargetCellsZ; ++Z)
+	{
+		for (int32 X = 0; X < TargetCellsX; ++X)
+		{
+			const int32 TargetIndex = Z * TargetCellsX + X;
+			ResampledSolidMask[TargetIndex] = GetResampledSolid(SourceSolidMask, SourceCellsX, SourceCellsZ, X, Z, TargetCellsX, TargetCellsZ);
+			if (ResampledSolidMask[TargetIndex] != 0)
+			{
+				const int32 SourceX = GetNearestResampleSource(X, TargetCellsX, SourceCellsX);
+				const int32 SourceZ = GetNearestResampleSource(Z, TargetCellsZ, SourceCellsZ);
+				ResampledTextureLayerMask[TargetIndex] = SourceTextureLayerMask[SourceZ * SourceCellsX + SourceX];
+			}
+		}
+	}
+
+	CellsX = TargetCellsX;
+	CellsZ = TargetCellsZ;
+	SolidMask = MoveTemp(ResampledSolidMask);
+	TextureLayerMask = MoveTemp(ResampledTextureLayerMask);
+
+	const float TargetWidth = CellsX * CellSize;
+	const float TargetHeight = CellsZ * CellSize;
+	PlayerSpawnLocal = GetResampledSpawn(PlayerSpawnLocal, SourceWidth, SourceHeight, TargetWidth, TargetHeight);
+	EnemySpawnLocal = GetResampledSpawn(EnemySpawnLocal, SourceWidth, SourceHeight, TargetWidth, TargetHeight);
 }
 
 void UFortRogueTerrainMapDefinition::Clear(bool bSolid)

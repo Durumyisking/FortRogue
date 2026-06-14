@@ -35,6 +35,9 @@ public:
 	void Resize(int32 NewCellsX, int32 NewCellsZ);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
+	void ResizeResampled(int32 NewCellsX, int32 NewCellsZ);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
 	void Clear(bool bSolid);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")

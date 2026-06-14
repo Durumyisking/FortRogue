@@ -936,8 +936,8 @@ private:
 	{
 		if (UFortRogueTerrainMapDefinition* Map = GetEditableMap())
 		{
-			Map->Resize(CellsX, CellsZ);
-			StatusText = LOCTEXT("Resized", "Resized terrain map.");
+			Map->ResizeResampled(CellsX, CellsZ);
+			StatusText = LOCTEXT("Resized", "Resized terrain map and preserved existing cells.");
 		}
 		return FReply::Handled();
 	}

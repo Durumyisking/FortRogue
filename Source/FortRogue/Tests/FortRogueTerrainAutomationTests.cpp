@@ -57,6 +57,25 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	Map->ApplyTextureCircle(6, 2, 1, 5);
 	TestEqual(TEXT("Texture circle paints solid center"), Map->TextureLayerMask[Map->ToIndex(6, 2)], static_cast<uint8>(5));
 
+	UFortRogueTerrainMapDefinition* ResizedMap = NewObject<UFortRogueTerrainMapDefinition>();
+	TestNotNull(TEXT("Resample resize map asset object is created"), ResizedMap);
+	ResizedMap->Resize(4, 2);
+	ResizedMap->CellSize = 10.0f;
+	ResizedMap->Clear(false);
+	ResizedMap->FillRect(1, 0, 1, 1, true);
+	ResizedMap->ApplyTextureRect(1, 0, 1, 1, 6);
+	ResizedMap->PlayerSpawnLocal = FVector(-10.0f, 0.0f, 35.0f);
+	ResizedMap->EnemySpawnLocal = FVector(10.0f, 0.0f, 35.0f);
+	ResizedMap->ResizeResampled(8, 4);
+	TestEqual(TEXT("Resample resize updates map width"), ResizedMap->CellsX, 8);
+	TestEqual(TEXT("Resample resize updates map height"), ResizedMap->CellsZ, 4);
+	TestEqual(TEXT("Resample resize preserves scaled solid terrain"), ResizedMap->SolidMask[ResizedMap->ToIndex(2, 1)], static_cast<uint8>(1));
+	TestEqual(TEXT("Resample resize preserves scaled texture layer"), ResizedMap->TextureLayerMask[ResizedMap->ToIndex(2, 1)], static_cast<uint8>(6));
+	TestEqual(TEXT("Resample resize keeps empty areas empty"), ResizedMap->SolidMask[ResizedMap->ToIndex(6, 1)], static_cast<uint8>(0));
+	TestEqual(TEXT("Resample resize preserves player spawn horizontal ratio"), ResizedMap->PlayerSpawnLocal.X, -20.0);
+	TestEqual(TEXT("Resample resize preserves enemy spawn horizontal ratio"), ResizedMap->EnemySpawnLocal.X, 20.0);
+	TestEqual(TEXT("Resample resize preserves spawn clearance above the map"), ResizedMap->PlayerSpawnLocal.Z, 55.0);
+
 	return true;
 }
 
