@@ -449,6 +449,12 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	OverlappingMap->Clear(false);
 	OverlappingMap->FillRect(0, 0, 19, 0, true);
 
+	UFortRogueTerrainMapDefinition* FastProjectileMap = NewObject<UFortRogueTerrainMapDefinition>();
+	FastProjectileMap->Resize(10, 6);
+	FastProjectileMap->CellSize = 10.0f;
+	FastProjectileMap->Clear(false);
+	FastProjectileMap->FillRect(5, 3, 5, 3, true);
+
 	FActorSpawnParameters SpawnParams;
 	AFortRogueDestructibleTerrain* Terrain = World->SpawnActor<AFortRogueDestructibleTerrain>(AFortRogueDestructibleTerrain::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
 	TestNotNull(TEXT("Terrain actor is spawned"), Terrain);
@@ -479,6 +485,13 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	if (OverlappingTerrain)
 	{
 		OverlappingTerrain->MapDefinition = OverlappingMap;
+	}
+
+	AFortRogueDestructibleTerrain* FastProjectileTerrain = World->SpawnActor<AFortRogueDestructibleTerrain>(AFortRogueDestructibleTerrain::StaticClass(), FVector(300.0f, 0.0f, 0.0f), FRotator::ZeroRotator, SpawnParams);
+	TestNotNull(TEXT("Fast projectile test terrain actor is spawned"), FastProjectileTerrain);
+	if (FastProjectileTerrain)
+	{
+		FastProjectileTerrain->MapDefinition = FastProjectileMap;
 	}
 
 	FURL URL;
@@ -637,6 +650,22 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	FVector ImpactLocation = FVector::ZeroVector;
 	TestTrue(TEXT("Segment query hits solid terrain"), Terrain->FindFirstSolidAlongWorldSegment(FVector(-15.0f, 0.0f, 25.0f), FVector(-15.0f, 0.0f, 5.0f), ImpactLocation));
 	TestTrue(TEXT("Segment impact lies inside the solid band"), ImpactLocation.Z >= 0.0f && ImpactLocation.Z < 10.0f);
+
+	if (FastProjectileTerrain)
+	{
+		FVector FastImpactLocation = FVector::ZeroVector;
+		TestTrue(TEXT("Fast segment query hits a one-cell vertical wall"), FastProjectileTerrain->FindFirstSolidAlongWorldSegment(FVector(203.0f, 0.0f, 35.0f), FVector(397.0f, 0.0f, 35.0f), FastImpactLocation));
+		TestTrue(TEXT("Fast segment impact lies inside the one-cell wall"), FastImpactLocation.X >= 300.0f && FastImpactLocation.X < 310.0f && FastImpactLocation.Z >= 30.0f && FastImpactLocation.Z < 40.0f);
+
+		AFortRogueProjectile* FastProjectile = World->SpawnActor<AFortRogueProjectile>(AFortRogueProjectile::StaticClass(), FVector(203.0f, 0.0f, 35.0f), FRotator::ZeroRotator, SpawnParams);
+		TestNotNull(TEXT("Fast projectile is spawned"), FastProjectile);
+		if (FastProjectile)
+		{
+			FastProjectile->InitializeProjectile(nullptr, FastProjectileTerrain, FVector(1940.0f, 0.0f, 0.0f), 0.0f, 6.0f, 0.0f);
+			FastProjectile->Tick(0.1f);
+			TestFalse(TEXT("Fast projectile carves the one-cell vertical wall instead of tunneling through it"), FastProjectileTerrain->IsSolidAtWorldLocation(FVector(305.0f, 0.0f, 35.0f)));
+		}
+	}
 
 	AFortRogueProjectile* AssignedTerrainProjectile = World->SpawnActor<AFortRogueProjectile>(AFortRogueProjectile::StaticClass(), FVector(-75.0f, 0.0f, 25.0f), FRotator::ZeroRotator, SpawnParams);
 	TestNotNull(TEXT("Assigned-terrain projectile is spawned"), AssignedTerrainProjectile);
