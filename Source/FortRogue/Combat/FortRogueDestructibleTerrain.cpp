@@ -252,7 +252,15 @@ bool AFortRogueDestructibleTerrain::CarveCircle(const FVector& WorldLocation, fl
 
 	if (bChanged)
 	{
-		RebuildVisuals();
+		if (RuntimeTerrainMaterial)
+		{
+			ConfigureTexturePlane();
+			TerrainTexturePlane->SetVisibility(true);
+		}
+		else
+		{
+			RebuildVisuals();
+		}
 		UpdateRuntimeTextureRegion(MinX, MinZ, MaxX, MaxZ);
 	}
 

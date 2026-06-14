@@ -8,6 +8,7 @@
 #include "Combat/FortRogueDestructibleTerrain.h"
 #include "Combat/FortRogueProjectile.h"
 #include "Combat/FortRogueTerrainMapDefinition.h"
+#include "Components/InstancedStaticMeshComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/Engine.h"
@@ -264,9 +265,10 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		TestEqual(TEXT("Terrain texture plane is aligned to the X/Z gameplay plane"), TexturePlane->GetRelativeRotation(), FRotator(0.0f, 0.0f, 90.0f));
 		TestEqual(TEXT("Terrain texture plane does not use Unreal collision"), TexturePlane->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
 	}
-	if (UPrimitiveComponent* TerrainInstances = Cast<UPrimitiveComponent>(Terrain->GetDefaultSubobjectByName(TEXT("TerrainInstances"))))
+	UInstancedStaticMeshComponent* TextureTerrainInstances = Cast<UInstancedStaticMeshComponent>(Terrain->GetDefaultSubobjectByName(TEXT("TerrainInstances")));
+	if (TextureTerrainInstances)
 	{
-		TestEqual(TEXT("Terrain instances do not use Unreal collision"), TerrainInstances->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
+		TestEqual(TEXT("Terrain instances do not use Unreal collision"), TextureTerrainInstances->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
 	}
 
 	Terrain->MapDefinition = Map;
@@ -304,6 +306,10 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	{
 		TestEqual(TEXT("Terrain texture plane width follows the map definition"), static_cast<float>(TexturePlane->GetRelativeScale3D().X), 2.0f);
 		TestEqual(TEXT("Terrain texture plane height follows the map definition"), static_cast<float>(TexturePlane->GetRelativeScale3D().Y), 0.6f);
+		if (TexturePlane->IsVisible() && TextureTerrainInstances)
+		{
+			TestEqual(TEXT("Texture-rendered terrain does not build fallback instances"), TextureTerrainInstances->GetInstanceCount(), 0);
+		}
 	}
 
 	const FVector PlayerSpawn = Terrain->GetPlayerSpawnWorldLocation();
@@ -428,6 +434,10 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	TestTrue(TEXT("Carve circle reports a terrain change"), Terrain->CarveCircle(FVector(-15.0f, 0.0f, 5.0f), 6.0f));
 	TestFalse(TEXT("Carved bottom cell is no longer solid"), Terrain->IsSolidAtWorldLocation(FVector(-15.0f, 0.0f, 5.0f)));
 	TestFalse(TEXT("No surface remains after carving that column"), Terrain->FindSurfaceZAtWorldX(-15.0f, 30.0f, 40.0f, SurfaceZ));
+	if (TexturePlane && TexturePlane->IsVisible() && TextureTerrainInstances)
+	{
+		TestEqual(TEXT("Texture-rendered terrain does not rebuild fallback instances after carving"), TextureTerrainInstances->GetInstanceCount(), 0);
+	}
 
 	AFortRogueDestructibleTerrain* RotatedTerrain = World->SpawnActor<AFortRogueDestructibleTerrain>(AFortRogueDestructibleTerrain::StaticClass(), FVector(200.0f, 0.0f, 0.0f), FRotator(0.0f, 90.0f, 90.0f), SpawnParams);
 	TestNotNull(TEXT("Rotated terrain actor is spawned"), RotatedTerrain);
