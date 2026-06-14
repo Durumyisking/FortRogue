@@ -497,6 +497,7 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		TestNotNull(TEXT("Runtime terrain texture mip locks"), RuntimePixels);
 		if (RuntimePixels)
 		{
+			TestEqual(TEXT("Empty terrain cells render transparent"), RuntimePixels[0 * 20 + 0], FColor(0, 0, 0, 0));
 			TestEqual(TEXT("Layer texture maps across bottom-left terrain cells"), RuntimePixels[5 * 20 + 2], FColor::Blue);
 			TestEqual(TEXT("Layer texture maps across bottom-right terrain cells"), RuntimePixels[5 * 20 + 17], FColor::Yellow);
 			TestEqual(TEXT("Layer texture maps across top-right terrain cells"), RuntimePixels[0 * 20 + 10], FColor::Green);
