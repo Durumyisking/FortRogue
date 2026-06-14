@@ -44,10 +44,19 @@ public:
 	void FillRect(int32 MinX, int32 MinZ, int32 MaxX, int32 MaxZ, bool bSolid);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
+	void FillTexturedRect(int32 MinX, int32 MinZ, int32 MaxX, int32 MaxZ, int32 LayerIndex);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
 	void ApplyCircle(int32 CenterX, int32 CenterZ, int32 RadiusCells, bool bSolid);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
+	void ApplyTexturedCircle(int32 CenterX, int32 CenterZ, int32 RadiusCells, int32 LayerIndex);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
 	void ApplyCircleStroke(int32 StartX, int32 StartZ, int32 EndX, int32 EndZ, int32 RadiusCells, bool bSolid);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
+	void ApplyTexturedCircleStroke(int32 StartX, int32 StartZ, int32 EndX, int32 EndZ, int32 RadiusCells, int32 LayerIndex);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
 	void SetTextureLayer(int32 LayerIndex, UTexture2D* Texture);

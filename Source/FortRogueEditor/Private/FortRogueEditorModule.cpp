@@ -308,7 +308,7 @@ private:
 		const int32 Radius = FMath::Max(0, BrushRadiusAttribute.Get());
 		if (EditMode == static_cast<int32>(EFortRogueTerrainEditMode::PaintCircle))
 		{
-			Map->ApplyCircle(Cell.X, Cell.Y, Radius, true);
+			Map->ApplyTexturedCircle(Cell.X, Cell.Y, Radius, TextureLayerAttribute.Get());
 		}
 		else if (EditMode == static_cast<int32>(EFortRogueTerrainEditMode::EraseCircle))
 		{
@@ -344,7 +344,7 @@ private:
 		const int32 Radius = FMath::Max(0, BrushRadiusAttribute.Get());
 		if (EditMode == static_cast<int32>(EFortRogueTerrainEditMode::PaintCircle))
 		{
-			Map->ApplyCircleStroke(StartCell.X, StartCell.Y, EndCell.X, EndCell.Y, Radius, true);
+			Map->ApplyTexturedCircleStroke(StartCell.X, StartCell.Y, EndCell.X, EndCell.Y, Radius, TextureLayerAttribute.Get());
 		}
 		else if (EditMode == static_cast<int32>(EFortRogueTerrainEditMode::EraseCircle))
 		{
@@ -371,7 +371,7 @@ private:
 		const int32 EditMode = GetEditMode();
 		if (EditMode == static_cast<int32>(EFortRogueTerrainEditMode::FillRect))
 		{
-			Map->FillRect(StartCell.X, StartCell.Y, EndCell.X, EndCell.Y, true);
+			Map->FillTexturedRect(StartCell.X, StartCell.Y, EndCell.X, EndCell.Y, TextureLayerAttribute.Get());
 		}
 		else if (EditMode == static_cast<int32>(EFortRogueTerrainEditMode::EraseRect))
 		{
@@ -1131,7 +1131,14 @@ private:
 	{
 		if (UFortRogueTerrainMapDefinition* Map = GetEditableMap())
 		{
-			Map->FillRect(RectMinX, RectMinZ, RectMaxX, RectMaxZ, bSolid);
+			if (bSolid)
+			{
+				Map->FillTexturedRect(RectMinX, RectMinZ, RectMaxX, RectMaxZ, TextureLayerIndex);
+			}
+			else
+			{
+				Map->FillRect(RectMinX, RectMinZ, RectMaxX, RectMaxZ, false);
+			}
 			StatusText = bSolid ? LOCTEXT("RectFilled", "Filled rectangle terrain.") : LOCTEXT("RectErased", "Erased rectangle terrain.");
 		}
 	}
@@ -1140,7 +1147,14 @@ private:
 	{
 		if (UFortRogueTerrainMapDefinition* Map = GetEditableMap())
 		{
-			Map->ApplyCircle(CircleX, CircleZ, CircleRadius, bSolid);
+			if (bSolid)
+			{
+				Map->ApplyTexturedCircle(CircleX, CircleZ, CircleRadius, TextureLayerIndex);
+			}
+			else
+			{
+				Map->ApplyCircle(CircleX, CircleZ, CircleRadius, false);
+			}
 			StatusText = bSolid ? LOCTEXT("CirclePainted", "Painted circle terrain.") : LOCTEXT("CircleErased", "Erased circle terrain.");
 		}
 	}

@@ -45,6 +45,10 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Filled rect sets maximum cell solid"), Map->SolidMask[Map->ToIndex(4, 2)], static_cast<uint8>(1));
 	TestEqual(TEXT("Outside rect stays empty"), Map->SolidMask[Map->ToIndex(1, 1)], static_cast<uint8>(0));
 
+	Map->FillTexturedRect(0, 0, 1, 0, 2);
+	TestEqual(TEXT("Textured rect fills empty terrain"), Map->SolidMask[Map->ToIndex(0, 0)], static_cast<uint8>(1));
+	TestEqual(TEXT("Textured rect assigns the requested layer"), Map->TextureLayerMask[Map->ToIndex(0, 0)], static_cast<uint8>(2));
+
 	Map->ApplyTextureRect(2, 1, 4, 2, 3);
 	TestEqual(TEXT("Texture rect paints existing solid cell"), Map->TextureLayerMask[Map->ToIndex(3, 1)], static_cast<uint8>(3));
 	TestEqual(TEXT("Texture rect does not paint empty cell"), Map->TextureLayerMask[Map->ToIndex(1, 1)], static_cast<uint8>(0));
@@ -56,6 +60,9 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	Map->ApplyCircle(6, 2, 1, true);
 	Map->ApplyTextureCircle(6, 2, 1, 5);
 	TestEqual(TEXT("Texture circle paints solid center"), Map->TextureLayerMask[Map->ToIndex(6, 2)], static_cast<uint8>(5));
+	Map->ApplyTexturedCircle(7, 0, 0, 4);
+	TestEqual(TEXT("Textured circle fills its center"), Map->SolidMask[Map->ToIndex(7, 0)], static_cast<uint8>(1));
+	TestEqual(TEXT("Textured circle assigns the requested layer"), Map->TextureLayerMask[Map->ToIndex(7, 0)], static_cast<uint8>(4));
 
 	UFortRogueTerrainMapDefinition* StrokeMap = NewObject<UFortRogueTerrainMapDefinition>();
 	TestNotNull(TEXT("Stroke map asset object is created"), StrokeMap);
@@ -70,6 +77,9 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	StrokeMap->ApplyCircleStroke(4, 1, 6, 1, 0, false);
 	TestEqual(TEXT("Erase circle stroke clears skipped drag cells"), StrokeMap->SolidMask[StrokeMap->ToIndex(5, 1)], static_cast<uint8>(0));
 	TestEqual(TEXT("Erase circle stroke clears skipped texture cells"), StrokeMap->TextureLayerMask[StrokeMap->ToIndex(5, 1)], static_cast<uint8>(0));
+	StrokeMap->ApplyTexturedCircleStroke(1, 2, 8, 2, 0, 6);
+	TestEqual(TEXT("Textured circle stroke fills skipped drag cells"), StrokeMap->SolidMask[StrokeMap->ToIndex(5, 2)], static_cast<uint8>(1));
+	TestEqual(TEXT("Textured circle stroke assigns requested layer to skipped drag cells"), StrokeMap->TextureLayerMask[StrokeMap->ToIndex(5, 2)], static_cast<uint8>(6));
 
 	UFortRogueTerrainMapDefinition* ResizedMap = NewObject<UFortRogueTerrainMapDefinition>();
 	TestNotNull(TEXT("Resample resize map asset object is created"), ResizedMap);

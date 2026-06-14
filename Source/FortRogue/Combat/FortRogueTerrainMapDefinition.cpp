@@ -325,6 +325,12 @@ void UFortRogueTerrainMapDefinition::FillRect(int32 MinX, int32 MinZ, int32 MaxX
 	}
 }
 
+void UFortRogueTerrainMapDefinition::FillTexturedRect(int32 MinX, int32 MinZ, int32 MaxX, int32 MaxZ, int32 LayerIndex)
+{
+	FillRect(MinX, MinZ, MaxX, MaxZ, true);
+	ApplyTextureRect(MinX, MinZ, MaxX, MaxZ, LayerIndex);
+}
+
 void UFortRogueTerrainMapDefinition::ApplyCircle(int32 CenterX, int32 CenterZ, int32 RadiusCells, bool bSolid)
 {
 	const int32 Radius = FMath::Max(0, RadiusCells);
@@ -350,6 +356,12 @@ void UFortRogueTerrainMapDefinition::ApplyCircle(int32 CenterX, int32 CenterZ, i
 	}
 }
 
+void UFortRogueTerrainMapDefinition::ApplyTexturedCircle(int32 CenterX, int32 CenterZ, int32 RadiusCells, int32 LayerIndex)
+{
+	ApplyCircle(CenterX, CenterZ, RadiusCells, true);
+	ApplyTextureCircle(CenterX, CenterZ, RadiusCells, LayerIndex);
+}
+
 void UFortRogueTerrainMapDefinition::ApplyCircleStroke(int32 StartX, int32 StartZ, int32 EndX, int32 EndZ, int32 RadiusCells, bool bSolid)
 {
 	const int32 StepCount = FMath::Max(FMath::Abs(EndX - StartX), FMath::Abs(EndZ - StartZ));
@@ -365,6 +377,24 @@ void UFortRogueTerrainMapDefinition::ApplyCircleStroke(int32 StartX, int32 Start
 		const int32 CenterX = FMath::RoundToInt(FMath::Lerp(static_cast<float>(StartX), static_cast<float>(EndX), Alpha));
 		const int32 CenterZ = FMath::RoundToInt(FMath::Lerp(static_cast<float>(StartZ), static_cast<float>(EndZ), Alpha));
 		ApplyCircle(CenterX, CenterZ, RadiusCells, bSolid);
+	}
+}
+
+void UFortRogueTerrainMapDefinition::ApplyTexturedCircleStroke(int32 StartX, int32 StartZ, int32 EndX, int32 EndZ, int32 RadiusCells, int32 LayerIndex)
+{
+	const int32 StepCount = FMath::Max(FMath::Abs(EndX - StartX), FMath::Abs(EndZ - StartZ));
+	if (StepCount <= 0)
+	{
+		ApplyTexturedCircle(StartX, StartZ, RadiusCells, LayerIndex);
+		return;
+	}
+
+	for (int32 Step = 0; Step <= StepCount; ++Step)
+	{
+		const float Alpha = static_cast<float>(Step) / static_cast<float>(StepCount);
+		const int32 CenterX = FMath::RoundToInt(FMath::Lerp(static_cast<float>(StartX), static_cast<float>(EndX), Alpha));
+		const int32 CenterZ = FMath::RoundToInt(FMath::Lerp(static_cast<float>(StartZ), static_cast<float>(EndZ), Alpha));
+		ApplyTexturedCircle(CenterX, CenterZ, RadiusCells, LayerIndex);
 	}
 }
 
