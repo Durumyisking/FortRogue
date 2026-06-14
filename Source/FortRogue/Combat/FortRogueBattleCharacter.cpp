@@ -318,6 +318,23 @@ void AFortRogueBattleCharacter::ApplyDamage(float DamageAmount)
 
 void AFortRogueBattleCharacter::ReevaluateTerrainSupport()
 {
+	AFortRogueDestructibleTerrain* Terrain = FindTerrain();
+	if (!Terrain)
+	{
+		return;
+	}
+
+	const FVector CurrentLocation = GetActorLocation();
+	const float CurrentFootZ = CurrentLocation.Z - FootOffsetZ;
+	float SurfaceZ = 0.0f;
+	if (FindFootprintSurfaceZ(*Terrain, CurrentLocation.X, CurrentFootZ + GroundSnapDistance, GroundSnapDistance + MaxStepDown, SurfaceZ))
+	{
+		SetActorLocation(FVector(CurrentLocation.X, CurrentLocation.Y, SurfaceZ + FootOffsetZ));
+		VerticalVelocity = 0.0f;
+		UpdateBodyTerrainAlignment(Terrain);
+		return;
+	}
+
 	ApplyTerrainGravity(1.0f / 60.0f);
 }
 

@@ -379,6 +379,17 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		TestEqual(TEXT("Battle character does not climb the rejected steep slope"), static_cast<float>(SteepSlopeCharacter->GetActorLocation().Z), 55.0f);
 	}
 
+	AFortRogueBattleCharacter* SettlingCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(5.0f, 0.0f, 105.0f), FRotator::ZeroRotator, SpawnParams);
+	TestNotNull(TEXT("Settling battle character is spawned"), SettlingCharacter);
+	if (SettlingCharacter)
+	{
+		SettlingCharacter->SetTerrain(Terrain);
+		SetFloatProperty(SettlingCharacter, TEXT("FootProbeHalfWidth"), 0.0f);
+		TestTrue(TEXT("Carve circle lowers nearby support under the character"), Terrain->CarveCircle(FVector(5.0f, 0.0f, 55.0f), 11.0f));
+		SettlingCharacter->ReevaluateTerrainSupport();
+		TestEqual(TEXT("Battle character settles onto a lower surface inside the step-down range"), static_cast<float>(SettlingCharacter->GetActorLocation().Z), 85.0f);
+	}
+
 	FVector ImpactLocation = FVector::ZeroVector;
 	TestTrue(TEXT("Segment query hits solid terrain"), Terrain->FindFirstSolidAlongWorldSegment(FVector(-15.0f, 0.0f, 25.0f), FVector(-15.0f, 0.0f, 5.0f), ImpactLocation));
 	TestTrue(TEXT("Segment impact lies inside the solid band"), ImpactLocation.Z >= 0.0f && ImpactLocation.Z < 10.0f);
