@@ -665,6 +665,13 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		TestTrue(TEXT("Carve circle removes support under the falling character"), Terrain->CarveCircle(FVector(45.0f, 0.0f, 5.0f), 25.0f));
 		FallingCharacter->ReevaluateTerrainSupport();
 		TestTrue(TEXT("Battle character starts falling immediately after support terrain is destroyed"), FallingCharacter->GetActorLocation().Z < BeforeReevaluateZ);
+		const float FallingCharacterX = FallingCharacter->GetActorLocation().X;
+		FallingCharacter->BeginTurn();
+		FallingCharacter->MoveHorizontal(1.0f, 0.25f);
+		TestEqual(TEXT("Falling battle character cannot move horizontally while unsupported"), static_cast<float>(FallingCharacter->GetActorLocation().X), FallingCharacterX);
+		FallingCharacter->BeginShotCharge();
+		FallingCharacter->UpdateShotCharge(1.0f);
+		TestEqual(TEXT("Falling battle character cannot fire while unsupported"), FallingCharacter->ReleaseShotCharge(), 0);
 	}
 
 	TestTrue(TEXT("Carve circle reports a terrain change"), Terrain->CarveCircle(FVector(-15.0f, 0.0f, 5.0f), 6.0f));

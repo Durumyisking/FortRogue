@@ -121,7 +121,7 @@ void AFortRogueBattleCharacter::EndTurn()
 
 void AFortRogueBattleCharacter::MoveHorizontal(float Axis, float DeltaSeconds)
 {
-	if (!bActiveTurn || bFiredThisTurn || IsDefeated() || FMath::IsNearlyZero(Axis))
+	if (!bActiveTurn || bFiredThisTurn || IsDefeated() || !IsSupportedByTerrain() || FMath::IsNearlyZero(Axis))
 	{
 		return;
 	}
@@ -198,7 +198,7 @@ void AFortRogueBattleCharacter::MoveHorizontal(float Axis, float DeltaSeconds)
 
 void AFortRogueBattleCharacter::AdjustAim(float Axis, float DeltaSeconds)
 {
-	if (!bActiveTurn || bFiredThisTurn || FMath::IsNearlyZero(Axis))
+	if (!bActiveTurn || bFiredThisTurn || !IsSupportedByTerrain() || FMath::IsNearlyZero(Axis))
 	{
 		return;
 	}
@@ -208,7 +208,7 @@ void AFortRogueBattleCharacter::AdjustAim(float Axis, float DeltaSeconds)
 
 void AFortRogueBattleCharacter::AdjustPower(float Axis, float DeltaSeconds)
 {
-	if (!bActiveTurn || bFiredThisTurn || FMath::IsNearlyZero(Axis))
+	if (!bActiveTurn || bFiredThisTurn || !IsSupportedByTerrain() || FMath::IsNearlyZero(Axis))
 	{
 		return;
 	}
@@ -218,7 +218,7 @@ void AFortRogueBattleCharacter::AdjustPower(float Axis, float DeltaSeconds)
 
 void AFortRogueBattleCharacter::BeginShotCharge()
 {
-	if (!bActiveTurn || bFiredThisTurn || IsDefeated())
+	if (!bActiveTurn || bFiredThisTurn || IsDefeated() || !IsSupportedByTerrain())
 	{
 		return;
 	}
@@ -230,7 +230,7 @@ void AFortRogueBattleCharacter::BeginShotCharge()
 
 void AFortRogueBattleCharacter::UpdateShotCharge(float DeltaSeconds)
 {
-	if (!bChargingShot || !bActiveTurn || bFiredThisTurn || IsDefeated())
+	if (!bChargingShot || !bActiveTurn || bFiredThisTurn || IsDefeated() || !IsSupportedByTerrain())
 	{
 		return;
 	}
@@ -262,7 +262,7 @@ void AFortRogueBattleCharacter::SelectWeapon(int32 WeaponIndex)
 
 int32 AFortRogueBattleCharacter::FireSelectedWeapon()
 {
-	if (!bActiveTurn || bFiredThisTurn || IsDefeated())
+	if (!bActiveTurn || bFiredThisTurn || IsDefeated() || !IsSupportedByTerrain())
 	{
 		return 0;
 	}
@@ -582,6 +582,21 @@ AFortRogueDestructibleTerrain* AFortRogueBattleCharacter::FindTerrain() const
 	}
 
 	return nullptr;
+}
+
+bool AFortRogueBattleCharacter::IsSupportedByTerrain() const
+{
+	AFortRogueDestructibleTerrain* Terrain = FindTerrain();
+	if (!Terrain)
+	{
+		return true;
+	}
+
+	const FVector CurrentLocation = GetActorLocation();
+	const float ClampedWorldX = ClampWorldXToTerrainBounds(*Terrain, CurrentLocation.X);
+	const float CurrentFootZ = CurrentLocation.Z - FootOffsetZ;
+	float SurfaceZ = 0.0f;
+	return FindFootprintSurfaceZ(*Terrain, ClampedWorldX, CurrentFootZ + GroundSnapDistance, GroundSnapDistance + 1.0f, SurfaceZ);
 }
 
 bool AFortRogueBattleCharacter::FindFootprintSurfaceZ(const AFortRogueDestructibleTerrain& Terrain, float CenterWorldX, float StartWorldZ, float SearchDistance, float& OutSurfaceZ) const

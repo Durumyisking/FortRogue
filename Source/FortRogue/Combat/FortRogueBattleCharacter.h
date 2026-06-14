@@ -173,6 +173,7 @@ public:
 
 private:
 	AFortRogueDestructibleTerrain* FindTerrain() const;
+	bool IsSupportedByTerrain() const;
 	bool FindFootprintSurfaceZ(const AFortRogueDestructibleTerrain& Terrain, float CenterWorldX, float StartWorldZ, float SearchDistance, float& OutSurfaceZ) const;
 	bool IsFootprintBlocked(const AFortRogueDestructibleTerrain& Terrain, const FVector& CenterLocation, float FootWorldZ) const;
 	bool IsSlopeTraversable(float CurrentFootWorldZ, float NextSurfaceWorldZ, float HorizontalDistance, float TerrainCellSize) const;
