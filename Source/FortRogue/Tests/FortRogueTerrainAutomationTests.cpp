@@ -8,6 +8,7 @@
 #include "Combat/FortRogueDestructibleTerrain.h"
 #include "Combat/FortRogueProjectile.h"
 #include "Combat/FortRogueTerrainMapDefinition.h"
+#include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
@@ -227,6 +228,11 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	if (TexturePlane)
 	{
 		TestEqual(TEXT("Terrain texture plane is aligned to the X/Z gameplay plane"), TexturePlane->GetRelativeRotation(), FRotator(0.0f, 0.0f, 90.0f));
+		TestEqual(TEXT("Terrain texture plane does not use Unreal collision"), TexturePlane->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
+	}
+	if (UPrimitiveComponent* TerrainInstances = Cast<UPrimitiveComponent>(Terrain->GetDefaultSubobjectByName(TEXT("TerrainInstances"))))
+	{
+		TestEqual(TEXT("Terrain instances do not use Unreal collision"), TerrainInstances->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
 	}
 
 	Terrain->MapDefinition = Map;
@@ -276,6 +282,10 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	TestNotNull(TEXT("Battle character is spawned"), Character);
 	if (Character)
 	{
+		if (UPrimitiveComponent* Body = Cast<UPrimitiveComponent>(Character->GetDefaultSubobjectByName(TEXT("Body"))))
+		{
+			TestEqual(TEXT("Battle character body does not use Unreal collision"), Body->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
+		}
 		Character->SetTerrain(Terrain);
 		Character->BeginTurn();
 		Character->MoveHorizontal(1.0f, 0.05f);
@@ -331,6 +341,14 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	TestNotNull(TEXT("Assigned-terrain projectile is spawned"), AssignedTerrainProjectile);
 	if (AssignedTerrainProjectile && OverlappingTerrain)
 	{
+		if (UPrimitiveComponent* ProjectileCollision = Cast<UPrimitiveComponent>(AssignedTerrainProjectile->GetDefaultSubobjectByName(TEXT("Collision"))))
+		{
+			TestEqual(TEXT("Projectile root collision is disabled for custom terrain checks"), ProjectileCollision->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
+		}
+		if (UPrimitiveComponent* ProjectileVisual = Cast<UPrimitiveComponent>(AssignedTerrainProjectile->GetDefaultSubobjectByName(TEXT("Visual"))))
+		{
+			TestEqual(TEXT("Projectile visual collision is disabled"), ProjectileVisual->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
+		}
 		AssignedTerrainProjectile->InitializeProjectile(Character, Terrain, FVector(0.0f, 0.0f, -100.0f), 0.0f, 24.0f, 0.0f);
 		AssignedTerrainProjectile->Tick(0.25f);
 		TestFalse(TEXT("Projectile carves its assigned terrain"), Terrain->IsSolidAtWorldLocation(FVector(-75.0f, 0.0f, 5.0f)));
