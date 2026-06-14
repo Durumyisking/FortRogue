@@ -13,6 +13,8 @@
 
 namespace
 {
+constexpr float MinimumSpawnClearance = 80.0f;
+
 bool ReadLayerTexturePixels(UTexture2D* SourceTexture, TArray<FColor>& OutPixels, FIntPoint& OutSize)
 {
 	if (!SourceTexture)
@@ -409,9 +411,15 @@ FVector AFortRogueDestructibleTerrain::ResolveSpawnWorldLocation(const FVector& 
 		LocalLocation.X = FMath::Clamp(LocalLocation.X, -HalfWidth + EdgePadding, HalfWidth - EdgePadding);
 	}
 
-	if (LocalLocation.Z <= Height)
+	const float SpawnClearance = FMath::Max(MinimumSpawnClearance, LocalLocation.Z - Height);
+	float SurfaceZ = 0.0f;
+	if (FindSurfaceZAtWorldX(GetActorLocation().X + LocalLocation.X, GetActorLocation().Z + Height, Height + CellSize, SurfaceZ))
 	{
-		LocalLocation.Z = Height + FMath::Max(80.0f, CellSize * 8.0f);
+		LocalLocation.Z = SurfaceZ - GetActorLocation().Z + SpawnClearance;
+	}
+	else if (LocalLocation.Z <= Height)
+	{
+		LocalLocation.Z = Height + MinimumSpawnClearance;
 	}
 
 	return GetActorLocation() + LocalLocation;
