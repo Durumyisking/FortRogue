@@ -316,6 +316,8 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 
 	TestTrue(TEXT("Bottom cell is solid in world space"), Terrain->IsSolidAtWorldLocation(FVector(-15.0f, 0.0f, 5.0f)));
 	TestFalse(TEXT("Empty air cell is not solid in world space"), Terrain->IsSolidAtWorldLocation(FVector(-15.0f, 0.0f, 15.0f)));
+	TestFalse(TEXT("Carve circle outside the terrain reports no change"), Terrain->CarveCircle(FVector(500.0f, 0.0f, 5.0f), 20.0f));
+	TestTrue(TEXT("Out-of-bounds carve leaves terrain unchanged"), Terrain->IsSolidAtWorldLocation(FVector(-15.0f, 0.0f, 5.0f)));
 
 	float SurfaceZ = 0.0f;
 	TestTrue(TEXT("Surface can be found above a solid column"), Terrain->FindSurfaceZAtWorldX(-15.0f, 30.0f, 40.0f, SurfaceZ));

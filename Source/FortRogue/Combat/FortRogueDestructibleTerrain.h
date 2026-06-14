@@ -61,6 +61,7 @@ private:
 	void RebuildVisuals();
 	void InitializeRuntimeTexture();
 	void UpdateRuntimeTexture();
+	void UpdateRuntimeTextureRegion(int32 MinX, int32 MinZ, int32 MaxX, int32 MaxZ);
 	void CacheLayerTextures();
 	FVector ResolveSpawnWorldLocation(const FVector& PreferredLocalLocation, const FVector& FallbackLocalLocation) const;
 	FColor GetTerrainPixelColor(int32 X, int32 Z) const;

@@ -203,12 +203,33 @@ bool AFortRogueDestructibleTerrain::FindFirstSolidAlongWorldSegment(const FVecto
 
 bool AFortRogueDestructibleTerrain::CarveCircle(const FVector& WorldLocation, float Radius)
 {
+	if (CellsX <= 0 || CellsZ <= 0 || CellSize <= 0.0f || Radius < 0.0f)
+	{
+		return false;
+	}
+
 	bool bChanged = false;
 	const float RadiusSq = FMath::Square(Radius);
-
-	for (int32 Z = 0; Z < CellsZ; ++Z)
+	const FVector LocalLocation = WorldLocation - GetActorLocation();
+	const float LocalCenterX = LocalLocation.X + Width * 0.5f;
+	if (LocalCenterX + Radius < 0.0f || LocalCenterX - Radius >= Width || LocalLocation.Z + Radius < 0.0f || LocalLocation.Z - Radius >= Height)
 	{
-		for (int32 X = 0; X < CellsX; ++X)
+		return false;
+	}
+
+	const int32 MinX = FMath::Clamp(FMath::FloorToInt((LocalCenterX - Radius) / CellSize), 0, CellsX - 1);
+	const int32 MaxX = FMath::Clamp(FMath::FloorToInt((LocalCenterX + Radius) / CellSize), 0, CellsX - 1);
+	const int32 MinZ = FMath::Clamp(FMath::FloorToInt((LocalLocation.Z - Radius) / CellSize), 0, CellsZ - 1);
+	const int32 MaxZ = FMath::Clamp(FMath::FloorToInt((LocalLocation.Z + Radius) / CellSize), 0, CellsZ - 1);
+
+	if (MinX > MaxX || MinZ > MaxZ)
+	{
+		return false;
+	}
+
+	for (int32 Z = MinZ; Z <= MaxZ; ++Z)
+	{
+		for (int32 X = MinX; X <= MaxX; ++X)
 		{
 			const int32 Index = ToIndex(X, Z);
 			if (!SolidMask.IsValidIndex(Index) || SolidMask[Index] == 0)
@@ -232,7 +253,7 @@ bool AFortRogueDestructibleTerrain::CarveCircle(const FVector& WorldLocation, fl
 	if (bChanged)
 	{
 		RebuildVisuals();
-		UpdateRuntimeTexture();
+		UpdateRuntimeTextureRegion(MinX, MinZ, MaxX, MaxZ);
 	}
 
 	return bChanged;
@@ -427,7 +448,7 @@ FVector AFortRogueDestructibleTerrain::ResolveSpawnWorldLocation(const FVector& 
 
 void AFortRogueDestructibleTerrain::UpdateRuntimeTexture()
 {
-	if (!RuntimeTerrainTexture || RuntimeTexturePixels.Num() != CellsX * CellsZ)
+	if (!RuntimeTerrainTexture || !RuntimeTerrainTexture->GetPlatformData() || RuntimeTerrainTexture->GetPlatformData()->Mips.Num() == 0 || RuntimeTexturePixels.Num() != CellsX * CellsZ)
 	{
 		return;
 	}
@@ -444,6 +465,50 @@ void AFortRogueDestructibleTerrain::UpdateRuntimeTexture()
 	FTexture2DMipMap& Mip = RuntimeTerrainTexture->GetPlatformData()->Mips[0];
 	void* TextureData = Mip.BulkData.Lock(LOCK_READ_WRITE);
 	FMemory::Memcpy(TextureData, RuntimeTexturePixels.GetData(), RuntimeTexturePixels.Num() * sizeof(FColor));
+	Mip.BulkData.Unlock();
+	RuntimeTerrainTexture->UpdateResource();
+}
+
+void AFortRogueDestructibleTerrain::UpdateRuntimeTextureRegion(int32 MinX, int32 MinZ, int32 MaxX, int32 MaxZ)
+{
+	if (!RuntimeTerrainTexture || !RuntimeTerrainTexture->GetPlatformData() || RuntimeTerrainTexture->GetPlatformData()->Mips.Num() == 0 || RuntimeTexturePixels.Num() != CellsX * CellsZ)
+	{
+		return;
+	}
+
+	MinX = FMath::Clamp(MinX, 0, CellsX - 1);
+	MaxX = FMath::Clamp(MaxX, 0, CellsX - 1);
+	MinZ = FMath::Clamp(MinZ, 0, CellsZ - 1);
+	MaxZ = FMath::Clamp(MaxZ, 0, CellsZ - 1);
+	if (MinX > MaxX || MinZ > MaxZ)
+	{
+		return;
+	}
+
+	for (int32 Z = MinZ; Z <= MaxZ; ++Z)
+	{
+		for (int32 X = MinX; X <= MaxX; ++X)
+		{
+			const int32 TextureIndex = (CellsZ - 1 - Z) * CellsX + X;
+			RuntimeTexturePixels[TextureIndex] = GetTerrainPixelColor(X, Z);
+		}
+	}
+
+	FTexture2DMipMap& Mip = RuntimeTerrainTexture->GetPlatformData()->Mips[0];
+	void* TextureData = Mip.BulkData.Lock(LOCK_READ_WRITE);
+	if (!TextureData)
+	{
+		Mip.BulkData.Unlock();
+		return;
+	}
+
+	FColor* TexturePixels = static_cast<FColor*>(TextureData);
+	for (int32 Z = MinZ; Z <= MaxZ; ++Z)
+	{
+		const int32 TextureY = CellsZ - 1 - Z;
+		const int32 TextureIndex = TextureY * CellsX + MinX;
+		FMemory::Memcpy(TexturePixels + TextureIndex, RuntimeTexturePixels.GetData() + TextureIndex, (MaxX - MinX + 1) * sizeof(FColor));
+	}
 	Mip.BulkData.Unlock();
 	RuntimeTerrainTexture->UpdateResource();
 }
