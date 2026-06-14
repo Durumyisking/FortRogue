@@ -15,6 +15,8 @@
 #include "Engine/GameInstance.h"
 #include "Engine/Texture2D.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
+#include "FortRogueGameMode.h"
 #include "UObject/UnrealType.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFortRogueTerrainMapDefinitionEditTest, "FortRogue.Terrain.MapDefinition.Edits", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -152,6 +154,101 @@ bool FFortRogueTerrainMapDefinitionImportTest::RunTest(const FString& Parameters
 	TestEqual(TEXT("Region color import samples matching source color"), RegionColorMap->SolidMask[RegionColorMap->ToIndex(0, 1)], static_cast<uint8>(1));
 	TestEqual(TEXT("Region color import assigns requested texture layer"), RegionColorMap->TextureLayerMask[RegionColorMap->ToIndex(0, 1)], static_cast<uint8>(6));
 
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFortRogueTerrainGameModeMapDefinitionTest, "FortRogue.Terrain.GameMode.UsesMapDefinition", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Parameters)
+{
+	UGameInstance* GameInstance = NewObject<UGameInstance>(GEngine);
+	TestNotNull(TEXT("Transient game instance is created"), GameInstance);
+	if (!GameInstance)
+	{
+		return false;
+	}
+
+	UWorld* World = UWorld::CreateWorld(EWorldType::Game, false);
+	TestNotNull(TEXT("Transient test world is created"), World);
+	if (!World)
+	{
+		return false;
+	}
+
+	World->SetShouldTick(false);
+	World->AddToRoot();
+
+	FWorldContext& WorldContext = GEngine->CreateNewWorldContext(EWorldType::Game);
+	WorldContext.OwningGameInstance = GameInstance;
+	World->SetGameInstance(GameInstance);
+	WorldContext.SetCurrentWorld(World);
+	GameInstance->Init();
+
+	auto CleanupWorld = [&World, &GameInstance]()
+	{
+		if (World->HasBegunPlay())
+		{
+			World->BeginTearingDown();
+			World->EndPlay(EEndPlayReason::Quit);
+		}
+
+		World->RemoveFromRoot();
+		GameInstance->Shutdown();
+		GEngine->DestroyWorldContext(World);
+		World->DestroyWorld(false);
+	};
+
+	UFortRogueTerrainMapDefinition* Map = NewObject<UFortRogueTerrainMapDefinition>();
+	Map->Resize(20, 6);
+	Map->CellSize = 10.0f;
+	Map->Clear(false);
+	Map->FillRect(0, 0, 19, 0, true);
+	Map->PlayerSpawnLocal = FVector(-40.0f, 0.0f, 140.0f);
+	Map->EnemySpawnLocal = FVector(40.0f, 0.0f, 140.0f);
+
+	FURL URL;
+	World->SetGameMode(URL);
+	AFortRogueGameMode* GameMode = World->GetAuthGameMode<AFortRogueGameMode>();
+	TestNotNull(TEXT("FortRogue game mode is created"), GameMode);
+	if (!GameMode)
+	{
+		CleanupWorld();
+		return false;
+	}
+
+	FObjectProperty* TerrainMapProperty = FindFProperty<FObjectProperty>(GameMode->GetClass(), TEXT("TerrainMapDefinition"));
+	TestNotNull(TEXT("Game mode exposes a terrain map definition property"), TerrainMapProperty);
+	if (!TerrainMapProperty)
+	{
+		CleanupWorld();
+		return false;
+	}
+	TerrainMapProperty->SetObjectPropertyValue_InContainer(GameMode, Map);
+
+	World->InitializeActorsForPlay(URL);
+	World->BeginPlay();
+
+	AFortRogueDestructibleTerrain* SpawnedTerrain = nullptr;
+	for (TActorIterator<AFortRogueDestructibleTerrain> It(World); It; ++It)
+	{
+		if (It->MapDefinition == Map)
+		{
+			SpawnedTerrain = *It;
+			break;
+		}
+	}
+
+	TestNotNull(TEXT("Game mode spawns destructible terrain using the configured map definition"), SpawnedTerrain);
+	if (SpawnedTerrain)
+	{
+		TestEqual(TEXT("Spawned terrain width follows the configured map definition"), SpawnedTerrain->Width, 200.0f);
+		TestEqual(TEXT("Spawned terrain height follows the configured map definition"), SpawnedTerrain->Height, 60.0f);
+		TestNotNull(TEXT("Spawned terrain creates its runtime texture"), SpawnedTerrain->GetRuntimeTerrainTexture());
+	}
+	TestNotNull(TEXT("Game mode spawns the player character"), GameMode->GetPlayerCharacter());
+	TestNotNull(TEXT("Game mode spawns the enemy character"), GameMode->GetEnemyCharacter());
+
+	CleanupWorld();
 	return true;
 }
 
