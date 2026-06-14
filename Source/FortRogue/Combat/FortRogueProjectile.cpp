@@ -13,21 +13,32 @@
 
 namespace
 {
-float GetSegmentAlpha(const FVector& StartLocation, const FVector& EndLocation, const FVector& TestLocation)
+float GetSegmentAlphaXZ(const FVector& StartLocation, const FVector& EndLocation, const FVector& TestLocation)
 {
-	const FVector Segment = EndLocation - StartLocation;
+	const FVector2D Segment(EndLocation.X - StartLocation.X, EndLocation.Z - StartLocation.Z);
+	const FVector2D ToTest(TestLocation.X - StartLocation.X, TestLocation.Z - StartLocation.Z);
 	const float SegmentLengthSq = Segment.SizeSquared();
 	if (SegmentLengthSq <= KINDA_SMALL_NUMBER)
 	{
 		return 0.0f;
 	}
 
-	return FMath::Clamp(FVector::DotProduct(TestLocation - StartLocation, Segment) / SegmentLengthSq, 0.0f, 1.0f);
+	return FMath::Clamp(FVector2D::DotProduct(ToTest, Segment) / SegmentLengthSq, 0.0f, 1.0f);
 }
 
-FVector GetClosestPointOnSegment(const FVector& StartLocation, const FVector& EndLocation, const FVector& TestLocation)
+FVector GetClosestPointOnSegmentXZ(const FVector& StartLocation, const FVector& EndLocation, const FVector& TestLocation)
 {
-	return FMath::Lerp(StartLocation, EndLocation, GetSegmentAlpha(StartLocation, EndLocation, TestLocation));
+	return FMath::Lerp(StartLocation, EndLocation, GetSegmentAlphaXZ(StartLocation, EndLocation, TestLocation));
+}
+
+float GetDistanceXZ(const FVector& First, const FVector& Second)
+{
+	return FVector2D(First.X - Second.X, First.Z - Second.Z).Size();
+}
+
+float GetDistanceSquaredXZ(const FVector& First, const FVector& Second)
+{
+	return FVector2D(First.X - Second.X, First.Z - Second.Z).SizeSquared();
 }
 }
 
@@ -87,7 +98,7 @@ void AFortRogueProjectile::Tick(float DeltaSeconds)
 
 	auto ConsiderImpact = [&](const FVector& CandidateImpactLocation)
 	{
-		const float CandidateAlpha = GetSegmentAlpha(OldLocation, NewLocation, CandidateImpactLocation);
+		const float CandidateAlpha = GetSegmentAlphaXZ(OldLocation, NewLocation, CandidateImpactLocation);
 		if (!bHasImpact || CandidateAlpha < BestImpactAlpha)
 		{
 			bHasImpact = true;
@@ -124,8 +135,8 @@ void AFortRogueProjectile::Tick(float DeltaSeconds)
 			continue;
 		}
 
-		const FVector ClosestPoint = GetClosestPointOnSegment(OldLocation, NewLocation, Character->GetActorLocation());
-		if (FVector::DistSquared(Character->GetActorLocation(), ClosestPoint) <= FMath::Square(34.0f))
+		const FVector ClosestPoint = GetClosestPointOnSegmentXZ(OldLocation, NewLocation, Character->GetActorLocation());
+		if (GetDistanceSquaredXZ(Character->GetActorLocation(), ClosestPoint) <= FMath::Square(34.0f))
 		{
 			ConsiderImpact(ClosestPoint);
 		}
@@ -172,7 +183,7 @@ void AFortRogueProjectile::ResolveImpact(const FVector& ImpactLocation)
 			continue;
 		}
 
-		const float Distance = FVector::Dist(Character->GetActorLocation(), ImpactLocation);
+		const float Distance = GetDistanceXZ(Character->GetActorLocation(), ImpactLocation);
 		if (Distance <= BlastRadius)
 		{
 			const float Falloff = 1.0f - FMath::Clamp(Distance / BlastRadius, 0.0f, 1.0f);
