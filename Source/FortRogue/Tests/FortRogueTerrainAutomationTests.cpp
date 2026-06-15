@@ -465,6 +465,13 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	FastProjectileMap->Clear(false);
 	FastProjectileMap->FillRect(5, 3, 5, 3, true);
 
+	UFortRogueTerrainMapDefinition* GapMap = NewObject<UFortRogueTerrainMapDefinition>();
+	GapMap->Resize(12, 4);
+	GapMap->CellSize = 10.0f;
+	GapMap->Clear(false);
+	GapMap->FillRect(0, 0, 4, 0, true);
+	GapMap->FillRect(7, 0, 11, 0, true);
+
 	FActorSpawnParameters SpawnParams;
 	AFortRogueDestructibleTerrain* Terrain = World->SpawnActor<AFortRogueDestructibleTerrain>(AFortRogueDestructibleTerrain::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
 	TestNotNull(TEXT("Terrain actor is spawned"), Terrain);
@@ -502,6 +509,13 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	if (FastProjectileTerrain)
 	{
 		FastProjectileTerrain->MapDefinition = FastProjectileMap;
+	}
+
+	AFortRogueDestructibleTerrain* GapTerrain = World->SpawnActor<AFortRogueDestructibleTerrain>(AFortRogueDestructibleTerrain::StaticClass(), FVector(500.0f, 0.0f, 0.0f), FRotator::ZeroRotator, SpawnParams);
+	TestNotNull(TEXT("Gap movement test terrain actor is spawned"), GapTerrain);
+	if (GapTerrain)
+	{
+		GapTerrain->MapDefinition = GapMap;
 	}
 
 	FURL URL;
@@ -644,6 +658,19 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		SteepSlopeCharacter->MoveHorizontal(1.0f, 0.12f);
 		TestTrue(TEXT("Battle character stops at terrain steeper than the slope limit"), SteepSlopeCharacter->GetActorLocation().X < -30.0f);
 		TestEqual(TEXT("Battle character does not climb the rejected steep slope"), static_cast<float>(SteepSlopeCharacter->GetActorLocation().Z), 55.0f);
+	}
+
+	AFortRogueBattleCharacter* GapCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(485.0f, 0.0f, 55.0f), FRotator::ZeroRotator, SpawnParams);
+	TestNotNull(TEXT("Gap movement battle character is spawned"), GapCharacter);
+	if (GapCharacter && GapTerrain)
+	{
+		GapCharacter->SetTerrain(GapTerrain);
+		SetFloatProperty(GapCharacter, TEXT("FootProbeHalfWidth"), 0.0f);
+		GapCharacter->SetActorLocation(FVector(485.0f, 0.0f, 55.0f));
+		GapCharacter->BeginTurn();
+		GapCharacter->MoveHorizontal(1.0f, 0.1f);
+		TestTrue(TEXT("Battle character does not traverse an unsupported gap in one move"), GapCharacter->GetActorLocation().X > 485.0f && GapCharacter->GetActorLocation().X < 500.0f);
+		TestTrue(TEXT("Battle character starts falling when horizontal movement reaches unsupported terrain"), GapCharacter->GetActorLocation().Z < 55.0f);
 	}
 
 	AFortRogueBattleCharacter* SettlingCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(5.0f, 0.0f, 105.0f), FRotator::ZeroRotator, SpawnParams);

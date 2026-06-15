@@ -136,6 +136,7 @@ void AFortRogueBattleCharacter::MoveHorizontal(float Axis, float DeltaSeconds)
 
 	FVector NewLocation = GetActorLocation();
 	float ActualDelta = 0.0f;
+	bool bLostSupport = false;
 
 	if (AFortRogueDestructibleTerrain* Terrain = FindTerrain())
 	{
@@ -174,6 +175,13 @@ void AFortRogueBattleCharacter::MoveHorizontal(float Axis, float DeltaSeconds)
 			{
 				break;
 			}
+			else
+			{
+				NewLocation = StepLocation;
+				ActualDelta += ClampedStepDelta;
+				bLostSupport = true;
+				break;
+			}
 
 			NewLocation = StepLocation;
 			ActualDelta += ClampedStepDelta;
@@ -191,7 +199,14 @@ void AFortRogueBattleCharacter::MoveHorizontal(float Axis, float DeltaSeconds)
 	}
 
 	SetActorLocation(NewLocation);
-	UpdateBodyTerrainAlignment(FindTerrain());
+	if (bLostSupport)
+	{
+		ReevaluateTerrainSupport();
+	}
+	else
+	{
+		UpdateBodyTerrainAlignment(FindTerrain());
+	}
 	CombatSet->SetMoveBudget(Budget - FMath::Abs(ActualDelta));
 	bFacingRight = ActualDelta >= 0.0f;
 }
