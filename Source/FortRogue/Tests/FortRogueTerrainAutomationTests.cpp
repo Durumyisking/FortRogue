@@ -19,6 +19,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "FortRogueGameMode.h"
+#include "Kismet/GameplayStatics.h"
 #include "UObject/UnrealType.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFortRogueTerrainMapDefinitionEditTest, "FortRogue.Terrain.MapDefinition.Edits", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -516,6 +517,27 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	if (GapTerrain)
 	{
 		GapTerrain->MapDefinition = GapMap;
+	}
+
+	UFortRogueTerrainMapDefinition* PreviewMap = NewObject<UFortRogueTerrainMapDefinition>();
+	PreviewMap->Resize(6, 3);
+	PreviewMap->CellSize = 10.0f;
+	PreviewMap->Clear(false);
+	PreviewMap->FillTexturedRect(2, 1, 2, 1, 4);
+
+	AFortRogueDestructibleTerrain* PreviewTerrain = World->SpawnActorDeferred<AFortRogueDestructibleTerrain>(AFortRogueDestructibleTerrain::StaticClass(), FTransform(FRotator::ZeroRotator, FVector(700.0f, 0.0f, 0.0f)));
+	TestNotNull(TEXT("Construction preview terrain actor is spawned deferred"), PreviewTerrain);
+	if (PreviewTerrain)
+	{
+		PreviewTerrain->MapDefinition = PreviewMap;
+		UGameplayStatics::FinishSpawningActor(PreviewTerrain, FTransform(FRotator::ZeroRotator, FVector(700.0f, 0.0f, 0.0f)));
+		TestTrue(TEXT("Construction preview terrain uses its map mask before BeginPlay"), PreviewTerrain->IsSolidAtWorldLocation(FVector(695.0f, 0.0f, 15.0f)));
+		TestNotNull(TEXT("Construction preview terrain creates its runtime texture before BeginPlay"), PreviewTerrain->GetRuntimeTerrainTexture());
+		if (UStaticMeshComponent* PreviewTexturePlane = Cast<UStaticMeshComponent>(PreviewTerrain->GetDefaultSubobjectByName(TEXT("TerrainTexturePlane"))))
+		{
+			TestEqual(TEXT("Construction preview texture plane width follows the map definition"), static_cast<float>(PreviewTexturePlane->GetRelativeScale3D().X), 0.6f);
+			TestEqual(TEXT("Construction preview texture plane height follows the map definition"), static_cast<float>(PreviewTexturePlane->GetRelativeScale3D().Y), 0.3f);
+		}
 	}
 
 	FURL URL;

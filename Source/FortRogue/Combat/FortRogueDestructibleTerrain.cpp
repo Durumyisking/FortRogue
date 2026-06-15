@@ -130,8 +130,9 @@ void AFortRogueDestructibleTerrain::OnConstruction(const FTransform& Transform)
 	Super::OnConstruction(Transform);
 
 	NormalizeActorRotationForGameplayPlane();
-	ApplyDefinitionDimensions();
-	ConfigureTexturePlane();
+	InitializeMask();
+	InitializeRuntimeTexture();
+	RebuildVisuals();
 }
 
 void AFortRogueDestructibleTerrain::BeginPlay()
