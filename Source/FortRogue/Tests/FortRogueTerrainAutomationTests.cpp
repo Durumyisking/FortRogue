@@ -544,6 +544,32 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		GapTerrain->MapDefinition = GapMap;
 	}
 
+	UFortRogueTerrainMapDefinition* TransformMap = NewObject<UFortRogueTerrainMapDefinition>();
+	TransformMap->Resize(4, 2);
+	TransformMap->CellSize = 10.0f;
+	TransformMap->Clear(true);
+
+	AFortRogueDestructibleTerrain* TransformTerrain = World->SpawnActorDeferred<AFortRogueDestructibleTerrain>(
+		AFortRogueDestructibleTerrain::StaticClass(),
+		FTransform(FRotator(0.0f, 90.0f, 90.0f), FVector(900.0f, 0.0f, 0.0f), FVector(2.0f, 3.0f, 4.0f)));
+	TestNotNull(TEXT("Transform-normalized terrain actor is spawned deferred"), TransformTerrain);
+	if (TransformTerrain)
+	{
+		TransformTerrain->MapDefinition = TransformMap;
+		UGameplayStatics::FinishSpawningActor(
+			TransformTerrain,
+			FTransform(FRotator(0.0f, 90.0f, 90.0f), FVector(900.0f, 0.0f, 0.0f), FVector(2.0f, 3.0f, 4.0f)));
+		TestEqual(TEXT("Terrain actor clears accidental gameplay rotation"), TransformTerrain->GetActorRotation(), FRotator::ZeroRotator);
+		TestEqual(TEXT("Terrain actor clears accidental gameplay scale"), TransformTerrain->GetActorScale3D(), FVector::OneVector);
+		TestTrue(TEXT("Transform-normalized terrain still queries solid cells on world X/Z"), TransformTerrain->IsSolidAtWorldLocation(FVector(885.0f, 0.0f, 5.0f)));
+		if (UStaticMeshComponent* TransformTexturePlane = Cast<UStaticMeshComponent>(TransformTerrain->GetDefaultSubobjectByName(TEXT("TerrainTexturePlane"))))
+		{
+			TestEqual(TEXT("Transform-normalized texture plane keeps X/Z rotation"), TransformTexturePlane->GetComponentRotation(), FRotator(0.0f, 0.0f, 90.0f));
+			TestEqual(TEXT("Transform-normalized texture plane keeps map width scale"), static_cast<float>(TransformTexturePlane->GetComponentScale().X), 0.4f);
+			TestEqual(TEXT("Transform-normalized texture plane keeps map height scale"), static_cast<float>(TransformTexturePlane->GetComponentScale().Y), 0.2f);
+		}
+	}
+
 	UFortRogueTerrainMapDefinition* PreviewMap = NewObject<UFortRogueTerrainMapDefinition>();
 	PreviewMap->Resize(6, 3);
 	PreviewMap->CellSize = 10.0f;

@@ -100,10 +100,14 @@ AFortRogueDestructibleTerrain::AFortRogueDestructibleTerrain()
 	TerrainInstances = CreateDefaultSubobject<UInstancedStaticMeshComponent>(TEXT("TerrainInstances"));
 	TerrainInstances->SetupAttachment(Root);
 	TerrainInstances->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	TerrainInstances->SetUsingAbsoluteRotation(true);
+	TerrainInstances->SetUsingAbsoluteScale(true);
 
 	TerrainTexturePlane = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("TerrainTexturePlane"));
 	TerrainTexturePlane->SetupAttachment(Root);
 	TerrainTexturePlane->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	TerrainTexturePlane->SetUsingAbsoluteRotation(true);
+	TerrainTexturePlane->SetUsingAbsoluteScale(true);
 	ConfigureTexturePlane();
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
@@ -129,7 +133,7 @@ void AFortRogueDestructibleTerrain::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 
-	NormalizeActorRotationForGameplayPlane();
+	NormalizeActorTransformForGameplayPlane();
 	InitializeMask();
 	InitializeRuntimeTexture();
 	RebuildVisuals();
@@ -139,11 +143,21 @@ void AFortRogueDestructibleTerrain::BeginPlay()
 {
 	Super::BeginPlay();
 
-	NormalizeActorRotationForGameplayPlane();
+	NormalizeActorTransformForGameplayPlane();
 	InitializeMask();
 	InitializeRuntimeTexture();
 	RebuildVisuals();
 }
+
+#if WITH_EDITOR
+void AFortRogueDestructibleTerrain::PostEditMove(bool bFinished)
+{
+	Super::PostEditMove(bFinished);
+
+	NormalizeActorTransformForGameplayPlane();
+	ConfigureTexturePlane();
+}
+#endif
 
 bool AFortRogueDestructibleTerrain::IsSolidAtWorldLocation(const FVector& WorldLocation) const
 {
@@ -341,11 +355,16 @@ void AFortRogueDestructibleTerrain::ApplyDefinitionDimensions()
 	Height = CellsZ * CellSize;
 }
 
-void AFortRogueDestructibleTerrain::NormalizeActorRotationForGameplayPlane()
+void AFortRogueDestructibleTerrain::NormalizeActorTransformForGameplayPlane()
 {
 	if (!GetActorRotation().IsNearlyZero())
 	{
 		SetActorRotation(FRotator::ZeroRotator);
+	}
+
+	if (!GetActorScale3D().Equals(FVector::OneVector))
+	{
+		SetActorScale3D(FVector::OneVector);
 	}
 }
 

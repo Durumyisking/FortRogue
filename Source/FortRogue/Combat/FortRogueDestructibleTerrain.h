@@ -23,6 +23,9 @@ public:
 
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void BeginPlay() override;
+#if WITH_EDITOR
+	virtual void PostEditMove(bool bFinished) override;
+#endif
 
 	bool IsSolidAtWorldLocation(const FVector& WorldLocation) const;
 	bool FindSurfaceZAtWorldX(float WorldX, float StartWorldZ, float SearchDistance, float& OutSurfaceZ) const;
@@ -56,7 +59,7 @@ private:
 	void InitializeGeneratedMask();
 	void InitializeMaskFromDefinition();
 	void ApplyDefinitionDimensions();
-	void NormalizeActorRotationForGameplayPlane();
+	void NormalizeActorTransformForGameplayPlane();
 	void ConfigureTexturePlane();
 	void RebuildVisuals();
 	void InitializeRuntimeTexture();
