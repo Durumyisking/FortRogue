@@ -754,6 +754,7 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		{
 			FastProjectile->InitializeProjectile(FastProjectileTarget, FastProjectileTerrain, FVector(1940.0f, 0.0f, 0.0f), 0.0f, 6.0f, 0.0f);
 			FastProjectile->Tick(0.1f);
+			TestTrue(TEXT("Resolved projectile actor location stays at the terrain impact point"), FastProjectile->GetActorLocation().X >= 300.0f && FastProjectile->GetActorLocation().X < 310.0f);
 			TestFalse(TEXT("Fast projectile carves the one-cell vertical wall instead of tunneling through it"), FastProjectileTerrain->IsSolidAtWorldLocation(FVector(305.0f, 0.0f, 35.0f)));
 		}
 	}

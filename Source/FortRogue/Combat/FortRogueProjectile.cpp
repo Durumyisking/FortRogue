@@ -162,6 +162,7 @@ void AFortRogueProjectile::ResolveImpact(const FVector& ImpactLocation)
 	}
 
 	bResolved = true;
+	SetActorLocation(ImpactLocation);
 
 	if (AssignedTerrain)
 	{
