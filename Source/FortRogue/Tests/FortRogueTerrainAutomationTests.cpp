@@ -744,10 +744,15 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	if (FallingCharacter)
 	{
 		FallingCharacter->SetTerrain(Terrain);
+		FallingCharacter->BeginTurn();
+		FallingCharacter->BeginShotCharge();
+		FallingCharacter->UpdateShotCharge(0.5f);
+		TestTrue(TEXT("Supported battle character can start charging before support is destroyed"), FallingCharacter->IsChargingShot());
 		const float BeforeReevaluateZ = FallingCharacter->GetActorLocation().Z;
 		TestTrue(TEXT("Carve circle removes support under the falling character"), Terrain->CarveCircle(FVector(45.0f, 0.0f, 5.0f), 25.0f));
 		FallingCharacter->ReevaluateTerrainSupport();
 		TestTrue(TEXT("Battle character starts falling immediately after support terrain is destroyed"), FallingCharacter->GetActorLocation().Z < BeforeReevaluateZ);
+		TestFalse(TEXT("Battle character cancels shot charge when terrain support is destroyed"), FallingCharacter->IsChargingShot());
 		const float FallingCharacterX = FallingCharacter->GetActorLocation().X;
 		FallingCharacter->BeginTurn();
 		FallingCharacter->MoveHorizontal(1.0f, 0.25f);

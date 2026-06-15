@@ -361,6 +361,7 @@ void AFortRogueBattleCharacter::ReevaluateTerrainSupport()
 	{
 		SetActorLocation(FVector(ClampedWorldX, CurrentLocation.Y, CurrentLocation.Z));
 	}
+	bChargingShot = false;
 	ApplyTerrainGravity(1.0f / 60.0f);
 }
 
@@ -735,6 +736,7 @@ void AFortRogueBattleCharacter::ApplyTerrainGravity(float DeltaSeconds)
 		return;
 	}
 
+	bChargingShot = false;
 	VerticalVelocity = FMath::Max(VerticalVelocity - GravityAcceleration * DeltaSeconds, -MaxFallSpeed);
 	const float FallDistance = FMath::Abs(VerticalVelocity * DeltaSeconds);
 	if (FindFootprintSurfaceZ(*Terrain, ClampedWorldX, CurrentFootZ, FallDistance + GroundSnapDistance, SurfaceZ))
