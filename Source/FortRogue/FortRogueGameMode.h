@@ -30,6 +30,10 @@ class FORTROGUE_API AFortRogueGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
 
+#if WITH_DEV_AUTOMATION_TESTS
+	friend class FFortRogueTerrainGameModeMapDefinitionTest;
+#endif
+
 public:
 	AFortRogueGameMode();
 

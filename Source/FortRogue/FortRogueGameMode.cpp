@@ -280,6 +280,13 @@ void AFortRogueGameMode::RunEnemyTurn()
 
 	EnemyCharacter->FireAtTarget(PlayerCharacter);
 	const int32 SpawnedProjectiles = EnemyCharacter->FireSelectedWeapon();
+	if (SpawnedProjectiles <= 0)
+	{
+		EnemyCharacter->EndTurn();
+		StartPlayerTurn();
+		return;
+	}
+
 	NotifyShotFired(EnemyCharacter, SpawnedProjectiles);
 }
 

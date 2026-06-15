@@ -378,6 +378,18 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 		}
 	}
 
+	if (SpawnedTerrain && GameMode->GetPlayerCharacter() && GameMode->GetEnemyCharacter())
+	{
+		const FVector EnemyLocation = GameMode->GetEnemyCharacter()->GetActorLocation();
+		SpawnedTerrain->CarveCircle(FVector(EnemyLocation.X, EnemyLocation.Y, 5.0f), 40.0f);
+		GameMode->GetEnemyCharacter()->ReevaluateTerrainSupport();
+
+		GameMode->StartEnemyTurn();
+		TestEqual(TEXT("Game mode can enter the enemy turn for an unsupported enemy"), GameMode->GetBattleState(), EFortRogueBattleState::EnemyTurn);
+		GameMode->RunEnemyTurn();
+		TestEqual(TEXT("Unsupported enemy that cannot fire yields the turn back to the player"), GameMode->GetBattleState(), EFortRogueBattleState::PlayerTurn);
+	}
+
 	AFortRogueProjectile* StrayProjectile = World->SpawnActor<AFortRogueProjectile>(AFortRogueProjectile::StaticClass(), FVector(25.0f, 0.0f, 500.0f), FRotator::ZeroRotator);
 	TestNotNull(TEXT("Stray projectile is spawned"), StrayProjectile);
 	if (StrayProjectile)
