@@ -36,6 +36,21 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Default enemy spawn is inside the map width"), FMath::Abs(Map->EnemySpawnLocal.X) < HalfMapWidth);
 	TestTrue(TEXT("Default spawns start above the map"), Map->PlayerSpawnLocal.Z > Map->CellsZ * Map->CellSize && Map->EnemySpawnLocal.Z > Map->CellsZ * Map->CellSize);
 
+	UFortRogueTerrainMapDefinition* CorruptMap = NewObject<UFortRogueTerrainMapDefinition>();
+	TestNotNull(TEXT("Corrupt map asset object is created"), CorruptMap);
+	CorruptMap->CellsX = 3;
+	CorruptMap->CellsZ = 2;
+	CorruptMap->CellSize = 0.25f;
+	CorruptMap->SolidMask = { 9, 0 };
+	CorruptMap->TextureLayerMask = { 4, 7 };
+	CorruptMap->NormalizeMapData();
+	TestEqual(TEXT("Normalize clamps map cell size"), CorruptMap->CellSize, 1.0f);
+	TestEqual(TEXT("Normalize repairs solid mask size"), CorruptMap->SolidMask.Num(), 6);
+	TestEqual(TEXT("Normalize repairs texture layer mask size"), CorruptMap->TextureLayerMask.Num(), 6);
+	TestEqual(TEXT("Normalize coerces nonzero solid values to one"), CorruptMap->SolidMask[0], static_cast<uint8>(1));
+	TestEqual(TEXT("Normalize preserves texture layer on solid cells"), CorruptMap->TextureLayerMask[0], static_cast<uint8>(4));
+	TestEqual(TEXT("Normalize clears texture layer on empty cells"), CorruptMap->TextureLayerMask[1], static_cast<uint8>(0));
+
 	Map->Resize(8, 4);
 	Map->Clear(false);
 	TestEqual(TEXT("Resize updates SolidMask size"), Map->SolidMask.Num(), 32);

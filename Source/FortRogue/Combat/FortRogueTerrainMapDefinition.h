@@ -31,8 +31,17 @@ class FORTROGUE_API UFortRogueTerrainMapDefinition : public UDataAsset
 public:
 	UFortRogueTerrainMapDefinition();
 
+	virtual void PostLoad() override;
+
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
+
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
 	void Resize(int32 NewCellsX, int32 NewCellsZ);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
+	void NormalizeMapData();
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
 	void ResizeResampled(int32 NewCellsX, int32 NewCellsZ);

@@ -240,12 +240,46 @@ UFortRogueTerrainMapDefinition::UFortRogueTerrainMapDefinition()
 	}
 }
 
+void UFortRogueTerrainMapDefinition::PostLoad()
+{
+	Super::PostLoad();
+	NormalizeMapData();
+}
+
+#if WITH_EDITOR
+void UFortRogueTerrainMapDefinition::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+	NormalizeMapData();
+}
+#endif
+
 void UFortRogueTerrainMapDefinition::Resize(int32 NewCellsX, int32 NewCellsZ)
 {
 	CellsX = FMath::Max(1, NewCellsX);
 	CellsZ = FMath::Max(1, NewCellsZ);
 	SolidMask.SetNumZeroed(CellsX * CellsZ);
 	TextureLayerMask.SetNumZeroed(CellsX * CellsZ);
+}
+
+void UFortRogueTerrainMapDefinition::NormalizeMapData()
+{
+	CellsX = FMath::Max(1, CellsX);
+	CellsZ = FMath::Max(1, CellsZ);
+	CellSize = FMath::Max(1.0f, CellSize);
+
+	const int32 ExpectedCells = CellsX * CellsZ;
+	SolidMask.SetNumZeroed(ExpectedCells);
+	TextureLayerMask.SetNumZeroed(ExpectedCells);
+
+	for (int32 Index = 0; Index < ExpectedCells; ++Index)
+	{
+		SolidMask[Index] = SolidMask[Index] != 0 ? 1 : 0;
+		if (SolidMask[Index] == 0)
+		{
+			TextureLayerMask[Index] = 0;
+		}
+	}
 }
 
 void UFortRogueTerrainMapDefinition::ResizeResampled(int32 NewCellsX, int32 NewCellsZ)
