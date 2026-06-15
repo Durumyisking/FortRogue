@@ -378,6 +378,16 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 		}
 	}
 
+	AFortRogueProjectile* StrayProjectile = World->SpawnActor<AFortRogueProjectile>(AFortRogueProjectile::StaticClass(), FVector(25.0f, 0.0f, 500.0f), FRotator::ZeroRotator);
+	TestNotNull(TEXT("Stray projectile is spawned"), StrayProjectile);
+	if (StrayProjectile)
+	{
+		TestEqual(TEXT("Game mode starts on the player turn before stray projectile resolution"), GameMode->GetBattleState(), EFortRogueBattleState::PlayerTurn);
+		GameMode->NotifyProjectileResolved(StrayProjectile);
+		World->Tick(ELevelTick::LEVELTICK_All, 1.0f);
+		TestEqual(TEXT("Stray projectile resolution outside a shot does not advance the turn"), GameMode->GetBattleState(), EFortRogueBattleState::PlayerTurn);
+	}
+
 	CleanupWorld();
 	return true;
 }

@@ -85,6 +85,11 @@ void AFortRogueGameMode::NotifyProjectileResolved(AFortRogueProjectile* Projecti
 		});
 	}
 
+	if (BattleState != EFortRogueBattleState::ResolvingShot)
+	{
+		return;
+	}
+
 	PendingProjectiles = FMath::Max(0, PendingProjectiles - 1);
 	if (PendingProjectiles == 0)
 	{
