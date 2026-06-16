@@ -582,6 +582,28 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		}
 	}
 
+	UFortRogueTerrainMapDefinition* RuntimeCorruptMap = NewObject<UFortRogueTerrainMapDefinition>();
+	RuntimeCorruptMap->CellsX = 3;
+	RuntimeCorruptMap->CellsZ = 2;
+	RuntimeCorruptMap->CellSize = 0.0f;
+	RuntimeCorruptMap->SolidMask = { 2, 0, 1 };
+	RuntimeCorruptMap->TextureLayerMask = { 4, 7 };
+
+	AFortRogueDestructibleTerrain* RuntimeCorruptTerrain = World->SpawnActorDeferred<AFortRogueDestructibleTerrain>(
+		AFortRogueDestructibleTerrain::StaticClass(),
+		FTransform(FRotator::ZeroRotator, FVector(1000.0f, 0.0f, 0.0f)));
+	TestNotNull(TEXT("Runtime-normalized terrain actor is spawned deferred"), RuntimeCorruptTerrain);
+	if (RuntimeCorruptTerrain)
+	{
+		RuntimeCorruptTerrain->MapDefinition = RuntimeCorruptMap;
+		UGameplayStatics::FinishSpawningActor(RuntimeCorruptTerrain, FTransform(FRotator::ZeroRotator, FVector(1000.0f, 0.0f, 0.0f)));
+		TestEqual(TEXT("Runtime terrain normalizes invalid map cell size"), RuntimeCorruptTerrain->CellSize, 1.0f);
+		TestEqual(TEXT("Runtime terrain repairs corrupt map solid mask size"), RuntimeCorruptMap->SolidMask.Num(), 6);
+		TestEqual(TEXT("Runtime terrain repairs corrupt map texture layer mask size"), RuntimeCorruptMap->TextureLayerMask.Num(), 6);
+		TestTrue(TEXT("Runtime terrain uses normalized solid cells from the map"), RuntimeCorruptTerrain->IsSolidAtWorldLocation(FVector(998.6f, 0.0f, 0.5f)));
+		TestFalse(TEXT("Runtime terrain uses normalized empty cells from the map"), RuntimeCorruptTerrain->IsSolidAtWorldLocation(FVector(999.5f, 0.0f, 0.5f)));
+	}
+
 	UFortRogueTerrainMapDefinition* PreviewMap = NewObject<UFortRogueTerrainMapDefinition>();
 	PreviewMap->Resize(6, 3);
 	PreviewMap->CellSize = 10.0f;

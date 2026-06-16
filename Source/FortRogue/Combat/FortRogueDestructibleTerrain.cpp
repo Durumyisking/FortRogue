@@ -304,6 +304,11 @@ UTexture2D* AFortRogueDestructibleTerrain::GetRuntimeTerrainTexture() const
 
 void AFortRogueDestructibleTerrain::InitializeMask()
 {
+	if (MapDefinition)
+	{
+		MapDefinition->NormalizeMapData();
+	}
+
 	if (MapDefinition && MapDefinition->CellsX > 0 && MapDefinition->CellsZ > 0 && MapDefinition->SolidMask.Num() == MapDefinition->CellsX * MapDefinition->CellsZ)
 	{
 		InitializeMaskFromDefinition();
@@ -315,6 +320,9 @@ void AFortRogueDestructibleTerrain::InitializeMask()
 
 void AFortRogueDestructibleTerrain::InitializeGeneratedMask()
 {
+	CellSize = FMath::Max(1.0f, CellSize);
+	Width = FMath::Max(CellSize, Width);
+	Height = FMath::Max(CellSize, Height);
 	CellsX = FMath::Max(1, FMath::RoundToInt(Width / CellSize));
 	CellsZ = FMath::Max(1, FMath::RoundToInt(Height / CellSize));
 	SolidMask.SetNumZeroed(CellsX * CellsZ);
