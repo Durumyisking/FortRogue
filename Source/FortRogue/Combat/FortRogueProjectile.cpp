@@ -69,7 +69,7 @@ void AFortRogueProjectile::InitializeProjectile(AFortRogueBattleCharacter* InOwn
 	AssignedTerrain = InTerrain;
 	Velocity = InVelocity;
 	Damage = InDamage;
-	BlastRadius = InBlastRadius;
+	BlastRadius = FMath::Max(0.0f, InBlastRadius);
 	Gravity = InGravity;
 }
 
@@ -185,7 +185,14 @@ void AFortRogueProjectile::ResolveImpact(const FVector& ImpactLocation)
 		}
 
 		const float Distance = GetDistanceXZ(Character->GetActorLocation(), ImpactLocation);
-		if (Distance <= BlastRadius)
+		if (BlastRadius <= KINDA_SMALL_NUMBER)
+		{
+			if (Distance <= KINDA_SMALL_NUMBER)
+			{
+				Character->ApplyDamage(Damage);
+			}
+		}
+		else if (Distance <= BlastRadius)
 		{
 			const float Falloff = 1.0f - FMath::Clamp(Distance / BlastRadius, 0.0f, 1.0f);
 			Character->ApplyDamage(Damage * FMath::Max(0.25f, Falloff));

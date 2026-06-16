@@ -796,6 +796,22 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 			}
 		}
 
+		AFortRogueBattleCharacter* ZeroRadiusTarget = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(240.0f, 500.0f, 35.0f), FRotator::ZeroRotator, SpawnParams);
+		TestNotNull(TEXT("Zero-radius direct-hit target is spawned before the wall"), ZeroRadiusTarget);
+		if (ZeroRadiusTarget)
+		{
+			ZeroRadiusTarget->SetActorLocation(FVector(240.0f, 500.0f, 35.0f));
+			const float TargetHealthBeforeZeroRadiusHit = ZeroRadiusTarget->GetHealth();
+			AFortRogueProjectile* ZeroRadiusProjectile = World->SpawnActor<AFortRogueProjectile>(AFortRogueProjectile::StaticClass(), FVector(203.0f, 0.0f, 35.0f), FRotator::ZeroRotator, SpawnParams);
+			TestNotNull(TEXT("Zero-radius direct-hit projectile is spawned"), ZeroRadiusProjectile);
+			if (ZeroRadiusProjectile)
+			{
+				ZeroRadiusProjectile->InitializeProjectile(nullptr, FastProjectileTerrain, FVector(740.0f, 0.0f, 0.0f), 20.0f, 0.0f, 0.0f);
+				ZeroRadiusProjectile->Tick(0.1f);
+				TestTrue(TEXT("Zero-radius direct hit applies finite point damage"), FMath::IsFinite(ZeroRadiusTarget->GetHealth()) && ZeroRadiusTarget->GetHealth() < TargetHealthBeforeZeroRadiusHit);
+			}
+		}
+
 		AFortRogueProjectile* FastProjectile = World->SpawnActor<AFortRogueProjectile>(AFortRogueProjectile::StaticClass(), FVector(203.0f, 0.0f, 35.0f), FRotator::ZeroRotator, SpawnParams);
 		TestNotNull(TEXT("Fast projectile is spawned"), FastProjectile);
 		if (FastProjectile)
