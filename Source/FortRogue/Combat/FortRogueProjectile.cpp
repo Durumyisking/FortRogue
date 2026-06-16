@@ -13,6 +13,8 @@
 
 namespace
 {
+constexpr float CharacterHitRadius = 34.0f;
+
 float GetSegmentAlphaXZ(const FVector& StartLocation, const FVector& EndLocation, const FVector& TestLocation)
 {
 	const FVector2D Segment(EndLocation.X - StartLocation.X, EndLocation.Z - StartLocation.Z);
@@ -136,7 +138,7 @@ void AFortRogueProjectile::Tick(float DeltaSeconds)
 		}
 
 		const FVector ClosestPoint = GetClosestPointOnSegmentXZ(OldLocation, NewLocation, Character->GetActorLocation());
-		if (GetDistanceSquaredXZ(Character->GetActorLocation(), ClosestPoint) <= FMath::Square(34.0f))
+		if (GetDistanceSquaredXZ(Character->GetActorLocation(), ClosestPoint) <= FMath::Square(CharacterHitRadius))
 		{
 			ConsiderImpact(ClosestPoint);
 		}
@@ -187,7 +189,7 @@ void AFortRogueProjectile::ResolveImpact(const FVector& ImpactLocation)
 		const float Distance = GetDistanceXZ(Character->GetActorLocation(), ImpactLocation);
 		if (BlastRadius <= KINDA_SMALL_NUMBER)
 		{
-			if (Distance <= KINDA_SMALL_NUMBER)
+			if (Distance <= CharacterHitRadius)
 			{
 				Character->ApplyDamage(Damage);
 			}

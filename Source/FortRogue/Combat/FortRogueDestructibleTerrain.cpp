@@ -157,6 +157,14 @@ void AFortRogueDestructibleTerrain::PostEditMove(bool bFinished)
 	NormalizeActorTransformForGameplayPlane();
 	ConfigureTexturePlane();
 }
+
+void AFortRogueDestructibleTerrain::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	NormalizeActorTransformForGameplayPlane();
+	ConfigureTexturePlane();
+}
 #endif
 
 bool AFortRogueDestructibleTerrain::IsSolidAtWorldLocation(const FVector& WorldLocation) const
@@ -424,6 +432,8 @@ void AFortRogueDestructibleTerrain::InitializeRuntimeTexture()
 	{
 		RuntimeTerrainTexture->CompressionSettings = TC_VectorDisplacementmap;
 		RuntimeTerrainTexture->Filter = TF_Bilinear;
+		RuntimeTerrainTexture->AddressX = TA_Clamp;
+		RuntimeTerrainTexture->AddressY = TA_Clamp;
 		RuntimeTerrainTexture->SRGB = true;
 		RuntimeTerrainTexture->NeverStream = true;
 	}

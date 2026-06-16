@@ -25,6 +25,7 @@ public:
 	virtual void BeginPlay() override;
 #if WITH_EDITOR
 	virtual void PostEditMove(bool bFinished) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
 	bool IsSolidAtWorldLocation(const FVector& WorldLocation) const;

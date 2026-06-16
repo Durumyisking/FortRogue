@@ -588,6 +588,7 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		if (UStaticMeshComponent* TransformTexturePlane = Cast<UStaticMeshComponent>(TransformTerrain->GetDefaultSubobjectByName(TEXT("TerrainTexturePlane"))))
 		{
 			TestEqual(TEXT("Transform-normalized texture plane keeps X/Z rotation"), TransformTexturePlane->GetComponentRotation(), FRotator(0.0f, 0.0f, 90.0f));
+			TestEqual(TEXT("Transform-normalized texture plane keeps X/Z centered world location"), TransformTexturePlane->GetComponentLocation(), FVector(900.0f, -6.0f, 10.0f));
 			TestEqual(TEXT("Transform-normalized texture plane keeps map width scale"), static_cast<float>(TransformTexturePlane->GetComponentScale().X), 0.4f);
 			TestEqual(TEXT("Transform-normalized texture plane keeps map height scale"), static_cast<float>(TransformTexturePlane->GetComponentScale().Y), 0.2f);
 		}
@@ -646,6 +647,8 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	if (RuntimeTexture)
 	{
 		TestTrue(TEXT("Runtime terrain texture uses bilinear filtering to avoid chunky upscale"), RuntimeTexture->Filter == TF_Bilinear);
+		TestTrue(TEXT("Runtime terrain texture clamps horizontally to avoid edge bleeding"), RuntimeTexture->AddressX == TA_Clamp);
+		TestTrue(TEXT("Runtime terrain texture clamps vertically to avoid edge bleeding"), RuntimeTexture->AddressY == TA_Clamp);
 		TestTrue(TEXT("Runtime terrain texture does not stream"), RuntimeTexture->NeverStream);
 		FTexture2DMipMap& RuntimeMip = RuntimeTexture->GetPlatformData()->Mips[0];
 		const FColor* RuntimePixels = static_cast<const FColor*>(RuntimeMip.BulkData.LockReadOnly());
@@ -829,11 +832,11 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 			}
 		}
 
-		AFortRogueBattleCharacter* ZeroRadiusTarget = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(240.0f, 500.0f, 35.0f), FRotator::ZeroRotator, SpawnParams);
+		AFortRogueBattleCharacter* ZeroRadiusTarget = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(240.0f, 500.0f, 60.0f), FRotator::ZeroRotator, SpawnParams);
 		TestNotNull(TEXT("Zero-radius direct-hit target is spawned before the wall"), ZeroRadiusTarget);
 		if (ZeroRadiusTarget)
 		{
-			ZeroRadiusTarget->SetActorLocation(FVector(240.0f, 500.0f, 35.0f));
+			ZeroRadiusTarget->SetActorLocation(FVector(240.0f, 500.0f, 60.0f));
 			const float TargetHealthBeforeZeroRadiusHit = ZeroRadiusTarget->GetHealth();
 			AFortRogueProjectile* ZeroRadiusProjectile = World->SpawnActor<AFortRogueProjectile>(AFortRogueProjectile::StaticClass(), FVector(203.0f, 0.0f, 35.0f), FRotator::ZeroRotator, SpawnParams);
 			TestNotNull(TEXT("Zero-radius direct-hit projectile is spawned"), ZeroRadiusProjectile);
