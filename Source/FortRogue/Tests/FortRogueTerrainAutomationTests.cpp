@@ -116,6 +116,12 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Resample resize preserves enemy spawn horizontal ratio"), ResizedMap->EnemySpawnLocal.X, 20.0);
 	TestEqual(TEXT("Resample resize preserves spawn clearance above the map"), ResizedMap->PlayerSpawnLocal.Z, 55.0);
 
+	ResizedMap->SetCellSizePreservingSpawns(20.0f);
+	TestEqual(TEXT("Cell size update changes the map world cell size"), ResizedMap->CellSize, 20.0f);
+	TestEqual(TEXT("Cell size update preserves player spawn horizontal ratio"), ResizedMap->PlayerSpawnLocal.X, -40.0);
+	TestEqual(TEXT("Cell size update preserves enemy spawn horizontal ratio"), ResizedMap->EnemySpawnLocal.X, 40.0);
+	TestEqual(TEXT("Cell size update preserves spawn clearance above the resized map"), ResizedMap->PlayerSpawnLocal.Z, 95.0);
+
 	return true;
 }
 

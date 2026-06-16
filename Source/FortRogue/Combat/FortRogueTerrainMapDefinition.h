@@ -47,6 +47,9 @@ public:
 	void ResizeResampled(int32 NewCellsX, int32 NewCellsZ);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
+	void SetCellSizePreservingSpawns(float NewCellSize);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
 	void Clear(bool bSolid);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")

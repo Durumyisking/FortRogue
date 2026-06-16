@@ -335,6 +335,24 @@ void UFortRogueTerrainMapDefinition::ResizeResampled(int32 NewCellsX, int32 NewC
 	EnemySpawnLocal = GetResampledSpawn(EnemySpawnLocal, SourceWidth, SourceHeight, TargetWidth, TargetHeight);
 }
 
+void UFortRogueTerrainMapDefinition::SetCellSizePreservingSpawns(float NewCellSize)
+{
+	NormalizeMapData();
+	const float TargetCellSize = FMath::Max(1.0f, NewCellSize);
+	if (FMath::IsNearlyEqual(CellSize, TargetCellSize))
+	{
+		return;
+	}
+
+	const float SourceWidth = CellsX * CellSize;
+	const float SourceHeight = CellsZ * CellSize;
+	const float TargetWidth = CellsX * TargetCellSize;
+	const float TargetHeight = CellsZ * TargetCellSize;
+	PlayerSpawnLocal = GetResampledSpawn(PlayerSpawnLocal, SourceWidth, SourceHeight, TargetWidth, TargetHeight);
+	EnemySpawnLocal = GetResampledSpawn(EnemySpawnLocal, SourceWidth, SourceHeight, TargetWidth, TargetHeight);
+	CellSize = TargetCellSize;
+}
+
 void UFortRogueTerrainMapDefinition::Clear(bool bSolid)
 {
 	SolidMask.Init(bSolid ? 1 : 0, CellsX * CellsZ);

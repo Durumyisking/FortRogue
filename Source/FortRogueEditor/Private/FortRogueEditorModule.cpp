@@ -1002,8 +1002,7 @@ private:
 		if (UFortRogueTerrainMapDefinition* Map = GetEditableMap())
 		{
 			Map->ResizeResampled(CellsX, CellsZ);
-			Map->CellSize = FMath::Max(1.0f, CellSize);
-			Map->NormalizeMapData();
+			Map->SetCellSizePreservingSpawns(CellSize);
 			CellSize = Map->CellSize;
 			StatusText = LOCTEXT("Resized", "Updated terrain map size and preserved existing cells.");
 		}
