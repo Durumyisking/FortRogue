@@ -540,6 +540,7 @@ public:
 		{
 			CellsX = EditingAsset->CellsX;
 			CellsZ = EditingAsset->CellsZ;
+			CellSize = EditingAsset->CellSize;
 			StatusText = LOCTEXT("AssetLoaded", "Loaded terrain map asset.");
 		}
 		else
@@ -640,6 +641,11 @@ private:
 				.Padding(0.0f, 0.0f, 8.0f, 0.0f)
 				[
 					MakeIntField(LOCTEXT("CellsZ", "Cells Z"), CellsZ)
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(0.0f, 0.0f, 8.0f, 0.0f)
+				[
+					MakePositiveFloatField(LOCTEXT("CellSize", "Cell Size"), CellSize)
 				]
 				+ SHorizontalBox::Slot()
 				.AutoWidth()
@@ -952,6 +958,25 @@ private:
 			];
 	}
 
+	TSharedRef<SWidget> MakePositiveFloatField(const FText& Label, float& Value)
+	{
+		return SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(STextBlock)
+				.Text(Label)
+			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SNumericEntryBox<float>)
+				.MinValue(1.0f)
+				.Value_Lambda([&Value]() { return Value; })
+				.OnValueChanged_Lambda([&Value](float NewValue) { Value = FMath::Max(1.0f, NewValue); })
+			];
+	}
+
 	FString GetAssetPath() const
 	{
 		return EditingAsset.IsValid() ? EditingAsset->GetPathName() : FString();
@@ -977,7 +1002,10 @@ private:
 		if (UFortRogueTerrainMapDefinition* Map = GetEditableMap())
 		{
 			Map->ResizeResampled(CellsX, CellsZ);
-			StatusText = LOCTEXT("Resized", "Resized terrain map and preserved existing cells.");
+			Map->CellSize = FMath::Max(1.0f, CellSize);
+			Map->NormalizeMapData();
+			CellSize = Map->CellSize;
+			StatusText = LOCTEXT("Resized", "Updated terrain map size and preserved existing cells.");
 		}
 		return FReply::Handled();
 	}
@@ -1170,6 +1198,7 @@ private:
 	int32 EditMode = static_cast<int32>(EFortRogueTerrainEditMode::PaintCircle);
 	int32 CellsX = 1280;
 	int32 CellsZ = 960;
+	float CellSize = 1.0f;
 	int32 RectMinX = 0;
 	int32 RectMinZ = 0;
 	int32 RectMaxX = 32;
