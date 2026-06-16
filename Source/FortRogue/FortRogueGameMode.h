@@ -78,6 +78,7 @@ private:
 	void FinishShotResolution();
 	void EnterRewardState();
 	void BuildRewardChoices();
+	void CheckTurnDefeatState();
 	void SetStatus(const FString& NewStatus);
 	void UpdateBattleCamera(float DeltaSeconds);
 	void ResetShotCameraState();

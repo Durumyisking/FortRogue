@@ -4,6 +4,8 @@
 
 #include "Misc/AutomationTest.h"
 
+#include "AbilitySystem/Attributes/FortRogueCombatSet.h"
+#include "Characters/FortRogueCharacterDefinition.h"
 #include "Combat/FortRogueBattleCharacter.h"
 #include "Combat/FortRogueDestructibleTerrain.h"
 #include "Combat/FortRogueProjectile.h"
@@ -751,6 +753,71 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		return FallbackValue;
 	};
 
+	auto GetCombatSet = [](AFortRogueBattleCharacter* BattleCharacter)
+	{
+		if (!BattleCharacter)
+		{
+			return static_cast<UFortRogueCombatSet*>(nullptr);
+		}
+
+		if (FObjectProperty* Property = FindFProperty<FObjectProperty>(BattleCharacter->GetClass(), TEXT("CombatSet")))
+		{
+			return Cast<UFortRogueCombatSet>(Property->GetObjectPropertyValue_InContainer(BattleCharacter));
+		}
+
+		return static_cast<UFortRogueCombatSet*>(nullptr);
+	};
+
+	AFortRogueBattleCharacter* StatCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(-15.0f, 0.0f, 55.0f), FRotator::ZeroRotator, SpawnParams);
+	TestNotNull(TEXT("Stat battle character is spawned"), StatCharacter);
+	if (StatCharacter)
+	{
+		UFortRogueCharacterDefinition* CharacterDefinition = NewObject<UFortRogueCharacterDefinition>();
+		CharacterDefinition->MaxHealth = 175.0f;
+		CharacterDefinition->MaxMoveBudget = 25.0f;
+		CharacterDefinition->ShotPowerMultiplier = 1.8f;
+		StatCharacter->InitializeFromDefinition(CharacterDefinition);
+		if (UFortRogueCombatSet* CombatSet = GetCombatSet(StatCharacter))
+		{
+			TestEqual(TEXT("Character definition controls max health"), CombatSet->GetMaxHealth(), 175.0f);
+			TestEqual(TEXT("Character definition controls turn movement budget"), CombatSet->GetMaxMoveBudget(), 25.0f);
+			TestEqual(TEXT("Character definition controls shot power multiplier"), CombatSet->GetShotPowerMultiplier(), 1.8f);
+		}
+	}
+
+	AFortRogueBattleCharacter* ExhaustedTurnCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(45.0f, 0.0f, 55.0f), FRotator::ZeroRotator, SpawnParams);
+	TestNotNull(TEXT("Exhausted turn battle character is spawned"), ExhaustedTurnCharacter);
+	if (ExhaustedTurnCharacter)
+	{
+		ExhaustedTurnCharacter->SetTerrain(Terrain);
+		ExhaustedTurnCharacter->BeginTurn();
+		if (UFortRogueCombatSet* CombatSet = GetCombatSet(ExhaustedTurnCharacter))
+		{
+			CombatSet->SetMaxMoveBudget(0.0f);
+			CombatSet->SetMoveBudget(0.0f);
+		}
+		const float ExhaustedCharacterX = ExhaustedTurnCharacter->GetActorLocation().X;
+		ExhaustedTurnCharacter->MoveHorizontal(-1.0f, 0.1f);
+		TestEqual(TEXT("Exhausted movement budget does not move the character"), static_cast<float>(ExhaustedTurnCharacter->GetActorLocation().X), ExhaustedCharacterX);
+		TestEqual(TEXT("Exhausted movement budget still leaves the budget at zero"), ExhaustedTurnCharacter->GetMoveBudget(), 0.0f);
+		TestEqual(TEXT("Facing change with exhausted movement budget fires to the requested side"), ExhaustedTurnCharacter->FireSelectedWeapon(), 1);
+		AFortRogueProjectile* ExhaustedTurnProjectile = nullptr;
+		for (TActorIterator<AFortRogueProjectile> It(World); It; ++It)
+		{
+			if (It->GetOwner() == ExhaustedTurnCharacter)
+			{
+				ExhaustedTurnProjectile = *It;
+				break;
+			}
+		}
+		TestNotNull(TEXT("Facing change with exhausted movement budget spawns a projectile"), ExhaustedTurnProjectile);
+		if (ExhaustedTurnProjectile)
+		{
+			TestTrue(TEXT("Facing change with exhausted movement budget launches left"), ExhaustedTurnProjectile->GetActorLocation().X < ExhaustedCharacterX);
+			ExhaustedTurnProjectile->Destroy();
+		}
+	}
+
 	AFortRogueBattleCharacter* BoundaryCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(500.0f, 0.0f, 200.0f), FRotator::ZeroRotator, SpawnParams);
 	TestNotNull(TEXT("Boundary battle character is spawned"), BoundaryCharacter);
 	if (BoundaryCharacter)
@@ -927,6 +994,10 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		FallingCharacter->BeginShotCharge();
 		FallingCharacter->UpdateShotCharge(1.0f);
 		TestEqual(TEXT("Falling battle character cannot fire while unsupported"), FallingCharacter->ReleaseShotCharge(), 0);
+		SetFloatProperty(FallingCharacter, TEXT("FallDeathDepth"), 1.0f);
+		FallingCharacter->SetActorLocation(FVector(45.0f, 0.0f, -2.0f));
+		FallingCharacter->Tick(0.01f);
+		TestTrue(TEXT("Battle character is defeated after falling below the terrain death depth"), FallingCharacter->IsDefeated());
 	}
 
 	TestTrue(TEXT("Carve circle reports a terrain change"), Terrain->CarveCircle(FVector(-15.0f, 0.0f, 5.0f), 6.0f));

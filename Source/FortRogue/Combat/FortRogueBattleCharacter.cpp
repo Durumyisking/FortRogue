@@ -13,6 +13,7 @@
 #include "Perks/FortRoguePerkDefinition.h"
 #include "Weapons/FortRogueWeaponDefinition.h"
 #include "Components/StaticMeshComponent.h"
+#include "DrawDebugHelpers.h"
 #include "Engine/StaticMesh.h"
 #include "EngineUtils.h"
 #include "UObject/ConstructorHelpers.h"
@@ -58,6 +59,7 @@ void AFortRogueBattleCharacter::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 
 	ApplyTerrainGravity(DeltaSeconds);
+	DrawProjectileTrajectory();
 }
 
 UAbilitySystemComponent* AFortRogueBattleCharacter::GetAbilitySystemComponent() const
@@ -81,6 +83,7 @@ void AFortRogueBattleCharacter::InitializeFromDefinition(UFortRogueCharacterDefi
 	CombatSet->SetDamage(InCharacterDefinition->BonusDamage);
 	CombatSet->SetMaxMoveBudget(InCharacterDefinition->MaxMoveBudget);
 	CombatSet->SetMoveBudget(InCharacterDefinition->MaxMoveBudget);
+	CombatSet->SetShotPowerMultiplier(InCharacterDefinition->ShotPowerMultiplier);
 
 	WeaponLoadout.Reset();
 	for (UFortRogueWeaponDefinition* WeaponDefinition : InCharacterDefinition->WeaponLoadout)
@@ -125,6 +128,8 @@ void AFortRogueBattleCharacter::MoveHorizontal(float Axis, float DeltaSeconds)
 	{
 		return;
 	}
+
+	SetFacingFromAxis(Axis);
 
 	const float RequestedDelta = Axis * MoveSpeed * DeltaSeconds;
 	const float Budget = CombatSet->GetMoveBudget();
@@ -208,7 +213,6 @@ void AFortRogueBattleCharacter::MoveHorizontal(float Axis, float DeltaSeconds)
 		UpdateBodyTerrainAlignment(FindTerrain());
 	}
 	CombatSet->SetMoveBudget(Budget - FMath::Abs(ActualDelta));
-	bFacingRight = ActualDelta >= 0.0f;
 }
 
 void AFortRogueBattleCharacter::AdjustAim(float Axis, float DeltaSeconds)
@@ -218,7 +222,7 @@ void AFortRogueBattleCharacter::AdjustAim(float Axis, float DeltaSeconds)
 		return;
 	}
 
-	AimAngle = FMath::Clamp(AimAngle + Axis * 70.0f * DeltaSeconds, 5.0f, 85.0f);
+	AimAngle = FMath::Clamp(AimAngle + Axis * 70.0f * DeltaSeconds, 5.0f, 90.0f);
 }
 
 void AFortRogueBattleCharacter::AdjustPower(float Axis, float DeltaSeconds)
@@ -287,7 +291,6 @@ int32 AFortRogueBattleCharacter::FireSelectedWeapon()
 
 	const FFortRogueWeaponSpec& Weapon = GetCurrentWeapon();
 	const int32 ProjectileCount = FMath::Max(1, Weapon.ProjectilesPerShot + FMath::RoundToInt(CombatSet->GetProjectileCount()) - 1);
-	const float FacingSign = bFacingRight ? 1.0f : -1.0f;
 	const float Damage = (Weapon.Damage + CombatSet->GetDamage()) * PendingAttackMultiplier;
 	const float Speed = Weapon.ProjectileSpeed * ShotPower * CombatSet->GetShotPowerMultiplier();
 	int32 SpawnedProjectiles = 0;
@@ -296,9 +299,8 @@ int32 AFortRogueBattleCharacter::FireSelectedWeapon()
 	for (int32 Index = 0; Index < ProjectileCount; ++Index)
 	{
 		const float Spread = (ProjectileCount > 1) ? (Index - (ProjectileCount - 1) * 0.5f) * 5.0f : 0.0f;
-		const float AngleRadians = FMath::DegreesToRadians(FMath::Clamp(AimAngle + Spread, 5.0f, 85.0f));
-		const FVector Direction(FMath::Cos(AngleRadians) * FacingSign, 0.0f, FMath::Sin(AngleRadians));
-		const FVector SpawnLocation = GetActorLocation() + FVector(FacingSign * 70.0f, 0.0f, 70.0f);
+		const FVector Direction = GetProjectileLaunchDirection(Spread);
+		const FVector SpawnLocation = GetProjectileSpawnLocation(Direction);
 
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = this;
@@ -749,6 +751,26 @@ void AFortRogueBattleCharacter::ApplyTerrainGravity(float DeltaSeconds)
 
 	SetActorLocation(FVector(ClampedWorldX, CurrentLocation.Y, CurrentLocation.Z + VerticalVelocity * DeltaSeconds));
 	UpdateBodyTerrainAlignment(nullptr);
+	CheckFallDeath();
+}
+
+bool AFortRogueBattleCharacter::CheckFallDeath()
+{
+	AFortRogueDestructibleTerrain* Terrain = FindTerrain();
+	if (!Terrain || IsDefeated())
+	{
+		return false;
+	}
+
+	if (GetActorLocation().Z >= Terrain->GetActorLocation().Z - FallDeathDepth)
+	{
+		return false;
+	}
+
+	bChargingShot = false;
+	VerticalVelocity = 0.0f;
+	ApplyDamage(GetMaxHealth());
+	return true;
 }
 
 void AFortRogueBattleCharacter::SnapToTerrain()
@@ -767,6 +789,64 @@ void AFortRogueBattleCharacter::SnapToTerrain()
 		SetActorLocation(FVector(ClampedWorldX, CurrentLocation.Y, SurfaceZ + FootOffsetZ));
 		VerticalVelocity = 0.0f;
 		UpdateBodyTerrainAlignment(Terrain);
+	}
+}
+
+void AFortRogueBattleCharacter::SetFacingFromAxis(float Axis)
+{
+	if (!FMath::IsNearlyZero(Axis))
+	{
+		bFacingRight = Axis > 0.0f;
+	}
+}
+
+float AFortRogueBattleCharacter::GetBodyPitchDegrees() const
+{
+	return Body ? Body->GetRelativeRotation().Pitch : 0.0f;
+}
+
+FVector AFortRogueBattleCharacter::GetProjectileLaunchDirection(float SpreadDegrees) const
+{
+	const float RelativeAimDegrees = FMath::Clamp(AimAngle + SpreadDegrees, 5.0f, 90.0f);
+	const float WorldAngleDegrees = bFacingRight ? GetBodyPitchDegrees() + RelativeAimDegrees : GetBodyPitchDegrees() + 180.0f - RelativeAimDegrees;
+	const float WorldAngleRadians = FMath::DegreesToRadians(WorldAngleDegrees);
+	return FVector(FMath::Cos(WorldAngleRadians), 0.0f, FMath::Sin(WorldAngleRadians)).GetSafeNormal();
+}
+
+FVector AFortRogueBattleCharacter::GetProjectileSpawnLocation(const FVector& LaunchDirection) const
+{
+	return GetActorLocation() + LaunchDirection * 70.0f + FVector(0.0f, 0.0f, 35.0f);
+}
+
+void AFortRogueBattleCharacter::DrawProjectileTrajectory() const
+{
+	if (!bDrawProjectileTrajectory || !bActiveTurn || bFiredThisTurn || IsDefeated() || !IsSupportedByTerrain() || !GetWorld())
+	{
+		return;
+	}
+
+	const FFortRogueWeaponSpec& Weapon = GetCurrentWeapon();
+	const float Speed = Weapon.ProjectileSpeed * ShotPower * CombatSet->GetShotPowerMultiplier();
+	FVector Velocity = GetProjectileLaunchDirection(0.0f) * Speed;
+	FVector Location = GetProjectileSpawnLocation(Velocity.GetSafeNormal());
+	const float StepSeconds = FMath::Max(TrajectoryDebugTimeStep, KINDA_SMALL_NUMBER);
+	const int32 StepCount = FMath::Max(1, TrajectoryDebugSteps);
+	const AFortRogueGameMode* GameMode = GetWorld()->GetAuthGameMode<AFortRogueGameMode>();
+	const float Wind = GameMode ? GameMode->GetWind() : 0.0f;
+	const AFortRogueDestructibleTerrain* Terrain = FindTerrain();
+
+	for (int32 Step = 0; Step < StepCount; ++Step)
+	{
+		const FVector PreviousLocation = Location;
+		Velocity += FVector(Wind, 0.0f, -Weapon.Gravity) * StepSeconds;
+		Location += Velocity * StepSeconds;
+		DrawDebugLine(GetWorld(), PreviousLocation, Location, FColor::Yellow, false, 0.0f, 0, 2.0f);
+
+		if (Terrain && Terrain->IsSolidAtWorldLocation(Location))
+		{
+			DrawDebugSphere(GetWorld(), Location, 16.0f, 12, FColor::Red, false, 0.0f, 0, 2.0f);
+			break;
+		}
 	}
 }
 

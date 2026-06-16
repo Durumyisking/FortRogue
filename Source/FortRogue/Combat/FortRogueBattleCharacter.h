@@ -180,7 +180,13 @@ private:
 	float ClampWorldXToTerrainBounds(const AFortRogueDestructibleTerrain& Terrain, float WorldX) const;
 	void UpdateBodyTerrainAlignment(const AFortRogueDestructibleTerrain* Terrain);
 	void ApplyTerrainGravity(float DeltaSeconds);
+	bool CheckFallDeath();
 	void SnapToTerrain();
+	void SetFacingFromAxis(float Axis);
+	float GetBodyPitchDegrees() const;
+	FVector GetProjectileLaunchDirection(float SpreadDegrees) const;
+	FVector GetProjectileSpawnLocation(const FVector& LaunchDirection) const;
+	void DrawProjectileTrajectory() const;
 	void GrantStartupAbilitySets();
 	void EnsureDefaultLoadout();
 
@@ -230,6 +236,14 @@ private:
 	float GravityAcceleration = 980.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
 	float MaxFallSpeed = 1600.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	float FallDeathDepth = 400.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Debug", meta = (AllowPrivateAccess = "true"))
+	bool bDrawProjectileTrajectory = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Debug", meta = (AllowPrivateAccess = "true", ClampMin = "1"))
+	int32 TrajectoryDebugSteps = 50;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Debug", meta = (AllowPrivateAccess = "true", ClampMin = "0.01"))
+	float TrajectoryDebugTimeStep = 0.08f;
 	float ShotChargeElapsed = 0.0f;
 	float VerticalVelocity = 0.0f;
 	bool bChargingShot = false;

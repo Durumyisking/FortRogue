@@ -50,6 +50,7 @@ void AFortRogueGameMode::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 
 	UpdateBattleCamera(DeltaSeconds);
+	CheckTurnDefeatState();
 }
 
 void AFortRogueGameMode::NotifyProjectileSpawned(AFortRogueProjectile* Projectile)
@@ -362,6 +363,26 @@ void AFortRogueGameMode::BuildRewardChoices()
 	Repair.ItemReward = RepairItem;
 	Repair.RepairCharges = 2;
 	RewardChoices.Add(Repair);
+}
+
+void AFortRogueGameMode::CheckTurnDefeatState()
+{
+	if (BattleState != EFortRogueBattleState::PlayerTurn && BattleState != EFortRogueBattleState::EnemyTurn)
+	{
+		return;
+	}
+
+	if (EnemyCharacter && EnemyCharacter->IsDefeated())
+	{
+		EnterRewardState();
+		return;
+	}
+
+	if (PlayerCharacter && PlayerCharacter->IsDefeated())
+	{
+		BattleState = EFortRogueBattleState::Lost;
+		SetStatus(TEXT("Defeat"));
+	}
 }
 
 void AFortRogueGameMode::SetStatus(const FString& NewStatus)
