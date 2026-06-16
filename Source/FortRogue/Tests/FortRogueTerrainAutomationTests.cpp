@@ -85,6 +85,32 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	Map->ApplyTexturedCircle(5, 0, 0, 300);
 	TestEqual(TEXT("Textured painting clamps layer indices to the byte-sized layer mask range"), Map->TextureLayerMask[Map->ToIndex(5, 0)], static_cast<uint8>(255));
 
+	UTexture2D* LayerFallbackTexture = UTexture2D::CreateTransient(2, 1, PF_B8G8R8A8);
+	TestNotNull(TEXT("Layer fallback texture is created"), LayerFallbackTexture);
+	if (LayerFallbackTexture && LayerFallbackTexture->GetPlatformData() && LayerFallbackTexture->GetPlatformData()->Mips.Num() > 0)
+	{
+		FTexture2DMipMap& LayerFallbackMip = LayerFallbackTexture->GetPlatformData()->Mips[0];
+		void* LayerFallbackData = LayerFallbackMip.BulkData.Lock(LOCK_READ_WRITE);
+		TestNotNull(TEXT("Layer fallback texture mip locks"), LayerFallbackData);
+		if (LayerFallbackData)
+		{
+			FColor* LayerFallbackPixels = static_cast<FColor*>(LayerFallbackData);
+			LayerFallbackPixels[0] = FColor::Red;
+			LayerFallbackPixels[1] = FColor::Green;
+			LayerFallbackMip.BulkData.Unlock();
+
+			Map->SetTextureLayer(1, LayerFallbackTexture);
+			TestEqual(TEXT("Texture layer fallback color averages source texture red"), Map->TextureLayers[1].FallbackColor.R, 0.5f);
+			TestEqual(TEXT("Texture layer fallback color averages source texture green"), Map->TextureLayers[1].FallbackColor.G, 0.5f);
+			TestEqual(TEXT("Texture layer fallback color averages source texture blue"), Map->TextureLayers[1].FallbackColor.B, 0.0f);
+			TestEqual(TEXT("Texture layer fallback color stays opaque"), Map->TextureLayers[1].FallbackColor.A, 1.0f);
+		}
+		else
+		{
+			LayerFallbackMip.BulkData.Unlock();
+		}
+	}
+
 	UFortRogueTerrainMapDefinition* StrokeMap = NewObject<UFortRogueTerrainMapDefinition>();
 	TestNotNull(TEXT("Stroke map asset object is created"), StrokeMap);
 	StrokeMap->Resize(10, 3);

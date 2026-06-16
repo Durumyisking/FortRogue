@@ -83,6 +83,43 @@ bool ReadTerrainImportPixels(UTexture2D* SourceTexture, TArray<FColor>& OutPixel
 	return true;
 }
 
+bool TryGetAverageOpaqueTextureColor(UTexture2D* SourceTexture, FLinearColor& OutColor)
+{
+	TArray<FColor> Pixels;
+	int32 TextureWidth = 0;
+	int32 TextureHeight = 0;
+	if (!ReadTerrainImportPixels(SourceTexture, Pixels, TextureWidth, TextureHeight))
+	{
+		return false;
+	}
+
+	FVector4f AccumulatedColor(0.0f, 0.0f, 0.0f, 0.0f);
+	int32 SampleCount = 0;
+	for (const FColor& Pixel : Pixels)
+	{
+		if (Pixel.A == 0)
+		{
+			continue;
+		}
+
+		AccumulatedColor.X += static_cast<float>(Pixel.R);
+		AccumulatedColor.Y += static_cast<float>(Pixel.G);
+		AccumulatedColor.Z += static_cast<float>(Pixel.B);
+		AccumulatedColor.W += static_cast<float>(Pixel.A);
+		++SampleCount;
+	}
+
+	if (SampleCount <= 0)
+	{
+		return false;
+	}
+
+	const float InvScale = 1.0f / (static_cast<float>(SampleCount) * 255.0f);
+	OutColor = FLinearColor(AccumulatedColor.X * InvScale, AccumulatedColor.Y * InvScale, AccumulatedColor.Z * InvScale, AccumulatedColor.W * InvScale);
+	OutColor.A = 1.0f;
+	return true;
+}
+
 bool ClampImportRegion(int32 SourceWidth, int32 SourceHeight, int32 SourceMinX, int32 SourceMinY, int32 RegionWidth, int32 RegionHeight, FIntRect& OutRegion)
 {
 	if (SourceWidth <= 0 || SourceHeight <= 0)
@@ -462,6 +499,11 @@ void UFortRogueTerrainMapDefinition::SetTextureLayer(int32 LayerIndex, UTexture2
 	FFortRogueTerrainTextureLayer& Layer = TextureLayers[ClampedLayerIndex];
 	Layer.LayerId = FName(*FString::Printf(TEXT("Layer%d"), ClampedLayerIndex));
 	Layer.Texture = Texture;
+	FLinearColor AverageTextureColor;
+	if (TryGetAverageOpaqueTextureColor(Texture, AverageTextureColor))
+	{
+		Layer.FallbackColor = AverageTextureColor;
+	}
 }
 
 void UFortRogueTerrainMapDefinition::ApplyTextureRect(int32 MinX, int32 MinZ, int32 MaxX, int32 MaxZ, int32 LayerIndex)
