@@ -892,6 +892,9 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		FallingCharacter->BeginTurn();
 		FallingCharacter->MoveHorizontal(1.0f, 0.25f);
 		TestEqual(TEXT("Falling battle character cannot move horizontally while unsupported"), static_cast<float>(FallingCharacter->GetActorLocation().X), FallingCharacterX);
+		const int32 AttackItemCharges = FallingCharacter->GetItemCharges(EFortRogueItemType::AttackMultiplier);
+		TestFalse(TEXT("Falling battle character cannot use combat items while unsupported"), FallingCharacter->UseItemByType(EFortRogueItemType::AttackMultiplier));
+		TestEqual(TEXT("Falling battle character keeps item charges when unsupported item use is rejected"), FallingCharacter->GetItemCharges(EFortRogueItemType::AttackMultiplier), AttackItemCharges);
 		FallingCharacter->BeginShotCharge();
 		FallingCharacter->UpdateShotCharge(1.0f);
 		TestEqual(TEXT("Falling battle character cannot fire while unsupported"), FallingCharacter->ReleaseShotCharge(), 0);

@@ -376,7 +376,7 @@ void AFortRogueBattleCharacter::SetTerrain(AFortRogueDestructibleTerrain* InTerr
 
 bool AFortRogueBattleCharacter::UseItemByType(EFortRogueItemType ItemType)
 {
-	if (!bActiveTurn || IsDefeated())
+	if (!bActiveTurn || IsDefeated() || !IsSupportedByTerrain())
 	{
 		return false;
 	}
