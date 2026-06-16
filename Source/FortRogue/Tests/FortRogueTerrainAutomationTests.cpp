@@ -79,6 +79,11 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	Map->ApplyTexturedCircle(7, 0, 0, 4);
 	TestEqual(TEXT("Textured circle fills its center"), Map->SolidMask[Map->ToIndex(7, 0)], static_cast<uint8>(1));
 	TestEqual(TEXT("Textured circle assigns the requested layer"), Map->TextureLayerMask[Map->ToIndex(7, 0)], static_cast<uint8>(4));
+	Map->SetTextureLayer(300, nullptr);
+	TestEqual(TEXT("Texture layer setup clamps to the byte-sized layer mask range"), Map->TextureLayers.Num(), 256);
+	TestEqual(TEXT("Texture layer setup stores the clamped layer id"), Map->TextureLayers[255].LayerId, FName(TEXT("Layer255")));
+	Map->ApplyTexturedCircle(5, 0, 0, 300);
+	TestEqual(TEXT("Textured painting clamps layer indices to the byte-sized layer mask range"), Map->TextureLayerMask[Map->ToIndex(5, 0)], static_cast<uint8>(255));
 
 	UFortRogueTerrainMapDefinition* StrokeMap = NewObject<UFortRogueTerrainMapDefinition>();
 	TestNotNull(TEXT("Stroke map asset object is created"), StrokeMap);

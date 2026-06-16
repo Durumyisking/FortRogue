@@ -457,9 +457,10 @@ void UFortRogueTerrainMapDefinition::SetTextureLayer(int32 LayerIndex, UTexture2
 		return;
 	}
 
-	TextureLayers.SetNum(FMath::Max(TextureLayers.Num(), LayerIndex + 1));
-	FFortRogueTerrainTextureLayer& Layer = TextureLayers[LayerIndex];
-	Layer.LayerId = FName(*FString::Printf(TEXT("Layer%d"), LayerIndex));
+	const int32 ClampedLayerIndex = FMath::Clamp(LayerIndex, 0, 255);
+	TextureLayers.SetNum(FMath::Max(TextureLayers.Num(), ClampedLayerIndex + 1));
+	FFortRogueTerrainTextureLayer& Layer = TextureLayers[ClampedLayerIndex];
+	Layer.LayerId = FName(*FString::Printf(TEXT("Layer%d"), ClampedLayerIndex));
 	Layer.Texture = Texture;
 }
 

@@ -783,7 +783,7 @@ private:
 				+ SHorizontalBox::Slot()
 				.Padding(0.0f, 0.0f, 8.0f, 0.0f)
 				[
-					MakeIntField(LOCTEXT("TextureLayerIndex", "Layer"), TextureLayerIndex)
+					MakeByteLayerField(LOCTEXT("TextureLayerIndex", "Layer"), TextureLayerIndex)
 				]
 				+ SHorizontalBox::Slot()
 				[
@@ -974,6 +974,26 @@ private:
 				.MinValue(1.0f)
 				.Value_Lambda([&Value]() { return Value; })
 				.OnValueChanged_Lambda([&Value](float NewValue) { Value = FMath::Max(1.0f, NewValue); })
+			];
+	}
+
+	TSharedRef<SWidget> MakeByteLayerField(const FText& Label, int32& Value)
+	{
+		return SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(STextBlock)
+				.Text(Label)
+			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SNumericEntryBox<int32>)
+				.MinValue(0)
+				.MaxValue(255)
+				.Value_Lambda([&Value]() { return Value; })
+				.OnValueChanged_Lambda([&Value](int32 NewValue) { Value = FMath::Clamp(NewValue, 0, 255); })
 			];
 	}
 
