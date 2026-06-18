@@ -63,6 +63,9 @@ public:
 	float GetWind() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")
+	FText GetWindSummary() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")
 	EFortRogueBattleState GetBattleState() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")

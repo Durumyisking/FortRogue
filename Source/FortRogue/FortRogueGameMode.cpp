@@ -145,6 +145,13 @@ float AFortRogueGameMode::GetWind() const
 	return Wind;
 }
 
+FText AFortRogueGameMode::GetWindSummary() const
+{
+	return FText::FromString(FMath::IsNearlyZero(Wind)
+		? FString(TEXT("Wind 0"))
+		: FString::Printf(TEXT("Wind %+.0f"), Wind));
+}
+
 EFortRogueBattleState AFortRogueGameMode::GetBattleState() const
 {
 	return BattleState;

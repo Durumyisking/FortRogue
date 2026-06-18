@@ -99,7 +99,7 @@ void AFortRogueHUD::DrawBattleHUD(AFortRogueGameMode* GameMode, float X, float& 
 
 	if (Enemy)
 	{
-		DrawText(FString::Printf(TEXT("Enemy HP %.0f/%.0f | Wind %.0f"), Enemy->GetHealth(), Enemy->GetMaxHealth(), GameMode->GetWind()),
+		DrawText(FString::Printf(TEXT("Enemy HP %.0f/%.0f | %s"), Enemy->GetHealth(), Enemy->GetMaxHealth(), *GameMode->GetWindSummary().ToString()),
 			FColor::Red, X, Y, GEngine->GetSmallFont(), Scale);
 		Y += 32.0f;
 	}
