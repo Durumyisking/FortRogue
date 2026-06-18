@@ -119,7 +119,9 @@ modifier 적용 순서:
 
 둘 다 캐릭터의 `GrantedShotModifiers`에 누적되고, 이후 모든 발사에서 `BuildShotSpec()`에 반영된다.
 
-임시 버프나 해제 가능한 효과는 `AFortRogueBattleCharacter::RemoveGrantedShotModifiersByTag()`로 제거할 수 있다. 이 함수는 먼저 `ModifierTag`를 보고, 기존 데이터 호환을 위해 `EffectTags`에 같은 태그가 있는 modifier도 제거한다.
+임시 버프나 해제 가능한 효과는 `AFortRogueBattleCharacter::RemoveGrantedShotModifiersByTag()`로 제거할 수 있다.
+이 함수는 먼저 `ModifierTag`를 보고, 기존 데이터 호환을 위해 `EffectTags`에 같은 태그가 있는 modifier도 제거한다.
+UI나 블루프린트에서 현재 적용 여부를 확인할 때는 `GetGrantedShotModifierCountByTag()`를 사용한다.
 
 ## 6. 아이템과 AbilitySet
 

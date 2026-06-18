@@ -20,6 +20,15 @@
 #include "PaperFlipbookComponent.h"
 #include "UObject/ConstructorHelpers.h"
 
+namespace
+{
+bool DoesShotModifierMatchTag(const FFortRogueShotModifierSpec& Modifier, FGameplayTag ModifierTag)
+{
+	return (Modifier.ModifierTag.IsValid() && Modifier.ModifierTag.MatchesTagExact(ModifierTag))
+		|| Modifier.EffectTags.HasTagExact(ModifierTag);
+}
+}
+
 AFortRogueBattleCharacter::AFortRogueBattleCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -569,9 +578,7 @@ int32 AFortRogueBattleCharacter::RemoveGrantedShotModifiersByTag(FGameplayTag Mo
 	for (int32 Index = GrantedShotModifiers.Num() - 1; Index >= 0; --Index)
 	{
 		const FFortRogueShotModifierSpec& Modifier = GrantedShotModifiers[Index];
-		const bool bMatchesModifierTag = Modifier.ModifierTag.IsValid() && Modifier.ModifierTag.MatchesTagExact(ModifierTag);
-		const bool bMatchesEffectTag = Modifier.EffectTags.HasTagExact(ModifierTag);
-		if (!bMatchesModifierTag && !bMatchesEffectTag)
+		if (!DoesShotModifierMatchTag(Modifier, ModifierTag))
 		{
 			continue;
 		}
@@ -704,6 +711,24 @@ int32 AFortRogueBattleCharacter::GetItemChargesByTag(FGameplayTag ItemTag) const
 		}
 	}
 	return TotalCharges;
+}
+
+int32 AFortRogueBattleCharacter::GetGrantedShotModifierCountByTag(FGameplayTag ModifierTag) const
+{
+	if (!ModifierTag.IsValid())
+	{
+		return 0;
+	}
+
+	int32 TotalCount = 0;
+	for (const FFortRogueShotModifierSpec& Modifier : GrantedShotModifiers)
+	{
+		if (DoesShotModifierMatchTag(Modifier, ModifierTag))
+		{
+			++TotalCount;
+		}
+	}
+	return TotalCount;
 }
 
 const FFortRogueWeaponSpec& AFortRogueBattleCharacter::GetCurrentWeapon() const
