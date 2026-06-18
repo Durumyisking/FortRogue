@@ -26,6 +26,12 @@ struct FFortRogueShotModifierSpec
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition", meta = (EditCondition = "bUseAimAngleRange", ClampMin = "0.0", ClampMax = "90.0"))
 	float MaxAimAngle = 90.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition")
+	bool bRequireWindAligned = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition", meta = (EditCondition = "bRequireWindAligned", ClampMin = "0.0"))
+	float MinWindMagnitude = 0.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier")
 	float DamageBonus = 0.0f;
 

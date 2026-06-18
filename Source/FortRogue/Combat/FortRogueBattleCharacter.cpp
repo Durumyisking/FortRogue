@@ -961,6 +961,16 @@ FFortRogueShotSpec AFortRogueBattleCharacter::BuildShotSpec(const FFortRogueWeap
 				return;
 			}
 		}
+		if (Modifier.bRequireWindAligned)
+		{
+			const AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+			const float Wind = GameMode ? GameMode->GetWind() : 0.0f;
+			const float ShotDirection = bFacingRight ? 1.0f : -1.0f;
+			if (FMath::Abs(Wind) < Modifier.MinWindMagnitude || Wind * ShotDirection <= 0.0f)
+			{
+				return;
+			}
+		}
 
 		ShotSpec.EffectTags.AppendTags(Modifier.EffectTags);
 		ShotSpec.Damage = (ShotSpec.Damage + Modifier.DamageBonus) * Modifier.DamageMultiplier;
