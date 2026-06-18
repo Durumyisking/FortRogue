@@ -18,6 +18,13 @@ namespace FortRogueGameplayTags
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Weapon_Shell, "Weapon.Shell", "Basic arcing shell.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Weapon_Cluster, "Weapon.Cluster", "Multiple projectile shell reward.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ShotEffect_Damage, "ShotEffect.Damage", "Shot modifier that changes damage.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ShotEffect_BlastRadius, "ShotEffect.BlastRadius", "Shot modifier that changes explosion radius.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ShotEffect_Projectiles, "ShotEffect.Projectiles", "Shot modifier that changes projectile count.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ShotEffect_LowGravity, "ShotEffect.LowGravity", "Shot modifier that lowers projectile gravity.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ShotEffect_Drill, "ShotEffect.Drill", "Shot effect for terrain digging projectiles.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ShotEffect_SplitOnImpact, "ShotEffect.SplitOnImpact", "Shot effect for projectiles that split after impact.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ShotEffect_TerrainCreate, "ShotEffect.TerrainCreate", "Shot effect for projectiles that create terrain.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Item_Repair, "Item.Repair", "Consumable repair item.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Trait_Damage, "Trait.Damage", "Damage increasing trait.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Trait_Projectiles, "Trait.Projectiles", "Projectile count increasing trait.");
