@@ -967,6 +967,15 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		TestEqual(TEXT("Battle character ability set count tracks repeated grants"), StatCharacter->GetGrantedAbilitySetCount(EmptyAbilitySet), 2);
 		TestTrue(TEXT("Battle character removes one granted ability set entry"), StatCharacter->RemoveAbilitySet(EmptyAbilitySet));
 		TestEqual(TEXT("Battle character ability set count updates after removal"), StatCharacter->GetGrantedAbilitySetCount(EmptyAbilitySet), 1);
+		UFortRogueWeaponDefinition* ShellWeapon = CreateTestWeaponDefinition(StatCharacter);
+		ShellWeapon->Weapon.WeaponTag = FortRogueGameplayTags::Weapon_Shell;
+		UFortRogueWeaponDefinition* ClusterWeapon = CreateTestWeaponDefinition(StatCharacter);
+		ClusterWeapon->Weapon.WeaponTag = FortRogueGameplayTags::Weapon_Cluster;
+		StatCharacter->AddWeaponDefinition(ShellWeapon);
+		StatCharacter->AddWeaponDefinition(ClusterWeapon);
+		TestFalse(TEXT("Battle character rejects invalid weapon selection tags"), StatCharacter->SelectWeaponByTag(FGameplayTag()));
+		TestTrue(TEXT("Battle character selects a weapon by tag"), StatCharacter->SelectWeaponByTag(FortRogueGameplayTags::Weapon_Cluster));
+		TestEqual(TEXT("Battle character selection by tag updates the current weapon"), StatCharacter->GetCurrentWeapon().WeaponTag, FortRogueGameplayTags::Weapon_Cluster);
 	}
 
 	AFortRogueBattleCharacter* ItemSlotCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(-15.0f, 0.0f, 55.0f), FRotator::ZeroRotator, SpawnParams);

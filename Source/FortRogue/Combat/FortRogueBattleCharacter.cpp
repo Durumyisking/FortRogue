@@ -307,6 +307,25 @@ void AFortRogueBattleCharacter::SelectWeapon(int32 WeaponIndex)
 	}
 }
 
+bool AFortRogueBattleCharacter::SelectWeaponByTag(FGameplayTag WeaponTag)
+{
+	if (!WeaponTag.IsValid())
+	{
+		return false;
+	}
+
+	for (int32 WeaponIndex = 0; WeaponIndex < WeaponLoadout.Num(); ++WeaponIndex)
+	{
+		if (WeaponLoadout[WeaponIndex].WeaponTag.MatchesTagExact(WeaponTag))
+		{
+			SelectedWeaponIndex = WeaponIndex;
+			return true;
+		}
+	}
+
+	return false;
+}
+
 int32 AFortRogueBattleCharacter::FireSelectedWeapon()
 {
 	if (!bActiveTurn || bFiredThisTurn || IsDefeated() || !IsSupportedByTerrain())

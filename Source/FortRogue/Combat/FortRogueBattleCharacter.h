@@ -79,6 +79,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
 	void SelectWeapon(int32 WeaponIndex);
 
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Weapons")
+	bool SelectWeaponByTag(FGameplayTag WeaponTag);
+
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
 	int32 FireSelectedWeapon();
 
