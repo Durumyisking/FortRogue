@@ -560,6 +560,25 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 		TestFalse(TEXT("Player controller rejects invalid attribute value tags"), TestPlayerController->TryGetPlayerCombatAttributeValueByTag(FGameplayTag(), PlayerAttributeValue));
 		TestEqual(TEXT("Rejected player controller attribute value resets output"), PlayerAttributeValue, 0.0f);
 		TestFalse(TEXT("Player controller rejects invalid attribute delta tags"), TestPlayerController->TryApplyPlayerCombatAttributeDeltaByTag(FGameplayTag(), 1.0f));
+		FFortRogueShotModifierSpec ControllerModifier;
+		ControllerModifier.ModifierTag = FortRogueGameplayTags::ShotEffect_Damage;
+		TArray<FFortRogueShotModifierSpec> ControllerModifiers = { ControllerModifier };
+		GameMode->GetPlayerCharacter()->GrantShotModifiers(ControllerModifiers);
+		TestEqual(TEXT("Player controller counts granted shot modifiers by tag"), TestPlayerController->GetPlayerGrantedShotModifierCountByTag(FortRogueGameplayTags::ShotEffect_Damage), 1);
+		TestTrue(TEXT("Player controller reports granted shot modifiers by tag"), TestPlayerController->HasPlayerGrantedShotModifierByTag(FortRogueGameplayTags::ShotEffect_Damage));
+		TestEqual(TEXT("Player controller removes granted shot modifiers by tag"), TestPlayerController->RemovePlayerGrantedShotModifiersByTag(FortRogueGameplayTags::ShotEffect_Damage), 1);
+		TestFalse(TEXT("Player controller reports missing granted shot modifiers by tag"), TestPlayerController->HasPlayerGrantedShotModifierByTag(FortRogueGameplayTags::ShotEffect_Damage));
+		UFortRogueItemDefinition* ControllerPendingItem = NewObject<UFortRogueItemDefinition>(TestPlayerController);
+		ControllerPendingItem->ItemType = EFortRogueItemType::AbilitySet;
+		ControllerPendingItem->ItemTag = FortRogueGameplayTags::Item_NextShot;
+		ControllerPendingItem->UseShotModifiers.Add(ControllerModifier);
+		GameMode->GetPlayerCharacter()->AddItemDefinition(ControllerPendingItem, 1);
+		const int32 ControllerPendingItemIndex = GameMode->GetPlayerCharacter()->GetItemLoadout().Num() - 1;
+		TestPlayerController->UsePlayerItemByIndex(ControllerPendingItemIndex);
+		TestEqual(TEXT("Player controller counts pending shot modifiers by tag"), TestPlayerController->GetPlayerPendingShotModifierCountByTag(FortRogueGameplayTags::ShotEffect_Damage), 1);
+		TestTrue(TEXT("Player controller reports pending shot modifiers by tag"), TestPlayerController->HasPlayerPendingShotModifierByTag(FortRogueGameplayTags::ShotEffect_Damage));
+		TestEqual(TEXT("Player controller removes pending shot modifiers by tag"), TestPlayerController->RemovePlayerPendingShotModifiersByTag(FortRogueGameplayTags::ShotEffect_Damage), 1);
+		TestFalse(TEXT("Player controller reports missing pending shot modifiers by tag"), TestPlayerController->HasPlayerPendingShotModifierByTag(FortRogueGameplayTags::ShotEffect_Damage));
 	}
 	if (AFortRogueBattleCharacter* PlayerCharacter = GameMode->GetPlayerCharacter())
 	{

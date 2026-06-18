@@ -571,6 +571,56 @@ bool AFortRoguePlayerController::TryApplyPlayerCombatAttributeDeltaByTag(FGamepl
 	return false;
 }
 
+int32 AFortRoguePlayerController::GetPlayerGrantedShotModifierCountByTag(FGameplayTag ModifierTag) const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->GetGrantedShotModifierCountByTag(ModifierTag);
+	}
+	return 0;
+}
+
+int32 AFortRoguePlayerController::GetPlayerPendingShotModifierCountByTag(FGameplayTag ModifierTag) const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->GetPendingShotModifierCountByTag(ModifierTag);
+	}
+	return 0;
+}
+
+bool AFortRoguePlayerController::HasPlayerGrantedShotModifierByTag(FGameplayTag ModifierTag) const
+{
+	return GetPlayerGrantedShotModifierCountByTag(ModifierTag) > 0;
+}
+
+bool AFortRoguePlayerController::HasPlayerPendingShotModifierByTag(FGameplayTag ModifierTag) const
+{
+	return GetPlayerPendingShotModifierCountByTag(ModifierTag) > 0;
+}
+
+int32 AFortRoguePlayerController::RemovePlayerGrantedShotModifiersByTag(FGameplayTag ModifierTag)
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->RemoveGrantedShotModifiersByTag(ModifierTag);
+	}
+	return 0;
+}
+
+int32 AFortRoguePlayerController::RemovePlayerPendingShotModifiersByTag(FGameplayTag ModifierTag)
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->RemovePendingShotModifiersByTag(ModifierTag);
+	}
+	return 0;
+}
+
 void AFortRoguePlayerController::ChooseReward(int32 ChoiceIndex)
 {
 	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;

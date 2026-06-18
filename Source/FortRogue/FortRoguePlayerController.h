@@ -65,6 +65,24 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Stats")
 	bool TryApplyPlayerCombatAttributeDeltaByTag(FGameplayTag AttributeTag, float DeltaValue);
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	int32 GetPlayerGrantedShotModifierCountByTag(FGameplayTag ModifierTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	int32 GetPlayerPendingShotModifierCountByTag(FGameplayTag ModifierTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	bool HasPlayerGrantedShotModifierByTag(FGameplayTag ModifierTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	bool HasPlayerPendingShotModifierByTag(FGameplayTag ModifierTag) const;
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
+	int32 RemovePlayerGrantedShotModifiersByTag(FGameplayTag ModifierTag);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
+	int32 RemovePlayerPendingShotModifiersByTag(FGameplayTag ModifierTag);
+
 private:
 	void TickBattleInput(float DeltaSeconds);
 	void TickKeyboardFireInput();
