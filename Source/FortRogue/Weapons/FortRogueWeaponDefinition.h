@@ -8,6 +8,7 @@
 #include "FortRogueWeaponDefinition.generated.h"
 
 class AFortRogueProjectile;
+struct FFortRogueShotSpec;
 
 USTRUCT(BlueprintType)
 struct FFortRogueShotModifierSpec
@@ -82,6 +83,9 @@ struct FFortRogueShotModifierSpec
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Impact", meta = (TitleProperty = ProjectileCount))
 	TArray<FFortRogueImpactSpawnSpec> ImpactSpawns;
+
+	bool MeetsShotConditions(const FFortRogueShotSpec& CurrentShotSpec, float CurrentAimAngle, float Wind, bool bShotFacingRight) const;
+	FText GetShotConditionFailureSummary(const FFortRogueShotSpec& CurrentShotSpec, float CurrentAimAngle, float Wind, bool bShotFacingRight) const;
 };
 
 USTRUCT(BlueprintType)

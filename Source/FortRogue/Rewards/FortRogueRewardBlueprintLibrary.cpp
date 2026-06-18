@@ -45,6 +45,16 @@ FText UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(const TArra
 	return RewardChoice.GetEffectSummary();
 }
 
+bool UFortRogueRewardBlueprintLibrary::DoesShotModifierMeetShotConditions(const FFortRogueShotModifierSpec& ShotModifier, const FFortRogueShotSpec& CurrentShotSpec, float CurrentAimAngle, float Wind, bool bShotFacingRight)
+{
+	return ShotModifier.MeetsShotConditions(CurrentShotSpec, CurrentAimAngle, Wind, bShotFacingRight);
+}
+
+FText UFortRogueRewardBlueprintLibrary::GetShotModifierConditionFailureSummary(const FFortRogueShotModifierSpec& ShotModifier, const FFortRogueShotSpec& CurrentShotSpec, float CurrentAimAngle, float Wind, bool bShotFacingRight)
+{
+	return ShotModifier.GetShotConditionFailureSummary(CurrentShotSpec, CurrentAimAngle, Wind, bShotFacingRight);
+}
+
 bool UFortRogueRewardBlueprintLibrary::DoesRewardMeetTagConditions(const FFortRogueRewardChoice& RewardChoice, const FGameplayTagContainer& ChosenRewardTags)
 {
 	return RewardChoice.MeetsRewardTagConditions(ChosenRewardTags);

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Combat/FortRogueShotSpec.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Rewards/FortRogueRewardTypes.h"
 #include "FortRogueRewardBlueprintLibrary.generated.h"
@@ -35,6 +36,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
 	static FText GetShotModifierEffectSummary(const TArray<FFortRogueShotModifierSpec>& ShotModifiers);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	static bool DoesShotModifierMeetShotConditions(const FFortRogueShotModifierSpec& ShotModifier, const FFortRogueShotSpec& CurrentShotSpec, float CurrentAimAngle, float Wind, bool bShotFacingRight);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	static FText GetShotModifierConditionFailureSummary(const FFortRogueShotModifierSpec& ShotModifier, const FFortRogueShotSpec& CurrentShotSpec, float CurrentAimAngle, float Wind, bool bShotFacingRight);
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
 	static bool DoesRewardMeetTagConditions(const FFortRogueRewardChoice& RewardChoice, const FGameplayTagContainer& ChosenRewardTags);

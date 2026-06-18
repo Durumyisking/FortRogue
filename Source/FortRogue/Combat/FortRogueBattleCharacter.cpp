@@ -1516,32 +1516,11 @@ FFortRogueShotSpec AFortRogueBattleCharacter::BuildShotSpec(const FFortRogueWeap
 	ShotSpec.ProjectileCount = FMath::Max(1, Weapon.ProjectilesPerShot + FMath::RoundToInt(CombatSet->GetProjectileCount()) - 1);
 	ShotSpec.ProjectileClass = Weapon.ProjectileClass ? Weapon.ProjectileClass : TSubclassOf<AFortRogueProjectile>(AFortRogueProjectile::StaticClass());
 	ShotSpec.ImpactSpawns = Weapon.ImpactSpawns;
-	auto ApplyShotModifier = [this, &ShotSpec](const FFortRogueShotModifierSpec& Modifier)
+	const AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	const float Wind = GameMode ? GameMode->GetWind() : 0.0f;
+	auto ApplyShotModifier = [this, &ShotSpec, Wind](const FFortRogueShotModifierSpec& Modifier)
 	{
-		if (Modifier.bUseAimAngleRange)
-		{
-			const float MinAngle = FMath::Min(Modifier.MinAimAngle, Modifier.MaxAimAngle);
-			const float MaxAngle = FMath::Max(Modifier.MinAimAngle, Modifier.MaxAimAngle);
-			if (AimAngle < MinAngle || AimAngle > MaxAngle)
-			{
-				return;
-			}
-		}
-		if (Modifier.bRequireWindAligned)
-		{
-			const AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
-			const float Wind = GameMode ? GameMode->GetWind() : 0.0f;
-			const float ShotDirection = bFacingRight ? 1.0f : -1.0f;
-			if (FMath::Abs(Wind) < Modifier.MinWindMagnitude || Wind * ShotDirection <= 0.0f)
-			{
-				return;
-			}
-		}
-		if (!Modifier.RequiredShotTags.IsEmpty() && !ShotSpec.EffectTags.HasAny(Modifier.RequiredShotTags))
-		{
-			return;
-		}
-		if (!Modifier.BlockedShotTags.IsEmpty() && ShotSpec.EffectTags.HasAny(Modifier.BlockedShotTags))
+		if (!Modifier.MeetsShotConditions(ShotSpec, AimAngle, Wind, bFacingRight))
 		{
 			return;
 		}
