@@ -125,6 +125,7 @@ modifier 적용 순서:
 `bOfferOncePerRun` 보상이 모두 소진되면 진행이 막히지 않도록 다시 반복 제시를 허용한다.
 조건 태그는 fallback 때도 유지된다. 즉 선행 조건이 없는 보상이 다 소진되어도 `RequiredRewardTags`를 만족하지 않은 보상은 억지로 등장하지 않는다.
 UI나 디버그 화면에서 현재 런의 선택 보상 태그를 보여줄 때는 `AFortRogueGameMode::GetChosenRewardTags()`를 사용한다.
+개별 보상이 현재 선택 태그 조건을 만족하는지 UI에서 미리 확인하려면 `FFortRogueRewardChoice::MeetsRewardTagConditions()` 또는 `UFortRogueRewardBlueprintLibrary::DoesRewardMeetTagConditions()`를 사용한다.
 
 최종 스테이지 전까지 적을 처치하면 `Reward` 상태로 들어가고, 플레이어가 보상을 선택한 뒤 다음 스테이지를 생성한다.
 

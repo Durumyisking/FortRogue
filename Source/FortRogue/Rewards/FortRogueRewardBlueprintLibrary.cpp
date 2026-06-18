@@ -37,3 +37,8 @@ FText UFortRogueRewardBlueprintLibrary::GetAbilitySetEffectSummary(UFortRogueAbi
 {
 	return AbilitySet ? AbilitySet->GetEffectSummary() : FText::GetEmpty();
 }
+
+bool UFortRogueRewardBlueprintLibrary::DoesRewardMeetTagConditions(const FFortRogueRewardChoice& RewardChoice, const FGameplayTagContainer& ChosenRewardTags)
+{
+	return RewardChoice.MeetsRewardTagConditions(ChosenRewardTags);
+}

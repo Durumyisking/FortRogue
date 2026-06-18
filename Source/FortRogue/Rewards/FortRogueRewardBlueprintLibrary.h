@@ -32,4 +32,7 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
 	static FText GetAbilitySetEffectSummary(UFortRogueAbilitySet* AbilitySet);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	static bool DoesRewardMeetTagConditions(const FFortRogueRewardChoice& RewardChoice, const FGameplayTagContainer& ChosenRewardTags);
 };

@@ -237,3 +237,16 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 
 	return FText::FromString(FString::Join(Parts, TEXT(" | ")));
 }
+
+bool FFortRogueRewardChoice::MeetsRewardTagConditions(const FGameplayTagContainer& ChosenRewardTags) const
+{
+	if (!RequiredRewardTags.IsEmpty() && !ChosenRewardTags.HasAll(RequiredRewardTags))
+	{
+		return false;
+	}
+	if (!BlockedRewardTags.IsEmpty() && ChosenRewardTags.HasAny(BlockedRewardTags))
+	{
+		return false;
+	}
+	return true;
+}

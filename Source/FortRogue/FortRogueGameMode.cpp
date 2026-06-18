@@ -554,11 +554,7 @@ void AFortRogueGameMode::BuildRewardChoices()
 	TArray<FFortRogueRewardChoice> CandidateRewards;
 	for (const FFortRogueRewardChoice& Reward : StageRunDefinition->RewardPool)
 	{
-		if (!Reward.RequiredRewardTags.IsEmpty() && !ChosenRewardTagContainer.HasAll(Reward.RequiredRewardTags))
-		{
-			continue;
-		}
-		if (!Reward.BlockedRewardTags.IsEmpty() && ChosenRewardTagContainer.HasAny(Reward.BlockedRewardTags))
+		if (!Reward.MeetsRewardTagConditions(ChosenRewardTagContainer))
 		{
 			continue;
 		}
