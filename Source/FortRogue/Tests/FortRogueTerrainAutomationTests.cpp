@@ -149,11 +149,21 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	AbilityPerk->Description = FText::FromString(TEXT("Every run shot bends harder."));
 	AbilityPerk->PerkTag = FortRogueGameplayTags::Trait_ShotModifier;
 	AbilityPerk->GrantedAbilitySet = NamedAbilitySet;
+	AbilityPerk->DamageBonus = -2.0f;
+	AbilityPerk->MaxHealthBonus = -8.0f;
+	AbilityPerk->MaxMoveBudgetBonus = -1.0f;
+	AbilityPerk->ProjectileBonus = -1;
+	AbilityPerk->ShotPowerMultiplierBonus = -0.2f;
 	FFortRogueRewardChoice PerkAbilityReward;
 	PerkAbilityReward.PerkReward = AbilityPerk;
 	TestTrue(TEXT("Reward summary names perk ability set"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("ability set Wind Split")));
 	TestTrue(TEXT("Reward summary includes perk descriptions"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("Every run shot bends harder.")));
 	TestTrue(TEXT("Reward summary names perk tags"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("tag Trait.ShotModifier")));
+	TestTrue(TEXT("Reward summary names negative perk damage bonuses"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("damage -2")));
+	TestTrue(TEXT("Reward summary names negative perk max health bonuses"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("max HP -8")));
+	TestTrue(TEXT("Reward summary names negative perk move bonuses"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("move -1")));
+	TestTrue(TEXT("Reward summary names negative perk projectile bonuses"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("projectiles -1")));
+	TestTrue(TEXT("Reward summary names negative perk shot power bonuses"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("shot power -0.2")));
 	TestTrue(TEXT("Blueprint helper summarizes perk assets"), UFortRogueRewardBlueprintLibrary::GetPerkEffectSummary(AbilityPerk).ToString().Contains(TEXT("ability set Wind Split")));
 	FFortRogueRewardChoice RiskReward;
 	RiskReward.DisplayName = FText::FromString(TEXT("Glass Cannon"));
@@ -536,6 +546,15 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 	TestTrue(TEXT("Game mode wind summary includes signed wind"), GameMode->GetWindSummary().ToString().Contains(TEXT("Wind +120")));
 	TestTrue(TEXT("Game mode run progress summary includes stage progress"), GameMode->GetRunProgressSummary().ToString().Contains(TEXT("Stage 1/2")));
 	TestTrue(TEXT("Game mode run progress summary includes status text"), GameMode->GetRunProgressSummary().ToString().Contains(GameMode->GetStatusText().ToString()));
+	if (AFortRogueBattleCharacter* PlayerCharacter = GameMode->GetPlayerCharacter())
+	{
+		const float BaseDamageBonus = PlayerCharacter->GetDamageBonus();
+		PlayerCharacter->ApplyRewardDamage(10.0f);
+		FFortRogueRewardChoice NegativeDamageReward;
+		NegativeDamageReward.DamageBonus = -4.0f;
+		GameMode->ApplyRewardToPlayer(NegativeDamageReward);
+		TestEqual(TEXT("Game mode applies negative direct reward deltas"), PlayerCharacter->GetDamageBonus(), BaseDamageBonus + 6.0f);
+	}
 
 	auto HasRewardChoiceTag = [](const TArray<FFortRogueRewardChoice>& RewardChoices, FGameplayTag RewardTag)
 	{
@@ -1051,6 +1070,23 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		TestTrue(TEXT("Battle character stats summary includes damage bonus"), CombatStatsSummary.Contains(TEXT("damage +12")));
 		TestTrue(TEXT("Battle character stats summary includes shot power multiplier"), CombatStatsSummary.Contains(TEXT("shot power x1.8")));
 		TestTrue(TEXT("Battle character stats summary includes projectile count"), CombatStatsSummary.Contains(TEXT("projectiles 3")));
+		StatCharacter->ApplyRewardDamage(8.0f);
+		StatCharacter->ApplyRewardDamage(-5.0f);
+		TestEqual(TEXT("Battle character applies negative damage reward deltas"), StatCharacter->GetDamageBonus(), 15.0f);
+		StatCharacter->ApplyRewardHealth(25.0f);
+		StatCharacter->ApplyDamage(10.0f);
+		StatCharacter->ApplyRewardHealth(-50.0f);
+		TestEqual(TEXT("Battle character applies negative max health reward deltas"), StatCharacter->GetMaxHealth(), 150.0f);
+		TestEqual(TEXT("Battle character clamps health after max health loss"), StatCharacter->GetHealth(), 150.0f);
+		StatCharacter->ApplyRewardMoveBudget(10.0f);
+		StatCharacter->ApplyRewardMoveBudget(-15.0f);
+		TestEqual(TEXT("Battle character applies negative move budget reward deltas"), StatCharacter->GetMaxMoveBudget(), 20.0f);
+		TestEqual(TEXT("Battle character clamps move budget after max move loss"), StatCharacter->GetMoveBudget(), 20.0f);
+		StatCharacter->ApplyRewardShotPowerMultiplier(0.4f);
+		StatCharacter->ApplyRewardShotPowerMultiplier(-0.7f);
+		TestTrue(TEXT("Battle character applies negative shot power reward deltas"), FMath::IsNearlyEqual(StatCharacter->GetShotPowerMultiplier(), 1.5f));
+		StatCharacter->ApplyRewardProjectiles(-1);
+		TestEqual(TEXT("Battle character applies negative projectile reward deltas"), StatCharacter->GetProjectileCount(), 2.0f);
 		UFortRogueAbilitySet* EmptyAbilitySet = NewObject<UFortRogueAbilitySet>(StatCharacter);
 		TestEqual(TEXT("Battle character ability set count starts empty"), StatCharacter->GetGrantedAbilitySetCount(EmptyAbilitySet), 0);
 		StatCharacter->GrantAbilitySet(EmptyAbilitySet);
@@ -1101,7 +1137,7 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		const FString CurrentShotSummary = StatCharacter->GetCurrentShotSummary().ToString();
 		TestTrue(TEXT("Battle character shot summary includes damage"), CurrentShotSummary.Contains(TEXT("Shot Dmg 0")));
 		TestTrue(TEXT("Battle character shot summary includes blast radius"), CurrentShotSummary.Contains(TEXT("Blast 0")));
-		TestTrue(TEXT("Battle character shot summary includes projectile count"), CurrentShotSummary.Contains(TEXT("Projectiles 3")));
+		TestTrue(TEXT("Battle character shot summary includes projectile count"), CurrentShotSummary.Contains(TEXT("Projectiles 2")));
 		UFortRogueItemDefinition* PendingModifierItem = NewObject<UFortRogueItemDefinition>(StatCharacter);
 		PendingModifierItem->ItemType = EFortRogueItemType::AbilitySet;
 		FFortRogueShotModifierSpec PendingModifier;

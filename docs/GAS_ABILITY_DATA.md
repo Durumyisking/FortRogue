@@ -112,7 +112,7 @@ modifier 적용 순서:
 
 보상 카드에서 바로 탄 방식을 바꾸려면 `FFortRogueRewardChoice::ShotModifiers`를 사용한다.
 
-직접 스탯 보상은 `DamageBonus`, `MaxHealthBonus`, `MaxMoveBudgetBonus`, `ProjectileBonus`, `ShotPowerMultiplierBonus`를 사용한다. 리스크/보상 카드처럼 음수 값을 넣으면 요약에도 손해가 부호와 함께 표시된다.
+직접 스탯 보상은 `DamageBonus`, `MaxHealthBonus`, `MaxMoveBudgetBonus`, `ProjectileBonus`, `ShotPowerMultiplierBonus`를 사용한다. 리스크/보상 카드처럼 음수 값을 넣으면 실제 어트리뷰트도 낮아지고, 요약에도 손해가 부호와 함께 표시된다. 최종 값은 MaxHealth 1, MaxMoveBudget 0, Damage 0, ShotPowerMultiplier 0, ProjectileCount 1 하한에서 멈춘다.
 현재 누적된 전투 스탯은 캐릭터 Blueprint getter인 `GetDamageBonus()`, `GetMaxMoveBudget()`, `GetShotPowerMultiplier()`, `GetProjectileCount()`로 UI나 디버그 화면에서 확인할 수 있다. 한 줄 요약이 필요하면 `GetCombatStatsSummary()`를 사용한다.
 
 `WeaponReward`로 추가된 무기는 전투 중 1-5번 슬롯으로 선택할 수 있다.
@@ -149,7 +149,7 @@ ShotModifier 배열만 따로 표시해야 하는 디버그/편집 UI에서는 `
 
 퍽 에셋에서 런 전체의 탄 방식을 바꾸려면 `UFortRoguePerkDefinition::ShotModifiers`를 사용한다.
 
-퍽도 `DamageBonus`, `MaxHealthBonus`, `MaxMoveBudgetBonus`, `ProjectileBonus`, `ShotPowerMultiplierBonus`로 기본 전투 어트리뷰트를 올릴 수 있다.
+퍽도 `DamageBonus`, `MaxHealthBonus`, `MaxMoveBudgetBonus`, `ProjectileBonus`, `ShotPowerMultiplierBonus`로 기본 전투 어트리뷰트를 올리거나 낮출 수 있다.
 
 둘 다 캐릭터의 `GrantedShotModifiers`에 누적되고, 이후 모든 발사에서 `BuildShotSpec()`에 반영된다.
 

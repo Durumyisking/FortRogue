@@ -464,23 +464,23 @@ void AFortRogueGameMode::ApplyRewardToPlayer(const FFortRogueRewardChoice& Rewar
 		PlayerCharacter->GrantAbilitySet(Reward.GrantedAbilitySet);
 	}
 	PlayerCharacter->GrantShotModifiers(Reward.ShotModifiers);
-	if (Reward.DamageBonus > 0.0f)
+	if (!FMath::IsNearlyZero(Reward.DamageBonus))
 	{
 		PlayerCharacter->ApplyRewardDamage(Reward.DamageBonus);
 	}
-	if (Reward.MaxHealthBonus > 0.0f)
+	if (!FMath::IsNearlyZero(Reward.MaxHealthBonus))
 	{
 		PlayerCharacter->ApplyRewardHealth(Reward.MaxHealthBonus);
 	}
-	if (Reward.MaxMoveBudgetBonus > 0.0f)
+	if (!FMath::IsNearlyZero(Reward.MaxMoveBudgetBonus))
 	{
 		PlayerCharacter->ApplyRewardMoveBudget(Reward.MaxMoveBudgetBonus);
 	}
-	if (Reward.ProjectileBonus > 0)
+	if (Reward.ProjectileBonus != 0)
 	{
 		PlayerCharacter->ApplyRewardProjectiles(Reward.ProjectileBonus);
 	}
-	if (Reward.ShotPowerMultiplierBonus > 0.0f)
+	if (!FMath::IsNearlyZero(Reward.ShotPowerMultiplierBonus))
 	{
 		PlayerCharacter->ApplyRewardShotPowerMultiplier(Reward.ShotPowerMultiplierBonus);
 	}

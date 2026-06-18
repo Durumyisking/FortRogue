@@ -245,25 +245,25 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 		}
 		AddShotModifierSummary(Parts, PerkReward->ShotModifiers);
 		AddAbilitySetSummary(Parts, PerkReward->GrantedAbilitySet);
-		if (PerkReward->DamageBonus > 0.0f)
+		if (!FMath::IsNearlyZero(PerkReward->DamageBonus))
 		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("damage +%.0f"), PerkReward->DamageBonus));
+			AddSummaryPart(Parts, FString::Printf(TEXT("damage %+.0f"), PerkReward->DamageBonus));
 		}
-		if (PerkReward->MaxHealthBonus > 0.0f)
+		if (!FMath::IsNearlyZero(PerkReward->MaxHealthBonus))
 		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("max HP +%.0f"), PerkReward->MaxHealthBonus));
+			AddSummaryPart(Parts, FString::Printf(TEXT("max HP %+.0f"), PerkReward->MaxHealthBonus));
 		}
-		if (PerkReward->MaxMoveBudgetBonus > 0.0f)
+		if (!FMath::IsNearlyZero(PerkReward->MaxMoveBudgetBonus))
 		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("move +%.0f"), PerkReward->MaxMoveBudgetBonus));
+			AddSummaryPart(Parts, FString::Printf(TEXT("move %+.0f"), PerkReward->MaxMoveBudgetBonus));
 		}
-		if (PerkReward->ProjectileBonus > 0)
+		if (PerkReward->ProjectileBonus != 0)
 		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("projectiles +%d"), PerkReward->ProjectileBonus));
+			AddSummaryPart(Parts, FString::Printf(TEXT("projectiles %+d"), PerkReward->ProjectileBonus));
 		}
-		if (PerkReward->ShotPowerMultiplierBonus > 0.0f)
+		if (!FMath::IsNearlyZero(PerkReward->ShotPowerMultiplierBonus))
 		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("shot power +%.2g"), PerkReward->ShotPowerMultiplierBonus));
+			AddSummaryPart(Parts, FString::Printf(TEXT("shot power %+.2g"), PerkReward->ShotPowerMultiplierBonus));
 		}
 	}
 	if (GrantedAbilitySet)
