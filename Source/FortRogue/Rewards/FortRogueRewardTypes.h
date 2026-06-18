@@ -84,4 +84,5 @@ struct FFortRogueRewardChoice
 
 	FText GetEffectSummary() const;
 	bool MeetsRewardTagConditions(const FGameplayTagContainer& ChosenRewardTags) const;
+	FText GetRewardTagConditionFailureSummary(const FGameplayTagContainer& ChosenRewardTags) const;
 };

@@ -250,3 +250,16 @@ bool FFortRogueRewardChoice::MeetsRewardTagConditions(const FGameplayTagContaine
 	}
 	return true;
 }
+
+FText FFortRogueRewardChoice::GetRewardTagConditionFailureSummary(const FGameplayTagContainer& ChosenRewardTags) const
+{
+	if (!RequiredRewardTags.IsEmpty() && !ChosenRewardTags.HasAll(RequiredRewardTags))
+	{
+		return FText::FromString(FString::Printf(TEXT("requires reward %s"), *RequiredRewardTags.ToStringSimple()));
+	}
+	if (!BlockedRewardTags.IsEmpty() && ChosenRewardTags.HasAny(BlockedRewardTags))
+	{
+		return FText::FromString(FString::Printf(TEXT("blocked by reward %s"), *BlockedRewardTags.ToStringSimple()));
+	}
+	return FText::GetEmpty();
+}

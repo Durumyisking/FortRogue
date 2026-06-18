@@ -507,6 +507,7 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 	FGameplayTagContainer EmptyChosenRewardTags;
 	TestFalse(TEXT("Reward condition helper rejects missing required tags"), RequiredReward.MeetsRewardTagConditions(EmptyChosenRewardTags));
 	TestFalse(TEXT("Blueprint reward condition helper rejects missing required tags"), UFortRogueRewardBlueprintLibrary::DoesRewardMeetTagConditions(RequiredReward, EmptyChosenRewardTags));
+	TestTrue(TEXT("Reward condition failure summary names missing required tags"), RequiredReward.GetRewardTagConditionFailureSummary(EmptyChosenRewardTags).ToString().Contains(TEXT("requires reward")));
 	TestFalse(TEXT("Reward choices hide rewards before required reward tags are chosen"), HasRewardChoiceTag(GameMode->GetRewardChoices(), FortRogueGameplayTags::Trait_Projectiles));
 	TestTrue(TEXT("Reward choices keep rewards whose blocked tags are absent"), HasRewardChoiceTag(GameMode->GetRewardChoices(), FortRogueGameplayTags::Trait_Health));
 
@@ -514,6 +515,8 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 	TestTrue(TEXT("Game mode exposes chosen reward tags for UI"), GameMode->GetChosenRewardTags().HasTagExact(FortRogueGameplayTags::Trait_Damage));
 	TestTrue(TEXT("Reward condition helper accepts satisfied required tags"), RequiredReward.MeetsRewardTagConditions(GameMode->GetChosenRewardTags()));
 	TestFalse(TEXT("Reward condition helper rejects blocked chosen tags"), BlockedReward.MeetsRewardTagConditions(GameMode->GetChosenRewardTags()));
+	TestTrue(TEXT("Blueprint reward condition failure summary names blocked tags"), UFortRogueRewardBlueprintLibrary::GetRewardTagConditionFailureSummary(BlockedReward, GameMode->GetChosenRewardTags()).ToString().Contains(TEXT("blocked by reward")));
+	TestTrue(TEXT("Reward condition failure summary is empty when conditions pass"), RequiredReward.GetRewardTagConditionFailureSummary(GameMode->GetChosenRewardTags()).ToString().IsEmpty());
 	GameMode->BuildRewardChoices();
 	TestTrue(TEXT("Reward choices include rewards after required reward tags are chosen"), HasRewardChoiceTag(GameMode->GetRewardChoices(), FortRogueGameplayTags::Trait_Projectiles));
 	TestFalse(TEXT("Reward choices hide rewards blocked by chosen reward tags"), HasRewardChoiceTag(GameMode->GetRewardChoices(), FortRogueGameplayTags::Trait_Health));

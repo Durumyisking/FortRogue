@@ -35,4 +35,7 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
 	static bool DoesRewardMeetTagConditions(const FFortRogueRewardChoice& RewardChoice, const FGameplayTagContainer& ChosenRewardTags);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	static FText GetRewardTagConditionFailureSummary(const FFortRogueRewardChoice& RewardChoice, const FGameplayTagContainer& ChosenRewardTags);
 };

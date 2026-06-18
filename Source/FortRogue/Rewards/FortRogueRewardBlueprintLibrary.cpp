@@ -42,3 +42,8 @@ bool UFortRogueRewardBlueprintLibrary::DoesRewardMeetTagConditions(const FFortRo
 {
 	return RewardChoice.MeetsRewardTagConditions(ChosenRewardTags);
 }
+
+FText UFortRogueRewardBlueprintLibrary::GetRewardTagConditionFailureSummary(const FFortRogueRewardChoice& RewardChoice, const FGameplayTagContainer& ChosenRewardTags)
+{
+	return RewardChoice.GetRewardTagConditionFailureSummary(ChosenRewardTags);
+}
