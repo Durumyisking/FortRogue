@@ -976,6 +976,22 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		TestFalse(TEXT("Battle character rejects invalid weapon selection tags"), StatCharacter->SelectWeaponByTag(FGameplayTag()));
 		TestTrue(TEXT("Battle character selects a weapon by tag"), StatCharacter->SelectWeaponByTag(FortRogueGameplayTags::Weapon_Cluster));
 		TestEqual(TEXT("Battle character selection by tag updates the current weapon"), StatCharacter->GetCurrentWeapon().WeaponTag, FortRogueGameplayTags::Weapon_Cluster);
+		UFortRogueWeaponDefinition* UnsafeWeapon = CreateTestWeaponDefinition(StatCharacter);
+		UnsafeWeapon->Weapon.Damage = -100.0f;
+		UnsafeWeapon->Weapon.BlastRadius = -20.0f;
+		UnsafeWeapon->Weapon.ProjectileSpeed = -500.0f;
+		UnsafeWeapon->Weapon.Gravity = -980.0f;
+		FFortRogueShotModifierSpec UnsafeModifier;
+		UnsafeModifier.DamageBonus = -1000.0f;
+		UnsafeWeapon->Weapon.ShotModifiers.Add(UnsafeModifier);
+		StatCharacter->AddWeaponDefinition(UnsafeWeapon);
+		StatCharacter->SelectWeapon(StatCharacter->GetWeaponLoadout().Num() - 1);
+		const FFortRogueShotSpec UnsafeShotSpec = StatCharacter->GetCurrentShotSpec();
+		TestEqual(TEXT("Shot spec clamps negative damage after modifiers"), UnsafeShotSpec.Damage, 0.0f);
+		TestEqual(TEXT("Shot spec clamps negative blast radius"), UnsafeShotSpec.BlastRadius, 0.0f);
+		TestEqual(TEXT("Shot spec clamps negative terrain carve radius"), UnsafeShotSpec.TerrainCarveRadius, 0.0f);
+		TestEqual(TEXT("Shot spec clamps negative launch speed"), UnsafeShotSpec.LaunchSpeed, 0.0f);
+		TestEqual(TEXT("Shot spec clamps negative gravity"), UnsafeShotSpec.Gravity, 0.0f);
 	}
 
 	AFortRogueBattleCharacter* ItemSlotCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(-15.0f, 0.0f, 55.0f), FRotator::ZeroRotator, SpawnParams);

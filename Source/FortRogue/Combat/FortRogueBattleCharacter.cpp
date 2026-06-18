@@ -1106,12 +1106,12 @@ FFortRogueShotSpec AFortRogueBattleCharacter::BuildShotSpec(const FFortRogueWeap
 	{
 		ShotSpec.EffectTags.AddTag(Weapon.WeaponTag);
 	}
-	ShotSpec.Damage = (Weapon.Damage + CombatSet->GetDamage()) * PendingAttackMultiplier;
-	ShotSpec.BlastRadius = Weapon.BlastRadius;
+	ShotSpec.Damage = FMath::Max(0.0f, (Weapon.Damage + CombatSet->GetDamage()) * PendingAttackMultiplier);
+	ShotSpec.BlastRadius = FMath::Max(0.0f, Weapon.BlastRadius);
 	ShotSpec.TerrainCarveRadius = ShotSpec.BlastRadius;
 	ShotSpec.TerrainFillRadius = 0.0f;
-	ShotSpec.LaunchSpeed = Weapon.ProjectileSpeed * ShotPower * CombatSet->GetShotPowerMultiplier();
-	ShotSpec.Gravity = Weapon.Gravity;
+	ShotSpec.LaunchSpeed = FMath::Max(0.0f, Weapon.ProjectileSpeed * ShotPower * CombatSet->GetShotPowerMultiplier());
+	ShotSpec.Gravity = FMath::Max(0.0f, Weapon.Gravity);
 	ShotSpec.ProjectileCount = FMath::Max(1, Weapon.ProjectilesPerShot + FMath::RoundToInt(CombatSet->GetProjectileCount()) - 1);
 	ShotSpec.ProjectileClass = Weapon.ProjectileClass ? Weapon.ProjectileClass : TSubclassOf<AFortRogueProjectile>(AFortRogueProjectile::StaticClass());
 	ShotSpec.ImpactSpawns = Weapon.ImpactSpawns;
@@ -1146,7 +1146,7 @@ FFortRogueShotSpec AFortRogueBattleCharacter::BuildShotSpec(const FFortRogueWeap
 		}
 
 		ShotSpec.EffectTags.AppendTags(Modifier.EffectTags);
-		ShotSpec.Damage = (ShotSpec.Damage + Modifier.DamageBonus) * Modifier.DamageMultiplier;
+		ShotSpec.Damage = FMath::Max(0.0f, (ShotSpec.Damage + Modifier.DamageBonus) * Modifier.DamageMultiplier);
 		ShotSpec.BlastRadius = FMath::Max(0.0f, (ShotSpec.BlastRadius + Modifier.BlastRadiusBonus) * Modifier.BlastRadiusMultiplier);
 		ShotSpec.TerrainCarveRadius = FMath::Max(0.0f, (ShotSpec.TerrainCarveRadius + Modifier.TerrainCarveRadiusBonus) * Modifier.TerrainCarveRadiusMultiplier);
 		ShotSpec.TerrainFillRadius = FMath::Max(0.0f, (ShotSpec.TerrainFillRadius + Modifier.TerrainFillRadiusBonus) * Modifier.TerrainFillRadiusMultiplier);

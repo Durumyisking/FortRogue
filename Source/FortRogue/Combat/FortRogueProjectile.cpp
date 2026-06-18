@@ -73,11 +73,11 @@ void AFortRogueProjectile::InitializeProjectile(AFortRogueBattleCharacter* InOwn
 	WeaponTag = InWeaponTag;
 	EffectTags = InEffectTags;
 	ImpactSpawns = MoveTemp(InImpactSpawns);
-	Damage = InDamage;
+	Damage = FMath::Max(0.0f, InDamage);
 	BlastRadius = FMath::Max(0.0f, InBlastRadius);
 	TerrainCarveRadius = InTerrainCarveRadius >= 0.0f ? FMath::Max(0.0f, InTerrainCarveRadius) : BlastRadius;
 	TerrainFillRadius = FMath::Max(0.0f, InTerrainFillRadius);
-	Gravity = InGravity;
+	Gravity = FMath::Max(0.0f, InGravity);
 }
 
 void AFortRogueProjectile::InitializeProjectileFromShotSpec(AFortRogueBattleCharacter* InOwnerCharacter, AFortRogueDestructibleTerrain* InTerrain, const FVector& InVelocity, const FFortRogueShotSpec& ShotSpec)
