@@ -25,7 +25,7 @@ namespace
 constexpr float TerrainCameraPadding = 240.0f;
 constexpr float MinimumTerrainCameraOrthoWidth = 1200.0f;
 constexpr float ExpectedWideViewportAspectRatio = 16.0f / 9.0f;
-const FRotator BattleCameraRotation(0.0f, 90.0f, 0.0f);
+const FRotator BattleCameraRotation(0.0f, -90.0f, 0.0f);
 }
 
 AFortRogueGameMode::AFortRogueGameMode()

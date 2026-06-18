@@ -153,7 +153,7 @@ private:
 	FVector EnemySpawnOffset = FVector(650.0f, 0.0f, 95.0f);
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup")
-	FVector CameraLocation = FVector(0.0f, -3000.0f, 860.0f);
+	FVector CameraLocation = FVector(0.0f, 3000.0f, 860.0f);
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup")
 	float CameraOrthoWidth = 2700.0f;

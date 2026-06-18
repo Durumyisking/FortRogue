@@ -20,6 +20,7 @@
 #include "PaperSprite.h"
 #include "PaperSpriteFactory.h"
 #include "PropertyCustomizationHelpers.h"
+#include "SpriteEditorOnlyTypes.h"
 #include "ToolMenus.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "Widgets/Input/SButton.h"
@@ -39,9 +40,10 @@ namespace FortRogueEditor
 static const FName TerrainMapEditorTabName(TEXT("FortRogueTerrainMapEditor"));
 constexpr float DefaultSpawnClearance = 80.0f;
 constexpr int32 GeneratedSpriteSheetColumns = 4;
-constexpr int32 GeneratedSpriteSheetRows = 4;
+constexpr int32 GeneratedSpriteSheetRows = 3;
 constexpr int32 GeneratedSpriteFrameRun = 1;
 constexpr float GeneratedSpriteFramesPerSecond = 8.0f;
+constexpr uint8 GeneratedSpriteMagentaTolerance = 4;
 static const TCHAR* GeneratedSpriteSourcePath = TEXT("/Game/GeneratedSprites");
 static const TCHAR* GeneratedSpriteSourceRelativePath = TEXT("GeneratedSprites");
 static const TCHAR* GeneratedSpriteOutputPath = TEXT("/Game/FortRogue/Character/GeneratedSprites");
@@ -96,6 +98,53 @@ static UTexture2D* LoadGeneratedSpriteTexture(const FString& AssetName)
 	return LoadObject<UTexture2D>(nullptr, *ObjectPath);
 }
 
+static bool IsGeneratedSpriteKeyColor(const uint8 Red, const uint8 Green, const uint8 Blue)
+{
+	return Red >= 255 - GeneratedSpriteMagentaTolerance
+		&& Green <= GeneratedSpriteMagentaTolerance
+		&& Blue >= 255 - GeneratedSpriteMagentaTolerance;
+}
+
+static void ApplyGeneratedSpriteTextureAlphaKey(UTexture2D* Texture, TArray<UPackage*>& OutPackagesToSave)
+{
+	if (!Texture || !Texture->Source.IsValid() || Texture->Source.GetFormat() != TSF_BGRA8)
+	{
+		return;
+	}
+
+	uint8* MipData = Texture->Source.LockMip(0);
+	if (!MipData)
+	{
+		return;
+	}
+
+	bool bChanged = false;
+	const int32 PixelCount = Texture->Source.GetSizeX() * Texture->Source.GetSizeY();
+	for (int32 PixelIndex = 0; PixelIndex < PixelCount; ++PixelIndex)
+	{
+		uint8* Pixel = MipData + PixelIndex * 4;
+		uint8& Blue = Pixel[0];
+		uint8& Green = Pixel[1];
+		uint8& Red = Pixel[2];
+		uint8& Alpha = Pixel[3];
+		if (Alpha != 0 && IsGeneratedSpriteKeyColor(Red, Green, Blue))
+		{
+			Alpha = 0;
+			bChanged = true;
+		}
+	}
+
+	Texture->Source.UnlockMip(0);
+
+	if (bChanged)
+	{
+		Texture->Modify();
+		Texture->PostEditChange();
+		Texture->MarkPackageDirty();
+		OutPackagesToSave.AddUnique(Texture->GetPackage());
+	}
+}
+
 static TArray<UTexture2D*> ImportGeneratedSpriteTextures(TArray<UPackage*>& OutPackagesToSave)
 {
 	TArray<FString> SourceFiles;
@@ -110,6 +159,7 @@ static TArray<UTexture2D*> ImportGeneratedSpriteTextures(TArray<UPackage*>& OutP
 		const FString AssetName = FPaths::GetBaseFilename(SourceFile);
 		if (UTexture2D* ExistingTexture = LoadGeneratedSpriteTexture(AssetName))
 		{
+			ApplyGeneratedSpriteTextureAlphaKey(ExistingTexture, OutPackagesToSave);
 			Textures.Add(ExistingTexture);
 			continue;
 		}
@@ -135,6 +185,7 @@ static TArray<UTexture2D*> ImportGeneratedSpriteTextures(TArray<UPackage*>& OutP
 			{
 				if (UTexture2D* Texture = Cast<UTexture2D>(ImportedObject))
 				{
+					ApplyGeneratedSpriteTextureAlphaKey(Texture, OutPackagesToSave);
 					Textures.Add(Texture);
 					OutPackagesToSave.AddUnique(Texture->GetPackage());
 				}
@@ -145,10 +196,39 @@ static TArray<UTexture2D*> ImportGeneratedSpriteTextures(TArray<UPackage*>& OutP
 	return Textures;
 }
 
+static void UpdateGeneratedSpriteSource(UPaperSprite* Sprite, UTexture2D* Texture, const FIntPoint& SourceUV, const FIntPoint& SourceDimension, TArray<UPackage*>& OutPackagesToSave)
+{
+	if (!Sprite || !Texture)
+	{
+		return;
+	}
+
+	const FVector2D ExpectedSourceUV(static_cast<double>(SourceUV.X), static_cast<double>(SourceUV.Y));
+	const FVector2D ExpectedSourceDimension(static_cast<double>(SourceDimension.X), static_cast<double>(SourceDimension.Y));
+	if (Sprite->GetSourceTexture() == Texture
+		&& Sprite->GetSourceUV() == ExpectedSourceUV
+		&& Sprite->GetSourceSize() == ExpectedSourceDimension)
+	{
+		return;
+	}
+
+	FSpriteAssetInitParameters InitParams;
+	InitParams.Texture = Texture;
+	InitParams.Offset = SourceUV;
+	InitParams.Dimension = SourceDimension;
+
+	Sprite->Modify();
+	Sprite->InitializeSprite(InitParams);
+	Sprite->PostEditChange();
+	Sprite->MarkPackageDirty();
+	OutPackagesToSave.AddUnique(Sprite->GetPackage());
+}
+
 static UPaperSprite* GetOrCreateGeneratedSprite(UTexture2D* Texture, const FString& AssetName, const FIntPoint& SourceUV, const FIntPoint& SourceDimension, TArray<UPackage*>& OutPackagesToSave)
 {
 	if (UPaperSprite* ExistingSprite = LoadGeneratedSpriteAsset<UPaperSprite>(AssetName))
 	{
+		UpdateGeneratedSpriteSource(ExistingSprite, Texture, SourceUV, SourceDimension, OutPackagesToSave);
 		return ExistingSprite;
 	}
 
@@ -162,6 +242,7 @@ static UPaperSprite* GetOrCreateGeneratedSprite(UTexture2D* Texture, const FStri
 	UPaperSprite* CreatedSprite = Cast<UPaperSprite>(AssetToolsModule.Get().CreateAsset(AssetName, GeneratedSpriteOutputPath, UPaperSprite::StaticClass(), SpriteFactory));
 	if (CreatedSprite)
 	{
+		UpdateGeneratedSpriteSource(CreatedSprite, Texture, SourceUV, SourceDimension, OutPackagesToSave);
 		OutPackagesToSave.AddUnique(CreatedSprite->GetPackage());
 	}
 	return CreatedSprite;
