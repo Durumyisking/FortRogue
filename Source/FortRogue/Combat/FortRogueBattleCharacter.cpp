@@ -492,7 +492,7 @@ void AFortRogueBattleCharacter::ApplyPerkDefinition(UFortRoguePerkDefinition* Pe
 	ApplyRewardDamage(PerkDefinition->DamageBonus);
 	ApplyRewardHealth(PerkDefinition->MaxHealthBonus);
 	ApplyRewardProjectiles(PerkDefinition->ProjectileBonus);
-	GrantedShotModifiers.Append(PerkDefinition->ShotModifiers);
+	GrantShotModifiers(PerkDefinition->ShotModifiers);
 
 	GrantAbilitySet(PerkDefinition->GrantedAbilitySet);
 }
@@ -531,6 +531,16 @@ bool AFortRogueBattleCharacter::RemoveAbilitySet(UFortRogueAbilitySet* AbilitySe
 	}
 
 	return false;
+}
+
+void AFortRogueBattleCharacter::GrantShotModifiers(const TArray<FFortRogueShotModifierSpec>& ShotModifiers)
+{
+	if (ShotModifiers.Num() <= 0)
+	{
+		return;
+	}
+
+	GrantedShotModifiers.Append(ShotModifiers);
 }
 
 void AFortRogueBattleCharacter::AddWeaponDefinition(UFortRogueWeaponDefinition* WeaponDefinition)

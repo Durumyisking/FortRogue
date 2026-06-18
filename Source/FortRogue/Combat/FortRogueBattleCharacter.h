@@ -118,6 +118,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Abilities")
 	bool RemoveAbilitySet(UFortRogueAbilitySet* AbilitySet);
 
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
+	void GrantShotModifiers(const TArray<FFortRogueShotModifierSpec>& ShotModifiers);
+
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Weapons")
 	void AddWeaponDefinition(UFortRogueWeaponDefinition* WeaponDefinition);
 

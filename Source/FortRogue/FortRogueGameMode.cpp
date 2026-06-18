@@ -414,6 +414,7 @@ void AFortRogueGameMode::ApplyRewardToPlayer(const FFortRogueRewardChoice& Rewar
 	{
 		PlayerCharacter->GrantAbilitySet(Reward.GrantedAbilitySet);
 	}
+	PlayerCharacter->GrantShotModifiers(Reward.ShotModifiers);
 	if (Reward.DamageBonus > 0.0f)
 	{
 		PlayerCharacter->ApplyRewardDamage(Reward.DamageBonus);

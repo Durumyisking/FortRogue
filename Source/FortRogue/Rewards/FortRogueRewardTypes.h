@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GameplayTagContainer.h"
+#include "Weapons/FortRogueWeaponDefinition.h"
 #include "FortRogueRewardTypes.generated.h"
 
 class UFortRogueItemDefinition;
@@ -46,6 +47,9 @@ struct FFortRogueRewardChoice
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
 	TObjectPtr<UFortRogueAbilitySet> GrantedAbilitySet;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (TitleProperty = EffectTags))
+	TArray<FFortRogueShotModifierSpec> ShotModifiers;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
 	float DamageBonus = 0.0f;
