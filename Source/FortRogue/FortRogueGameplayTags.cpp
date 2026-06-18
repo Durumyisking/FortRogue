@@ -25,8 +25,11 @@ namespace FortRogueGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ShotEffect_Drill, "ShotEffect.Drill", "Shot effect for terrain digging projectiles.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ShotEffect_SplitOnImpact, "ShotEffect.SplitOnImpact", "Shot effect for projectiles that split after impact.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ShotEffect_TerrainCreate, "ShotEffect.TerrainCreate", "Shot effect for projectiles that create terrain.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Item_AttackAmp, "Item.AttackAmp", "Consumable item that boosts a future shot.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Item_Repair, "Item.Repair", "Consumable repair item.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Item_NextShot, "Item.NextShot", "Consumable item that grants a next-shot modifier.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Trait_Damage, "Trait.Damage", "Damage increasing trait.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Trait_Projectiles, "Trait.Projectiles", "Projectile count increasing trait.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Trait_Health, "Trait.Health", "Maximum health increasing trait.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Trait_ShotModifier, "Trait.ShotModifier", "Trait that modifies future shots.");
 }
