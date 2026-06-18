@@ -1103,7 +1103,10 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		ExhaustedTurnCharacter->MoveHorizontal(-1.0f, 0.1f);
 		TestEqual(TEXT("Exhausted movement budget does not move the character"), static_cast<float>(ExhaustedTurnCharacter->GetActorLocation().X), ExhaustedCharacterX);
 		TestEqual(TEXT("Exhausted movement budget still leaves the budget at zero"), ExhaustedTurnCharacter->GetMoveBudget(), 0.0f);
+		TestTrue(TEXT("Battle character reports selected weapon fireable before firing"), ExhaustedTurnCharacter->CanFireSelectedWeapon());
+		TestTrue(TEXT("Battle character reports shot charge can begin before firing"), ExhaustedTurnCharacter->CanBeginShotCharge());
 		TestEqual(TEXT("Facing change with exhausted movement budget fires to the requested side"), ExhaustedTurnCharacter->FireSelectedWeapon(), 1);
+		TestFalse(TEXT("Battle character reports selected weapon not fireable after firing"), ExhaustedTurnCharacter->CanFireSelectedWeapon());
 		AFortRogueProjectile* ExhaustedTurnProjectile = nullptr;
 		for (TActorIterator<AFortRogueProjectile> It(World); It; ++It)
 		{
@@ -1277,8 +1280,10 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	TestNotNull(TEXT("Falling battle character is spawned"), FallingCharacter);
 	if (FallingCharacter)
 	{
+		FallingCharacter->AddWeaponDefinition(CreateTestWeaponDefinition(FallingCharacter));
 		FallingCharacter->SetTerrain(Terrain);
 		FallingCharacter->BeginTurn();
+		TestTrue(TEXT("Supported battle character reports shot charge can begin"), FallingCharacter->CanBeginShotCharge());
 		FallingCharacter->BeginShotCharge();
 		FallingCharacter->UpdateShotCharge(0.5f);
 		TestTrue(TEXT("Supported battle character can start charging before support is destroyed"), FallingCharacter->IsChargingShot());
@@ -1291,6 +1296,8 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		FallingCharacter->BeginTurn();
 		FallingCharacter->MoveHorizontal(1.0f, 0.25f);
 		TestEqual(TEXT("Falling battle character cannot move horizontally while unsupported"), static_cast<float>(FallingCharacter->GetActorLocation().X), FallingCharacterX);
+		TestFalse(TEXT("Falling battle character reports selected weapon not fireable while unsupported"), FallingCharacter->CanFireSelectedWeapon());
+		TestFalse(TEXT("Falling battle character reports shot charge cannot begin while unsupported"), FallingCharacter->CanBeginShotCharge());
 		const int32 AttackItemCharges = FallingCharacter->GetItemCharges(EFortRogueItemType::AttackMultiplier);
 		TestFalse(TEXT("Falling battle character reports combat items unusable while unsupported"), FallingCharacter->CanUseItemByType(EFortRogueItemType::AttackMultiplier));
 		TestFalse(TEXT("Falling battle character cannot use combat items while unsupported"), FallingCharacter->UseItemByType(EFortRogueItemType::AttackMultiplier));

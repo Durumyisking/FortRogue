@@ -70,6 +70,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
 	void BeginShotCharge();
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	bool CanBeginShotCharge() const;
+
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
 	void UpdateShotCharge(float DeltaSeconds);
 
@@ -93,6 +96,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
 	int32 FireSelectedWeapon();
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	bool CanFireSelectedWeapon() const;
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|AI")
 	void FireAtTarget(AFortRogueBattleCharacter* Target, const FFortRogueStageDifficultyData& DifficultyData);

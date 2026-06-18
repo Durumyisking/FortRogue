@@ -270,7 +270,7 @@ void AFortRogueBattleCharacter::AdjustPower(float Axis, float DeltaSeconds)
 
 void AFortRogueBattleCharacter::BeginShotCharge()
 {
-	if (!bActiveTurn || bFiredThisTurn || IsDefeated() || !IsSupportedByTerrain())
+	if (!CanBeginShotCharge())
 	{
 		return;
 	}
@@ -278,6 +278,11 @@ void AFortRogueBattleCharacter::BeginShotCharge()
 	bChargingShot = true;
 	ShotChargeElapsed = 0.0f;
 	ShotPower = FMath::Min(MinShotPower, MaxShotPower);
+}
+
+bool AFortRogueBattleCharacter::CanBeginShotCharge() const
+{
+	return CanFireSelectedWeapon();
 }
 
 void AFortRogueBattleCharacter::UpdateShotCharge(float DeltaSeconds)
@@ -354,11 +359,7 @@ int32 AFortRogueBattleCharacter::GetWeaponIndexByTag(FGameplayTag WeaponTag) con
 
 int32 AFortRogueBattleCharacter::FireSelectedWeapon()
 {
-	if (!bActiveTurn || bFiredThisTurn || IsDefeated() || !IsSupportedByTerrain())
-	{
-		return 0;
-	}
-	if (!WeaponLoadout.IsValidIndex(SelectedWeaponIndex))
+	if (!CanFireSelectedWeapon())
 	{
 		return 0;
 	}
@@ -395,6 +396,11 @@ int32 AFortRogueBattleCharacter::FireSelectedWeapon()
 	}
 
 	return SpawnedProjectiles;
+}
+
+bool AFortRogueBattleCharacter::CanFireSelectedWeapon() const
+{
+	return bActiveTurn && !bFiredThisTurn && !IsDefeated() && IsSupportedByTerrain() && WeaponLoadout.IsValidIndex(SelectedWeaponIndex);
 }
 
 void AFortRogueBattleCharacter::FireAtTarget(AFortRogueBattleCharacter* Target, const FFortRogueStageDifficultyData& DifficultyData)
