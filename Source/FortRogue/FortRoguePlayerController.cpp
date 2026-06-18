@@ -115,6 +115,7 @@ void AFortRoguePlayerController::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 
 	UpdateOptionalWidgets();
+	TickRewardInput();
 
 	if (HasEnhancedInputBindings())
 	{
@@ -125,7 +126,6 @@ void AFortRoguePlayerController::Tick(float DeltaSeconds)
 		return;
 	}
 
-	TickRewardInput();
 	TickBattleInput(DeltaSeconds);
 }
 
