@@ -218,6 +218,9 @@ public:
 	float GetProjectileCount() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
+	bool TryGetCombatAttributeValueByTag(FGameplayTag AttributeTag, float& OutValue) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
 	FText GetCombatStatsSummary() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")

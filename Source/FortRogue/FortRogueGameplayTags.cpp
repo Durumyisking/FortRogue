@@ -16,6 +16,14 @@ namespace FortRogueGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Turn_Resolving, "State.Turn.Resolving", "A shot is resolving.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(State_Battle_Won, "State.Battle.Won", "The MVP battle has been won.");
 
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attribute_Health, "Attribute.Health", "Current character health.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attribute_MaxHealth, "Attribute.MaxHealth", "Maximum character health.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attribute_MoveBudget, "Attribute.MoveBudget", "Current turn movement budget.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attribute_MaxMoveBudget, "Attribute.MaxMoveBudget", "Maximum turn movement budget.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attribute_Damage, "Attribute.Damage", "Flat shot damage bonus.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attribute_ShotPowerMultiplier, "Attribute.ShotPowerMultiplier", "Shot power multiplier.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attribute_ProjectileCount, "Attribute.ProjectileCount", "Current projectile count attribute.");
+
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Weapon_Shell, "Weapon.Shell", "Basic arcing shell.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Weapon_Cluster, "Weapon.Cluster", "Multiple projectile shell reward.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ShotEffect_Damage, "ShotEffect.Damage", "Shot modifier that changes damage.");

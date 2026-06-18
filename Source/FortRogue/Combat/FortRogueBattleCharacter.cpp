@@ -8,6 +8,7 @@
 #include "Combat/FortRogueDestructibleTerrain.h"
 #include "Combat/FortRogueProjectile.h"
 #include "FortRogueGameMode.h"
+#include "FortRogueGameplayTags.h"
 #include "Items/FortRogueItemDefinition.h"
 #include "Perks/FortRoguePerkDefinition.h"
 #include "Run/FortRogueDefaultLoadoutDefinition.h"
@@ -901,6 +902,53 @@ float AFortRogueBattleCharacter::GetShotPowerMultiplier() const
 float AFortRogueBattleCharacter::GetProjectileCount() const
 {
 	return CombatSet->GetProjectileCount();
+}
+
+bool AFortRogueBattleCharacter::TryGetCombatAttributeValueByTag(FGameplayTag AttributeTag, float& OutValue) const
+{
+	OutValue = 0.0f;
+	if (!AttributeTag.IsValid())
+	{
+		return false;
+	}
+
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_Health))
+	{
+		OutValue = GetHealth();
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_MaxHealth))
+	{
+		OutValue = GetMaxHealth();
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_MoveBudget))
+	{
+		OutValue = GetMoveBudget();
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_MaxMoveBudget))
+	{
+		OutValue = GetMaxMoveBudget();
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_Damage))
+	{
+		OutValue = GetDamageBonus();
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_ShotPowerMultiplier))
+	{
+		OutValue = GetShotPowerMultiplier();
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_ProjectileCount))
+	{
+		OutValue = GetProjectileCount();
+		return true;
+	}
+
+	return false;
 }
 
 FText AFortRogueBattleCharacter::GetCombatStatsSummary() const
