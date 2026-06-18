@@ -548,7 +548,13 @@ void AFortRogueGameMode::BuildRewardChoices()
 			float WeightRoll = FMath::FRandRange(0.0f, TotalWeight);
 			for (int32 Index = 0; Index < CandidateRewards.Num(); ++Index)
 			{
-				WeightRoll -= FMath::Max(0.0f, CandidateRewards[Index].RewardWeight);
+				const float CandidateWeight = FMath::Max(0.0f, CandidateRewards[Index].RewardWeight);
+				if (CandidateWeight <= 0.0f)
+				{
+					continue;
+				}
+
+				WeightRoll -= CandidateWeight;
 				if (WeightRoll <= 0.0f)
 				{
 					CandidateIndex = Index;
