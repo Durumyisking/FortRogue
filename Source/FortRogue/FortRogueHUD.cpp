@@ -48,6 +48,16 @@ void AFortRogueHUD::DrawBattleHUD(AFortRogueGameMode* GameMode, float X, float& 
 			Player->GetItemCharges(EFortRogueItemType::Heal)),
 			FColor::Cyan, X, Y, GEngine->GetSmallFont(), Scale);
 		Y += 24.0f;
+		const FFortRogueShotSpec ShotSpec = Player->GetCurrentShotSpec();
+		const bool bFillsTerrain = ShotSpec.TerrainFillRadius > 0.0f;
+		DrawText(FString::Printf(TEXT("Shot Dmg %.0f | Blast %.0f | %s %.0f | Projectiles %d"),
+			ShotSpec.Damage,
+			ShotSpec.BlastRadius,
+			bFillsTerrain ? TEXT("Fill") : TEXT("Carve"),
+			bFillsTerrain ? ShotSpec.TerrainFillRadius : ShotSpec.TerrainCarveRadius,
+			ShotSpec.ProjectileCount),
+			FColor::Cyan, X, Y, GEngine->GetSmallFont(), Scale);
+		Y += 24.0f;
 		DrawText(TEXT("A/D Move | W/S Aim | Hold Space Power / Release Fire"), FColor::Cyan, X, Y, GEngine->GetSmallFont(), Scale);
 		Y += 24.0f;
 	}
