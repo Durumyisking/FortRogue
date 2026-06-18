@@ -25,6 +25,7 @@
 #include "Items/FortRogueItemDefinition.h"
 #include "Kismet/GameplayStatics.h"
 #include "Perks/FortRoguePerkDefinition.h"
+#include "Rewards/FortRogueRewardBlueprintLibrary.h"
 #include "Rewards/FortRogueRewardTypes.h"
 #include "Run/FortRogueDefaultLoadoutDefinition.h"
 #include "Run/FortRogueStageRunDefinition.h"
@@ -90,12 +91,17 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	AbilitySetReward.GrantedAbilitySet = NamedAbilitySet;
 	TestTrue(TEXT("Reward summary names directly granted ability set"), AbilitySetReward.GetEffectSummary().ToString().Contains(TEXT("ability set Wind Split")));
 
+	UFortRogueWeaponDefinition* SummaryWeapon = NewObject<UFortRogueWeaponDefinition>();
+	SummaryWeapon->Weapon.DisplayName = FText::FromString(TEXT("Fork Shell"));
+	TestTrue(TEXT("Blueprint helper summarizes weapon assets"), UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("weapon Fork Shell")));
+
 	UFortRogueItemDefinition* AbilityItem = NewObject<UFortRogueItemDefinition>();
 	AbilityItem->DisplayName = FText::FromString(TEXT("Storm Capsule"));
 	AbilityItem->UseAbilitySet = NamedAbilitySet;
 	FFortRogueRewardChoice ItemAbilityReward;
 	ItemAbilityReward.ItemReward = AbilityItem;
 	TestTrue(TEXT("Reward summary names item ability set"), ItemAbilityReward.GetEffectSummary().ToString().Contains(TEXT("ability set Wind Split")));
+	TestTrue(TEXT("Blueprint helper summarizes item assets"), UFortRogueRewardBlueprintLibrary::GetItemEffectSummary(AbilityItem).ToString().Contains(TEXT("ability set Wind Split")));
 
 	UFortRoguePerkDefinition* AbilityPerk = NewObject<UFortRoguePerkDefinition>();
 	AbilityPerk->DisplayName = FText::FromString(TEXT("Storm Training"));
@@ -103,6 +109,7 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	FFortRogueRewardChoice PerkAbilityReward;
 	PerkAbilityReward.PerkReward = AbilityPerk;
 	TestTrue(TEXT("Reward summary names perk ability set"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("ability set Wind Split")));
+	TestTrue(TEXT("Blueprint helper summarizes perk assets"), UFortRogueRewardBlueprintLibrary::GetPerkEffectSummary(AbilityPerk).ToString().Contains(TEXT("ability set Wind Split")));
 
 	UFortRogueTerrainMapDefinition* CorruptMap = NewObject<UFortRogueTerrainMapDefinition>();
 	TestNotNull(TEXT("Corrupt map asset object is created"), CorruptMap);

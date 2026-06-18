@@ -7,6 +7,10 @@
 #include "Rewards/FortRogueRewardTypes.h"
 #include "FortRogueRewardBlueprintLibrary.generated.h"
 
+class UFortRogueItemDefinition;
+class UFortRoguePerkDefinition;
+class UFortRogueWeaponDefinition;
+
 UCLASS()
 class FORTROGUE_API UFortRogueRewardBlueprintLibrary : public UBlueprintFunctionLibrary
 {
@@ -15,4 +19,13 @@ class FORTROGUE_API UFortRogueRewardBlueprintLibrary : public UBlueprintFunction
 public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
 	static FText GetRewardEffectSummary(const FFortRogueRewardChoice& RewardChoice);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	static FText GetWeaponEffectSummary(UFortRogueWeaponDefinition* WeaponDefinition);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	static FText GetItemEffectSummary(UFortRogueItemDefinition* ItemDefinition);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	static FText GetPerkEffectSummary(UFortRoguePerkDefinition* PerkDefinition);
 };
