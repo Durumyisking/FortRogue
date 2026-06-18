@@ -11,5 +11,11 @@ AFortRogueGameMode* UFortRogueRewardScreenWidget::GetFortRogueGameMode() const
 
 void UFortRogueRewardScreenWidget::ChooseReward(int32 ChoiceIndex)
 {
-	(void)ChoiceIndex;
+	if (AFortRogueGameMode* GameMode = GetFortRogueGameMode())
+	{
+		if (GameMode->CanApplyRewardChoice(ChoiceIndex))
+		{
+			GameMode->ApplyRewardChoice(ChoiceIndex);
+		}
+	}
 }

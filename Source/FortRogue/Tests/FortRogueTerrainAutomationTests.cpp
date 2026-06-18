@@ -662,6 +662,13 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 	TestTrue(TEXT("Game mode reports valid reward choices selectable"), GameMode->CanApplyRewardChoice(0));
 	TestFalse(TEXT("Game mode rejects negative reward choice indexes"), GameMode->CanApplyRewardChoice(-1));
 	TestFalse(TEXT("Game mode rejects reward choice indexes past the end"), GameMode->CanApplyRewardChoice(GameMode->GetRewardChoices().Num()));
+	const int32 StageBeforeRewardChoice = GameMode->GetCurrentStage();
+	const FGameplayTag AppliedRewardTag = GameMode->GetRewardChoice(0).RewardTag;
+	GameMode->ApplyRewardChoice(0);
+	TestTrue(TEXT("Game mode records applied reward tags"), AppliedRewardTag.IsValid() && GameMode->GetChosenRewardTags().HasTagExact(AppliedRewardTag));
+	TestEqual(TEXT("Game mode advances to the next stage after reward choice"), GameMode->GetCurrentStage(), StageBeforeRewardChoice + 1);
+	TestEqual(TEXT("Game mode clears reward choices after applying one"), GameMode->GetRewardChoiceCount(), 0);
+	TestEqual(TEXT("Game mode returns to player turn after reward choice"), GameMode->GetBattleState(), EFortRogueBattleState::PlayerTurn);
 	GameMode->BattleState = EFortRogueBattleState::PlayerTurn;
 	TestStageRunDefinition->RewardPool.Reset();
 	GameMode->RewardChoices.Reset();
