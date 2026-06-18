@@ -22,6 +22,18 @@ class UFortRogueItemDefinition;
 class UFortRoguePerkDefinition;
 class AFortRogueDestructibleTerrain;
 
+USTRUCT()
+struct FFortRogueGrantedAbilitySetEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TObjectPtr<UFortRogueAbilitySet> AbilitySet;
+
+	UPROPERTY()
+	FFortRogueAbilitySet_GrantedHandles Handles;
+};
+
 UCLASS()
 class FORTROGUE_API AFortRogueBattleCharacter : public APawn, public IAbilitySystemInterface
 {
@@ -102,6 +114,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Abilities")
 	void GrantAbilitySet(UFortRogueAbilitySet* AbilitySet);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Abilities")
+	bool RemoveAbilitySet(UFortRogueAbilitySet* AbilitySet);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Weapons")
 	void AddWeaponDefinition(UFortRogueWeaponDefinition* WeaponDefinition);
@@ -224,7 +239,9 @@ private:
 	UPROPERTY()
 	TObjectPtr<AFortRogueDestructibleTerrain> AssignedTerrain;
 
-	TArray<FFortRogueAbilitySet_GrantedHandles> StartupAbilitySetHandles;
+	UPROPERTY()
+	TArray<FFortRogueGrantedAbilitySetEntry> GrantedAbilitySetEntries;
+
 	FText CharacterDisplayName;
 	bool bEnemy = false;
 	bool bActiveTurn = false;

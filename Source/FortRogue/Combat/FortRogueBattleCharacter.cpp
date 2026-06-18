@@ -502,9 +502,33 @@ void AFortRogueBattleCharacter::GrantAbilitySet(UFortRogueAbilitySet* AbilitySet
 		return;
 	}
 
-	FFortRogueAbilitySet_GrantedHandles Handles;
-	AbilitySet->GiveToAbilitySystem(AbilitySystemComponent, &Handles, this);
-	StartupAbilitySetHandles.Add(Handles);
+	FFortRogueGrantedAbilitySetEntry Entry;
+	Entry.AbilitySet = AbilitySet;
+	AbilitySet->GiveToAbilitySystem(AbilitySystemComponent, &Entry.Handles, this);
+	GrantedAbilitySetEntries.Add(MoveTemp(Entry));
+}
+
+bool AFortRogueBattleCharacter::RemoveAbilitySet(UFortRogueAbilitySet* AbilitySet)
+{
+	if (!AbilitySet || !AbilitySystemComponent)
+	{
+		return false;
+	}
+
+	for (int32 Index = GrantedAbilitySetEntries.Num() - 1; Index >= 0; --Index)
+	{
+		FFortRogueGrantedAbilitySetEntry& Entry = GrantedAbilitySetEntries[Index];
+		if (Entry.AbilitySet != AbilitySet)
+		{
+			continue;
+		}
+
+		Entry.Handles.TakeFromAbilitySystem(AbilitySystemComponent);
+		GrantedAbilitySetEntries.RemoveAt(Index);
+		return true;
+	}
+
+	return false;
 }
 
 void AFortRogueBattleCharacter::AddWeaponDefinition(UFortRogueWeaponDefinition* WeaponDefinition)
