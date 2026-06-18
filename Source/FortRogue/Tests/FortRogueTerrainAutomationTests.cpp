@@ -101,6 +101,8 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	UFortRogueWeaponDefinition* SummaryWeapon = NewObject<UFortRogueWeaponDefinition>();
 	SummaryWeapon->Weapon.DisplayName = FText::FromString(TEXT("Fork Shell"));
 	TestTrue(TEXT("Blueprint helper summarizes weapon assets"), UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("weapon Fork Shell")));
+	TestTrue(TEXT("Blueprint helper summarizes weapon base damage"), UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("damage 35")));
+	TestTrue(TEXT("Blueprint helper summarizes weapon blast radius"), UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("blast 150")));
 
 	UFortRogueItemDefinition* AbilityItem = NewObject<UFortRogueItemDefinition>();
 	AbilityItem->DisplayName = FText::FromString(TEXT("Storm Capsule"));

@@ -148,6 +148,18 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 	if (WeaponReward)
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("weapon %s"), *WeaponReward->Weapon.DisplayName.ToString()));
+		if (WeaponReward->Weapon.Damage > 0.0f)
+		{
+			AddSummaryPart(Parts, FString::Printf(TEXT("damage %.0f"), WeaponReward->Weapon.Damage));
+		}
+		if (WeaponReward->Weapon.BlastRadius > 0.0f)
+		{
+			AddSummaryPart(Parts, FString::Printf(TEXT("blast %.0f"), WeaponReward->Weapon.BlastRadius));
+		}
+		if (WeaponReward->Weapon.ProjectilesPerShot > 1)
+		{
+			AddSummaryPart(Parts, FString::Printf(TEXT("projectiles %d"), WeaponReward->Weapon.ProjectilesPerShot));
+		}
 		AddShotModifierSummary(Parts, WeaponReward->Weapon.ShotModifiers);
 		const int32 ImpactSpawnCount = CountImpactSpawnProjectiles(WeaponReward->Weapon.ImpactSpawns);
 		if (ImpactSpawnCount > 0)
