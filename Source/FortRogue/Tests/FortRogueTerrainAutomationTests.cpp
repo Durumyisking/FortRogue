@@ -70,6 +70,12 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 		StageRun->StageCount = 3;
 		StageRun->NormalizeStageData();
 		TestEqual(TEXT("Stage run difficulty rows follow the stage count"), StageRun->StageDifficultyData.Num(), 3);
+		StageRun->RewardChoiceCount = 9;
+		StageRun->NormalizeStageData();
+		TestEqual(TEXT("Stage run clamps reward choice count maximum"), StageRun->RewardChoiceCount, 5);
+		StageRun->RewardChoiceCount = 0;
+		StageRun->NormalizeStageData();
+		TestEqual(TEXT("Stage run clamps reward choice count minimum"), StageRun->RewardChoiceCount, 1);
 		StageRun->StageDifficultyData[2].EnemyTurnDelaySeconds = 0.25f;
 		TestEqual(TEXT("Stage difficulty lookup uses one-based stage numbers"), StageRun->GetStageDifficulty(3).EnemyTurnDelaySeconds, 0.25f);
 	}
