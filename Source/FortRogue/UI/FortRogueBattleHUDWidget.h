@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Combat/FortRogueShotSpec.h"
 #include "Items/FortRogueItemDefinition.h"
 #include "UI/FortRogueActivatableWidget.h"
 #include "Weapons/FortRogueWeaponDefinition.h"
@@ -35,6 +36,15 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	FText GetPlayerShotSummary() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	FFortRogueShotSpec GetPlayerCurrentShotSpec() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	bool DoesPlayerShotModifierMeetCurrentShotConditions(const FFortRogueShotModifierSpec& ShotModifier) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	FText GetPlayerShotModifierCurrentConditionFailureSummary(const FFortRogueShotModifierSpec& ShotModifier) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	TArray<FFortRogueWeaponSpec> GetPlayerWeaponLoadout() const;

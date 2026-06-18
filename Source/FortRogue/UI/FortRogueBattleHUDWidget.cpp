@@ -64,6 +64,33 @@ FText UFortRogueBattleHUDWidget::GetPlayerShotSummary() const
 	return FText::GetEmpty();
 }
 
+FFortRogueShotSpec UFortRogueBattleHUDWidget::GetPlayerCurrentShotSpec() const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->GetCurrentShotSpec();
+	}
+	return FFortRogueShotSpec();
+}
+
+bool UFortRogueBattleHUDWidget::DoesPlayerShotModifierMeetCurrentShotConditions(const FFortRogueShotModifierSpec& ShotModifier) const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->DoesShotModifierMeetCurrentShotConditions(ShotModifier);
+	}
+	return false;
+}
+
+FText UFortRogueBattleHUDWidget::GetPlayerShotModifierCurrentConditionFailureSummary(const FFortRogueShotModifierSpec& ShotModifier) const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->GetShotModifierCurrentConditionFailureSummary(ShotModifier);
+	}
+	return FText::GetEmpty();
+}
+
 TArray<FFortRogueWeaponSpec> UFortRogueBattleHUDWidget::GetPlayerWeaponLoadout() const
 {
 	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
