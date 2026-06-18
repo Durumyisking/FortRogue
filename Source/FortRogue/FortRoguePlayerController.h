@@ -34,6 +34,9 @@ public:
 	void UsePlayerItemByIndex(int32 ItemIndex);
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
+	TArray<FFortRogueItemStack> GetPlayerItemLoadout() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
 	bool CanUsePlayerItemByType(EFortRogueItemType ItemType) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
@@ -59,6 +62,15 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
 	int32 GetPlayerWeaponIndexByTag(FGameplayTag WeaponTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
+	TArray<FFortRogueWeaponSpec> GetPlayerWeaponLoadout() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
+	FFortRogueWeaponSpec GetPlayerCurrentWeaponSpec() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
+	int32 GetPlayerSelectedWeaponIndex() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
 	bool CanFirePlayerWeapon() const;

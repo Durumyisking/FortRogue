@@ -568,6 +568,9 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 		TestTrue(TEXT("Player controller selects weapons by loadout index"), TestPlayerController->SelectPlayerWeaponByIndex(ControllerWeaponIndex));
 		TestEqual(TEXT("Player controller weapon index selection updates current weapon"), GameMode->GetPlayerCharacter()->GetCurrentWeapon().WeaponTag, FortRogueGameplayTags::Weapon_Cluster);
 		TestFalse(TEXT("Player controller rejects invalid weapon loadout indexes"), TestPlayerController->SelectPlayerWeaponByIndex(INDEX_NONE));
+		TestEqual(TEXT("Player controller exposes player weapon loadout count"), TestPlayerController->GetPlayerWeaponLoadout().Num(), GameMode->GetPlayerCharacter()->GetWeaponLoadout().Num());
+		TestEqual(TEXT("Player controller exposes current weapon spec"), TestPlayerController->GetPlayerCurrentWeaponSpec().WeaponTag, FortRogueGameplayTags::Weapon_Cluster);
+		TestEqual(TEXT("Player controller exposes selected weapon index"), TestPlayerController->GetPlayerSelectedWeaponIndex(), ControllerWeaponIndex);
 		UFortRogueAbilitySet* ControllerAbilitySet = NewObject<UFortRogueAbilitySet>(TestPlayerController);
 		ControllerAbilitySet->AbilitySetTag = FortRogueGameplayTags::Trait_ShotModifier;
 		TestEqual(TEXT("Player controller ability set count starts empty"), TestPlayerController->GetPlayerGrantedAbilitySetCount(ControllerAbilitySet), 0);
@@ -597,6 +600,7 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 		ControllerPendingItem->UseShotModifiers.Add(ControllerModifier);
 		GameMode->GetPlayerCharacter()->AddItemDefinition(ControllerPendingItem, 1);
 		const int32 ControllerPendingItemIndex = GameMode->GetPlayerCharacter()->GetItemLoadout().Num() - 1;
+		TestEqual(TEXT("Player controller exposes player item loadout count"), TestPlayerController->GetPlayerItemLoadout().Num(), GameMode->GetPlayerCharacter()->GetItemLoadout().Num());
 		TestPlayerController->UsePlayerItemByIndex(ControllerPendingItemIndex);
 		TestEqual(TEXT("Player controller counts pending shot modifiers by tag"), TestPlayerController->GetPlayerPendingShotModifierCountByTag(FortRogueGameplayTags::ShotEffect_Damage), 1);
 		TestTrue(TEXT("Player controller reports pending shot modifiers by tag"), TestPlayerController->HasPlayerPendingShotModifierByTag(FortRogueGameplayTags::ShotEffect_Damage));

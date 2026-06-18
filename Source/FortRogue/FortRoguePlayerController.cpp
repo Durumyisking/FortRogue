@@ -456,6 +456,16 @@ void AFortRoguePlayerController::UsePlayerItemByIndex(int32 ItemIndex)
 	}
 }
 
+TArray<FFortRogueItemStack> AFortRoguePlayerController::GetPlayerItemLoadout() const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->GetItemLoadoutForBlueprint();
+	}
+	return TArray<FFortRogueItemStack>();
+}
+
 bool AFortRoguePlayerController::CanUsePlayerItemByType(EFortRogueItemType ItemType) const
 {
 	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
@@ -543,6 +553,36 @@ int32 AFortRoguePlayerController::GetPlayerWeaponIndexByTag(FGameplayTag WeaponT
 	if (GameMode && GameMode->GetBattleState() == EFortRogueBattleState::PlayerTurn && GameMode->GetPlayerCharacter())
 	{
 		return GameMode->GetPlayerCharacter()->GetWeaponIndexByTag(WeaponTag);
+	}
+	return INDEX_NONE;
+}
+
+TArray<FFortRogueWeaponSpec> AFortRoguePlayerController::GetPlayerWeaponLoadout() const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->GetWeaponLoadoutForBlueprint();
+	}
+	return TArray<FFortRogueWeaponSpec>();
+}
+
+FFortRogueWeaponSpec AFortRoguePlayerController::GetPlayerCurrentWeaponSpec() const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->GetCurrentWeaponSpec();
+	}
+	return FFortRogueWeaponSpec();
+}
+
+int32 AFortRoguePlayerController::GetPlayerSelectedWeaponIndex() const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->GetSelectedWeaponIndex();
 	}
 	return INDEX_NONE;
 }

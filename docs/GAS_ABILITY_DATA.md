@@ -120,6 +120,7 @@ modifier 적용 순서:
 무기 목록 UI가 슬롯 번호로 선택한다면 `AFortRoguePlayerController::SelectPlayerWeaponByIndex()`를 사용한다.
 무기 목록 UI가 슬롯 번호 대신 데이터 태그를 기준으로 선택해야 한다면 `AFortRogueBattleCharacter::SelectWeaponByTag()` 또는 `AFortRoguePlayerController::SelectPlayerWeaponByTag()`를 사용한다.
 무기 버튼의 활성화 여부나 태그 기반 슬롯 위치를 확인할 때는 `CanSelectWeapon()`, `CanSelectWeaponByTag()`, `GetWeaponIndexByTag()`를 사용한다. PlayerController 경유 UI에서는 `CanSelectPlayerWeapon()`, `CanSelectPlayerWeaponByTag()`, `GetPlayerWeaponIndexByTag()`를 사용한다.
+현재 무기 목록과 선택 상태를 PlayerController 경유 UI에서 읽어야 한다면 `GetPlayerWeaponLoadout()`, `GetPlayerCurrentWeaponSpec()`, `GetPlayerSelectedWeaponIndex()`를 사용한다.
 
 런 보상 풀은 `UFortRogueStageRunDefinition`에서 설정한다.
 
@@ -183,6 +184,7 @@ UI나 블루프린트에서는 `AFortRoguePlayerController::UsePlayerItemByTag()
 아이템 버튼을 누르기 전에 활성화 가능 여부를 확인하려면 `CanUseItemByType()`, `CanUseItemByTag()`, `CanUseItemByIndex()`를 사용한다. PlayerController 경유 UI에서는 `CanUsePlayerItemByType()`, `CanUsePlayerItemByTag()`, `CanUsePlayerItemByIndex()`를 사용한다.
 태그 기반 아이템 버튼이 실제 어느 슬롯에 있는지 확인하려면 `GetItemIndexByTag()` 또는 `GetPlayerItemIndexByTag()`를 사용한다.
 아이템 목록 UI는 `AFortRogueBattleCharacter::GetItemLoadoutForBlueprint()`로 현재 아이템과 수량을 읽을 수 있다.
+PlayerController 경유 UI에서는 `GetPlayerItemLoadout()`으로 현재 아이템 배열과 수량을 읽을 수 있다.
 Canvas HUD도 현재 `ItemLoadout`의 아이템 이름과 수량을 표시한다. 기존 `AttackMultiplier`와 `Heal` 아이템은 각각 `J`, `H` 입력 힌트를 붙인다.
 아이템 효과 요약은 `InitialCharges`, `HealAmount`, `AttackMultiplier` 같은 기본 아이템 효과도 표시한다. 보상에서 `RepairCharges`를 override로 지정하면 override 수량을 우선 표시한다.
 
