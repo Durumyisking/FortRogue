@@ -148,6 +148,11 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 	if (WeaponReward)
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("weapon %s"), *WeaponReward->Weapon.DisplayName.ToString()));
+		const FString WeaponDescription = WeaponReward->Weapon.Description.ToString();
+		if (!WeaponDescription.IsEmpty())
+		{
+			AddSummaryPart(Parts, WeaponDescription);
+		}
 		if (WeaponReward->Weapon.WeaponTag.IsValid())
 		{
 			AddSummaryPart(Parts, FString::Printf(TEXT("tag %s"), *WeaponReward->Weapon.WeaponTag.ToString()));
@@ -201,6 +206,11 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 	if (PerkReward)
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("perk %s"), *PerkReward->DisplayName.ToString()));
+		const FString PerkDescription = PerkReward->Description.ToString();
+		if (!PerkDescription.IsEmpty())
+		{
+			AddSummaryPart(Parts, PerkDescription);
+		}
 		if (PerkReward->PerkTag.IsValid())
 		{
 			AddSummaryPart(Parts, FString::Printf(TEXT("tag %s"), *PerkReward->PerkTag.ToString()));

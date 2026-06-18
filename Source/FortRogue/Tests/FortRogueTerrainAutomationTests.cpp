@@ -100,8 +100,10 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 
 	UFortRogueWeaponDefinition* SummaryWeapon = NewObject<UFortRogueWeaponDefinition>();
 	SummaryWeapon->Weapon.DisplayName = FText::FromString(TEXT("Fork Shell"));
+	SummaryWeapon->Weapon.Description = FText::FromString(TEXT("Splits the battlefield."));
 	SummaryWeapon->Weapon.WeaponTag = FortRogueGameplayTags::Weapon_Shell;
 	TestTrue(TEXT("Blueprint helper summarizes weapon assets"), UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("weapon Fork Shell")));
+	TestTrue(TEXT("Blueprint helper summarizes weapon descriptions"), UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("Splits the battlefield.")));
 	TestTrue(TEXT("Blueprint helper summarizes weapon tags"), UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("tag Weapon.Shell")));
 	TestTrue(TEXT("Blueprint helper summarizes weapon base damage"), UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("damage 35")));
 	TestTrue(TEXT("Blueprint helper summarizes weapon blast radius"), UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("blast 150")));
@@ -134,11 +136,13 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 
 	UFortRoguePerkDefinition* AbilityPerk = NewObject<UFortRoguePerkDefinition>();
 	AbilityPerk->DisplayName = FText::FromString(TEXT("Storm Training"));
+	AbilityPerk->Description = FText::FromString(TEXT("Every run shot bends harder."));
 	AbilityPerk->PerkTag = FortRogueGameplayTags::Trait_ShotModifier;
 	AbilityPerk->GrantedAbilitySet = NamedAbilitySet;
 	FFortRogueRewardChoice PerkAbilityReward;
 	PerkAbilityReward.PerkReward = AbilityPerk;
 	TestTrue(TEXT("Reward summary names perk ability set"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("ability set Wind Split")));
+	TestTrue(TEXT("Reward summary includes perk descriptions"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("Every run shot bends harder.")));
 	TestTrue(TEXT("Reward summary names perk tags"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("tag Trait.ShotModifier")));
 	TestTrue(TEXT("Blueprint helper summarizes perk assets"), UFortRogueRewardBlueprintLibrary::GetPerkEffectSummary(AbilityPerk).ToString().Contains(TEXT("ability set Wind Split")));
 	FFortRogueRewardChoice TaggedReward;

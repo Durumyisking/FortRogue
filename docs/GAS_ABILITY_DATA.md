@@ -37,6 +37,7 @@ modifier 적용 순서:
 
 `UFortRogueWeaponDefinition`의 `Weapon` 안에서 다음을 편집한다.
 
+- `DisplayName`, `Description`: 보상/카탈로그 요약에 표시되는 이름과 설명
 - `WeaponTag`: 기본 무기 식별 태그
 - `ShotEffectTags`: 탄에 붙는 효과 태그
 - `ShotModifiers`: 피해, 폭발 반경, 탄 수, 지형 반경 등을 바꾸는 보정 목록
@@ -157,7 +158,7 @@ UI나 블루프린트에서 현재 적용 여부를 확인할 때는 `GetGranted
 - `AbilitySet`
 
 새 데이터 기반 아이템은 `ItemType = AbilitySet`으로 두고 `UseAbilitySet`을 지정한다.
-아이템 에셋에는 `DisplayName`과 `Description`을 적어둔다. 설명은 보상/카탈로그 요약에 포함되어 데이터 편집 중 의도를 바로 확인할 수 있다.
+아이템과 퍽 에셋에는 `DisplayName`과 `Description`을 적어둔다. 설명은 보상/카탈로그 요약에 포함되어 데이터 편집 중 의도를 바로 확인할 수 있다.
 AbilitySet 에셋에는 `DisplayName`과 `Description`을 적어둔다. 보상 카드 요약은 아이템, 퍽, 직접 보상의 AbilitySet 이름을 표시하므로 데이터 편집자가 어떤 특수효과가 붙는지 바로 확인할 수 있다.
 중첩/제거 가능한 AbilitySet이라면 `AbilitySetTag`에 고유 태그를 지정한다.
 AbilitySet 자체를 UI에 표시할 때는 `UFortRogueAbilitySet::GetEffectSummary()` 또는 `UFortRogueRewardBlueprintLibrary::GetAbilitySetEffectSummary()`를 사용한다. 요약은 표시 이름과 유효한 Ability/Effect/AttributeSet 개수를 포함한다.
