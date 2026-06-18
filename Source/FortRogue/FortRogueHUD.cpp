@@ -104,7 +104,9 @@ void AFortRogueHUD::DrawRewardHUD(AFortRogueGameMode* GameMode, float X, float& 
 	for (int32 Index = 0; Index < Choices.Num(); ++Index)
 	{
 		const FFortRogueRewardChoice& Choice = Choices[Index];
-		DrawText(FString::Printf(TEXT("%d. %s - %s"), Index + 1, *Choice.DisplayName.ToString(), *Choice.Description.ToString()),
+		const FText EffectSummary = Choice.GetEffectSummary();
+		const FText RewardDetails = EffectSummary.IsEmpty() ? Choice.Description : EffectSummary;
+		DrawText(FString::Printf(TEXT("%d. %s - %s"), Index + 1, *Choice.DisplayName.ToString(), *RewardDetails.ToString()),
 			FColor::Yellow, X, Y, GEngine->GetSmallFont(), 1.1f);
 		Y += 24.0f;
 	}

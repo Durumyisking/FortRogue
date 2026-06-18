@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "Weapons/FortRogueWeaponDefinition.h"
 #include "FortRogueRewardTypes.generated.h"
@@ -62,4 +63,6 @@ struct FFortRogueRewardChoice
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
 	int32 RepairCharges = 0;
+
+	FText GetEffectSummary() const;
 };
