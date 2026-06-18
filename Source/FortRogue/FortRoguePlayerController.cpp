@@ -142,6 +142,8 @@ void AFortRoguePlayerController::Tick(float DeltaSeconds)
 		ApplyMoveAxis(EnhancedMoveAxis, DeltaSeconds);
 		ApplyAimAxis(EnhancedAimAxis, DeltaSeconds);
 		TickKeyboardFireInput();
+		TickKeyboardWeaponInput();
+		TickKeyboardItemInput();
 		TickPlayerWeaponCharge(DeltaSeconds);
 		return;
 	}
@@ -165,35 +167,8 @@ void AFortRoguePlayerController::TickBattleInput(float DeltaSeconds)
 
 	ApplyMoveAxis((IsInputKeyDown(EKeys::D) ? 1.0f : 0.0f) + (IsInputKeyDown(EKeys::A) ? -1.0f : 0.0f), DeltaSeconds);
 	ApplyAimAxis((IsInputKeyDown(EKeys::W) ? 1.0f : 0.0f) + (IsInputKeyDown(EKeys::S) ? -1.0f : 0.0f), DeltaSeconds);
-
-	if (WasInputKeyJustPressed(EKeys::One))
-	{
-		SelectPlayerWeapon(0);
-	}
-	if (WasInputKeyJustPressed(EKeys::Two))
-	{
-		SelectPlayerWeapon(1);
-	}
-	if (WasInputKeyJustPressed(EKeys::Three))
-	{
-		SelectPlayerWeapon(2);
-	}
-	if (WasInputKeyJustPressed(EKeys::Four))
-	{
-		SelectPlayerWeapon(3);
-	}
-	if (WasInputKeyJustPressed(EKeys::Five))
-	{
-		SelectPlayerWeapon(4);
-	}
-	if (WasInputKeyJustPressed(EKeys::J))
-	{
-		UsePlayerItem(EFortRogueItemType::AttackMultiplier);
-	}
-	if (WasInputKeyJustPressed(EKeys::H))
-	{
-		UsePlayerItem(EFortRogueItemType::Heal);
-	}
+	TickKeyboardWeaponInput();
+	TickKeyboardItemInput();
 
 	if (WasInputKeyJustPressed(EKeys::SpaceBar))
 	{
@@ -224,6 +199,42 @@ void AFortRoguePlayerController::TickKeyboardFireInput()
 	if (WasInputKeyJustReleased(EKeys::SpaceBar))
 	{
 		ReleasePlayerWeaponCharge();
+	}
+}
+
+void AFortRoguePlayerController::TickKeyboardWeaponInput()
+{
+	if (!Weapon1Action && WasInputKeyJustPressed(EKeys::One))
+	{
+		SelectPlayerWeapon(0);
+	}
+	if (!Weapon2Action && WasInputKeyJustPressed(EKeys::Two))
+	{
+		SelectPlayerWeapon(1);
+	}
+	if (!Weapon3Action && WasInputKeyJustPressed(EKeys::Three))
+	{
+		SelectPlayerWeapon(2);
+	}
+	if (!Weapon4Action && WasInputKeyJustPressed(EKeys::Four))
+	{
+		SelectPlayerWeapon(3);
+	}
+	if (!Weapon5Action && WasInputKeyJustPressed(EKeys::Five))
+	{
+		SelectPlayerWeapon(4);
+	}
+}
+
+void AFortRoguePlayerController::TickKeyboardItemInput()
+{
+	if (!AttackItemAction && WasInputKeyJustPressed(EKeys::J))
+	{
+		UsePlayerItem(EFortRogueItemType::AttackMultiplier);
+	}
+	if (!HealItemAction && WasInputKeyJustPressed(EKeys::H))
+	{
+		UsePlayerItem(EFortRogueItemType::Heal);
 	}
 }
 
