@@ -571,6 +571,60 @@ bool AFortRoguePlayerController::TryApplyPlayerCombatAttributeDeltaByTag(FGamepl
 	return false;
 }
 
+void AFortRoguePlayerController::GrantPlayerAbilitySet(UFortRogueAbilitySet* AbilitySet)
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		GameMode->GetPlayerCharacter()->GrantAbilitySet(AbilitySet);
+	}
+}
+
+bool AFortRoguePlayerController::RemovePlayerAbilitySet(UFortRogueAbilitySet* AbilitySet)
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->RemoveAbilitySet(AbilitySet);
+	}
+	return false;
+}
+
+int32 AFortRoguePlayerController::RemovePlayerAbilitySetsByTag(FGameplayTag AbilitySetTag)
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->RemoveAbilitySetsByTag(AbilitySetTag);
+	}
+	return 0;
+}
+
+int32 AFortRoguePlayerController::GetPlayerGrantedAbilitySetCount(UFortRogueAbilitySet* AbilitySet) const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->GetGrantedAbilitySetCount(AbilitySet);
+	}
+	return 0;
+}
+
+int32 AFortRoguePlayerController::GetPlayerGrantedAbilitySetCountByTag(FGameplayTag AbilitySetTag) const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->GetGrantedAbilitySetCountByTag(AbilitySetTag);
+	}
+	return 0;
+}
+
+bool AFortRoguePlayerController::HasPlayerGrantedAbilitySetByTag(FGameplayTag AbilitySetTag) const
+{
+	return GetPlayerGrantedAbilitySetCountByTag(AbilitySetTag) > 0;
+}
+
 int32 AFortRoguePlayerController::GetPlayerGrantedShotModifierCountByTag(FGameplayTag ModifierTag) const
 {
 	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;

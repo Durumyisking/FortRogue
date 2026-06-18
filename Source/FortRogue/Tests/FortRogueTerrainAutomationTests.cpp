@@ -560,6 +560,18 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 		TestFalse(TEXT("Player controller rejects invalid attribute value tags"), TestPlayerController->TryGetPlayerCombatAttributeValueByTag(FGameplayTag(), PlayerAttributeValue));
 		TestEqual(TEXT("Rejected player controller attribute value resets output"), PlayerAttributeValue, 0.0f);
 		TestFalse(TEXT("Player controller rejects invalid attribute delta tags"), TestPlayerController->TryApplyPlayerCombatAttributeDeltaByTag(FGameplayTag(), 1.0f));
+		UFortRogueAbilitySet* ControllerAbilitySet = NewObject<UFortRogueAbilitySet>(TestPlayerController);
+		ControllerAbilitySet->AbilitySetTag = FortRogueGameplayTags::Trait_ShotModifier;
+		TestEqual(TEXT("Player controller ability set count starts empty"), TestPlayerController->GetPlayerGrantedAbilitySetCount(ControllerAbilitySet), 0);
+		TestPlayerController->GrantPlayerAbilitySet(ControllerAbilitySet);
+		TestPlayerController->GrantPlayerAbilitySet(ControllerAbilitySet);
+		TestEqual(TEXT("Player controller counts granted ability sets"), TestPlayerController->GetPlayerGrantedAbilitySetCount(ControllerAbilitySet), 2);
+		TestEqual(TEXT("Player controller counts granted ability sets by tag"), TestPlayerController->GetPlayerGrantedAbilitySetCountByTag(FortRogueGameplayTags::Trait_ShotModifier), 2);
+		TestTrue(TEXT("Player controller reports granted ability sets by tag"), TestPlayerController->HasPlayerGrantedAbilitySetByTag(FortRogueGameplayTags::Trait_ShotModifier));
+		TestTrue(TEXT("Player controller removes one granted ability set"), TestPlayerController->RemovePlayerAbilitySet(ControllerAbilitySet));
+		TestEqual(TEXT("Player controller ability set count updates after object removal"), TestPlayerController->GetPlayerGrantedAbilitySetCount(ControllerAbilitySet), 1);
+		TestEqual(TEXT("Player controller removes granted ability sets by tag"), TestPlayerController->RemovePlayerAbilitySetsByTag(FortRogueGameplayTags::Trait_ShotModifier), 1);
+		TestFalse(TEXT("Player controller reports missing ability sets by tag"), TestPlayerController->HasPlayerGrantedAbilitySetByTag(FortRogueGameplayTags::Trait_ShotModifier));
 		FFortRogueShotModifierSpec ControllerModifier;
 		ControllerModifier.ModifierTag = FortRogueGameplayTags::ShotEffect_Damage;
 		TArray<FFortRogueShotModifierSpec> ControllerModifiers = { ControllerModifier };

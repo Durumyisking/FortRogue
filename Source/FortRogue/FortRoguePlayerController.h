@@ -10,6 +10,7 @@
 
 class UFortRogueBattleHUDWidget;
 class UFortRogueRewardScreenWidget;
+class UFortRogueAbilitySet;
 class UInputAction;
 class UInputMappingContext;
 struct FInputActionValue;
@@ -64,6 +65,24 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Stats")
 	bool TryApplyPlayerCombatAttributeDeltaByTag(FGameplayTag AttributeTag, float DeltaValue);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Abilities")
+	void GrantPlayerAbilitySet(UFortRogueAbilitySet* AbilitySet);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Abilities")
+	bool RemovePlayerAbilitySet(UFortRogueAbilitySet* AbilitySet);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Abilities")
+	int32 RemovePlayerAbilitySetsByTag(FGameplayTag AbilitySetTag);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Abilities")
+	int32 GetPlayerGrantedAbilitySetCount(UFortRogueAbilitySet* AbilitySet) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Abilities")
+	int32 GetPlayerGrantedAbilitySetCountByTag(FGameplayTag AbilitySetTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Abilities")
+	bool HasPlayerGrantedAbilitySetByTag(FGameplayTag AbilitySetTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
 	int32 GetPlayerGrantedShotModifierCountByTag(FGameplayTag ModifierTag) const;
