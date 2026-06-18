@@ -144,7 +144,7 @@ UI나 디버그 화면에서 현재 런의 선택 보상 태그를 보여줄 때
 잠긴 이유를 표시하려면 `GetRewardTagConditionFailureSummary()`를 사용한다. 조건을 만족하면 빈 텍스트를 반환한다.
 
 최종 스테이지 전까지 적을 처치하면 `Reward` 상태로 들어가고, 플레이어가 보상을 선택한 뒤 다음 스테이지를 생성한다.
-보상 버튼을 활성화할 때는 `AFortRogueGameMode::CanApplyRewardChoice()`로 현재 상태와 선택지 인덱스 유효성을 확인한다.
+보상 버튼을 활성화할 때는 `AFortRogueGameMode::CanApplyRewardChoice()`로 현재 상태, 선택지 인덱스, 보상 태그 조건 유효성을 확인한다.
 보상 슬롯 수와 개별 데이터는 `GetRewardChoiceCount()`와 `GetRewardChoice()`로 읽을 수 있다.
 보상 조건 실패 이유를 인덱스 기준으로 표시해야 한다면 `AFortRogueGameMode::GetRewardChoiceConditionFailureSummary()`를 사용한다.
 UMG 보상 화면에서는 `UFortRogueRewardScreenWidget::GetRewardChoices()`, `GetRewardChoiceCount()`, `GetRewardChoice()`, `GetRewardChoiceSummary()`, `GetRewardChoiceConditionFailureSummary()`, `GetChosenRewardTags()`, `CanChooseReward()`를 사용한다.

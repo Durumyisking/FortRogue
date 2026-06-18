@@ -137,7 +137,10 @@ void AFortRogueGameMode::ApplyRewardChoice(int32 ChoiceIndex)
 
 bool AFortRogueGameMode::CanApplyRewardChoice(int32 ChoiceIndex) const
 {
-	return BattleState == EFortRogueBattleState::Reward && PlayerCharacter && RewardChoices.IsValidIndex(ChoiceIndex);
+	return BattleState == EFortRogueBattleState::Reward
+		&& PlayerCharacter
+		&& RewardChoices.IsValidIndex(ChoiceIndex)
+		&& RewardChoices[ChoiceIndex].MeetsRewardTagConditions(GetChosenRewardTags());
 }
 
 float AFortRogueGameMode::GetWind() const
