@@ -22,7 +22,7 @@
 - `EffectTags`
 - `ImpactSpawns`
 
-HUD는 `GetCurrentShotSpec()`을 통해 modifier가 적용된 최종 값을 표시한다.
+HUD는 `GetCurrentShotSpec()`을 통해 modifier가 적용된 최종 값과 충돌 후 생성될 자식 탄 수를 표시한다.
 
 modifier 적용 순서:
 
