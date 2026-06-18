@@ -36,6 +36,9 @@ public:
 	FText GetPlayerCombatStatsSummary() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	bool TryGetPlayerCombatAttributeValueByTag(FGameplayTag AttributeTag, float& OutValue) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	FText GetPlayerShotSummary() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")

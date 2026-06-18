@@ -55,6 +55,16 @@ FText UFortRogueBattleHUDWidget::GetPlayerCombatStatsSummary() const
 	return FText::GetEmpty();
 }
 
+bool UFortRogueBattleHUDWidget::TryGetPlayerCombatAttributeValueByTag(FGameplayTag AttributeTag, float& OutValue) const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->TryGetCombatAttributeValueByTag(AttributeTag, OutValue);
+	}
+	OutValue = 0.0f;
+	return false;
+}
+
 FText UFortRogueBattleHUDWidget::GetPlayerShotSummary() const
 {
 	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
