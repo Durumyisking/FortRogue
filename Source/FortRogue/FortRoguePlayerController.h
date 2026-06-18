@@ -102,6 +102,18 @@ public:
 	bool CanFirePlayerWeapon() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	float GetPlayerAimAngle() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	float GetPlayerShotPower() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	float GetPlayerShotChargeAlpha() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	bool IsPlayerChargingShot() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
 	FFortRogueShotSpec GetPlayerCurrentShotSpec() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")

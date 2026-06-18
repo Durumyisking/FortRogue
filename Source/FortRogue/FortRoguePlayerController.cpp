@@ -658,6 +658,46 @@ bool AFortRoguePlayerController::CanFirePlayerWeapon() const
 	return false;
 }
 
+float AFortRoguePlayerController::GetPlayerAimAngle() const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->GetAimAngle();
+	}
+	return 0.0f;
+}
+
+float AFortRoguePlayerController::GetPlayerShotPower() const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->GetShotPower();
+	}
+	return 0.0f;
+}
+
+float AFortRoguePlayerController::GetPlayerShotChargeAlpha() const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->GetShotChargeAlpha();
+	}
+	return 0.0f;
+}
+
+bool AFortRoguePlayerController::IsPlayerChargingShot() const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->IsChargingShot();
+	}
+	return false;
+}
+
 FFortRogueShotSpec AFortRoguePlayerController::GetPlayerCurrentShotSpec() const
 {
 	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
