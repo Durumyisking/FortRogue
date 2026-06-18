@@ -527,9 +527,18 @@ void AFortRogueGameMode::EnterRewardState()
 void AFortRogueGameMode::BuildRewardChoices()
 {
 	RewardChoices.Reset();
-	if (StageRunDefinition && StageRunDefinition->RewardPool.Num() > 0)
+	if (!StageRunDefinition || StageRunDefinition->RewardPool.Num() <= 0)
 	{
-		RewardChoices = StageRunDefinition->RewardPool;
+		return;
+	}
+
+	TArray<FFortRogueRewardChoice> CandidateRewards = StageRunDefinition->RewardPool;
+	const int32 ChoiceCount = FMath::Clamp(StageRunDefinition->RewardChoiceCount, 1, CandidateRewards.Num());
+	for (int32 ChoiceIndex = 0; ChoiceIndex < ChoiceCount; ++ChoiceIndex)
+	{
+		const int32 CandidateIndex = FMath::RandRange(0, CandidateRewards.Num() - 1);
+		RewardChoices.Add(CandidateRewards[CandidateIndex]);
+		CandidateRewards.RemoveAtSwap(CandidateIndex, 1, EAllowShrinking::No);
 	}
 }
 
