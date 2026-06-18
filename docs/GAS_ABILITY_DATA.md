@@ -113,7 +113,7 @@ modifier 적용 순서:
 런 보상 풀은 `UFortRogueStageRunDefinition`에서 설정한다.
 
 - `RewardPool`: 등장 가능한 보상 전체 목록
-- `RewardChoiceCount`: 보상 화면에 보여줄 선택지 수
+- `RewardChoiceCount`: 보상 화면에 보여줄 선택지 수, 현재 키보드/Canvas HUD 기준 1-5개
 - `RewardWeight`: 각 보상의 등장 가중치
 - `bOfferOncePerRun`: `RewardTag`가 있는 보상을 런당 한 번만 제시
 

@@ -79,7 +79,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rewards")
 	TArray<FFortRogueRewardChoice> RewardPool;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rewards", meta = (ClampMin = "1"))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Rewards", meta = (ClampMin = "1", ClampMax = "5"))
 	int32 RewardChoiceCount = 3;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Difficulty")

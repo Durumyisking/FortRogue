@@ -120,6 +120,14 @@ void AFortRoguePlayerController::SetupInputComponent()
 	{
 		EnhancedInput->BindAction(Reward3Action, ETriggerEvent::Started, this, &AFortRoguePlayerController::HandleReward3);
 	}
+	if (Reward4Action)
+	{
+		EnhancedInput->BindAction(Reward4Action, ETriggerEvent::Started, this, &AFortRoguePlayerController::HandleReward4);
+	}
+	if (Reward5Action)
+	{
+		EnhancedInput->BindAction(Reward5Action, ETriggerEvent::Started, this, &AFortRoguePlayerController::HandleReward5);
+	}
 }
 
 void AFortRoguePlayerController::Tick(float DeltaSeconds)
@@ -239,6 +247,14 @@ void AFortRoguePlayerController::TickRewardInput()
 	{
 		ChooseReward(2);
 	}
+	else if (WasInputKeyJustPressed(EKeys::Four))
+	{
+		ChooseReward(3);
+	}
+	else if (WasInputKeyJustPressed(EKeys::Five))
+	{
+		ChooseReward(4);
+	}
 }
 
 void AFortRoguePlayerController::UpdateOptionalWidgets()
@@ -266,7 +282,7 @@ bool AFortRoguePlayerController::HasEnhancedInputBindings() const
 	return MoveAction || AimAction || FireAction
 		|| Weapon1Action || Weapon2Action || Weapon3Action || Weapon4Action || Weapon5Action
 		|| AttackItemAction || HealItemAction
-		|| Reward1Action || Reward2Action || Reward3Action;
+		|| Reward1Action || Reward2Action || Reward3Action || Reward4Action || Reward5Action;
 }
 
 void AFortRoguePlayerController::HandleMove(const FInputActionValue& Value)
@@ -337,6 +353,16 @@ void AFortRoguePlayerController::HandleReward2()
 void AFortRoguePlayerController::HandleReward3()
 {
 	ChooseReward(2);
+}
+
+void AFortRoguePlayerController::HandleReward4()
+{
+	ChooseReward(3);
+}
+
+void AFortRoguePlayerController::HandleReward5()
+{
+	ChooseReward(4);
 }
 
 void AFortRoguePlayerController::ApplyMoveAxis(float Axis, float DeltaSeconds)

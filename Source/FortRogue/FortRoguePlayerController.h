@@ -50,6 +50,8 @@ private:
 	void HandleReward1();
 	void HandleReward2();
 	void HandleReward3();
+	void HandleReward4();
+	void HandleReward5();
 	void ApplyMoveAxis(float Axis, float DeltaSeconds);
 	void ApplyAimAxis(float Axis, float DeltaSeconds);
 	void BeginPlayerWeaponCharge();
@@ -103,6 +105,12 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Input")
 	TObjectPtr<UInputAction> Reward3Action;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Input")
+	TObjectPtr<UInputAction> Reward4Action;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Input")
+	TObjectPtr<UInputAction> Reward5Action;
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI")
 	TSubclassOf<UFortRogueBattleHUDWidget> BattleHUDWidgetClass;

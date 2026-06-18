@@ -119,7 +119,8 @@ void AFortRogueHUD::DrawPowerGauge(AFortRogueBattleCharacter* Player, float X, f
 void AFortRogueHUD::DrawRewardHUD(AFortRogueGameMode* GameMode, float X, float& Y)
 {
 	const TArray<FFortRogueRewardChoice> Choices = GameMode->GetRewardChoices();
-	DrawText(TEXT("Choose reward: 1 / 2 / 3"), FColor::Yellow, X, Y, GEngine->GetSmallFont(), 1.2f);
+	DrawText(FString::Printf(TEXT("Choose reward: 1-%d"), FMath::Max(1, Choices.Num())),
+		FColor::Yellow, X, Y, GEngine->GetSmallFont(), 1.2f);
 	Y += 30.0f;
 
 	for (int32 Index = 0; Index < Choices.Num(); ++Index)

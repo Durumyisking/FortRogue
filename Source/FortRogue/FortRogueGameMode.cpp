@@ -25,6 +25,7 @@ namespace
 constexpr float TerrainCameraPadding = 240.0f;
 constexpr float MinimumTerrainCameraOrthoWidth = 1200.0f;
 constexpr float ExpectedWideViewportAspectRatio = 16.0f / 9.0f;
+constexpr int32 MaxRewardChoiceCount = 5;
 const FRotator BattleCameraRotation(0.0f, 90.0f, 0.0f);
 }
 
@@ -550,7 +551,8 @@ void AFortRogueGameMode::BuildRewardChoices()
 		CandidateRewards = StageRunDefinition->RewardPool;
 	}
 
-	const int32 ChoiceCount = FMath::Clamp(StageRunDefinition->RewardChoiceCount, 1, CandidateRewards.Num());
+	const int32 MaxAvailableChoices = FMath::Min(MaxRewardChoiceCount, CandidateRewards.Num());
+	const int32 ChoiceCount = FMath::Clamp(StageRunDefinition->RewardChoiceCount, 1, MaxAvailableChoices);
 	for (int32 ChoiceIndex = 0; ChoiceIndex < ChoiceCount; ++ChoiceIndex)
 	{
 		float TotalWeight = 0.0f;
