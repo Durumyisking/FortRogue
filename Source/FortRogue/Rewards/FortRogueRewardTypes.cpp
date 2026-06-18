@@ -60,6 +60,16 @@ void AddShotModifierSummary(TArray<FString>& Parts, const TArray<FFortRogueShotM
 	int32 ImpactSpawnCount = 0;
 	for (const FFortRogueShotModifierSpec& Modifier : Modifiers)
 	{
+		const FString ModifierDisplayName = Modifier.DisplayName.ToString();
+		if (!ModifierDisplayName.IsEmpty())
+		{
+			AddSummaryPart(Parts, FString::Printf(TEXT("modifier %s"), *ModifierDisplayName));
+		}
+		const FString ModifierDescription = Modifier.Description.ToString();
+		if (!ModifierDescription.IsEmpty())
+		{
+			AddSummaryPart(Parts, ModifierDescription);
+		}
 		if (Modifier.ModifierTag.IsValid())
 		{
 			AddSummaryPart(Parts, FString::Printf(TEXT("modifier tag %s"), *Modifier.ModifierTag.ToString()));

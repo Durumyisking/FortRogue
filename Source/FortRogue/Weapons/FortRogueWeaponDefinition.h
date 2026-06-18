@@ -15,6 +15,12 @@ struct FFortRogueShotModifierSpec
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier")
+	FText DisplayName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (MultiLine = "true"))
+	FText Description;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier")
 	FGameplayTagContainer EffectTags;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier")

@@ -91,11 +91,15 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Ability set summary includes display name"), NamedAbilitySet->GetEffectSummary().ToString().Contains(TEXT("Wind Split")));
 	TestTrue(TEXT("Blueprint helper summarizes ability set assets"), UFortRogueRewardBlueprintLibrary::GetAbilitySetEffectSummary(NamedAbilitySet).ToString().Contains(TEXT("Wind Split")));
 	FFortRogueShotModifierSpec SummaryModifier;
+	SummaryModifier.DisplayName = FText::FromString(TEXT("Split Boost"));
+	SummaryModifier.Description = FText::FromString(TEXT("Adds child shots after impact."));
 	SummaryModifier.ModifierTag = FortRogueGameplayTags::ShotEffect_Projectiles;
 	SummaryModifier.EffectTags.AddTag(FortRogueGameplayTags::ShotEffect_SplitOnImpact);
 	SummaryModifier.ProjectileCountBonus = 2;
 	TArray<FFortRogueShotModifierSpec> SummaryModifiers = { SummaryModifier };
 	TestTrue(TEXT("Blueprint helper summarizes standalone shot modifiers"), UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(SummaryModifiers).ToString().Contains(TEXT("projectiles +2")));
+	TestTrue(TEXT("Blueprint helper summarizes shot modifier display names"), UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(SummaryModifiers).ToString().Contains(TEXT("modifier Split Boost")));
+	TestTrue(TEXT("Blueprint helper summarizes shot modifier descriptions"), UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(SummaryModifiers).ToString().Contains(TEXT("Adds child shots after impact.")));
 	TestTrue(TEXT("Blueprint helper summarizes shot modifier tags"), UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(SummaryModifiers).ToString().Contains(TEXT("modifier tag ShotEffect.Projectiles")));
 	TestTrue(TEXT("Blueprint helper summarizes shot effect tags"), UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(SummaryModifiers).ToString().Contains(TEXT("ShotEffect.SplitOnImpact")));
 	FFortRogueRewardChoice AbilitySetReward;
