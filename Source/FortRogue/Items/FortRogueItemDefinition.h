@@ -12,7 +12,8 @@ UENUM(BlueprintType)
 enum class EFortRogueItemType : uint8
 {
 	AttackMultiplier,
-	Heal
+	Heal,
+	AbilitySet
 };
 
 UCLASS(BlueprintType)
