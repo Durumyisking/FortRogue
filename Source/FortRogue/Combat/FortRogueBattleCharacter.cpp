@@ -567,6 +567,24 @@ bool AFortRogueBattleCharacter::RemoveAbilitySet(UFortRogueAbilitySet* AbilitySe
 	return false;
 }
 
+int32 AFortRogueBattleCharacter::GetGrantedAbilitySetCount(UFortRogueAbilitySet* AbilitySet) const
+{
+	if (!AbilitySet)
+	{
+		return 0;
+	}
+
+	int32 GrantedCount = 0;
+	for (const FFortRogueGrantedAbilitySetEntry& Entry : GrantedAbilitySetEntries)
+	{
+		if (Entry.AbilitySet == AbilitySet)
+		{
+			++GrantedCount;
+		}
+	}
+	return GrantedCount;
+}
+
 void AFortRogueBattleCharacter::GrantShotModifiers(const TArray<FFortRogueShotModifierSpec>& ShotModifiers)
 {
 	if (ShotModifiers.Num() <= 0)

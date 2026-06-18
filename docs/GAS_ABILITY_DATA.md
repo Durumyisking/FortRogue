@@ -145,6 +145,7 @@ UI나 블루프린트에서 현재 적용 여부를 확인할 때는 `GetGranted
 
 새 데이터 기반 아이템은 `ItemType = AbilitySet`으로 두고 `UseAbilitySet`을 지정한다.
 AbilitySet 에셋에는 `DisplayName`과 `Description`을 적어둔다. 보상 카드 요약은 아이템, 퍽, 직접 보상의 AbilitySet 이름을 표시하므로 데이터 편집자가 어떤 특수효과가 붙는지 바로 확인할 수 있다.
+임시 효과나 중첩 효과를 확인할 때는 `AFortRogueBattleCharacter::GetGrantedAbilitySetCount()`로 특정 AbilitySet이 현재 몇 번 부여됐는지 읽을 수 있다. 제거는 기존 `RemoveAbilitySet()`으로 한 항목씩 처리한다.
 
 UI나 블루프린트에서는 `AFortRoguePlayerController::UsePlayerItemByTag()`로 `ItemTag` 기반 아이템 사용을 연결할 수 있다.
 현재 표시 중인 아이템 배열을 그대로 버튼에 연결하려면 `AFortRoguePlayerController::UsePlayerItemByIndex()` 또는 `AFortRogueBattleCharacter::UseItemByIndex()`를 사용한다. 인덱스는 `ItemLoadout` 기준 0부터 시작한다.
