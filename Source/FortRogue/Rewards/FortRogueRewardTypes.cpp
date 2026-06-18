@@ -148,6 +148,10 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 	if (WeaponReward)
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("weapon %s"), *WeaponReward->Weapon.DisplayName.ToString()));
+		if (WeaponReward->Weapon.WeaponTag.IsValid())
+		{
+			AddSummaryPart(Parts, FString::Printf(TEXT("tag %s"), *WeaponReward->Weapon.WeaponTag.ToString()));
+		}
 		if (WeaponReward->Weapon.Damage > 0.0f)
 		{
 			AddSummaryPart(Parts, FString::Printf(TEXT("damage %.0f"), WeaponReward->Weapon.Damage));
@@ -170,6 +174,10 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 	if (ItemReward)
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("item %s"), *ItemReward->DisplayName.ToString()));
+		if (ItemReward->ItemTag.IsValid())
+		{
+			AddSummaryPart(Parts, FString::Printf(TEXT("tag %s"), *ItemReward->ItemTag.ToString()));
+		}
 		if (ItemReward->ItemType == EFortRogueItemType::Heal && ItemReward->HealAmount > 0.0f)
 		{
 			AddSummaryPart(Parts, FString::Printf(TEXT("heal +%.0f"), ItemReward->HealAmount));
@@ -184,6 +192,10 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 	if (PerkReward)
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("perk %s"), *PerkReward->DisplayName.ToString()));
+		if (PerkReward->PerkTag.IsValid())
+		{
+			AddSummaryPart(Parts, FString::Printf(TEXT("tag %s"), *PerkReward->PerkTag.ToString()));
+		}
 		AddShotModifierSummary(Parts, PerkReward->ShotModifiers);
 		AddAbilitySetSummary(Parts, PerkReward->GrantedAbilitySet);
 		if (PerkReward->DamageBonus > 0.0f)
@@ -236,6 +248,10 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 	if (RepairCharges > 0)
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("charges +%d"), RepairCharges));
+	}
+	if (RewardTag.IsValid())
+	{
+		AddSummaryPart(Parts, FString::Printf(TEXT("reward tag %s"), *RewardTag.ToString()));
 	}
 	if (bOfferOncePerRun && RewardTag.IsValid())
 	{

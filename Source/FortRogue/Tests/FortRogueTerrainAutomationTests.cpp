@@ -100,16 +100,20 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 
 	UFortRogueWeaponDefinition* SummaryWeapon = NewObject<UFortRogueWeaponDefinition>();
 	SummaryWeapon->Weapon.DisplayName = FText::FromString(TEXT("Fork Shell"));
+	SummaryWeapon->Weapon.WeaponTag = FortRogueGameplayTags::Weapon_Shell;
 	TestTrue(TEXT("Blueprint helper summarizes weapon assets"), UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("weapon Fork Shell")));
+	TestTrue(TEXT("Blueprint helper summarizes weapon tags"), UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("tag Weapon.Shell")));
 	TestTrue(TEXT("Blueprint helper summarizes weapon base damage"), UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("damage 35")));
 	TestTrue(TEXT("Blueprint helper summarizes weapon blast radius"), UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("blast 150")));
 
 	UFortRogueItemDefinition* AbilityItem = NewObject<UFortRogueItemDefinition>();
 	AbilityItem->DisplayName = FText::FromString(TEXT("Storm Capsule"));
+	AbilityItem->ItemTag = FortRogueGameplayTags::Item_NextShot;
 	AbilityItem->UseAbilitySet = NamedAbilitySet;
 	FFortRogueRewardChoice ItemAbilityReward;
 	ItemAbilityReward.ItemReward = AbilityItem;
 	TestTrue(TEXT("Reward summary names item ability set"), ItemAbilityReward.GetEffectSummary().ToString().Contains(TEXT("ability set Wind Split")));
+	TestTrue(TEXT("Reward summary names item tags"), ItemAbilityReward.GetEffectSummary().ToString().Contains(TEXT("tag Item.NextShot")));
 	TestTrue(TEXT("Blueprint helper summarizes item assets"), UFortRogueRewardBlueprintLibrary::GetItemEffectSummary(AbilityItem).ToString().Contains(TEXT("ability set Wind Split")));
 	UFortRogueItemDefinition* HealSummaryItem = NewObject<UFortRogueItemDefinition>();
 	HealSummaryItem->ItemType = EFortRogueItemType::Heal;
@@ -122,11 +126,16 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 
 	UFortRoguePerkDefinition* AbilityPerk = NewObject<UFortRoguePerkDefinition>();
 	AbilityPerk->DisplayName = FText::FromString(TEXT("Storm Training"));
+	AbilityPerk->PerkTag = FortRogueGameplayTags::Trait_ShotModifier;
 	AbilityPerk->GrantedAbilitySet = NamedAbilitySet;
 	FFortRogueRewardChoice PerkAbilityReward;
 	PerkAbilityReward.PerkReward = AbilityPerk;
 	TestTrue(TEXT("Reward summary names perk ability set"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("ability set Wind Split")));
+	TestTrue(TEXT("Reward summary names perk tags"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("tag Trait.ShotModifier")));
 	TestTrue(TEXT("Blueprint helper summarizes perk assets"), UFortRogueRewardBlueprintLibrary::GetPerkEffectSummary(AbilityPerk).ToString().Contains(TEXT("ability set Wind Split")));
+	FFortRogueRewardChoice TaggedReward;
+	TaggedReward.RewardTag = FortRogueGameplayTags::Trait_Damage;
+	TestTrue(TEXT("Reward summary names reward tags"), TaggedReward.GetEffectSummary().ToString().Contains(TEXT("reward tag Trait.Damage")));
 
 	UFortRogueTerrainMapDefinition* CorruptMap = NewObject<UFortRogueTerrainMapDefinition>();
 	TestNotNull(TEXT("Corrupt map asset object is created"), CorruptMap);
