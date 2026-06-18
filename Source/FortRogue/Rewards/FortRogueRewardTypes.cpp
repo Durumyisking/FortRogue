@@ -60,6 +60,14 @@ void AddShotModifierSummary(TArray<FString>& Parts, const TArray<FFortRogueShotM
 	int32 ImpactSpawnCount = 0;
 	for (const FFortRogueShotModifierSpec& Modifier : Modifiers)
 	{
+		if (Modifier.ModifierTag.IsValid())
+		{
+			AddSummaryPart(Parts, FString::Printf(TEXT("modifier tag %s"), *Modifier.ModifierTag.ToString()));
+		}
+		if (!Modifier.EffectTags.IsEmpty())
+		{
+			AddSummaryPart(Parts, FString::Printf(TEXT("effect tags %s"), *Modifier.EffectTags.ToStringSimple()));
+		}
 		if (Modifier.bUseAimAngleRange)
 		{
 			AddSummaryPart(Parts, FString::Printf(TEXT("aim %.0f-%.0f deg"), Modifier.MinAimAngle, Modifier.MaxAimAngle));
