@@ -163,6 +163,16 @@ void AddShotModifierSummary(TArray<FString>& Parts, const TArray<FFortRogueShotM
 FText FFortRogueRewardChoice::GetEffectSummary() const
 {
 	TArray<FString> Parts;
+	const FString RewardDisplayName = DisplayName.ToString();
+	if (!RewardDisplayName.IsEmpty())
+	{
+		AddSummaryPart(Parts, FString::Printf(TEXT("reward %s"), *RewardDisplayName));
+	}
+	const FString RewardDescription = Description.ToString();
+	if (!RewardDescription.IsEmpty())
+	{
+		AddSummaryPart(Parts, RewardDescription);
+	}
 	if (WeaponReward)
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("weapon %s"), *WeaponReward->Weapon.DisplayName.ToString()));

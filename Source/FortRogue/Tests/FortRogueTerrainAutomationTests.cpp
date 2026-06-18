@@ -156,12 +156,16 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Reward summary names perk tags"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("tag Trait.ShotModifier")));
 	TestTrue(TEXT("Blueprint helper summarizes perk assets"), UFortRogueRewardBlueprintLibrary::GetPerkEffectSummary(AbilityPerk).ToString().Contains(TEXT("ability set Wind Split")));
 	FFortRogueRewardChoice RiskReward;
+	RiskReward.DisplayName = FText::FromString(TEXT("Glass Cannon"));
+	RiskReward.Description = FText::FromString(TEXT("Trades survivability for tempo."));
 	RiskReward.DamageBonus = -5.0f;
 	RiskReward.MaxHealthBonus = -20.0f;
 	RiskReward.MaxMoveBudgetBonus = -3.0f;
 	RiskReward.ProjectileBonus = -1;
 	RiskReward.ShotPowerMultiplierBonus = -0.25f;
 	const FString RiskRewardSummary = RiskReward.GetEffectSummary().ToString();
+	TestTrue(TEXT("Reward summary includes reward display names"), RiskRewardSummary.Contains(TEXT("reward Glass Cannon")));
+	TestTrue(TEXT("Reward summary includes reward descriptions"), RiskRewardSummary.Contains(TEXT("Trades survivability for tempo.")));
 	TestTrue(TEXT("Reward summary names negative damage bonuses"), RiskRewardSummary.Contains(TEXT("damage -5")));
 	TestTrue(TEXT("Reward summary names negative max health bonuses"), RiskRewardSummary.Contains(TEXT("max HP -20")));
 	TestTrue(TEXT("Reward summary names negative move bonuses"), RiskRewardSummary.Contains(TEXT("move -3")));
