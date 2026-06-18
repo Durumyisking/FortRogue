@@ -441,7 +441,7 @@ void AFortRogueBattleCharacter::SetTerrain(AFortRogueDestructibleTerrain* InTerr
 
 bool AFortRogueBattleCharacter::UseItemByType(EFortRogueItemType ItemType)
 {
-	if (!bActiveTurn || IsDefeated() || !IsSupportedByTerrain())
+	if (!CanUseAnyItem())
 	{
 		return false;
 	}
@@ -449,7 +449,7 @@ bool AFortRogueBattleCharacter::UseItemByType(EFortRogueItemType ItemType)
 	for (FFortRogueItemStack& ItemStack : ItemLoadout)
 	{
 		const UFortRogueItemDefinition* ItemDefinition = ItemStack.ItemDefinition;
-		if (!ItemDefinition || ItemDefinition->ItemType != ItemType || ItemStack.Charges <= 0)
+		if (!ItemDefinition || ItemDefinition->ItemType != ItemType || !CanUseItemStack(ItemStack))
 		{
 			continue;
 		}
@@ -462,7 +462,7 @@ bool AFortRogueBattleCharacter::UseItemByType(EFortRogueItemType ItemType)
 
 bool AFortRogueBattleCharacter::UseItemByTag(FGameplayTag ItemTag)
 {
-	if (!ItemTag.IsValid() || !bActiveTurn || IsDefeated() || !IsSupportedByTerrain())
+	if (!ItemTag.IsValid() || !CanUseAnyItem())
 	{
 		return false;
 	}
@@ -470,7 +470,7 @@ bool AFortRogueBattleCharacter::UseItemByTag(FGameplayTag ItemTag)
 	for (FFortRogueItemStack& ItemStack : ItemLoadout)
 	{
 		const UFortRogueItemDefinition* ItemDefinition = ItemStack.ItemDefinition;
-		if (!ItemDefinition || !ItemDefinition->ItemTag.MatchesTagExact(ItemTag) || ItemStack.Charges <= 0)
+		if (!ItemDefinition || !ItemDefinition->ItemTag.MatchesTagExact(ItemTag) || !CanUseItemStack(ItemStack))
 		{
 			continue;
 		}
@@ -483,12 +483,63 @@ bool AFortRogueBattleCharacter::UseItemByTag(FGameplayTag ItemTag)
 
 bool AFortRogueBattleCharacter::UseItemByIndex(int32 ItemIndex)
 {
-	if (!bActiveTurn || IsDefeated() || !IsSupportedByTerrain() || !ItemLoadout.IsValidIndex(ItemIndex))
+	if (!CanUseItemByIndex(ItemIndex))
 	{
 		return false;
 	}
 
 	return UseItemStack(ItemLoadout[ItemIndex]);
+}
+
+bool AFortRogueBattleCharacter::CanUseItemByType(EFortRogueItemType ItemType) const
+{
+	if (!CanUseAnyItem())
+	{
+		return false;
+	}
+
+	for (const FFortRogueItemStack& ItemStack : ItemLoadout)
+	{
+		const UFortRogueItemDefinition* ItemDefinition = ItemStack.ItemDefinition;
+		if (ItemDefinition && ItemDefinition->ItemType == ItemType && CanUseItemStack(ItemStack))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool AFortRogueBattleCharacter::CanUseItemByTag(FGameplayTag ItemTag) const
+{
+	if (!ItemTag.IsValid() || !CanUseAnyItem())
+	{
+		return false;
+	}
+
+	for (const FFortRogueItemStack& ItemStack : ItemLoadout)
+	{
+		const UFortRogueItemDefinition* ItemDefinition = ItemStack.ItemDefinition;
+		if (ItemDefinition && ItemDefinition->ItemTag.MatchesTagExact(ItemTag) && CanUseItemStack(ItemStack))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool AFortRogueBattleCharacter::CanUseItemByIndex(int32 ItemIndex) const
+{
+	return CanUseAnyItem() && ItemLoadout.IsValidIndex(ItemIndex) && CanUseItemStack(ItemLoadout[ItemIndex]);
+}
+
+bool AFortRogueBattleCharacter::CanUseAnyItem() const
+{
+	return bActiveTurn && !IsDefeated() && IsSupportedByTerrain();
+}
+
+bool AFortRogueBattleCharacter::CanUseItemStack(const FFortRogueItemStack& ItemStack) const
+{
+	return ItemStack.ItemDefinition && ItemStack.Charges > 0;
 }
 
 bool AFortRogueBattleCharacter::UseItemStack(FFortRogueItemStack& ItemStack)

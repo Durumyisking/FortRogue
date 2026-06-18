@@ -1067,12 +1067,18 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		ItemSlotCharacter->BeginTurn();
 		ItemSlotCharacter->ApplyDamage(40.0f);
 		const float HealthBeforeItem = ItemSlotCharacter->GetHealth();
+		TestTrue(TEXT("Battle character can report usable item by loadout index"), ItemSlotCharacter->CanUseItemByIndex(0));
+		TestTrue(TEXT("Battle character can report usable item by type"), ItemSlotCharacter->CanUseItemByType(EFortRogueItemType::Heal));
 		TestFalse(TEXT("Battle character rejects negative item loadout index"), ItemSlotCharacter->UseItemByIndex(-1));
+		TestFalse(TEXT("Battle character cannot use negative item loadout index"), ItemSlotCharacter->CanUseItemByIndex(-1));
 		TestFalse(TEXT("Battle character rejects item loadout index past the end"), ItemSlotCharacter->UseItemByIndex(1));
 		TestEqual(TEXT("Rejected item slot use keeps item charges"), ItemSlotCharacter->GetItemCharges(EFortRogueItemType::Heal), 2);
 		TestTrue(TEXT("Battle character uses an item by loadout index"), ItemSlotCharacter->UseItemByIndex(0));
 		TestEqual(TEXT("Item slot use consumes one charge"), ItemSlotCharacter->GetItemCharges(EFortRogueItemType::Heal), 1);
 		TestTrue(TEXT("Item slot use applies the item effect"), ItemSlotCharacter->GetHealth() > HealthBeforeItem);
+		TestTrue(TEXT("Battle character still reports usable item with remaining charges"), ItemSlotCharacter->CanUseItemByIndex(0));
+		TestTrue(TEXT("Battle character consumes final item charge"), ItemSlotCharacter->UseItemByIndex(0));
+		TestFalse(TEXT("Battle character reports unusable item after charges are spent"), ItemSlotCharacter->CanUseItemByIndex(0));
 	}
 
 	AFortRogueBattleCharacter* ExhaustedTurnCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(45.0f, 0.0f, 55.0f), FRotator::ZeroRotator, SpawnParams);
@@ -1280,6 +1286,7 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		FallingCharacter->MoveHorizontal(1.0f, 0.25f);
 		TestEqual(TEXT("Falling battle character cannot move horizontally while unsupported"), static_cast<float>(FallingCharacter->GetActorLocation().X), FallingCharacterX);
 		const int32 AttackItemCharges = FallingCharacter->GetItemCharges(EFortRogueItemType::AttackMultiplier);
+		TestFalse(TEXT("Falling battle character reports combat items unusable while unsupported"), FallingCharacter->CanUseItemByType(EFortRogueItemType::AttackMultiplier));
 		TestFalse(TEXT("Falling battle character cannot use combat items while unsupported"), FallingCharacter->UseItemByType(EFortRogueItemType::AttackMultiplier));
 		TestEqual(TEXT("Falling battle character keeps item charges when unsupported item use is rejected"), FallingCharacter->GetItemCharges(EFortRogueItemType::AttackMultiplier), AttackItemCharges);
 		FallingCharacter->BeginShotCharge();

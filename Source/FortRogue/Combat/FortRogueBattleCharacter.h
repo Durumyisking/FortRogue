@@ -106,6 +106,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Items")
 	bool UseItemByIndex(int32 ItemIndex);
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
+	bool CanUseItemByType(EFortRogueItemType ItemType) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
+	bool CanUseItemByTag(FGameplayTag ItemTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
+	bool CanUseItemByIndex(int32 ItemIndex) const;
+
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
 	void ApplyRewardDamage(float BonusDamage);
 
@@ -267,6 +276,8 @@ public:
 
 private:
 	AFortRogueDestructibleTerrain* FindTerrain() const;
+	bool CanUseAnyItem() const;
+	bool CanUseItemStack(const FFortRogueItemStack& ItemStack) const;
 	bool UseItemStack(FFortRogueItemStack& ItemStack);
 	bool IsSupportedByTerrain() const;
 	bool FindFootprintSurfaceZ(const AFortRogueDestructibleTerrain& Terrain, float CenterWorldX, float StartWorldZ, float SearchDistance, float& OutSurfaceZ) const;

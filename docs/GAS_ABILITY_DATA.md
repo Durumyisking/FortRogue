@@ -163,6 +163,7 @@ AbilitySet 자체를 UI에 표시할 때는 `UFortRogueAbilitySet::GetEffectSumm
 
 UI나 블루프린트에서는 `AFortRoguePlayerController::UsePlayerItemByTag()`로 `ItemTag` 기반 아이템 사용을 연결할 수 있다.
 현재 표시 중인 아이템 배열을 그대로 버튼에 연결하려면 `AFortRoguePlayerController::UsePlayerItemByIndex()` 또는 `AFortRogueBattleCharacter::UseItemByIndex()`를 사용한다. 인덱스는 `ItemLoadout` 기준 0부터 시작한다.
+아이템 버튼을 누르기 전에 활성화 가능 여부를 확인하려면 `CanUseItemByType()`, `CanUseItemByTag()`, `CanUseItemByIndex()`를 사용한다.
 아이템 목록 UI는 `AFortRogueBattleCharacter::GetItemLoadoutForBlueprint()`로 현재 아이템과 수량을 읽을 수 있다.
 Canvas HUD도 현재 `ItemLoadout`의 아이템 이름과 수량을 표시한다. 기존 `AttackMultiplier`와 `Heal` 아이템은 각각 `J`, `H` 입력 힌트를 붙인다.
 아이템 효과 요약은 `InitialCharges`, `HealAmount`, `AttackMultiplier` 같은 기본 아이템 효과도 표시한다. 보상에서 `RepairCharges`를 override로 지정하면 override 수량을 우선 표시한다.
