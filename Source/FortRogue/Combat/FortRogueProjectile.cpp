@@ -65,7 +65,7 @@ AFortRogueProjectile::AFortRogueProjectile()
 	}
 }
 
-void AFortRogueProjectile::InitializeProjectile(AFortRogueBattleCharacter* InOwnerCharacter, AFortRogueDestructibleTerrain* InTerrain, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity, float InTerrainCarveRadius, FGameplayTag InWeaponTag, FGameplayTagContainer InEffectTags, TArray<FFortRogueImpactSpawnSpec> InImpactSpawns)
+void AFortRogueProjectile::InitializeProjectile(AFortRogueBattleCharacter* InOwnerCharacter, AFortRogueDestructibleTerrain* InTerrain, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity, float InTerrainCarveRadius, float InTerrainFillRadius, FGameplayTag InWeaponTag, FGameplayTagContainer InEffectTags, TArray<FFortRogueImpactSpawnSpec> InImpactSpawns)
 {
 	OwnerCharacter = InOwnerCharacter;
 	AssignedTerrain = InTerrain;
@@ -76,6 +76,7 @@ void AFortRogueProjectile::InitializeProjectile(AFortRogueBattleCharacter* InOwn
 	Damage = InDamage;
 	BlastRadius = FMath::Max(0.0f, InBlastRadius);
 	TerrainCarveRadius = InTerrainCarveRadius >= 0.0f ? FMath::Max(0.0f, InTerrainCarveRadius) : BlastRadius;
+	TerrainFillRadius = FMath::Max(0.0f, InTerrainFillRadius);
 	Gravity = InGravity;
 }
 
@@ -186,13 +187,27 @@ void AFortRogueProjectile::ResolveImpact(const FVector& ImpactLocation)
 
 	if (AssignedTerrain)
 	{
-		AssignedTerrain->CarveCircle(ImpactLocation, TerrainCarveRadius);
+		if (TerrainFillRadius > 0.0f)
+		{
+			AssignedTerrain->FillCircle(ImpactLocation, TerrainFillRadius);
+		}
+		else
+		{
+			AssignedTerrain->CarveCircle(ImpactLocation, TerrainCarveRadius);
+		}
 	}
 	else
 	{
 		for (TActorIterator<AFortRogueDestructibleTerrain> It(GetWorld()); It; ++It)
 		{
-			It->CarveCircle(ImpactLocation, TerrainCarveRadius);
+			if (TerrainFillRadius > 0.0f)
+			{
+				It->FillCircle(ImpactLocation, TerrainFillRadius);
+			}
+			else
+			{
+				It->CarveCircle(ImpactLocation, TerrainCarveRadius);
+			}
 		}
 	}
 
@@ -273,6 +288,7 @@ void AFortRogueProjectile::SpawnImpactProjectiles(const FVector& ImpactLocation)
 				BlastRadius * ImpactSpawn.BlastRadiusMultiplier,
 				Gravity * ImpactSpawn.GravityMultiplier,
 				TerrainCarveRadius * ImpactSpawn.TerrainCarveRadiusMultiplier,
+				0.0f,
 				WeaponTag,
 				ChildEffectTags);
 

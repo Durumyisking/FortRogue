@@ -290,6 +290,78 @@ bool AFortRogueDestructibleTerrain::CarveCircle(const FVector& WorldLocation, fl
 	return bChanged;
 }
 
+bool AFortRogueDestructibleTerrain::FillCircle(const FVector& WorldLocation, float Radius, uint8 TextureLayer)
+{
+	if (CellsX <= 0 || CellsZ <= 0 || CellSize <= 0.0f || Radius <= 0.0f)
+	{
+		return false;
+	}
+
+	bool bChanged = false;
+	const float RadiusSq = FMath::Square(Radius);
+	const FVector LocalLocation = WorldLocation - GetActorLocation();
+	const float LocalCenterX = LocalLocation.X + Width * 0.5f;
+	if (LocalCenterX + Radius < 0.0f || LocalCenterX - Radius >= Width || LocalLocation.Z + Radius < 0.0f || LocalLocation.Z - Radius >= Height)
+	{
+		return false;
+	}
+
+	const int32 MinX = FMath::Clamp(FMath::FloorToInt((LocalCenterX - Radius) / CellSize), 0, CellsX - 1);
+	const int32 MaxX = FMath::Clamp(FMath::FloorToInt((LocalCenterX + Radius) / CellSize), 0, CellsX - 1);
+	const int32 MinZ = FMath::Clamp(FMath::FloorToInt((LocalLocation.Z - Radius) / CellSize), 0, CellsZ - 1);
+	const int32 MaxZ = FMath::Clamp(FMath::FloorToInt((LocalLocation.Z + Radius) / CellSize), 0, CellsZ - 1);
+
+	if (MinX > MaxX || MinZ > MaxZ)
+	{
+		return false;
+	}
+
+	for (int32 Z = MinZ; Z <= MaxZ; ++Z)
+	{
+		for (int32 X = MinX; X <= MaxX; ++X)
+		{
+			const int32 Index = ToIndex(X, Z);
+			if (!SolidMask.IsValidIndex(Index))
+			{
+				continue;
+			}
+
+			const FVector CellCenter = GetActorLocation() + FVector((X + 0.5f) * CellSize - Width * 0.5f, 0.0f, (Z + 0.5f) * CellSize);
+			if (FVector::DistSquared2D(FVector(CellCenter.X, CellCenter.Z, 0.0f), FVector(WorldLocation.X, WorldLocation.Z, 0.0f)) > RadiusSq)
+			{
+				continue;
+			}
+
+			if (SolidMask[Index] == 0)
+			{
+				SolidMask[Index] = 1;
+				bChanged = true;
+			}
+			if (TextureLayerMask.IsValidIndex(Index) && TextureLayerMask[Index] != TextureLayer)
+			{
+				TextureLayerMask[Index] = TextureLayer;
+				bChanged = true;
+			}
+		}
+	}
+
+	if (bChanged)
+	{
+		if (RuntimeTerrainMaterial)
+		{
+			ConfigureTexturePlane();
+			TerrainTexturePlane->SetVisibility(true);
+		}
+		else
+		{
+			RebuildVisuals();
+		}
+		UpdateRuntimeTextureRegion(MinX, MinZ, MaxX, MaxZ);
+	}
+
+	return bChanged;
+}
+
 bool AFortRogueDestructibleTerrain::IsProjectileOutOfBounds(const FVector& WorldLocation) const
 {
 	const float Padding = MapDefinition ? MapDefinition->ProjectileBoundsPadding : ProjectileBoundsPadding;

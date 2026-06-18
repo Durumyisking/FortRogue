@@ -744,6 +744,21 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	World->InitializeActorsForPlay(URL);
 	World->BeginPlay();
 
+	UFortRogueTerrainMapDefinition* FillRuntimeMap = NewObject<UFortRogueTerrainMapDefinition>();
+	FillRuntimeMap->Resize(4, 3);
+	FillRuntimeMap->CellSize = 10.0f;
+	FillRuntimeMap->Clear(false);
+	AFortRogueDestructibleTerrain* FillRuntimeTerrain = World->SpawnActorDeferred<AFortRogueDestructibleTerrain>(AFortRogueDestructibleTerrain::StaticClass(), FTransform(FRotator::ZeroRotator, FVector(1200.0f, 0.0f, 0.0f)));
+	TestNotNull(TEXT("Runtime fill terrain actor is spawned deferred"), FillRuntimeTerrain);
+	if (FillRuntimeTerrain)
+	{
+		FillRuntimeTerrain->MapDefinition = FillRuntimeMap;
+		UGameplayStatics::FinishSpawningActor(FillRuntimeTerrain, FTransform(FRotator::ZeroRotator, FVector(1200.0f, 0.0f, 0.0f)));
+		TestFalse(TEXT("Runtime fill target starts empty"), FillRuntimeTerrain->IsSolidAtWorldLocation(FVector(1200.0f, 0.0f, 15.0f)));
+		TestTrue(TEXT("Runtime fill circle reports changed terrain"), FillRuntimeTerrain->FillCircle(FVector(1200.0f, 0.0f, 15.0f), 8.0f));
+		TestTrue(TEXT("Runtime fill circle creates solid terrain"), FillRuntimeTerrain->IsSolidAtWorldLocation(FVector(1200.0f, 0.0f, 15.0f)));
+	}
+
 	UTexture2D* RuntimeTexture = Terrain->GetRuntimeTerrainTexture();
 	TestNotNull(TEXT("Runtime terrain texture is created"), RuntimeTexture);
 	if (RuntimeTexture)

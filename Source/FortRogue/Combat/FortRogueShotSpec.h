@@ -30,6 +30,9 @@ struct FFortRogueShotSpec
 	float TerrainCarveRadius = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot")
+	float TerrainFillRadius = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot")
 	float LaunchSpeed = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot")
