@@ -1049,8 +1049,10 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		StatCharacter->GrantAbilitySet(TaggedAbilitySet);
 		StatCharacter->GrantAbilitySet(TaggedAbilitySet);
 		TestEqual(TEXT("Battle character ability set tag count tracks repeated grants"), StatCharacter->GetGrantedAbilitySetCountByTag(FortRogueGameplayTags::Trait_ShotModifier), 2);
+		TestTrue(TEXT("Battle character reports granted ability sets by tag"), StatCharacter->HasGrantedAbilitySetByTag(FortRogueGameplayTags::Trait_ShotModifier));
 		TestEqual(TEXT("Battle character removes granted ability sets by tag"), StatCharacter->RemoveAbilitySetsByTag(FortRogueGameplayTags::Trait_ShotModifier), 2);
 		TestEqual(TEXT("Battle character ability set tag count updates after removal"), StatCharacter->GetGrantedAbilitySetCountByTag(FortRogueGameplayTags::Trait_ShotModifier), 0);
+		TestFalse(TEXT("Battle character reports missing ability sets by tag"), StatCharacter->HasGrantedAbilitySetByTag(FortRogueGameplayTags::Trait_ShotModifier));
 		UFortRogueWeaponDefinition* ShellWeapon = CreateTestWeaponDefinition(StatCharacter);
 		ShellWeapon->Weapon.WeaponTag = FortRogueGameplayTags::Weapon_Shell;
 		UFortRogueWeaponDefinition* ClusterWeapon = CreateTestWeaponDefinition(StatCharacter);
@@ -1087,14 +1089,21 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		FFortRogueShotModifierSpec PendingModifier;
 		PendingModifier.ModifierTag = FortRogueGameplayTags::ShotEffect_Damage;
 		PendingModifier.DamageBonus = 5.0f;
+		TArray<FFortRogueShotModifierSpec> GrantedModifierTest = { PendingModifier };
+		StatCharacter->GrantShotModifiers(GrantedModifierTest);
+		TestTrue(TEXT("Battle character reports granted shot modifiers by tag"), StatCharacter->HasGrantedShotModifierByTag(FortRogueGameplayTags::ShotEffect_Damage));
+		TestEqual(TEXT("Battle character removes granted shot modifiers by tag"), StatCharacter->RemoveGrantedShotModifiersByTag(FortRogueGameplayTags::ShotEffect_Damage), 1);
+		TestFalse(TEXT("Battle character reports missing granted shot modifiers by tag"), StatCharacter->HasGrantedShotModifierByTag(FortRogueGameplayTags::ShotEffect_Damage));
 		PendingModifierItem->UseShotModifiers.Add(PendingModifier);
 		StatCharacter->AddItemDefinition(PendingModifierItem, 1);
 		const int32 PendingModifierItemIndex = StatCharacter->GetItemLoadout().Num() - 1;
 		StatCharacter->BeginTurn();
 		TestTrue(TEXT("Battle character uses item that grants pending shot modifier"), StatCharacter->UseItemByIndex(PendingModifierItemIndex));
 		TestEqual(TEXT("Battle character counts pending shot modifiers by tag"), StatCharacter->GetPendingShotModifierCountByTag(FortRogueGameplayTags::ShotEffect_Damage), 1);
+		TestTrue(TEXT("Battle character reports pending shot modifiers by tag"), StatCharacter->HasPendingShotModifierByTag(FortRogueGameplayTags::ShotEffect_Damage));
 		TestEqual(TEXT("Battle character removes pending shot modifiers by tag"), StatCharacter->RemovePendingShotModifiersByTag(FortRogueGameplayTags::ShotEffect_Damage), 1);
 		TestEqual(TEXT("Battle character pending shot modifier count updates after removal"), StatCharacter->GetPendingShotModifierCountByTag(FortRogueGameplayTags::ShotEffect_Damage), 0);
+		TestFalse(TEXT("Battle character reports missing pending shot modifiers by tag"), StatCharacter->HasPendingShotModifierByTag(FortRogueGameplayTags::ShotEffect_Damage));
 	}
 
 	AFortRogueBattleCharacter* ItemSlotCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(-15.0f, 0.0f, 55.0f), FRotator::ZeroRotator, SpawnParams);

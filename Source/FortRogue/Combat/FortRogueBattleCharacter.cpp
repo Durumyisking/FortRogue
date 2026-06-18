@@ -747,6 +747,11 @@ int32 AFortRogueBattleCharacter::GetGrantedAbilitySetCountByTag(FGameplayTag Abi
 	return GrantedCount;
 }
 
+bool AFortRogueBattleCharacter::HasGrantedAbilitySetByTag(FGameplayTag AbilitySetTag) const
+{
+	return GetGrantedAbilitySetCountByTag(AbilitySetTag) > 0;
+}
+
 void AFortRogueBattleCharacter::GrantShotModifiers(const TArray<FFortRogueShotModifierSpec>& ShotModifiers)
 {
 	if (ShotModifiers.Num() <= 0)
@@ -1003,6 +1008,16 @@ int32 AFortRogueBattleCharacter::GetPendingShotModifierCountByTag(FGameplayTag M
 		}
 	}
 	return TotalCount;
+}
+
+bool AFortRogueBattleCharacter::HasGrantedShotModifierByTag(FGameplayTag ModifierTag) const
+{
+	return GetGrantedShotModifierCountByTag(ModifierTag) > 0;
+}
+
+bool AFortRogueBattleCharacter::HasPendingShotModifierByTag(FGameplayTag ModifierTag) const
+{
+	return GetPendingShotModifierCountByTag(ModifierTag) > 0;
 }
 
 const FFortRogueWeaponSpec& AFortRogueBattleCharacter::GetCurrentWeapon() const
