@@ -113,7 +113,7 @@ modifier 적용 순서:
 
 ## 5. 보상과 퍽
 
-런 진행 HUD는 `AFortRogueGameMode::GetRunProgressSummary()`로 현재 스테이지와 상태를 한 줄로 표시할 수 있다. UMG 전투 HUD에서는 `GetRunProgressSummary()`, `GetBattleState()`, `GetStatusText()`로 런 진행, 상태 enum, 상태 문구를 읽을 수 있다.
+런 진행 HUD는 `AFortRogueGameMode::GetRunProgressSummary()`로 현재 스테이지와 상태를 한 줄로 표시할 수 있다. UMG 전투 HUD에서는 `GetRunProgressSummary()`, `GetBattleState()`, `GetStatusText()`로 런 진행, 상태 enum, 상태 문구를 읽을 수 있다. PlayerController 경유 UI에서는 `GetCurrentBattleState()`, `GetCurrentStatusText()`를 사용한다.
 
 보상 카드에서 바로 탄 방식을 바꾸려면 `FFortRogueRewardChoice::ShotModifiers`를 사용한다.
 

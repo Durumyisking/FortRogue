@@ -195,6 +195,18 @@ FGameplayTagContainer AFortRoguePlayerController::GetChosenRewardTags() const
 	return GameMode ? GameMode->GetChosenRewardTags() : FGameplayTagContainer();
 }
 
+EFortRogueBattleState AFortRoguePlayerController::GetCurrentBattleState() const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	return GameMode ? GameMode->GetBattleState() : EFortRogueBattleState::PlayerTurn;
+}
+
+FText AFortRoguePlayerController::GetCurrentStatusText() const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	return GameMode ? GameMode->GetStatusText() : FText::GetEmpty();
+}
+
 bool AFortRoguePlayerController::CanChooseReward(int32 ChoiceIndex) const
 {
 	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;

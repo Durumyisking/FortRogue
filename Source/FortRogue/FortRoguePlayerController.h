@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Combat/FortRogueShotSpec.h"
+#include "FortRogueGameMode.h"
 #include "GameFramework/PlayerController.h"
 #include "GameplayTagContainer.h"
 #include "Items/FortRogueItemDefinition.h"
@@ -46,6 +47,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
 	FGameplayTagContainer GetChosenRewardTags() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")
+	EFortRogueBattleState GetCurrentBattleState() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")
+	FText GetCurrentStatusText() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
 	bool CanChooseReward(int32 ChoiceIndex) const;

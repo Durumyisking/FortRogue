@@ -578,6 +578,8 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 	if (TestPlayerController && GameMode->GetPlayerCharacter())
 	{
 		float PlayerAttributeValue = -1.0f;
+		TestEqual(TEXT("Player controller exposes current battle state"), TestPlayerController->GetCurrentBattleState(), GameMode->GetBattleState());
+		TestEqual(TEXT("Player controller exposes current status text"), TestPlayerController->GetCurrentStatusText().ToString(), GameMode->GetStatusText().ToString());
 		TestTrue(TEXT("Player controller reads player attributes by tag"), TestPlayerController->TryGetPlayerCombatAttributeValueByTag(FortRogueGameplayTags::Attribute_Health, PlayerAttributeValue));
 		TestEqual(TEXT("Player controller attribute value matches player character"), PlayerAttributeValue, GameMode->GetPlayerCharacter()->GetHealth());
 		TestEqual(TEXT("Player controller exposes player aim angle"), TestPlayerController->GetPlayerAimAngle(), GameMode->GetPlayerCharacter()->GetAimAngle());
