@@ -82,7 +82,7 @@ void AFortRogueHUD::DrawBattleHUD(AFortRogueGameMode* GameMode, float X, float& 
 	AFortRogueBattleCharacter* Enemy = GameMode->GetEnemyCharacter();
 	const float Scale = 1.15f;
 
-	DrawText(FString::Printf(TEXT("FortRogue MVP - %s"), *GameMode->GetStatusText().ToString()), FColor::White, X, Y, GEngine->GetSmallFont(), Scale);
+	DrawText(FString::Printf(TEXT("FortRogue MVP - %s"), *GameMode->GetRunProgressSummary().ToString()), FColor::White, X, Y, GEngine->GetSmallFont(), Scale);
 	Y += 28.0f;
 
 	if (Player)

@@ -107,6 +107,8 @@ modifier 적용 순서:
 
 ## 5. 보상과 퍽
 
+런 진행 HUD는 `AFortRogueGameMode::GetRunProgressSummary()`로 현재 스테이지와 상태를 한 줄로 표시할 수 있다.
+
 보상 카드에서 바로 탄 방식을 바꾸려면 `FFortRogueRewardChoice::ShotModifiers`를 사용한다.
 
 직접 스탯 보상은 `DamageBonus`, `MaxHealthBonus`, `MaxMoveBudgetBonus`, `ProjectileBonus`, `ShotPowerMultiplierBonus`를 사용한다. 리스크/보상 카드처럼 음수 값을 넣으면 요약에도 손해가 부호와 함께 표시된다.

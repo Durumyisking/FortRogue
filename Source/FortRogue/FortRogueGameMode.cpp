@@ -198,6 +198,15 @@ FText AFortRogueGameMode::GetStatusText() const
 	return StatusText;
 }
 
+FText AFortRogueGameMode::GetRunProgressSummary() const
+{
+	return FText::FromString(FString::Printf(
+		TEXT("Stage %d/%d | %s"),
+		GetCurrentStage(),
+		GetMaxStages(),
+		*GetStatusText().ToString()));
+}
+
 int32 AFortRogueGameMode::GetCurrentStage() const
 {
 	return CurrentStage;

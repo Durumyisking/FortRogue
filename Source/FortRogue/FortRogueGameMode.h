@@ -90,6 +90,9 @@ public:
 	FText GetStatusText() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Run")
+	FText GetRunProgressSummary() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Run")
 	int32 GetCurrentStage() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Run")
