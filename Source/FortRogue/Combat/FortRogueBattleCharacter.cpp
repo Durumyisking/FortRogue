@@ -997,6 +997,14 @@ FFortRogueShotSpec AFortRogueBattleCharacter::BuildShotSpec(const FFortRogueWeap
 				return;
 			}
 		}
+		if (!Modifier.RequiredShotTags.IsEmpty() && !ShotSpec.EffectTags.HasAny(Modifier.RequiredShotTags))
+		{
+			return;
+		}
+		if (!Modifier.BlockedShotTags.IsEmpty() && ShotSpec.EffectTags.HasAny(Modifier.BlockedShotTags))
+		{
+			return;
+		}
 
 		ShotSpec.EffectTags.AppendTags(Modifier.EffectTags);
 		ShotSpec.Damage = (ShotSpec.Damage + Modifier.DamageBonus) * Modifier.DamageMultiplier;

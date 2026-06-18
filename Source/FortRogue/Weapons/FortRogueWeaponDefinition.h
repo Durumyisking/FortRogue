@@ -32,6 +32,12 @@ struct FFortRogueShotModifierSpec
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition", meta = (EditCondition = "bRequireWindAligned", ClampMin = "0.0"))
 	float MinWindMagnitude = 0.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition")
+	FGameplayTagContainer RequiredShotTags;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition")
+	FGameplayTagContainer BlockedShotTags;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier")
 	float DamageBonus = 0.0f;
 
