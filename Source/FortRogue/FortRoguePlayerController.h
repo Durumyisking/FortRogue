@@ -63,6 +63,12 @@ public:
 	TArray<FFortRogueItemStack> GetPlayerItemLoadout() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
+	int32 GetPlayerItemCharges(EFortRogueItemType ItemType) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
+	int32 GetPlayerItemChargesByTag(FGameplayTag ItemTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
 	bool CanUsePlayerItemByType(EFortRogueItemType ItemType) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")

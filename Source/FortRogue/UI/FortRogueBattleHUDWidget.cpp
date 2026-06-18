@@ -164,6 +164,24 @@ TArray<FFortRogueItemStack> UFortRogueBattleHUDWidget::GetPlayerItemLoadout() co
 	return TArray<FFortRogueItemStack>();
 }
 
+int32 UFortRogueBattleHUDWidget::GetPlayerItemCharges(EFortRogueItemType ItemType) const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->GetItemCharges(ItemType);
+	}
+	return 0;
+}
+
+int32 UFortRogueBattleHUDWidget::GetPlayerItemChargesByTag(FGameplayTag ItemTag) const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->GetItemChargesByTag(ItemTag);
+	}
+	return 0;
+}
+
 bool UFortRogueBattleHUDWidget::CanUsePlayerItemByType(EFortRogueItemType ItemType) const
 {
 	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())

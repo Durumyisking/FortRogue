@@ -527,6 +527,26 @@ TArray<FFortRogueItemStack> AFortRoguePlayerController::GetPlayerItemLoadout() c
 	return TArray<FFortRogueItemStack>();
 }
 
+int32 AFortRoguePlayerController::GetPlayerItemCharges(EFortRogueItemType ItemType) const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->GetItemCharges(ItemType);
+	}
+	return 0;
+}
+
+int32 AFortRoguePlayerController::GetPlayerItemChargesByTag(FGameplayTag ItemTag) const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->GetItemChargesByTag(ItemTag);
+	}
+	return 0;
+}
+
 bool AFortRoguePlayerController::CanUsePlayerItemByType(EFortRogueItemType ItemType) const
 {
 	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;

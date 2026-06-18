@@ -650,7 +650,10 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 		GameMode->GetPlayerCharacter()->AddItemDefinition(ControllerPendingItem, 1);
 		const int32 ControllerPendingItemIndex = GameMode->GetPlayerCharacter()->GetItemLoadout().Num() - 1;
 		TestEqual(TEXT("Player controller exposes player item loadout count"), TestPlayerController->GetPlayerItemLoadout().Num(), GameMode->GetPlayerCharacter()->GetItemLoadout().Num());
+		TestTrue(TEXT("Player controller counts player item charges by type"), TestPlayerController->GetPlayerItemCharges(EFortRogueItemType::AbilitySet) >= 1);
+		TestEqual(TEXT("Player controller counts player item charges by tag"), TestPlayerController->GetPlayerItemChargesByTag(FortRogueGameplayTags::Item_NextShot), 1);
 		TestPlayerController->UsePlayerItemByIndex(ControllerPendingItemIndex);
+		TestEqual(TEXT("Player controller item charge tags update after use"), TestPlayerController->GetPlayerItemChargesByTag(FortRogueGameplayTags::Item_NextShot), 0);
 		TestEqual(TEXT("Player controller counts pending shot modifiers by tag"), TestPlayerController->GetPlayerPendingShotModifierCountByTag(FortRogueGameplayTags::ShotEffect_Damage), 1);
 		TestTrue(TEXT("Player controller reports pending shot modifiers by tag"), TestPlayerController->HasPlayerPendingShotModifierByTag(FortRogueGameplayTags::ShotEffect_Damage));
 		TestEqual(TEXT("Player controller exposes item-granted pending shot modifiers"), TestPlayerController->GetPlayerPendingShotModifiers().Num(), 1);
