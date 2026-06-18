@@ -8,7 +8,6 @@
 #include "FortRoguePlayerController.generated.h"
 
 class UFortRogueBattleHUDWidget;
-class UFortRogueRewardScreenWidget;
 class UInputAction;
 class UInputMappingContext;
 struct FInputActionValue;
@@ -28,7 +27,6 @@ public:
 private:
 	void TickBattleInput(float DeltaSeconds);
 	void TickKeyboardFireInput();
-	void TickRewardInput();
 	void UpdateOptionalWidgets();
 	bool HasEnhancedInputBindings() const;
 
@@ -40,9 +38,6 @@ private:
 	void HandleWeapon2();
 	void HandleAttackItem();
 	void HandleHealItem();
-	void HandleReward1();
-	void HandleReward2();
-	void HandleReward3();
 	void ApplyMoveAxis(float Axis, float DeltaSeconds);
 	void ApplyAimAxis(float Axis, float DeltaSeconds);
 	void BeginPlayerWeaponCharge();
@@ -50,7 +45,6 @@ private:
 	void ReleasePlayerWeaponCharge();
 	void SelectPlayerWeapon(int32 WeaponIndex);
 	void UsePlayerItem(EFortRogueItemType ItemType);
-	void ChooseReward(int32 ChoiceIndex);
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Input")
 	TObjectPtr<UInputMappingContext> BattleInputMappingContext;
@@ -79,26 +73,11 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Input")
 	TObjectPtr<UInputAction> HealItemAction;
 
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Input")
-	TObjectPtr<UInputAction> Reward1Action;
-
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Input")
-	TObjectPtr<UInputAction> Reward2Action;
-
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Input")
-	TObjectPtr<UInputAction> Reward3Action;
-
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI")
 	TSubclassOf<UFortRogueBattleHUDWidget> BattleHUDWidgetClass;
 
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI")
-	TSubclassOf<UFortRogueRewardScreenWidget> RewardScreenWidgetClass;
-
 	UPROPERTY()
 	TObjectPtr<UFortRogueBattleHUDWidget> BattleHUDWidget;
-
-	UPROPERTY()
-	TObjectPtr<UFortRogueRewardScreenWidget> RewardScreenWidget;
 
 	float EnhancedMoveAxis = 0.0f;
 	float EnhancedAimAxis = 0.0f;

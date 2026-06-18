@@ -11,7 +11,6 @@
 #include "InputActionValue.h"
 #include "Items/FortRogueItemDefinition.h"
 #include "UI/FortRogueBattleHUDWidget.h"
-#include "UI/FortRogueRewardScreenWidget.h"
 
 AFortRoguePlayerController::AFortRoguePlayerController()
 {
@@ -43,15 +42,6 @@ void AFortRoguePlayerController::BeginPlay()
 		}
 	}
 
-	if (RewardScreenWidgetClass)
-	{
-		RewardScreenWidget = CreateWidget<UFortRogueRewardScreenWidget>(this, RewardScreenWidgetClass);
-		if (RewardScreenWidget)
-		{
-			RewardScreenWidget->AddToViewport(10);
-			RewardScreenWidget->SetVisibility(ESlateVisibility::Collapsed);
-		}
-	}
 }
 
 void AFortRoguePlayerController::SetupInputComponent()
@@ -96,18 +86,6 @@ void AFortRoguePlayerController::SetupInputComponent()
 	{
 		EnhancedInput->BindAction(HealItemAction, ETriggerEvent::Started, this, &AFortRoguePlayerController::HandleHealItem);
 	}
-	if (Reward1Action)
-	{
-		EnhancedInput->BindAction(Reward1Action, ETriggerEvent::Started, this, &AFortRoguePlayerController::HandleReward1);
-	}
-	if (Reward2Action)
-	{
-		EnhancedInput->BindAction(Reward2Action, ETriggerEvent::Started, this, &AFortRoguePlayerController::HandleReward2);
-	}
-	if (Reward3Action)
-	{
-		EnhancedInput->BindAction(Reward3Action, ETriggerEvent::Started, this, &AFortRoguePlayerController::HandleReward3);
-	}
 }
 
 void AFortRoguePlayerController::Tick(float DeltaSeconds)
@@ -125,7 +103,6 @@ void AFortRoguePlayerController::Tick(float DeltaSeconds)
 		return;
 	}
 
-	TickRewardInput();
 	TickBattleInput(DeltaSeconds);
 }
 
@@ -195,28 +172,6 @@ void AFortRoguePlayerController::TickKeyboardFireInput()
 	}
 }
 
-void AFortRoguePlayerController::TickRewardInput()
-{
-	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
-	if (!GameMode || GameMode->GetBattleState() != EFortRogueBattleState::Reward)
-	{
-		return;
-	}
-
-	if (WasInputKeyJustPressed(EKeys::One))
-	{
-		ChooseReward(0);
-	}
-	else if (WasInputKeyJustPressed(EKeys::Two))
-	{
-		ChooseReward(1);
-	}
-	else if (WasInputKeyJustPressed(EKeys::Three))
-	{
-		ChooseReward(2);
-	}
-}
-
 void AFortRoguePlayerController::UpdateOptionalWidgets()
 {
 	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
@@ -227,19 +182,13 @@ void AFortRoguePlayerController::UpdateOptionalWidgets()
 
 	if (BattleHUDWidget)
 	{
-		BattleHUDWidget->SetVisibility(GameMode->GetBattleState() == EFortRogueBattleState::Reward ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
 		BattleHUDWidget->RefreshBattleHUD();
-	}
-	if (RewardScreenWidget)
-	{
-		RewardScreenWidget->SetVisibility(GameMode->GetBattleState() == EFortRogueBattleState::Reward ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
-		RewardScreenWidget->RefreshRewardScreen();
 	}
 }
 
 bool AFortRoguePlayerController::HasEnhancedInputBindings() const
 {
-	return MoveAction || AimAction || FireAction || Weapon1Action || Weapon2Action || AttackItemAction || HealItemAction || Reward1Action || Reward2Action || Reward3Action;
+	return MoveAction || AimAction || FireAction || Weapon1Action || Weapon2Action || AttackItemAction || HealItemAction;
 }
 
 void AFortRoguePlayerController::HandleMove(const FInputActionValue& Value)
@@ -280,21 +229,6 @@ void AFortRoguePlayerController::HandleAttackItem()
 void AFortRoguePlayerController::HandleHealItem()
 {
 	UsePlayerItem(EFortRogueItemType::Heal);
-}
-
-void AFortRoguePlayerController::HandleReward1()
-{
-	ChooseReward(0);
-}
-
-void AFortRoguePlayerController::HandleReward2()
-{
-	ChooseReward(1);
-}
-
-void AFortRoguePlayerController::HandleReward3()
-{
-	ChooseReward(2);
 }
 
 void AFortRoguePlayerController::ApplyMoveAxis(float Axis, float DeltaSeconds)
@@ -363,11 +297,3 @@ void AFortRoguePlayerController::UsePlayerItem(EFortRogueItemType ItemType)
 	}
 }
 
-void AFortRoguePlayerController::ChooseReward(int32 ChoiceIndex)
-{
-	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
-	if (GameMode && GameMode->GetBattleState() == EFortRogueBattleState::Reward)
-	{
-		GameMode->ApplyRewardChoice(ChoiceIndex);
-	}
-}

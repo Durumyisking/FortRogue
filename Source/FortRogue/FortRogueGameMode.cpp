@@ -110,20 +110,6 @@ void AFortRogueGameMode::NotifyProjectileResolved(AFortRogueProjectile* Projecti
 	}
 }
 
-void AFortRogueGameMode::ApplyRewardChoice(int32 ChoiceIndex)
-{
-	if (BattleState != EFortRogueBattleState::Reward || !PlayerCharacter || !RewardChoices.IsValidIndex(ChoiceIndex))
-	{
-		return;
-	}
-
-	const FFortRogueRewardChoice& Reward = RewardChoices[ChoiceIndex];
-	ApplyRewardToPlayer(Reward);
-
-	SetStatus(FString::Printf(TEXT("Reward chosen: %s"), *Reward.DisplayName.ToString()));
-	RewardChoices.Reset();
-}
-
 float AFortRogueGameMode::GetWind() const
 {
 	return Wind;
@@ -142,11 +128,6 @@ AFortRogueBattleCharacter* AFortRogueGameMode::GetPlayerCharacter() const
 AFortRogueBattleCharacter* AFortRogueGameMode::GetEnemyCharacter() const
 {
 	return EnemyCharacter;
-}
-
-TArray<FFortRogueRewardChoice> AFortRogueGameMode::GetRewardChoices() const
-{
-	return RewardChoices;
 }
 
 FText AFortRogueGameMode::GetStatusText() const
@@ -504,23 +485,6 @@ void AFortRogueGameMode::FinishShotResolution()
 	else
 	{
 		StartEnemyTurn();
-	}
-}
-
-void AFortRogueGameMode::EnterRewardState()
-{
-	ResetShotCameraState();
-	BattleState = EFortRogueBattleState::Reward;
-	BuildRewardChoices();
-	SetStatus(TEXT("Victory - choose a reward"));
-}
-
-void AFortRogueGameMode::BuildRewardChoices()
-{
-	RewardChoices.Reset();
-	if (StageRunDefinition && StageRunDefinition->RewardPool.Num() > 0)
-	{
-		RewardChoices = StageRunDefinition->RewardPool;
 	}
 }
 

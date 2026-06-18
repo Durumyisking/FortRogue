@@ -24,7 +24,6 @@ enum class EFortRogueBattleState : uint8
 	PlayerTurn,
 	EnemyTurn,
 	ResolvingShot,
-	Reward,
 	Won,
 	Lost
 };
@@ -53,9 +52,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Battle")
 	void NotifyProjectileResolved(AFortRogueProjectile* Projectile);
 
-	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
-	void ApplyRewardChoice(int32 ChoiceIndex);
-
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")
 	float GetWind() const;
 
@@ -67,9 +63,6 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")
 	AFortRogueBattleCharacter* GetEnemyCharacter() const;
-
-	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
-	TArray<FFortRogueRewardChoice> GetRewardChoices() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")
 	FText GetStatusText() const;
@@ -95,8 +88,6 @@ private:
 	void StartEnemyTurn();
 	void RunEnemyTurn();
 	void FinishShotResolution();
-	void EnterRewardState();
-	void BuildRewardChoices();
 	void CheckTurnDefeatState();
 	void SetStatus(const FString& NewStatus);
 	void UpdateBattleCamera(float DeltaSeconds);
@@ -118,9 +109,6 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<ACameraActor> BattleCamera;
-
-	UPROPERTY()
-	TArray<FFortRogueRewardChoice> RewardChoices;
 
 	UPROPERTY()
 	TArray<TWeakObjectPtr<AFortRogueProjectile>> ActiveProjectiles;

@@ -19,10 +19,6 @@ void AFortRogueHUD::DrawHUD()
 
 	float Y = 32.0f;
 	DrawBattleHUD(GameMode, 32.0f, Y);
-	if (GameMode->GetBattleState() == EFortRogueBattleState::Reward)
-	{
-		DrawRewardHUD(GameMode, 32.0f, Y);
-	}
 }
 
 void AFortRogueHUD::DrawBattleHUD(AFortRogueGameMode* GameMode, float X, float& Y)
@@ -85,17 +81,3 @@ void AFortRogueHUD::DrawPowerGauge(AFortRogueBattleCharacter* Player, float X, f
 	Y += 24.0f;
 }
 
-void AFortRogueHUD::DrawRewardHUD(AFortRogueGameMode* GameMode, float X, float& Y)
-{
-	const TArray<FFortRogueRewardChoice> Choices = GameMode->GetRewardChoices();
-	DrawText(TEXT("Choose reward: 1 / 2 / 3"), FColor::Yellow, X, Y, GEngine->GetSmallFont(), 1.2f);
-	Y += 30.0f;
-
-	for (int32 Index = 0; Index < Choices.Num(); ++Index)
-	{
-		const FFortRogueRewardChoice& Choice = Choices[Index];
-		DrawText(FString::Printf(TEXT("%d. %s - %s"), Index + 1, *Choice.DisplayName.ToString(), *Choice.Description.ToString()),
-			FColor::Yellow, X, Y, GEngine->GetSmallFont(), 1.1f);
-		Y += 24.0f;
-	}
-}
