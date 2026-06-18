@@ -59,6 +59,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
 	bool CanFirePlayerWeapon() const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
+	bool TryGetPlayerCombatAttributeValueByTag(FGameplayTag AttributeTag, float& OutValue) const;
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Stats")
+	bool TryApplyPlayerCombatAttributeDeltaByTag(FGameplayTag AttributeTag, float DeltaValue);
+
 private:
 	void TickBattleInput(float DeltaSeconds);
 	void TickKeyboardFireInput();

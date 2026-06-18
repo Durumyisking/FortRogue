@@ -23,6 +23,7 @@
 #include "EngineUtils.h"
 #include "FortRogueGameMode.h"
 #include "FortRogueGameplayTags.h"
+#include "FortRoguePlayerController.h"
 #include "Items/FortRogueItemDefinition.h"
 #include "Kismet/GameplayStatics.h"
 #include "Perks/FortRoguePerkDefinition.h"
@@ -546,6 +547,20 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 	TestTrue(TEXT("Game mode wind summary includes signed wind"), GameMode->GetWindSummary().ToString().Contains(TEXT("Wind +120")));
 	TestTrue(TEXT("Game mode run progress summary includes stage progress"), GameMode->GetRunProgressSummary().ToString().Contains(TEXT("Stage 1/2")));
 	TestTrue(TEXT("Game mode run progress summary includes status text"), GameMode->GetRunProgressSummary().ToString().Contains(GameMode->GetStatusText().ToString()));
+	AFortRoguePlayerController* TestPlayerController = World->SpawnActor<AFortRoguePlayerController>(AFortRoguePlayerController::StaticClass());
+	TestNotNull(TEXT("FortRogue player controller is spawnable for UI helper tests"), TestPlayerController);
+	if (TestPlayerController && GameMode->GetPlayerCharacter())
+	{
+		float PlayerAttributeValue = -1.0f;
+		TestTrue(TEXT("Player controller reads player attributes by tag"), TestPlayerController->TryGetPlayerCombatAttributeValueByTag(FortRogueGameplayTags::Attribute_Health, PlayerAttributeValue));
+		TestEqual(TEXT("Player controller attribute value matches player character"), PlayerAttributeValue, GameMode->GetPlayerCharacter()->GetHealth());
+		const float PlayerBaseDamage = GameMode->GetPlayerCharacter()->GetDamageBonus();
+		TestTrue(TEXT("Player controller applies player attribute deltas by tag"), TestPlayerController->TryApplyPlayerCombatAttributeDeltaByTag(FortRogueGameplayTags::Attribute_Damage, 3.0f));
+		TestEqual(TEXT("Player controller attribute delta updates player character"), GameMode->GetPlayerCharacter()->GetDamageBonus(), PlayerBaseDamage + 3.0f);
+		TestFalse(TEXT("Player controller rejects invalid attribute value tags"), TestPlayerController->TryGetPlayerCombatAttributeValueByTag(FGameplayTag(), PlayerAttributeValue));
+		TestEqual(TEXT("Rejected player controller attribute value resets output"), PlayerAttributeValue, 0.0f);
+		TestFalse(TEXT("Player controller rejects invalid attribute delta tags"), TestPlayerController->TryApplyPlayerCombatAttributeDeltaByTag(FGameplayTag(), 1.0f));
+	}
 	if (AFortRogueBattleCharacter* PlayerCharacter = GameMode->GetPlayerCharacter())
 	{
 		const float BaseDamageBonus = PlayerCharacter->GetDamageBonus();
