@@ -7,6 +7,8 @@
 #include "Weapons/FortRogueWeaponDefinition.h"
 #include "FortRogueBattleHUDWidget.generated.h"
 
+class UFortRogueAbilitySet;
+
 UCLASS(Abstract, Blueprintable)
 class FORTROGUE_API UFortRogueBattleHUDWidget : public UFortRogueActivatableWidget
 {
@@ -45,6 +47,24 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	TArray<FFortRogueItemStack> GetPlayerItemLoadout() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	TArray<FFortRogueShotModifierSpec> GetPlayerGrantedShotModifiers() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	TArray<FFortRogueShotModifierSpec> GetPlayerPendingShotModifiers() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	FText GetPlayerGrantedShotModifiersSummary() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	FText GetPlayerPendingShotModifiersSummary() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	TArray<UFortRogueAbilitySet*> GetPlayerGrantedAbilitySets() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	FText GetPlayerGrantedAbilitySetsSummary() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	float GetPlayerAimAngle() const;

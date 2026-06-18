@@ -100,6 +100,60 @@ TArray<FFortRogueItemStack> UFortRogueBattleHUDWidget::GetPlayerItemLoadout() co
 	return TArray<FFortRogueItemStack>();
 }
 
+TArray<FFortRogueShotModifierSpec> UFortRogueBattleHUDWidget::GetPlayerGrantedShotModifiers() const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->GetGrantedShotModifiersForBlueprint();
+	}
+	return TArray<FFortRogueShotModifierSpec>();
+}
+
+TArray<FFortRogueShotModifierSpec> UFortRogueBattleHUDWidget::GetPlayerPendingShotModifiers() const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->GetPendingShotModifiersForBlueprint();
+	}
+	return TArray<FFortRogueShotModifierSpec>();
+}
+
+FText UFortRogueBattleHUDWidget::GetPlayerGrantedShotModifiersSummary() const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->GetGrantedShotModifiersSummary();
+	}
+	return FText::GetEmpty();
+}
+
+FText UFortRogueBattleHUDWidget::GetPlayerPendingShotModifiersSummary() const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->GetPendingShotModifiersSummary();
+	}
+	return FText::GetEmpty();
+}
+
+TArray<UFortRogueAbilitySet*> UFortRogueBattleHUDWidget::GetPlayerGrantedAbilitySets() const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->GetGrantedAbilitySetsForBlueprint();
+	}
+	return TArray<UFortRogueAbilitySet*>();
+}
+
+FText UFortRogueBattleHUDWidget::GetPlayerGrantedAbilitySetsSummary() const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->GetGrantedAbilitySetsSummary();
+	}
+	return FText::GetEmpty();
+}
+
 float UFortRogueBattleHUDWidget::GetPlayerAimAngle() const
 {
 	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())

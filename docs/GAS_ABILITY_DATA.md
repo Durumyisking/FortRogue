@@ -169,6 +169,7 @@ ShotModifier 배열만 따로 표시해야 하는 디버그/편집 UI에서는 `
 이 함수는 먼저 `ModifierTag`를 보고, 기존 데이터 호환을 위해 `EffectTags`에 같은 태그가 있는 modifier도 제거한다.
 UI나 블루프린트에서 현재 적용 여부를 확인할 때는 `GetGrantedShotModifierCountByTag()` 또는 `HasGrantedShotModifierByTag()`를 사용한다. PlayerController 경유 UI에서는 `GrantPlayerShotModifiers()`, `GetPlayerGrantedShotModifierCountByTag()`, `HasPlayerGrantedShotModifierByTag()`, `RemovePlayerGrantedShotModifiersByTag()`를 사용한다.
 현재 누적된 전체 modifier 목록과 요약을 표시하려면 `GetGrantedShotModifiersForBlueprint()`, `GetGrantedShotModifiersSummary()`를 사용한다. PlayerController 경유 UI에서는 `GetPlayerGrantedShotModifiers()`, `GetPlayerGrantedShotModifiersSummary()`를 사용한다.
+UMG 전투 HUD에서는 `UFortRogueBattleHUDWidget::GetPlayerGrantedShotModifiers()`, `GetPlayerGrantedShotModifiersSummary()`로 현재 런 modifier 목록과 요약을 읽을 수 있다.
 
 ## 6. 아이템과 AbilitySet
 
@@ -187,6 +188,7 @@ AbilitySet 자체를 UI에 표시할 때는 `UFortRogueAbilitySet::GetEffectSumm
 태그 기반으로 관리하려면 `GetGrantedAbilitySetCountByTag()`, `HasGrantedAbilitySetByTag()`, `RemoveAbilitySetsByTag()`를 사용한다.
 현재 부여된 AbilitySet 목록과 요약을 표시하려면 `GetGrantedAbilitySetsForBlueprint()`, `GetGrantedAbilitySetsSummary()`를 사용한다.
 PlayerController 경유 UI에서는 `GrantPlayerAbilitySet()`, `RemovePlayerAbilitySet()`, `GetPlayerGrantedAbilitySetCount()`, `GetPlayerGrantedAbilitySetCountByTag()`, `HasPlayerGrantedAbilitySetByTag()`, `GetPlayerGrantedAbilitySets()`, `GetPlayerGrantedAbilitySetsSummary()`, `RemovePlayerAbilitySetsByTag()`를 사용한다.
+UMG 전투 HUD에서는 `UFortRogueBattleHUDWidget::GetPlayerGrantedAbilitySets()`, `GetPlayerGrantedAbilitySetsSummary()`로 현재 부여된 AbilitySet 목록과 요약을 읽을 수 있다.
 
 UI나 블루프린트에서는 `AFortRoguePlayerController::UsePlayerItemByTag()`로 `ItemTag` 기반 아이템 사용을 연결할 수 있다.
 현재 표시 중인 아이템 배열을 그대로 버튼에 연결하려면 `AFortRoguePlayerController::UsePlayerItemByIndex()` 또는 `AFortRogueBattleCharacter::UseItemByIndex()`를 사용한다. 인덱스는 `ItemLoadout` 기준 0부터 시작한다.
@@ -205,6 +207,7 @@ Canvas HUD도 현재 `ItemLoadout`의 아이템 이름과 수량을 표시한다
 - 실제 발사 후 `PendingShotModifiers`는 자동으로 비워진다.
 - 다음 발 효과를 UI에서 직접 붙이거나 확인하거나 취소해야 한다면 `GrantPendingShotModifiers()`, `GetPendingShotModifierCountByTag()`, `HasPendingShotModifierByTag()`, `RemovePendingShotModifiersByTag()`를 사용한다. PlayerController 경유 UI에서는 `GrantPlayerPendingShotModifiers()`, `GetPlayerPendingShotModifierCountByTag()`, `HasPlayerPendingShotModifierByTag()`, `RemovePlayerPendingShotModifiersByTag()`를 사용한다.
 - 다음 발에 쌓인 modifier 목록과 요약은 `GetPendingShotModifiersForBlueprint()`, `GetPendingShotModifiersSummary()`로 읽는다. PlayerController 경유 UI에서는 `GetPlayerPendingShotModifiers()`, `GetPlayerPendingShotModifiersSummary()`를 사용한다.
+- UMG 전투 HUD에서는 `UFortRogueBattleHUDWidget::GetPlayerPendingShotModifiers()`, `GetPlayerPendingShotModifiersSummary()`로 다음 발 modifier 목록과 요약을 읽을 수 있다.
 
 ## 7. 주의할 점
 
