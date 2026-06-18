@@ -306,7 +306,7 @@ int32 AFortRogueBattleCharacter::ReleaseShotCharge()
 
 void AFortRogueBattleCharacter::SelectWeapon(int32 WeaponIndex)
 {
-	if (WeaponLoadout.IsValidIndex(WeaponIndex))
+	if (CanSelectWeapon(WeaponIndex))
 	{
 		SelectedWeaponIndex = WeaponIndex;
 	}
@@ -314,21 +314,42 @@ void AFortRogueBattleCharacter::SelectWeapon(int32 WeaponIndex)
 
 bool AFortRogueBattleCharacter::SelectWeaponByTag(FGameplayTag WeaponTag)
 {
-	if (!WeaponTag.IsValid())
+	const int32 WeaponIndex = GetWeaponIndexByTag(WeaponTag);
+	if (!CanSelectWeapon(WeaponIndex))
 	{
 		return false;
+	}
+
+	SelectedWeaponIndex = WeaponIndex;
+	return true;
+}
+
+bool AFortRogueBattleCharacter::CanSelectWeapon(int32 WeaponIndex) const
+{
+	return WeaponLoadout.IsValidIndex(WeaponIndex);
+}
+
+bool AFortRogueBattleCharacter::CanSelectWeaponByTag(FGameplayTag WeaponTag) const
+{
+	return CanSelectWeapon(GetWeaponIndexByTag(WeaponTag));
+}
+
+int32 AFortRogueBattleCharacter::GetWeaponIndexByTag(FGameplayTag WeaponTag) const
+{
+	if (!WeaponTag.IsValid())
+	{
+		return INDEX_NONE;
 	}
 
 	for (int32 WeaponIndex = 0; WeaponIndex < WeaponLoadout.Num(); ++WeaponIndex)
 	{
 		if (WeaponLoadout[WeaponIndex].WeaponTag.MatchesTagExact(WeaponTag))
 		{
-			SelectedWeaponIndex = WeaponIndex;
-			return true;
+			return WeaponIndex;
 		}
 	}
 
-	return false;
+	return INDEX_NONE;
 }
 
 int32 AFortRogueBattleCharacter::FireSelectedWeapon()

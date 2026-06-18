@@ -1019,6 +1019,12 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		ClusterWeapon->Weapon.WeaponTag = FortRogueGameplayTags::Weapon_Cluster;
 		StatCharacter->AddWeaponDefinition(ShellWeapon);
 		StatCharacter->AddWeaponDefinition(ClusterWeapon);
+		TestEqual(TEXT("Battle character finds weapon index by tag"), StatCharacter->GetWeaponIndexByTag(FortRogueGameplayTags::Weapon_Cluster), 1);
+		TestEqual(TEXT("Battle character returns INDEX_NONE for invalid weapon tags"), StatCharacter->GetWeaponIndexByTag(FGameplayTag()), INDEX_NONE);
+		TestTrue(TEXT("Battle character reports valid weapon index selectable"), StatCharacter->CanSelectWeapon(1));
+		TestFalse(TEXT("Battle character rejects invalid weapon index selection queries"), StatCharacter->CanSelectWeapon(-1));
+		TestTrue(TEXT("Battle character reports valid weapon tag selectable"), StatCharacter->CanSelectWeaponByTag(FortRogueGameplayTags::Weapon_Cluster));
+		TestFalse(TEXT("Battle character rejects invalid weapon tag selection queries"), StatCharacter->CanSelectWeaponByTag(FGameplayTag()));
 		TestFalse(TEXT("Battle character rejects invalid weapon selection tags"), StatCharacter->SelectWeaponByTag(FGameplayTag()));
 		TestTrue(TEXT("Battle character selects a weapon by tag"), StatCharacter->SelectWeaponByTag(FortRogueGameplayTags::Weapon_Cluster));
 		TestEqual(TEXT("Battle character selection by tag updates the current weapon"), StatCharacter->GetCurrentWeapon().WeaponTag, FortRogueGameplayTags::Weapon_Cluster);

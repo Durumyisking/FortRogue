@@ -35,6 +35,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Weapons")
 	bool SelectPlayerWeaponByTag(FGameplayTag WeaponTag);
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
+	bool CanSelectPlayerWeapon(int32 WeaponIndex) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
+	bool CanSelectPlayerWeaponByTag(FGameplayTag WeaponTag) const;
+
 private:
 	void TickBattleInput(float DeltaSeconds);
 	void TickKeyboardFireInput();
