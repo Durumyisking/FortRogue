@@ -37,6 +37,24 @@ FText UFortRogueBattleHUDWidget::GetRunProgressSummary() const
 	return FText::GetEmpty();
 }
 
+EFortRogueBattleState UFortRogueBattleHUDWidget::GetBattleState() const
+{
+	if (AFortRogueGameMode* GameMode = GetFortRogueGameMode())
+	{
+		return GameMode->GetBattleState();
+	}
+	return EFortRogueBattleState::PlayerTurn;
+}
+
+FText UFortRogueBattleHUDWidget::GetStatusText() const
+{
+	if (AFortRogueGameMode* GameMode = GetFortRogueGameMode())
+	{
+		return GameMode->GetStatusText();
+	}
+	return FText::GetEmpty();
+}
+
 FText UFortRogueBattleHUDWidget::GetWindSummary() const
 {
 	if (AFortRogueGameMode* GameMode = GetFortRogueGameMode())

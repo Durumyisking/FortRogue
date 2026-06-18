@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Combat/FortRogueShotSpec.h"
+#include "FortRogueGameMode.h"
 #include "GameplayTagContainer.h"
 #include "Items/FortRogueItemDefinition.h"
 #include "UI/FortRogueActivatableWidget.h"
@@ -28,6 +29,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	FText GetRunProgressSummary() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	EFortRogueBattleState GetBattleState() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	FText GetStatusText() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	FText GetWindSummary() const;
