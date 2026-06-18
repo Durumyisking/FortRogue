@@ -93,6 +93,18 @@ public:
 	FText GetPlayerPendingShotModifiersSummary() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	int32 GetPlayerGrantedShotModifierCountByTag(FGameplayTag ModifierTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	int32 GetPlayerPendingShotModifierCountByTag(FGameplayTag ModifierTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	bool HasPlayerGrantedShotModifierByTag(FGameplayTag ModifierTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	bool HasPlayerPendingShotModifierByTag(FGameplayTag ModifierTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	TArray<UFortRogueAbilitySet*> GetPlayerGrantedAbilitySets() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")

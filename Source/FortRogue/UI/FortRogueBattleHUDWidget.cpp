@@ -226,6 +226,42 @@ FText UFortRogueBattleHUDWidget::GetPlayerPendingShotModifiersSummary() const
 	return FText::GetEmpty();
 }
 
+int32 UFortRogueBattleHUDWidget::GetPlayerGrantedShotModifierCountByTag(FGameplayTag ModifierTag) const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->GetGrantedShotModifierCountByTag(ModifierTag);
+	}
+	return 0;
+}
+
+int32 UFortRogueBattleHUDWidget::GetPlayerPendingShotModifierCountByTag(FGameplayTag ModifierTag) const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->GetPendingShotModifierCountByTag(ModifierTag);
+	}
+	return 0;
+}
+
+bool UFortRogueBattleHUDWidget::HasPlayerGrantedShotModifierByTag(FGameplayTag ModifierTag) const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->HasGrantedShotModifierByTag(ModifierTag);
+	}
+	return false;
+}
+
+bool UFortRogueBattleHUDWidget::HasPlayerPendingShotModifierByTag(FGameplayTag ModifierTag) const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->HasPendingShotModifierByTag(ModifierTag);
+	}
+	return false;
+}
+
 TArray<UFortRogueAbilitySet*> UFortRogueBattleHUDWidget::GetPlayerGrantedAbilitySets() const
 {
 	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
