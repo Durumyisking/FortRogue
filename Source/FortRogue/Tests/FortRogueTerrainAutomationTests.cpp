@@ -383,7 +383,7 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 		return false;
 	}
 
-	FObjectProperty* TerrainMapProperty = FindFProperty<FObjectProperty>(GameMode->GetClass(), TEXT("TerrainMapDefinition"));
+	FObjectProperty* TerrainMapProperty = FindFProperty<FObjectProperty>(AFortRogueGameMode::StaticClass(), TEXT("TerrainMapDefinition"));
 	TestNotNull(TEXT("Game mode exposes a terrain map definition property"), TerrainMapProperty);
 	if (!TerrainMapProperty)
 	{
@@ -395,13 +395,16 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 	UFortRogueStageRunDefinition* TestStageRunDefinition = NewObject<UFortRogueStageRunDefinition>(GameMode);
 	TestStageRunDefinition->StageCount = 2;
 	TestStageRunDefinition->NormalizeStageData();
+	UFortRogueCharacterDefinition* TestEnemyDefinition = NewObject<UFortRogueCharacterDefinition>(TestStageRunDefinition);
+	TestEnemyDefinition->BattleMapDefinition = Map;
+	TestStageRunDefinition->EnemyDefinitionPool = { TestEnemyDefinition };
 	GameMode->StageRunDefinition = TestStageRunDefinition;
 
-	if (FFloatProperty* MinWindProperty = FindFProperty<FFloatProperty>(GameMode->GetClass(), TEXT("MinWind")))
+	if (FFloatProperty* MinWindProperty = FindFProperty<FFloatProperty>(AFortRogueGameMode::StaticClass(), TEXT("MinWind")))
 	{
 		MinWindProperty->SetPropertyValue_InContainer(GameMode, 120.0f);
 	}
-	if (FFloatProperty* MaxWindProperty = FindFProperty<FFloatProperty>(GameMode->GetClass(), TEXT("MaxWind")))
+	if (FFloatProperty* MaxWindProperty = FindFProperty<FFloatProperty>(AFortRogueGameMode::StaticClass(), TEXT("MaxWind")))
 	{
 		MaxWindProperty->SetPropertyValue_InContainer(GameMode, 120.0f);
 	}

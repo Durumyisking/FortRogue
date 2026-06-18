@@ -12,6 +12,7 @@
 #include "Framework/Docking/TabManager.h"
 #include "HAL/FileManager.h"
 #include "IAssetTools.h"
+#include "Misc/PackageName.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
 #include "PaperFlipbook.h"
@@ -48,6 +49,19 @@ static TWeakObjectPtr<UFortRogueTerrainMapDefinition> PendingTerrainMapAsset;
 static TWeakPtr<SFortRogueTerrainMapEditor> ActiveTerrainMapEditor;
 static void OpenTerrainMapEditorForAsset(UFortRogueTerrainMapDefinition* Asset);
 
+struct FGeneratedSpriteAnimationRow
+{
+	const TCHAR* Suffix;
+	int32 RowIndex;
+};
+
+static const FGeneratedSpriteAnimationRow GeneratedSpriteAnimationRows[] =
+{
+	{ TEXT("_move_flipbook"), 0 },
+	{ TEXT("_attack_flipbook"), 1 },
+	{ TEXT("_aim_flipbook"), 2 }
+};
+
 static FString GetGeneratedSpriteBaseName(const UTexture2D& Texture)
 {
 	FString BaseName = Texture.GetName();
@@ -58,13 +72,27 @@ static FString GetGeneratedSpriteBaseName(const UTexture2D& Texture)
 template <typename AssetType>
 static AssetType* LoadGeneratedSpriteAsset(const FString& AssetName)
 {
-	const FString ObjectPath = FString::Printf(TEXT("%s/%s.%s"), GeneratedSpriteOutputPath, *AssetName, *AssetName);
+	const FString PackagePath = FString::Printf(TEXT("%s/%s"), GeneratedSpriteOutputPath, *AssetName);
+	const FString PackageFilename = FPackageName::LongPackageNameToFilename(PackagePath, FPackageName::GetAssetPackageExtension());
+	if (!FPaths::FileExists(PackageFilename))
+	{
+		return nullptr;
+	}
+
+	const FString ObjectPath = FString::Printf(TEXT("%s.%s"), *PackagePath, *AssetName);
 	return LoadObject<AssetType>(nullptr, *ObjectPath);
 }
 
 static UTexture2D* LoadGeneratedSpriteTexture(const FString& AssetName)
 {
-	const FString ObjectPath = FString::Printf(TEXT("%s/%s.%s"), GeneratedSpriteSourcePath, *AssetName, *AssetName);
+	const FString PackagePath = FString::Printf(TEXT("%s/%s"), GeneratedSpriteSourcePath, *AssetName);
+	const FString PackageFilename = FPackageName::LongPackageNameToFilename(PackagePath, FPackageName::GetAssetPackageExtension());
+	if (!FPaths::FileExists(PackageFilename))
+	{
+		return nullptr;
+	}
+
+	const FString ObjectPath = FString::Printf(TEXT("%s.%s"), *PackagePath, *AssetName);
 	return LoadObject<UTexture2D>(nullptr, *ObjectPath);
 }
 
@@ -220,10 +248,29 @@ int32 GenerateSpriteFlipbooks()
 			}
 		}
 
-		const FString FlipbookName = FString::Printf(TEXT("%s_flipbook"), *BaseName);
-		if (FortRogueEditor::GetOrCreateGeneratedFlipbook(FlipbookName, FrameSprites, PackagesToSave))
+		TArray<UPaperSprite*> MoveSprites;
+		for (int32 Column = 0; Column < FortRogueEditor::GeneratedSpriteSheetColumns; ++Column)
+		{
+			MoveSprites.Add(FrameSprites[Column]);
+		}
+		if (FortRogueEditor::GetOrCreateGeneratedFlipbook(FString::Printf(TEXT("%s_flipbook"), *BaseName), MoveSprites, PackagesToSave))
 		{
 			++GeneratedFlipbooks;
+		}
+
+		for (const FGeneratedSpriteAnimationRow& AnimationRow : FortRogueEditor::GeneratedSpriteAnimationRows)
+		{
+			TArray<UPaperSprite*> AnimationSprites;
+			for (int32 Column = 0; Column < FortRogueEditor::GeneratedSpriteSheetColumns; ++Column)
+			{
+				AnimationSprites.Add(FrameSprites[AnimationRow.RowIndex * FortRogueEditor::GeneratedSpriteSheetColumns + Column]);
+			}
+
+			const FString FlipbookName = FString::Printf(TEXT("%s%s"), *BaseName, AnimationRow.Suffix);
+			if (FortRogueEditor::GetOrCreateGeneratedFlipbook(FlipbookName, AnimationSprites, PackagesToSave))
+			{
+				++GeneratedFlipbooks;
+			}
 		}
 	}
 

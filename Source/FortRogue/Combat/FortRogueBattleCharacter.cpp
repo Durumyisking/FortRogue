@@ -39,7 +39,7 @@ AFortRogueBattleCharacter::AFortRogueBattleCharacter()
 	}
 
 	BodySprite = CreateDefaultSubobject<UPaperFlipbookComponent>(TEXT("BodySprite"));
-	BodySprite->SetupAttachment(Body);
+	BodySprite->SetupAttachment(Root);
 	BodySprite->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	BodySprite->SetVisibility(false);
 	BodySprite->SetRelativeRotation(FRotator(0.0f, 90.0f, 0.0f));

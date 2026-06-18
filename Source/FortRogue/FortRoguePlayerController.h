@@ -27,6 +27,7 @@ public:
 
 private:
 	void TickBattleInput(float DeltaSeconds);
+	void TickKeyboardFireInput();
 	void TickRewardInput();
 	void UpdateOptionalWidgets();
 	bool HasEnhancedInputBindings() const;

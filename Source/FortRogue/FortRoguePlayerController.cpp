@@ -120,6 +120,7 @@ void AFortRoguePlayerController::Tick(float DeltaSeconds)
 	{
 		ApplyMoveAxis(EnhancedMoveAxis, DeltaSeconds);
 		ApplyAimAxis(EnhancedAimAxis, DeltaSeconds);
+		TickKeyboardFireInput();
 		TickPlayerWeaponCharge(DeltaSeconds);
 		return;
 	}
@@ -169,6 +170,24 @@ void AFortRoguePlayerController::TickBattleInput(float DeltaSeconds)
 	if (IsInputKeyDown(EKeys::SpaceBar))
 	{
 		TickPlayerWeaponCharge(DeltaSeconds);
+	}
+	if (WasInputKeyJustReleased(EKeys::SpaceBar))
+	{
+		ReleasePlayerWeaponCharge();
+	}
+}
+
+void AFortRoguePlayerController::TickKeyboardFireInput()
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (!GameMode || GameMode->GetBattleState() != EFortRogueBattleState::PlayerTurn || !GameMode->GetPlayerCharacter())
+	{
+		return;
+	}
+
+	if (WasInputKeyJustPressed(EKeys::SpaceBar))
+	{
+		BeginPlayerWeaponCharge();
 	}
 	if (WasInputKeyJustReleased(EKeys::SpaceBar))
 	{
