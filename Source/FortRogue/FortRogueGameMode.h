@@ -89,7 +89,7 @@ private:
 	const FFortRogueStageDifficultyData& GetCurrentStageDifficulty() const;
 	int32 GetConfiguredStageCount() const;
 	void HandleEnemyDefeated();
-	void ApplyRandomRewardAndLog();
+	void AdvanceToNextStage();
 	void ApplyRewardToPlayer(const FFortRogueRewardChoice& Reward);
 	void StartPlayerTurn();
 	void StartEnemyTurn();

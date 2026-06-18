@@ -116,6 +116,8 @@ modifier 적용 순서:
 
 보상 선택지는 같은 보상이 한 화면에 중복되지 않도록 뽑힌다.
 
+최종 스테이지 전까지 적을 처치하면 `Reward` 상태로 들어가고, 플레이어가 보상을 선택한 뒤 다음 스테이지를 생성한다.
+
 보상 화면은 `RewardChoice.GetEffectSummary()`를 통해 무기, 아이템, 퍽, ShotModifier, AbilitySet 효과를 자동 요약할 수 있다. UMG에서는 `UFortRogueRewardBlueprintLibrary::GetRewardEffectSummary()`를 사용한다.
 
 퍽 에셋에서 런 전체의 탄 방식을 바꾸려면 `UFortRoguePerkDefinition::ShotModifiers`를 사용한다.

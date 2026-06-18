@@ -121,11 +121,12 @@ void AFortRogueGameMode::ApplyRewardChoice(int32 ChoiceIndex)
 		return;
 	}
 
-	const FFortRogueRewardChoice& Reward = RewardChoices[ChoiceIndex];
+	const FFortRogueRewardChoice Reward = RewardChoices[ChoiceIndex];
 	ApplyRewardToPlayer(Reward);
 
 	SetStatus(FString::Printf(TEXT("Reward chosen: %s"), *Reward.DisplayName.ToString()));
 	RewardChoices.Reset();
+	AdvanceToNextStage();
 }
 
 float AFortRogueGameMode::GetWind() const
@@ -376,31 +377,20 @@ void AFortRogueGameMode::HandleEnemyDefeated()
 		return;
 	}
 
-	ApplyRandomRewardAndLog();
+	EnterRewardState();
+	if (RewardChoices.Num() <= 0)
+	{
+		UE_LOG(LogFortRogue, Log, TEXT("No reward choices configured after stage %d."), CurrentStage);
+		AdvanceToNextStage();
+	}
+}
+
+void AFortRogueGameMode::AdvanceToNextStage()
+{
 	++CurrentStage;
 	SelectNextEnemyDefinition();
 	SpawnMVPBattle();
 	StartPlayerTurn();
-}
-
-void AFortRogueGameMode::ApplyRandomRewardAndLog()
-{
-	if (!PlayerCharacter)
-	{
-		return;
-	}
-
-	const TArray<FFortRogueRewardChoice>* Rewards = StageRunDefinition ? &StageRunDefinition->RewardPool : nullptr;
-	if (!Rewards || Rewards->Num() == 0)
-	{
-		UE_LOG(LogFortRogue, Log, TEXT("No reward pool configured for stage %d."), CurrentStage);
-		return;
-	}
-
-	const int32 RewardIndex = FMath::RandRange(0, Rewards->Num() - 1);
-	const FFortRogueRewardChoice& Reward = (*Rewards)[RewardIndex];
-	ApplyRewardToPlayer(Reward);
-	UE_LOG(LogFortRogue, Log, TEXT("Random reward selected after stage %d: %s"), CurrentStage, *Reward.DisplayName.ToString());
 }
 
 void AFortRogueGameMode::ApplyRewardToPlayer(const FFortRogueRewardChoice& Reward)
