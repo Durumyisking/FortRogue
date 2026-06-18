@@ -160,6 +160,19 @@ TArray<FFortRogueRewardChoice> AFortRogueGameMode::GetRewardChoices() const
 	return RewardChoices;
 }
 
+FGameplayTagContainer AFortRogueGameMode::GetChosenRewardTags() const
+{
+	FGameplayTagContainer ChosenRewardTagContainer;
+	for (const FGameplayTag& ChosenRewardTag : ChosenRewardTags)
+	{
+		if (ChosenRewardTag.IsValid())
+		{
+			ChosenRewardTagContainer.AddTag(ChosenRewardTag);
+		}
+	}
+	return ChosenRewardTagContainer;
+}
+
 FText AFortRogueGameMode::GetStatusText() const
 {
 	return StatusText;
@@ -536,15 +549,7 @@ void AFortRogueGameMode::BuildRewardChoices()
 		return;
 	}
 
-	FGameplayTagContainer ChosenRewardTagContainer;
-	for (const FGameplayTag& ChosenRewardTag : ChosenRewardTags)
-	{
-		if (ChosenRewardTag.IsValid())
-		{
-			ChosenRewardTagContainer.AddTag(ChosenRewardTag);
-		}
-	}
-
+	const FGameplayTagContainer ChosenRewardTagContainer = GetChosenRewardTags();
 	TArray<FFortRogueRewardChoice> CompatibleRewards;
 	TArray<FFortRogueRewardChoice> CandidateRewards;
 	for (const FFortRogueRewardChoice& Reward : StageRunDefinition->RewardPool)

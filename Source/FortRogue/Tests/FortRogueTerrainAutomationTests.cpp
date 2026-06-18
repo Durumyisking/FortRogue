@@ -506,6 +506,7 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 	TestTrue(TEXT("Reward choices keep rewards whose blocked tags are absent"), HasRewardChoiceTag(GameMode->GetRewardChoices(), FortRogueGameplayTags::Trait_Health));
 
 	GameMode->ChosenRewardTags = { FortRogueGameplayTags::Trait_Damage };
+	TestTrue(TEXT("Game mode exposes chosen reward tags for UI"), GameMode->GetChosenRewardTags().HasTagExact(FortRogueGameplayTags::Trait_Damage));
 	GameMode->BuildRewardChoices();
 	TestTrue(TEXT("Reward choices include rewards after required reward tags are chosen"), HasRewardChoiceTag(GameMode->GetRewardChoices(), FortRogueGameplayTags::Trait_Projectiles));
 	TestFalse(TEXT("Reward choices hide rewards blocked by chosen reward tags"), HasRewardChoiceTag(GameMode->GetRewardChoices(), FortRogueGameplayTags::Trait_Health));
