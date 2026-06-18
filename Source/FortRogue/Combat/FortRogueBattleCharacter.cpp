@@ -331,7 +331,7 @@ int32 AFortRogueBattleCharacter::FireSelectedWeapon()
 		AFortRogueProjectile* Projectile = GetWorld()->SpawnActor<AFortRogueProjectile>(ShotSpec.ProjectileClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
 		if (Projectile)
 		{
-			Projectile->InitializeProjectile(this, FindTerrain(), Direction * ShotSpec.LaunchSpeed, ShotSpec.Damage, ShotSpec.BlastRadius, ShotSpec.Gravity, ShotSpec.TerrainCarveRadius, ShotSpec.TerrainFillRadius, ShotSpec.WeaponTag, ShotSpec.EffectTags, ShotSpec.ImpactSpawns);
+			Projectile->InitializeProjectileFromShotSpec(this, FindTerrain(), Direction * ShotSpec.LaunchSpeed, ShotSpec);
 			if (AFortRogueGameMode* GameMode = GetWorld()->GetAuthGameMode<AFortRogueGameMode>())
 			{
 				GameMode->NotifyProjectileSpawned(Projectile);

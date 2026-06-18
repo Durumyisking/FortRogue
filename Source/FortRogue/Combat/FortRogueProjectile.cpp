@@ -80,6 +80,22 @@ void AFortRogueProjectile::InitializeProjectile(AFortRogueBattleCharacter* InOwn
 	Gravity = InGravity;
 }
 
+void AFortRogueProjectile::InitializeProjectileFromShotSpec(AFortRogueBattleCharacter* InOwnerCharacter, AFortRogueDestructibleTerrain* InTerrain, const FVector& InVelocity, const FFortRogueShotSpec& ShotSpec)
+{
+	InitializeProjectile(
+		InOwnerCharacter,
+		InTerrain,
+		InVelocity,
+		ShotSpec.Damage,
+		ShotSpec.BlastRadius,
+		ShotSpec.Gravity,
+		ShotSpec.TerrainCarveRadius,
+		ShotSpec.TerrainFillRadius,
+		ShotSpec.WeaponTag,
+		ShotSpec.EffectTags,
+		ShotSpec.ImpactSpawns);
+}
+
 void AFortRogueProjectile::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
