@@ -363,6 +363,15 @@ void AFortRoguePlayerController::UsePlayerItem(EFortRogueItemType ItemType)
 	}
 }
 
+void AFortRoguePlayerController::UsePlayerItemByTag(FGameplayTag ItemTag)
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetBattleState() == EFortRogueBattleState::PlayerTurn && GameMode->GetPlayerCharacter())
+	{
+		GameMode->GetPlayerCharacter()->UseItemByTag(ItemTag);
+	}
+}
+
 void AFortRoguePlayerController::ChooseReward(int32 ChoiceIndex)
 {
 	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;

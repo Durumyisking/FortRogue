@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/PlayerController.h"
+#include "GameplayTagContainer.h"
 #include "Items/FortRogueItemDefinition.h"
 #include "FortRoguePlayerController.generated.h"
 
@@ -24,6 +25,9 @@ public:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 	virtual void Tick(float DeltaSeconds) override;
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Items")
+	void UsePlayerItemByTag(FGameplayTag ItemTag);
 
 private:
 	void TickBattleInput(float DeltaSeconds);
