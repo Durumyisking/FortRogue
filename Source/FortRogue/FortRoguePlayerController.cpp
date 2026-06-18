@@ -658,6 +658,26 @@ bool AFortRoguePlayerController::CanFirePlayerWeapon() const
 	return false;
 }
 
+FFortRogueShotSpec AFortRoguePlayerController::GetPlayerCurrentShotSpec() const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->GetCurrentShotSpec();
+	}
+	return FFortRogueShotSpec();
+}
+
+FText AFortRoguePlayerController::GetPlayerCurrentShotSummary() const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->GetCurrentShotSummary();
+	}
+	return FText::GetEmpty();
+}
+
 bool AFortRoguePlayerController::TryGetPlayerCombatAttributeValueByTag(FGameplayTag AttributeTag, float& OutValue) const
 {
 	OutValue = 0.0f;

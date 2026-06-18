@@ -571,6 +571,10 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 		TestEqual(TEXT("Player controller exposes player weapon loadout count"), TestPlayerController->GetPlayerWeaponLoadout().Num(), GameMode->GetPlayerCharacter()->GetWeaponLoadout().Num());
 		TestEqual(TEXT("Player controller exposes current weapon spec"), TestPlayerController->GetPlayerCurrentWeaponSpec().WeaponTag, FortRogueGameplayTags::Weapon_Cluster);
 		TestEqual(TEXT("Player controller exposes selected weapon index"), TestPlayerController->GetPlayerSelectedWeaponIndex(), ControllerWeaponIndex);
+		const FFortRogueShotSpec ControllerShotSpec = TestPlayerController->GetPlayerCurrentShotSpec();
+		TestEqual(TEXT("Player controller exposes current shot weapon tag"), ControllerShotSpec.WeaponTag, FortRogueGameplayTags::Weapon_Cluster);
+		TestTrue(TEXT("Player controller exposes current shot effect tags"), ControllerShotSpec.EffectTags.HasTagExact(FortRogueGameplayTags::Weapon_Cluster));
+		TestFalse(TEXT("Player controller exposes current shot summary"), TestPlayerController->GetPlayerCurrentShotSummary().ToString().IsEmpty());
 		UFortRogueAbilitySet* ControllerAbilitySet = NewObject<UFortRogueAbilitySet>(TestPlayerController);
 		ControllerAbilitySet->DisplayName = FText::FromString(TEXT("Controller Ability Set"));
 		ControllerAbilitySet->AbilitySetTag = FortRogueGameplayTags::Trait_ShotModifier;

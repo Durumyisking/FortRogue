@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Combat/FortRogueShotSpec.h"
 #include "GameFramework/PlayerController.h"
 #include "GameplayTagContainer.h"
 #include "Items/FortRogueItemDefinition.h"
@@ -99,6 +100,12 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
 	bool CanFirePlayerWeapon() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	FFortRogueShotSpec GetPlayerCurrentShotSpec() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	FText GetPlayerCurrentShotSummary() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
 	bool TryGetPlayerCombatAttributeValueByTag(FGameplayTag AttributeTag, float& OutValue) const;
