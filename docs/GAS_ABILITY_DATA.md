@@ -133,6 +133,7 @@ UI나 디버그 화면에서 현재 런의 선택 보상 태그를 보여줄 때
 잠긴 이유를 표시하려면 `GetRewardTagConditionFailureSummary()`를 사용한다. 조건을 만족하면 빈 텍스트를 반환한다.
 
 최종 스테이지 전까지 적을 처치하면 `Reward` 상태로 들어가고, 플레이어가 보상을 선택한 뒤 다음 스테이지를 생성한다.
+보상 버튼을 활성화할 때는 `AFortRogueGameMode::CanApplyRewardChoice()`로 현재 상태와 선택지 인덱스 유효성을 확인한다.
 
 보상 화면은 `RewardChoice.GetEffectSummary()`를 통해 무기, 아이템, 퍽, ShotModifier, AbilitySet 효과를 자동 요약할 수 있다. UMG에서는 `UFortRogueRewardBlueprintLibrary::GetRewardEffectSummary()`를 사용한다.
 보상 자체의 `DisplayName`과 `Description`도 요약에 포함되므로, 직접 스탯 보상이나 커스텀 카드의 의도를 데이터에 남긴다.

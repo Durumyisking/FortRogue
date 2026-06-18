@@ -118,7 +118,7 @@ void AFortRogueGameMode::NotifyProjectileResolved(AFortRogueProjectile* Projecti
 
 void AFortRogueGameMode::ApplyRewardChoice(int32 ChoiceIndex)
 {
-	if (BattleState != EFortRogueBattleState::Reward || !PlayerCharacter || !RewardChoices.IsValidIndex(ChoiceIndex))
+	if (!CanApplyRewardChoice(ChoiceIndex))
 	{
 		return;
 	}
@@ -133,6 +133,11 @@ void AFortRogueGameMode::ApplyRewardChoice(int32 ChoiceIndex)
 	SetStatus(FString::Printf(TEXT("Reward chosen: %s"), *Reward.DisplayName.ToString()));
 	RewardChoices.Reset();
 	AdvanceToNextStage();
+}
+
+bool AFortRogueGameMode::CanApplyRewardChoice(int32 ChoiceIndex) const
+{
+	return BattleState == EFortRogueBattleState::Reward && PlayerCharacter && RewardChoices.IsValidIndex(ChoiceIndex);
 }
 
 float AFortRogueGameMode::GetWind() const

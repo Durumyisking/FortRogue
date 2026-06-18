@@ -553,7 +553,7 @@ bool AFortRoguePlayerController::CanFirePlayerWeapon() const
 void AFortRoguePlayerController::ChooseReward(int32 ChoiceIndex)
 {
 	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
-	if (GameMode && GameMode->GetBattleState() == EFortRogueBattleState::Reward)
+	if (GameMode && GameMode->CanApplyRewardChoice(ChoiceIndex))
 	{
 		GameMode->ApplyRewardChoice(ChoiceIndex);
 	}

@@ -56,6 +56,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
 	void ApplyRewardChoice(int32 ChoiceIndex);
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	bool CanApplyRewardChoice(int32 ChoiceIndex) const;
+
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")
 	float GetWind() const;
 
