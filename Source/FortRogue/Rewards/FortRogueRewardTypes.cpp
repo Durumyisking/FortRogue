@@ -30,6 +30,23 @@ void AddShotModifierSummary(TArray<FString>& Parts, const TArray<FFortRogueShotM
 	float TerrainFillBonus = 0.0f;
 	for (const FFortRogueShotModifierSpec& Modifier : Modifiers)
 	{
+		if (Modifier.bUseAimAngleRange)
+		{
+			AddSummaryPart(Parts, FString::Printf(TEXT("aim %.0f-%.0f deg"), Modifier.MinAimAngle, Modifier.MaxAimAngle));
+		}
+		if (Modifier.bRequireWindAligned)
+		{
+			AddSummaryPart(Parts, Modifier.MinWindMagnitude > 0.0f ? FString::Printf(TEXT("with wind %.0f+"), Modifier.MinWindMagnitude) : FString(TEXT("with wind")));
+		}
+		if (!Modifier.RequiredShotTags.IsEmpty())
+		{
+			AddSummaryPart(Parts, FString::Printf(TEXT("requires %s"), *Modifier.RequiredShotTags.ToStringSimple()));
+		}
+		if (!Modifier.BlockedShotTags.IsEmpty())
+		{
+			AddSummaryPart(Parts, FString::Printf(TEXT("blocks %s"), *Modifier.BlockedShotTags.ToStringSimple()));
+		}
+
 		ProjectileBonus += Modifier.ProjectileCountBonus;
 		DamageMultiplier *= Modifier.DamageMultiplier;
 		BlastRadiusMultiplier *= Modifier.BlastRadiusMultiplier;
