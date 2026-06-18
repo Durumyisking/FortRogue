@@ -34,6 +34,7 @@ void AddShotModifierSummary(TArray<FString>& Parts, const TArray<FFortRogueShotM
 	float TerrainFillMultiplier = 1.0f;
 	float LaunchSpeedMultiplier = 1.0f;
 	float GravityMultiplier = 1.0f;
+	int32 ImpactSpawnCount = 0;
 	for (const FFortRogueShotModifierSpec& Modifier : Modifiers)
 	{
 		if (Modifier.bUseAimAngleRange)
@@ -64,6 +65,7 @@ void AddShotModifierSummary(TArray<FString>& Parts, const TArray<FFortRogueShotM
 		TerrainFillMultiplier *= Modifier.TerrainFillRadiusMultiplier;
 		LaunchSpeedMultiplier *= Modifier.LaunchSpeedMultiplier;
 		GravityMultiplier *= Modifier.GravityMultiplier;
+		ImpactSpawnCount += Modifier.ImpactSpawns.Num();
 	}
 
 	if (!FMath::IsNearlyZero(DamageBonus))
@@ -109,6 +111,10 @@ void AddShotModifierSummary(TArray<FString>& Parts, const TArray<FFortRogueShotM
 	if (!FMath::IsNearlyEqual(GravityMultiplier, 1.0f))
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("gravity x%.2g"), GravityMultiplier));
+	}
+	if (ImpactSpawnCount > 0)
+	{
+		AddSummaryPart(Parts, FString::Printf(TEXT("impact spawns +%d"), ImpactSpawnCount));
 	}
 }
 }

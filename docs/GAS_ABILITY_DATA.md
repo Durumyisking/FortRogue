@@ -44,6 +44,7 @@ modifier 적용 순서:
 기존 무기는 `ShotModifiers`와 `ImpactSpawns`를 비워두면 이전처럼 동작한다.
 
 `ShotModifier`를 나중에 제거해야 하는 효과라면 `ModifierTag`에 고유 태그를 넣는다.
+`ShotModifier::ImpactSpawns`를 쓰면 무기 자체가 아니라 보상, 퍽, 아이템으로 충돌 후 자식 탄 생성을 추가할 수 있다.
 
 ## 3. ShotModifier 사용 예
 
@@ -96,6 +97,8 @@ modifier 적용 순서:
 - `ChildEffectTags`에 `ShotEffect.SplitOnImpact`
 
 자식 탄은 기본적으로 다시 분열하지 않는다. 무한 분열을 막기 위해 `ImpactSpawns`를 자식에게 전달하지 않는다.
+
+런 보상이나 다음 발 아이템으로 분열 효과를 주고 싶다면 무기 `ImpactSpawns` 대신 `ShotModifier::ImpactSpawns`에 같은 데이터를 넣는다.
 
 ## 5. 보상과 퍽
 

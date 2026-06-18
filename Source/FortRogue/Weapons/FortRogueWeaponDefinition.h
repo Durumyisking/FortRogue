@@ -73,6 +73,9 @@ struct FFortRogueShotModifierSpec
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier")
 	int32 ProjectileCountBonus = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Impact", meta = (TitleProperty = ProjectileCount))
+	TArray<FFortRogueImpactSpawnSpec> ImpactSpawns;
 };
 
 USTRUCT(BlueprintType)
