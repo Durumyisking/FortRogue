@@ -560,6 +560,14 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 		TestFalse(TEXT("Player controller rejects invalid attribute value tags"), TestPlayerController->TryGetPlayerCombatAttributeValueByTag(FGameplayTag(), PlayerAttributeValue));
 		TestEqual(TEXT("Rejected player controller attribute value resets output"), PlayerAttributeValue, 0.0f);
 		TestFalse(TEXT("Player controller rejects invalid attribute delta tags"), TestPlayerController->TryApplyPlayerCombatAttributeDeltaByTag(FGameplayTag(), 1.0f));
+		UFortRogueWeaponDefinition* ControllerWeapon = CreateTestWeaponDefinition(TestPlayerController);
+		ControllerWeapon->Weapon.WeaponTag = FortRogueGameplayTags::Weapon_Cluster;
+		GameMode->GetPlayerCharacter()->AddWeaponDefinition(ControllerWeapon);
+		const int32 ControllerWeaponIndex = GameMode->GetPlayerCharacter()->GetWeaponLoadout().Num() - 1;
+		TestTrue(TEXT("Player controller can select weapons by loadout index"), TestPlayerController->CanSelectPlayerWeapon(ControllerWeaponIndex));
+		TestTrue(TEXT("Player controller selects weapons by loadout index"), TestPlayerController->SelectPlayerWeaponByIndex(ControllerWeaponIndex));
+		TestEqual(TEXT("Player controller weapon index selection updates current weapon"), GameMode->GetPlayerCharacter()->GetCurrentWeapon().WeaponTag, FortRogueGameplayTags::Weapon_Cluster);
+		TestFalse(TEXT("Player controller rejects invalid weapon loadout indexes"), TestPlayerController->SelectPlayerWeaponByIndex(INDEX_NONE));
 		UFortRogueAbilitySet* ControllerAbilitySet = NewObject<UFortRogueAbilitySet>(TestPlayerController);
 		ControllerAbilitySet->AbilitySetTag = FortRogueGameplayTags::Trait_ShotModifier;
 		TestEqual(TEXT("Player controller ability set count starts empty"), TestPlayerController->GetPlayerGrantedAbilitySetCount(ControllerAbilitySet), 0);

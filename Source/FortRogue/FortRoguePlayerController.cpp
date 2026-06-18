@@ -426,11 +426,7 @@ void AFortRoguePlayerController::ReleasePlayerWeaponCharge()
 
 void AFortRoguePlayerController::SelectPlayerWeapon(int32 WeaponIndex)
 {
-	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
-	if (GameMode && GameMode->GetBattleState() == EFortRogueBattleState::PlayerTurn && GameMode->GetPlayerCharacter())
-	{
-		GameMode->GetPlayerCharacter()->SelectWeapon(WeaponIndex);
-	}
+	SelectPlayerWeaponByIndex(WeaponIndex);
 }
 
 void AFortRoguePlayerController::UsePlayerItem(EFortRogueItemType ItemType)
@@ -498,6 +494,17 @@ int32 AFortRoguePlayerController::GetPlayerItemIndexByTag(FGameplayTag ItemTag) 
 		return GameMode->GetPlayerCharacter()->GetItemIndexByTag(ItemTag);
 	}
 	return INDEX_NONE;
+}
+
+bool AFortRoguePlayerController::SelectPlayerWeaponByIndex(int32 WeaponIndex)
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetBattleState() == EFortRogueBattleState::PlayerTurn && GameMode->GetPlayerCharacter() && GameMode->GetPlayerCharacter()->CanSelectWeapon(WeaponIndex))
+	{
+		GameMode->GetPlayerCharacter()->SelectWeapon(WeaponIndex);
+		return true;
+	}
+	return false;
 }
 
 bool AFortRoguePlayerController::SelectPlayerWeaponByTag(FGameplayTag WeaponTag)
