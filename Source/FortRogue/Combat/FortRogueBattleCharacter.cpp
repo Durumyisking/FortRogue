@@ -11,6 +11,7 @@
 #include "FortRogueGameplayTags.h"
 #include "Items/FortRogueItemDefinition.h"
 #include "Perks/FortRoguePerkDefinition.h"
+#include "Rewards/FortRogueRewardBlueprintLibrary.h"
 #include "Run/FortRogueDefaultLoadoutDefinition.h"
 #include "Weapons/FortRogueWeaponDefinition.h"
 #include "Components/StaticMeshComponent.h"
@@ -1093,6 +1094,26 @@ const TArray<FFortRogueItemStack>& AFortRogueBattleCharacter::GetItemLoadout() c
 TArray<FFortRogueItemStack> AFortRogueBattleCharacter::GetItemLoadoutForBlueprint() const
 {
 	return ItemLoadout;
+}
+
+TArray<FFortRogueShotModifierSpec> AFortRogueBattleCharacter::GetGrantedShotModifiersForBlueprint() const
+{
+	return GrantedShotModifiers;
+}
+
+TArray<FFortRogueShotModifierSpec> AFortRogueBattleCharacter::GetPendingShotModifiersForBlueprint() const
+{
+	return PendingShotModifiers;
+}
+
+FText AFortRogueBattleCharacter::GetGrantedShotModifiersSummary() const
+{
+	return UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(GrantedShotModifiers);
+}
+
+FText AFortRogueBattleCharacter::GetPendingShotModifiersSummary() const
+{
+	return UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(PendingShotModifiers);
 }
 
 int32 AFortRogueBattleCharacter::GetGrantedShotModifierCountByTag(FGameplayTag ModifierTag) const

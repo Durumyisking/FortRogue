@@ -253,6 +253,18 @@ public:
 	TArray<FFortRogueItemStack> GetItemLoadoutForBlueprint() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	TArray<FFortRogueShotModifierSpec> GetGrantedShotModifiersForBlueprint() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	TArray<FFortRogueShotModifierSpec> GetPendingShotModifiersForBlueprint() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	FText GetGrantedShotModifiersSummary() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	FText GetPendingShotModifiersSummary() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
 	int32 GetGrantedShotModifierCountByTag(FGameplayTag ModifierTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")

@@ -781,6 +781,46 @@ bool AFortRoguePlayerController::HasPlayerPendingShotModifierByTag(FGameplayTag 
 	return GetPlayerPendingShotModifierCountByTag(ModifierTag) > 0;
 }
 
+TArray<FFortRogueShotModifierSpec> AFortRoguePlayerController::GetPlayerGrantedShotModifiers() const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->GetGrantedShotModifiersForBlueprint();
+	}
+	return TArray<FFortRogueShotModifierSpec>();
+}
+
+TArray<FFortRogueShotModifierSpec> AFortRoguePlayerController::GetPlayerPendingShotModifiers() const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->GetPendingShotModifiersForBlueprint();
+	}
+	return TArray<FFortRogueShotModifierSpec>();
+}
+
+FText AFortRoguePlayerController::GetPlayerGrantedShotModifiersSummary() const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->GetGrantedShotModifiersSummary();
+	}
+	return FText::GetEmpty();
+}
+
+FText AFortRoguePlayerController::GetPlayerPendingShotModifiersSummary() const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->GetPendingShotModifiersSummary();
+	}
+	return FText::GetEmpty();
+}
+
 int32 AFortRoguePlayerController::RemovePlayerGrantedShotModifiersByTag(FGameplayTag ModifierTag)
 {
 	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;

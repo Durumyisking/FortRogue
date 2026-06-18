@@ -142,6 +142,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
 	bool HasPlayerPendingShotModifierByTag(FGameplayTag ModifierTag) const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	TArray<FFortRogueShotModifierSpec> GetPlayerGrantedShotModifiers() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	TArray<FFortRogueShotModifierSpec> GetPlayerPendingShotModifiers() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	FText GetPlayerGrantedShotModifiersSummary() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	FText GetPlayerPendingShotModifiersSummary() const;
+
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
 	int32 RemovePlayerGrantedShotModifiersByTag(FGameplayTag ModifierTag);
 
