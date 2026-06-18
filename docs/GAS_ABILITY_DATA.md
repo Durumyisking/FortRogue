@@ -101,6 +101,8 @@ modifier 적용 순서:
 
 보상 카드에서 바로 탄 방식을 바꾸려면 `FFortRogueRewardChoice::ShotModifiers`를 사용한다.
 
+직접 스탯 보상은 `DamageBonus`, `MaxHealthBonus`, `MaxMoveBudgetBonus`, `ProjectileBonus`, `ShotPowerMultiplierBonus`를 사용한다.
+
 런 보상 풀은 `UFortRogueStageRunDefinition`에서 설정한다.
 
 - `RewardPool`: 등장 가능한 보상 전체 목록
@@ -112,6 +114,8 @@ modifier 적용 순서:
 보상 화면은 `RewardChoice.GetEffectSummary()`를 통해 무기, 아이템, 퍽, ShotModifier, AbilitySet 효과를 자동 요약할 수 있다. UMG에서는 `UFortRogueRewardBlueprintLibrary::GetRewardEffectSummary()`를 사용한다.
 
 퍽 에셋에서 런 전체의 탄 방식을 바꾸려면 `UFortRoguePerkDefinition::ShotModifiers`를 사용한다.
+
+퍽도 `DamageBonus`, `MaxHealthBonus`, `MaxMoveBudgetBonus`, `ProjectileBonus`, `ShotPowerMultiplierBonus`로 기본 전투 어트리뷰트를 올릴 수 있다.
 
 둘 다 캐릭터의 `GrantedShotModifiers`에 누적되고, 이후 모든 발사에서 `BuildShotSpec()`에 반영된다.
 

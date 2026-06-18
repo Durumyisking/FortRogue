@@ -53,9 +53,21 @@ void UFortRogueCombatSet::AddMaxHealth(float BonusHealth)
 	Heal(ClampedBonus);
 }
 
+void UFortRogueCombatSet::AddMaxMoveBudget(float BonusMoveBudget)
+{
+	const float ClampedBonus = FMath::Max(0.0f, BonusMoveBudget);
+	SetMaxMoveBudget(GetMaxMoveBudget() + ClampedBonus);
+	SetMoveBudget(GetMoveBudget() + ClampedBonus);
+}
+
 void UFortRogueCombatSet::AddDamage(float BonusDamage)
 {
 	SetDamage(GetDamage() + FMath::Max(0.0f, BonusDamage));
+}
+
+void UFortRogueCombatSet::AddShotPowerMultiplier(float BonusMultiplier)
+{
+	SetShotPowerMultiplier(GetShotPowerMultiplier() + FMath::Max(0.0f, BonusMultiplier));
 }
 
 void UFortRogueCombatSet::AddProjectileCount(float BonusProjectiles)

@@ -62,7 +62,13 @@ struct FFortRogueRewardChoice
 	float MaxHealthBonus = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
+	float MaxMoveBudgetBonus = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
 	int32 ProjectileBonus = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
+	float ShotPowerMultiplierBonus = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
 	int32 RepairCharges = 0;

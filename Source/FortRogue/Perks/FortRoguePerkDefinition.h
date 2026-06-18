@@ -36,6 +36,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats", meta = (ClampMin = "0.0"))
 	float MaxHealthBonus = 0.0f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats", meta = (ClampMin = "0.0"))
+	float MaxMoveBudgetBonus = 0.0f;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats", meta = (ClampMin = "0"))
 	int32 ProjectileBonus = 0;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats", meta = (ClampMin = "0.0"))
+	float ShotPowerMultiplierBonus = 0.0f;
 };

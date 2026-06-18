@@ -142,9 +142,17 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 		{
 			AddSummaryPart(Parts, FString::Printf(TEXT("max HP +%.0f"), PerkReward->MaxHealthBonus));
 		}
+		if (PerkReward->MaxMoveBudgetBonus > 0.0f)
+		{
+			AddSummaryPart(Parts, FString::Printf(TEXT("move +%.0f"), PerkReward->MaxMoveBudgetBonus));
+		}
 		if (PerkReward->ProjectileBonus > 0)
 		{
 			AddSummaryPart(Parts, FString::Printf(TEXT("projectiles +%d"), PerkReward->ProjectileBonus));
+		}
+		if (PerkReward->ShotPowerMultiplierBonus > 0.0f)
+		{
+			AddSummaryPart(Parts, FString::Printf(TEXT("shot power +%.2g"), PerkReward->ShotPowerMultiplierBonus));
 		}
 	}
 	if (GrantedAbilitySet)
@@ -161,9 +169,17 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("max HP +%.0f"), MaxHealthBonus));
 	}
+	if (MaxMoveBudgetBonus > 0.0f)
+	{
+		AddSummaryPart(Parts, FString::Printf(TEXT("move +%.0f"), MaxMoveBudgetBonus));
+	}
 	if (ProjectileBonus > 0)
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("projectiles +%d"), ProjectileBonus));
+	}
+	if (ShotPowerMultiplierBonus > 0.0f)
+	{
+		AddSummaryPart(Parts, FString::Printf(TEXT("shot power +%.2g"), ShotPowerMultiplierBonus));
 	}
 	if (RepairCharges > 0)
 	{

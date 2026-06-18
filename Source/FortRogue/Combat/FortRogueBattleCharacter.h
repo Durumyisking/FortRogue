@@ -107,7 +107,13 @@ public:
 	void ApplyRewardHealth(float BonusHealth);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
+	void ApplyRewardMoveBudget(float BonusMoveBudget);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
 	void ApplyRewardProjectiles(int32 BonusProjectiles);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
+	void ApplyRewardShotPowerMultiplier(float BonusMultiplier);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
 	void ApplyPerkDefinition(UFortRoguePerkDefinition* PerkDefinition);

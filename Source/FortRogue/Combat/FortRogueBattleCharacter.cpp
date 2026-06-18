@@ -480,9 +480,19 @@ void AFortRogueBattleCharacter::ApplyRewardHealth(float BonusHealth)
 	CombatSet->AddMaxHealth(BonusHealth);
 }
 
+void AFortRogueBattleCharacter::ApplyRewardMoveBudget(float BonusMoveBudget)
+{
+	CombatSet->AddMaxMoveBudget(BonusMoveBudget);
+}
+
 void AFortRogueBattleCharacter::ApplyRewardProjectiles(int32 BonusProjectiles)
 {
 	CombatSet->AddProjectileCount(BonusProjectiles);
+}
+
+void AFortRogueBattleCharacter::ApplyRewardShotPowerMultiplier(float BonusMultiplier)
+{
+	CombatSet->AddShotPowerMultiplier(BonusMultiplier);
 }
 
 void AFortRogueBattleCharacter::ApplyPerkDefinition(UFortRoguePerkDefinition* PerkDefinition)
@@ -494,7 +504,9 @@ void AFortRogueBattleCharacter::ApplyPerkDefinition(UFortRoguePerkDefinition* Pe
 
 	ApplyRewardDamage(PerkDefinition->DamageBonus);
 	ApplyRewardHealth(PerkDefinition->MaxHealthBonus);
+	ApplyRewardMoveBudget(PerkDefinition->MaxMoveBudgetBonus);
 	ApplyRewardProjectiles(PerkDefinition->ProjectileBonus);
+	ApplyRewardShotPowerMultiplier(PerkDefinition->ShotPowerMultiplierBonus);
 	GrantShotModifiers(PerkDefinition->ShotModifiers);
 
 	GrantAbilitySet(PerkDefinition->GrantedAbilitySet);

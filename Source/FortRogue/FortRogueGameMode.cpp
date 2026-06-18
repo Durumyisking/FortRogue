@@ -427,9 +427,17 @@ void AFortRogueGameMode::ApplyRewardToPlayer(const FFortRogueRewardChoice& Rewar
 	{
 		PlayerCharacter->ApplyRewardHealth(Reward.MaxHealthBonus);
 	}
+	if (Reward.MaxMoveBudgetBonus > 0.0f)
+	{
+		PlayerCharacter->ApplyRewardMoveBudget(Reward.MaxMoveBudgetBonus);
+	}
 	if (Reward.ProjectileBonus > 0)
 	{
 		PlayerCharacter->ApplyRewardProjectiles(Reward.ProjectileBonus);
+	}
+	if (Reward.ShotPowerMultiplierBonus > 0.0f)
+	{
+		PlayerCharacter->ApplyRewardShotPowerMultiplier(Reward.ShotPowerMultiplierBonus);
 	}
 	if (Reward.RepairCharges > 0 && Reward.ItemReward)
 	{
