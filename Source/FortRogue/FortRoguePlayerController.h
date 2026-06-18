@@ -41,6 +41,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
 	bool CanUsePlayerItemByIndex(int32 ItemIndex) const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
+	int32 GetPlayerItemIndexByTag(FGameplayTag ItemTag) const;
+
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Weapons")
 	bool SelectPlayerWeaponByTag(FGameplayTag WeaponTag);
 

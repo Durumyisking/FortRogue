@@ -1066,6 +1066,7 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		UFortRogueItemDefinition* HealItem = NewObject<UFortRogueItemDefinition>(ItemSlotCharacter);
 		HealItem->DisplayName = FText::FromString(TEXT("Test Repair"));
 		HealItem->ItemType = EFortRogueItemType::Heal;
+		HealItem->ItemTag = FortRogueGameplayTags::Item_Repair;
 		HealItem->InitialCharges = 2;
 		HealItem->HealAmount = 25.0f;
 		ItemSlotCharacter->SetTerrain(Terrain);
@@ -1075,6 +1076,9 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		const float HealthBeforeItem = ItemSlotCharacter->GetHealth();
 		TestTrue(TEXT("Battle character can report usable item by loadout index"), ItemSlotCharacter->CanUseItemByIndex(0));
 		TestTrue(TEXT("Battle character can report usable item by type"), ItemSlotCharacter->CanUseItemByType(EFortRogueItemType::Heal));
+		TestTrue(TEXT("Battle character can report usable item by tag"), ItemSlotCharacter->CanUseItemByTag(FortRogueGameplayTags::Item_Repair));
+		TestEqual(TEXT("Battle character finds item index by tag"), ItemSlotCharacter->GetItemIndexByTag(FortRogueGameplayTags::Item_Repair), 0);
+		TestEqual(TEXT("Battle character returns INDEX_NONE for invalid item tags"), ItemSlotCharacter->GetItemIndexByTag(FGameplayTag()), INDEX_NONE);
 		TestFalse(TEXT("Battle character rejects negative item loadout index"), ItemSlotCharacter->UseItemByIndex(-1));
 		TestFalse(TEXT("Battle character cannot use negative item loadout index"), ItemSlotCharacter->CanUseItemByIndex(-1));
 		TestFalse(TEXT("Battle character rejects item loadout index past the end"), ItemSlotCharacter->UseItemByIndex(1));

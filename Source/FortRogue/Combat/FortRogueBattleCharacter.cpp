@@ -559,6 +559,25 @@ bool AFortRogueBattleCharacter::CanUseItemByIndex(int32 ItemIndex) const
 	return CanUseAnyItem() && ItemLoadout.IsValidIndex(ItemIndex) && CanUseItemStack(ItemLoadout[ItemIndex]);
 }
 
+int32 AFortRogueBattleCharacter::GetItemIndexByTag(FGameplayTag ItemTag) const
+{
+	if (!ItemTag.IsValid())
+	{
+		return INDEX_NONE;
+	}
+
+	for (int32 ItemIndex = 0; ItemIndex < ItemLoadout.Num(); ++ItemIndex)
+	{
+		const UFortRogueItemDefinition* ItemDefinition = ItemLoadout[ItemIndex].ItemDefinition;
+		if (ItemDefinition && ItemDefinition->ItemTag.MatchesTagExact(ItemTag))
+		{
+			return ItemIndex;
+		}
+	}
+
+	return INDEX_NONE;
+}
+
 bool AFortRogueBattleCharacter::CanUseAnyItem() const
 {
 	return bActiveTurn && !IsDefeated() && IsSupportedByTerrain();

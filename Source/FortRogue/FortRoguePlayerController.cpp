@@ -490,6 +490,16 @@ bool AFortRoguePlayerController::CanUsePlayerItemByIndex(int32 ItemIndex) const
 	return false;
 }
 
+int32 AFortRoguePlayerController::GetPlayerItemIndexByTag(FGameplayTag ItemTag) const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetBattleState() == EFortRogueBattleState::PlayerTurn && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->GetItemIndexByTag(ItemTag);
+	}
+	return INDEX_NONE;
+}
+
 bool AFortRoguePlayerController::SelectPlayerWeaponByTag(FGameplayTag WeaponTag)
 {
 	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;

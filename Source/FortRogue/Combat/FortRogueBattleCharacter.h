@@ -130,6 +130,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
 	bool CanUseItemByIndex(int32 ItemIndex) const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
+	int32 GetItemIndexByTag(FGameplayTag ItemTag) const;
+
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
 	void ApplyRewardDamage(float BonusDamage);
 
