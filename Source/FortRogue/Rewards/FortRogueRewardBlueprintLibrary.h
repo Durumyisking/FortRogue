@@ -34,6 +34,9 @@ public:
 	static FText GetAbilitySetEffectSummary(UFortRogueAbilitySet* AbilitySet);
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	static FText GetShotModifierEffectSummary(const TArray<FFortRogueShotModifierSpec>& ShotModifiers);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
 	static bool DoesRewardMeetTagConditions(const FFortRogueRewardChoice& RewardChoice, const FGameplayTagContainer& ChosenRewardTags);
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")

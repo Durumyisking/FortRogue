@@ -90,6 +90,10 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	NamedAbilitySet->DisplayName = FText::FromString(TEXT("Wind Split"));
 	TestTrue(TEXT("Ability set summary includes display name"), NamedAbilitySet->GetEffectSummary().ToString().Contains(TEXT("Wind Split")));
 	TestTrue(TEXT("Blueprint helper summarizes ability set assets"), UFortRogueRewardBlueprintLibrary::GetAbilitySetEffectSummary(NamedAbilitySet).ToString().Contains(TEXT("Wind Split")));
+	FFortRogueShotModifierSpec SummaryModifier;
+	SummaryModifier.ProjectileCountBonus = 2;
+	TArray<FFortRogueShotModifierSpec> SummaryModifiers = { SummaryModifier };
+	TestTrue(TEXT("Blueprint helper summarizes standalone shot modifiers"), UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(SummaryModifiers).ToString().Contains(TEXT("projectiles +2")));
 	FFortRogueRewardChoice AbilitySetReward;
 	AbilitySetReward.GrantedAbilitySet = NamedAbilitySet;
 	TestTrue(TEXT("Reward summary names directly granted ability set"), AbilitySetReward.GetEffectSummary().ToString().Contains(TEXT("ability set Wind Split")));

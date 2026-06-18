@@ -38,6 +38,13 @@ FText UFortRogueRewardBlueprintLibrary::GetAbilitySetEffectSummary(UFortRogueAbi
 	return AbilitySet ? AbilitySet->GetEffectSummary() : FText::GetEmpty();
 }
 
+FText UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(const TArray<FFortRogueShotModifierSpec>& ShotModifiers)
+{
+	FFortRogueRewardChoice RewardChoice;
+	RewardChoice.ShotModifiers = ShotModifiers;
+	return RewardChoice.GetEffectSummary();
+}
+
 bool UFortRogueRewardBlueprintLibrary::DoesRewardMeetTagConditions(const FFortRogueRewardChoice& RewardChoice, const FGameplayTagContainer& ChosenRewardTags)
 {
 	return RewardChoice.MeetsRewardTagConditions(ChosenRewardTags);
