@@ -188,6 +188,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Items")
 	TArray<FFortRogueItemStack> ItemLoadout;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Perks")
+	TArray<FFortRogueShotModifierSpec> GrantedShotModifiers;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Loadout")
 	TObjectPtr<UFortRogueDefaultLoadoutDefinition> DefaultLoadoutDefinition;
 

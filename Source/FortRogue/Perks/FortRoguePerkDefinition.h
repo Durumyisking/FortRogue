@@ -4,6 +4,7 @@
 
 #include "Engine/DataAsset.h"
 #include "GameplayTagContainer.h"
+#include "Weapons/FortRogueWeaponDefinition.h"
 #include "FortRoguePerkDefinition.generated.h"
 
 class UFortRogueAbilitySet;
@@ -25,6 +26,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Perk")
 	TObjectPtr<UFortRogueAbilitySet> GrantedAbilitySet;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shot Modifier", meta = (TitleProperty = EffectTags))
+	TArray<FFortRogueShotModifierSpec> ShotModifiers;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats", meta = (ClampMin = "0.0"))
 	float DamageBonus = 0.0f;

@@ -102,6 +102,7 @@ void AFortRogueBattleCharacter::InitializeFromDefinition(UFortRogueCharacterDefi
 	CombatSet->SetMoveBudget(InCharacterDefinition->MaxMoveBudget);
 	CombatSet->SetShotPowerMultiplier(InCharacterDefinition->ShotPowerMultiplier);
 
+	GrantedShotModifiers.Reset();
 	WeaponLoadout.Reset();
 	for (UFortRogueWeaponDefinition* WeaponDefinition : InCharacterDefinition->WeaponLoadout)
 	{
@@ -491,6 +492,7 @@ void AFortRogueBattleCharacter::ApplyPerkDefinition(UFortRoguePerkDefinition* Pe
 	ApplyRewardDamage(PerkDefinition->DamageBonus);
 	ApplyRewardHealth(PerkDefinition->MaxHealthBonus);
 	ApplyRewardProjectiles(PerkDefinition->ProjectileBonus);
+	GrantedShotModifiers.Append(PerkDefinition->ShotModifiers);
 
 	GrantAbilitySet(PerkDefinition->GrantedAbilitySet);
 }
@@ -936,7 +938,7 @@ FFortRogueShotSpec AFortRogueBattleCharacter::BuildShotSpec(const FFortRogueWeap
 	ShotSpec.Gravity = Weapon.Gravity;
 	ShotSpec.ProjectileCount = FMath::Max(1, Weapon.ProjectilesPerShot + FMath::RoundToInt(CombatSet->GetProjectileCount()) - 1);
 	ShotSpec.ProjectileClass = Weapon.ProjectileClass ? Weapon.ProjectileClass : TSubclassOf<AFortRogueProjectile>(AFortRogueProjectile::StaticClass());
-	for (const FFortRogueShotModifierSpec& Modifier : Weapon.ShotModifiers)
+	auto ApplyShotModifier = [&ShotSpec](const FFortRogueShotModifierSpec& Modifier)
 	{
 		ShotSpec.EffectTags.AppendTags(Modifier.EffectTags);
 		ShotSpec.Damage = (ShotSpec.Damage + Modifier.DamageBonus) * Modifier.DamageMultiplier;
@@ -945,6 +947,14 @@ FFortRogueShotSpec AFortRogueBattleCharacter::BuildShotSpec(const FFortRogueWeap
 		ShotSpec.LaunchSpeed = FMath::Max(0.0f, ShotSpec.LaunchSpeed * Modifier.LaunchSpeedMultiplier);
 		ShotSpec.Gravity = FMath::Max(0.0f, ShotSpec.Gravity * Modifier.GravityMultiplier);
 		ShotSpec.ProjectileCount = FMath::Max(1, ShotSpec.ProjectileCount + Modifier.ProjectileCountBonus);
+	};
+	for (const FFortRogueShotModifierSpec& Modifier : Weapon.ShotModifiers)
+	{
+		ApplyShotModifier(Modifier);
+	}
+	for (const FFortRogueShotModifierSpec& Modifier : GrantedShotModifiers)
+	{
+		ApplyShotModifier(Modifier);
 	}
 	return ShotSpec;
 }
