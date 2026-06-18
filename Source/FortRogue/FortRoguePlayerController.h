@@ -53,6 +53,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
 	bool CanSelectPlayerWeaponByTag(FGameplayTag WeaponTag) const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
+	int32 GetPlayerWeaponIndexByTag(FGameplayTag WeaponTag) const;
+
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
 	bool CanFirePlayerWeapon() const;
 

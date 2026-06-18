@@ -530,6 +530,16 @@ bool AFortRoguePlayerController::CanSelectPlayerWeaponByTag(FGameplayTag WeaponT
 	return false;
 }
 
+int32 AFortRoguePlayerController::GetPlayerWeaponIndexByTag(FGameplayTag WeaponTag) const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetBattleState() == EFortRogueBattleState::PlayerTurn && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->GetWeaponIndexByTag(WeaponTag);
+	}
+	return INDEX_NONE;
+}
+
 bool AFortRoguePlayerController::CanFirePlayerWeapon() const
 {
 	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;

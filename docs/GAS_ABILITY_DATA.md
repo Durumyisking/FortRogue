@@ -112,7 +112,7 @@ modifier 적용 순서:
 
 `WeaponReward`로 추가된 무기는 전투 중 1-5번 슬롯으로 선택할 수 있다.
 무기 목록 UI가 슬롯 번호 대신 데이터 태그를 기준으로 선택해야 한다면 `AFortRogueBattleCharacter::SelectWeaponByTag()` 또는 `AFortRoguePlayerController::SelectPlayerWeaponByTag()`를 사용한다.
-무기 버튼의 활성화 여부나 태그 기반 슬롯 위치를 확인할 때는 `CanSelectWeapon()`, `CanSelectWeaponByTag()`, `GetWeaponIndexByTag()`를 사용한다. PlayerController 경유 UI에서는 `CanSelectPlayerWeapon()`과 `CanSelectPlayerWeaponByTag()`를 사용한다.
+무기 버튼의 활성화 여부나 태그 기반 슬롯 위치를 확인할 때는 `CanSelectWeapon()`, `CanSelectWeaponByTag()`, `GetWeaponIndexByTag()`를 사용한다. PlayerController 경유 UI에서는 `CanSelectPlayerWeapon()`, `CanSelectPlayerWeaponByTag()`, `GetPlayerWeaponIndexByTag()`를 사용한다.
 
 런 보상 풀은 `UFortRogueStageRunDefinition`에서 설정한다.
 
