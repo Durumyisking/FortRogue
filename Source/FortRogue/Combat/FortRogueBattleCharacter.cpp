@@ -713,6 +713,16 @@ int32 AFortRogueBattleCharacter::GetItemChargesByTag(FGameplayTag ItemTag) const
 	return TotalCharges;
 }
 
+const TArray<FFortRogueItemStack>& AFortRogueBattleCharacter::GetItemLoadout() const
+{
+	return ItemLoadout;
+}
+
+TArray<FFortRogueItemStack> AFortRogueBattleCharacter::GetItemLoadoutForBlueprint() const
+{
+	return ItemLoadout;
+}
+
 int32 AFortRogueBattleCharacter::GetGrantedShotModifierCountByTag(FGameplayTag ModifierTag) const
 {
 	if (!ModifierTag.IsValid())

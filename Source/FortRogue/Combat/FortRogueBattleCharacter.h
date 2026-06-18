@@ -175,6 +175,11 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
 	int32 GetItemChargesByTag(FGameplayTag ItemTag) const;
 
+	const TArray<FFortRogueItemStack>& GetItemLoadout() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
+	TArray<FFortRogueItemStack> GetItemLoadoutForBlueprint() const;
+
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
 	int32 GetGrantedShotModifierCountByTag(FGameplayTag ModifierTag) const;
 
