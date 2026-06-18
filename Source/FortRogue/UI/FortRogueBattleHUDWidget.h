@@ -14,6 +14,27 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|UI")
 	class AFortRogueGameMode* GetFortRogueGameMode() const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	class AFortRogueBattleCharacter* GetPlayerCharacter() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	class AFortRogueBattleCharacter* GetEnemyCharacter() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	FText GetRunProgressSummary() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	FText GetWindSummary() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	FText GetPlayerCombatStatsSummary() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	FText GetPlayerShotSummary() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	bool CanFirePlayerWeapon() const;
+
 	UFUNCTION(BlueprintImplementableEvent, Category = "FortRogue|UI")
 	void RefreshBattleHUD();
 };

@@ -23,8 +23,9 @@
 - `ImpactSpawns`
 
 HUD는 `GetCurrentShotSpec()` 또는 `GetCurrentShotSummary()`를 통해 modifier가 적용된 최종 값과 충돌 후 생성될 자식 탄 수를 표시한다.
+UMG 전투 HUD에서는 `UFortRogueBattleHUDWidget::GetPlayerShotSummary()`와 `GetPlayerCombatStatsSummary()`로 같은 정보를 바로 읽을 수 있다.
 발사 버튼 활성화 여부는 캐릭터의 `CanFireSelectedWeapon()` 또는 PlayerController의 `CanFirePlayerWeapon()`으로 확인한다. 차지 시작 가능 여부만 별도로 봐야 하면 `CanBeginShotCharge()`를 사용한다.
-바람 UI는 `AFortRogueGameMode::GetWindSummary()`로 현재 바람을 부호 포함 한 줄로 표시할 수 있다.
+바람 UI는 `AFortRogueGameMode::GetWindSummary()`로 현재 바람을 부호 포함 한 줄로 표시할 수 있다. UMG 전투 HUD에서는 `UFortRogueBattleHUDWidget::GetWindSummary()`를 사용할 수 있다.
 
 modifier 적용 순서:
 
