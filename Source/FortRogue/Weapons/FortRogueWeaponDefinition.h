@@ -17,6 +17,9 @@ struct FFortRogueShotModifierSpec
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier")
 	FGameplayTagContainer EffectTags;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier")
+	FGameplayTag ModifierTag;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition")
 	bool bUseAimAngleRange = false;
 

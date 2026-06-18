@@ -546,6 +546,31 @@ void AFortRogueBattleCharacter::GrantShotModifiers(const TArray<FFortRogueShotMo
 	GrantedShotModifiers.Append(ShotModifiers);
 }
 
+int32 AFortRogueBattleCharacter::RemoveGrantedShotModifiersByTag(FGameplayTag ModifierTag)
+{
+	if (!ModifierTag.IsValid())
+	{
+		return 0;
+	}
+
+	int32 RemovedCount = 0;
+	for (int32 Index = GrantedShotModifiers.Num() - 1; Index >= 0; --Index)
+	{
+		const FFortRogueShotModifierSpec& Modifier = GrantedShotModifiers[Index];
+		const bool bMatchesModifierTag = Modifier.ModifierTag.IsValid() && Modifier.ModifierTag.MatchesTagExact(ModifierTag);
+		const bool bMatchesEffectTag = Modifier.EffectTags.HasTagExact(ModifierTag);
+		if (!bMatchesModifierTag && !bMatchesEffectTag)
+		{
+			continue;
+		}
+
+		GrantedShotModifiers.RemoveAt(Index);
+		++RemovedCount;
+	}
+
+	return RemovedCount;
+}
+
 void AFortRogueBattleCharacter::AddWeaponDefinition(UFortRogueWeaponDefinition* WeaponDefinition)
 {
 	if (WeaponDefinition)

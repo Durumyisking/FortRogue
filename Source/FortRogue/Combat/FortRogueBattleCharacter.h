@@ -121,6 +121,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
 	void GrantShotModifiers(const TArray<FFortRogueShotModifierSpec>& ShotModifiers);
 
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
+	int32 RemoveGrantedShotModifiersByTag(FGameplayTag ModifierTag);
+
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Weapons")
 	void AddWeaponDefinition(UFortRogueWeaponDefinition* WeaponDefinition);
 

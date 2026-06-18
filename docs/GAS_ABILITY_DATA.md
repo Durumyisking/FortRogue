@@ -43,6 +43,8 @@ modifier 적용 순서:
 
 기존 무기는 `ShotModifiers`와 `ImpactSpawns`를 비워두면 이전처럼 동작한다.
 
+`ShotModifier`를 나중에 제거해야 하는 효과라면 `ModifierTag`에 고유 태그를 넣는다.
+
 ## 3. ShotModifier 사용 예
 
 낮은 각도 강화:
@@ -112,6 +114,8 @@ modifier 적용 순서:
 퍽 에셋에서 런 전체의 탄 방식을 바꾸려면 `UFortRoguePerkDefinition::ShotModifiers`를 사용한다.
 
 둘 다 캐릭터의 `GrantedShotModifiers`에 누적되고, 이후 모든 발사에서 `BuildShotSpec()`에 반영된다.
+
+임시 버프나 해제 가능한 효과는 `AFortRogueBattleCharacter::RemoveGrantedShotModifiersByTag()`로 제거할 수 있다. 이 함수는 먼저 `ModifierTag`를 보고, 기존 데이터 호환을 위해 `EffectTags`에 같은 태그가 있는 modifier도 제거한다.
 
 ## 6. 아이템과 AbilitySet
 
