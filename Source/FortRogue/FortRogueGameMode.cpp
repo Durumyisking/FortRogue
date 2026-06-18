@@ -2,14 +2,18 @@
 
 #include "FortRogueGameMode.h"
 
+#include "Characters/FortRogueCharacterDefinition.h"
 #include "Combat/FortRogueBattleCharacter.h"
 #include "Combat/FortRogueDestructibleTerrain.h"
 #include "Combat/FortRogueProjectile.h"
+#include "FortRogue.h"
 #include "FortRogueGameplayTags.h"
 #include "FortRogueHUD.h"
 #include "FortRoguePlayerController.h"
 #include "Items/FortRogueItemDefinition.h"
 #include "Perks/FortRoguePerkDefinition.h"
+#include "Run/FortRogueDefaultLoadoutDefinition.h"
+#include "Run/FortRogueStageRunDefinition.h"
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
 #include "Engine/World.h"
@@ -41,6 +45,13 @@ void AFortRogueGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
+	CurrentStage = 1;
+	if (StageRunDefinition)
+	{
+		StageRunDefinition->NormalizeStageData();
+	}
+	EncounteredEnemyDefinitions.Reset();
+	SelectNextEnemyDefinition();
 	SpawnMVPBattle();
 	StartPlayerTurn();
 }
@@ -107,37 +118,7 @@ void AFortRogueGameMode::ApplyRewardChoice(int32 ChoiceIndex)
 	}
 
 	const FFortRogueRewardChoice& Reward = RewardChoices[ChoiceIndex];
-	if (Reward.PerkReward)
-	{
-		PlayerCharacter->ApplyPerkDefinition(Reward.PerkReward);
-	}
-	if (Reward.DamageBonus > 0.0f)
-	{
-		PlayerCharacter->ApplyRewardDamage(Reward.DamageBonus);
-	}
-	if (Reward.MaxHealthBonus > 0.0f)
-	{
-		PlayerCharacter->ApplyRewardHealth(Reward.MaxHealthBonus);
-	}
-	if (Reward.ProjectileBonus > 0)
-	{
-		PlayerCharacter->ApplyRewardProjectiles(Reward.ProjectileBonus);
-	}
-	if (Reward.RepairCharges > 0)
-	{
-		if (Reward.ItemReward)
-		{
-			PlayerCharacter->AddItemDefinition(Reward.ItemReward, Reward.RepairCharges);
-		}
-	}
-	if (Reward.WeaponReward)
-	{
-		PlayerCharacter->AddWeaponDefinition(Reward.WeaponReward);
-	}
-	if (Reward.ItemReward && Reward.RepairCharges <= 0)
-	{
-		PlayerCharacter->AddItemDefinition(Reward.ItemReward);
-	}
+	ApplyRewardToPlayer(Reward);
 
 	SetStatus(FString::Printf(TEXT("Reward chosen: %s"), *Reward.DisplayName.ToString()));
 	RewardChoices.Reset();
@@ -173,6 +154,16 @@ FText AFortRogueGameMode::GetStatusText() const
 	return StatusText;
 }
 
+int32 AFortRogueGameMode::GetCurrentStage() const
+{
+	return CurrentStage;
+}
+
+int32 AFortRogueGameMode::GetMaxStages() const
+{
+	return GetConfiguredStageCount();
+}
+
 void AFortRogueGameMode::SpawnMVPBattle()
 {
 	UWorld* World = GetWorld();
@@ -181,11 +172,13 @@ void AFortRogueGameMode::SpawnMVPBattle()
 		return;
 	}
 
+	ClearBattleStage(PlayerCharacter != nullptr);
+
 	const TSubclassOf<AFortRogueDestructibleTerrain> ActualTerrainClass = TerrainClass ? TerrainClass : TSubclassOf<AFortRogueDestructibleTerrain>(AFortRogueDestructibleTerrain::StaticClass());
 	Terrain = World->SpawnActorDeferred<AFortRogueDestructibleTerrain>(ActualTerrainClass, FTransform(FRotator::ZeroRotator, TerrainLocation));
 	if (Terrain)
 	{
-		Terrain->MapDefinition = TerrainMapDefinition;
+		Terrain->MapDefinition = GetStageTerrainMapDefinition();
 		UGameplayStatics::FinishSpawningActor(Terrain, FTransform(FRotator::ZeroRotator, TerrainLocation));
 	}
 
@@ -202,20 +195,30 @@ void AFortRogueGameMode::SpawnMVPBattle()
 		EnemyLocation.Z = TerrainLocation.Z + 520.0f + EnemySpawnOffset.Z;
 	}
 
-	const TSubclassOf<AFortRogueBattleCharacter> ActualPlayerClass = PlayerCharacterClass ? PlayerCharacterClass : TSubclassOf<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass());
-	PlayerCharacter = World->SpawnActorDeferred<AFortRogueBattleCharacter>(ActualPlayerClass, FTransform(FRotator::ZeroRotator, PlayerLocation));
 	if (PlayerCharacter)
 	{
-		PlayerCharacter->CharacterDefinition = PlayerDefinition;
+		PlayerCharacter->SetActorLocation(PlayerLocation);
 		PlayerCharacter->SetTerrain(Terrain);
-		UGameplayStatics::FinishSpawningActor(PlayerCharacter, FTransform(FRotator::ZeroRotator, PlayerLocation));
+	}
+	else
+	{
+		const TSubclassOf<AFortRogueBattleCharacter> ActualPlayerClass = PlayerCharacterClass ? PlayerCharacterClass : TSubclassOf<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass());
+		PlayerCharacter = World->SpawnActorDeferred<AFortRogueBattleCharacter>(ActualPlayerClass, FTransform(FRotator::ZeroRotator, PlayerLocation));
+		if (PlayerCharacter)
+		{
+			PlayerCharacter->CharacterDefinition = PlayerDefinition;
+			PlayerCharacter->DefaultLoadoutDefinition = GetDefaultLoadoutDefinition();
+			PlayerCharacter->SetTerrain(Terrain);
+			UGameplayStatics::FinishSpawningActor(PlayerCharacter, FTransform(FRotator::ZeroRotator, PlayerLocation));
+		}
 	}
 
 	const TSubclassOf<AFortRogueBattleCharacter> ActualEnemyClass = EnemyCharacterClass ? EnemyCharacterClass : TSubclassOf<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass());
 	EnemyCharacter = World->SpawnActorDeferred<AFortRogueBattleCharacter>(ActualEnemyClass, FTransform(FRotator::ZeroRotator, EnemyLocation));
 	if (EnemyCharacter)
 	{
-		EnemyCharacter->CharacterDefinition = EnemyDefinition;
+		EnemyCharacter->CharacterDefinition = CurrentEnemyDefinition ? CurrentEnemyDefinition.Get() : EnemyDefinition.Get();
+		EnemyCharacter->DefaultLoadoutDefinition = GetDefaultLoadoutDefinition();
 		EnemyCharacter->SetTerrain(Terrain);
 		UGameplayStatics::FinishSpawningActor(EnemyCharacter, FTransform(FRotator::ZeroRotator, EnemyLocation));
 	}
@@ -245,6 +248,194 @@ void AFortRogueGameMode::SpawnMVPBattle()
 	}
 }
 
+void AFortRogueGameMode::ClearBattleStage(bool bKeepPlayerCharacter)
+{
+	for (const TWeakObjectPtr<AFortRogueProjectile>& ActiveProjectile : ActiveProjectiles)
+	{
+		if (ActiveProjectile.IsValid())
+		{
+			ActiveProjectile->Destroy();
+		}
+	}
+	ActiveProjectiles.Reset();
+	GetWorldTimerManager().ClearTimer(ShotResolutionTimerHandle);
+	PendingProjectiles = 0;
+	LastShooter.Reset();
+	bHoldingImpactCamera = false;
+
+	if (EnemyCharacter)
+	{
+		EnemyCharacter->Destroy();
+		EnemyCharacter = nullptr;
+	}
+
+	if (Terrain)
+	{
+		Terrain->Destroy();
+		Terrain = nullptr;
+	}
+
+	if (BattleCamera)
+	{
+		BattleCamera->Destroy();
+		BattleCamera = nullptr;
+	}
+
+	if (!bKeepPlayerCharacter && PlayerCharacter)
+	{
+		PlayerCharacter->Destroy();
+		PlayerCharacter = nullptr;
+	}
+}
+
+void AFortRogueGameMode::SelectNextEnemyDefinition()
+{
+	TArray<UFortRogueCharacterDefinition*> Candidates;
+	const TArray<TObjectPtr<UFortRogueCharacterDefinition>>* EnemyPool = StageRunDefinition ? &StageRunDefinition->EnemyDefinitionPool : nullptr;
+	if (EnemyPool)
+	{
+		for (UFortRogueCharacterDefinition* Candidate : *EnemyPool)
+		{
+			if (Candidate && !EncounteredEnemyDefinitions.Contains(Candidate))
+			{
+				Candidates.Add(Candidate);
+			}
+		}
+	}
+
+	if (Candidates.Num() == 0 && EnemyPool && EnemyPool->Num() > 0)
+	{
+		EncounteredEnemyDefinitions.Reset();
+		for (UFortRogueCharacterDefinition* Candidate : *EnemyPool)
+		{
+			if (Candidate)
+			{
+				Candidates.Add(Candidate);
+			}
+		}
+	}
+
+	if (Candidates.Num() > 0)
+	{
+		CurrentEnemyDefinition = Candidates[FMath::RandRange(0, Candidates.Num() - 1)];
+		EncounteredEnemyDefinitions.AddUnique(CurrentEnemyDefinition);
+	}
+	else
+	{
+		CurrentEnemyDefinition = EnemyDefinition;
+	}
+}
+
+UFortRogueTerrainMapDefinition* AFortRogueGameMode::GetStageTerrainMapDefinition() const
+{
+	if (CurrentEnemyDefinition && CurrentEnemyDefinition->BattleMapDefinition)
+	{
+		return CurrentEnemyDefinition->BattleMapDefinition;
+	}
+
+	if (StageRunDefinition && StageRunDefinition->DefaultTerrainMapDefinition)
+	{
+		return StageRunDefinition->DefaultTerrainMapDefinition;
+	}
+
+	return TerrainMapDefinition;
+}
+
+UFortRogueDefaultLoadoutDefinition* AFortRogueGameMode::GetDefaultLoadoutDefinition() const
+{
+	return StageRunDefinition ? StageRunDefinition->DefaultLoadoutDefinition : nullptr;
+}
+
+const FFortRogueStageDifficultyData& AFortRogueGameMode::GetCurrentStageDifficulty() const
+{
+	if (StageRunDefinition)
+	{
+		return StageRunDefinition->GetStageDifficulty(CurrentStage);
+	}
+
+	static const FFortRogueStageDifficultyData DefaultDifficulty;
+	return DefaultDifficulty;
+}
+
+int32 AFortRogueGameMode::GetConfiguredStageCount() const
+{
+	return StageRunDefinition ? FMath::Max(1, StageRunDefinition->StageCount) : 1;
+}
+
+void AFortRogueGameMode::HandleEnemyDefeated()
+{
+	ResetShotCameraState();
+	if (CurrentStage >= GetConfiguredStageCount())
+	{
+		BattleState = EFortRogueBattleState::Won;
+		SetStatus(TEXT("Run complete"));
+		return;
+	}
+
+	ApplyRandomRewardAndLog();
+	++CurrentStage;
+	SelectNextEnemyDefinition();
+	SpawnMVPBattle();
+	StartPlayerTurn();
+}
+
+void AFortRogueGameMode::ApplyRandomRewardAndLog()
+{
+	if (!PlayerCharacter)
+	{
+		return;
+	}
+
+	const TArray<FFortRogueRewardChoice>* Rewards = StageRunDefinition ? &StageRunDefinition->RewardPool : nullptr;
+	if (!Rewards || Rewards->Num() == 0)
+	{
+		UE_LOG(LogFortRogue, Log, TEXT("No reward pool configured for stage %d."), CurrentStage);
+		return;
+	}
+
+	const int32 RewardIndex = FMath::RandRange(0, Rewards->Num() - 1);
+	const FFortRogueRewardChoice& Reward = (*Rewards)[RewardIndex];
+	ApplyRewardToPlayer(Reward);
+	UE_LOG(LogFortRogue, Log, TEXT("Random reward selected after stage %d: %s"), CurrentStage, *Reward.DisplayName.ToString());
+}
+
+void AFortRogueGameMode::ApplyRewardToPlayer(const FFortRogueRewardChoice& Reward)
+{
+	if (!PlayerCharacter)
+	{
+		return;
+	}
+
+	if (Reward.PerkReward)
+	{
+		PlayerCharacter->ApplyPerkDefinition(Reward.PerkReward);
+	}
+	if (Reward.DamageBonus > 0.0f)
+	{
+		PlayerCharacter->ApplyRewardDamage(Reward.DamageBonus);
+	}
+	if (Reward.MaxHealthBonus > 0.0f)
+	{
+		PlayerCharacter->ApplyRewardHealth(Reward.MaxHealthBonus);
+	}
+	if (Reward.ProjectileBonus > 0)
+	{
+		PlayerCharacter->ApplyRewardProjectiles(Reward.ProjectileBonus);
+	}
+	if (Reward.RepairCharges > 0 && Reward.ItemReward)
+	{
+		PlayerCharacter->AddItemDefinition(Reward.ItemReward, Reward.RepairCharges);
+	}
+	if (Reward.WeaponReward)
+	{
+		PlayerCharacter->AddWeaponDefinition(Reward.WeaponReward);
+	}
+	if (Reward.ItemReward && Reward.RepairCharges <= 0)
+	{
+		PlayerCharacter->AddItemDefinition(Reward.ItemReward);
+	}
+}
+
 void AFortRogueGameMode::StartPlayerTurn()
 {
 	ResetShotCameraState();
@@ -254,7 +445,7 @@ void AFortRogueGameMode::StartPlayerTurn()
 	{
 		PlayerCharacter->BeginTurn();
 	}
-	SetStatus(TEXT("Player turn"));
+	SetStatus(FString::Printf(TEXT("Stage %d/%d - Player turn"), CurrentStage, GetConfiguredStageCount()));
 }
 
 void AFortRogueGameMode::StartEnemyTurn()
@@ -266,10 +457,10 @@ void AFortRogueGameMode::StartEnemyTurn()
 	{
 		EnemyCharacter->BeginTurn();
 	}
-	SetStatus(TEXT("Enemy turn"));
+	SetStatus(FString::Printf(TEXT("Stage %d/%d - Enemy turn"), CurrentStage, GetConfiguredStageCount()));
 
 	FTimerHandle EnemyTimerHandle;
-	GetWorldTimerManager().SetTimer(EnemyTimerHandle, this, &AFortRogueGameMode::RunEnemyTurn, 0.85f, false);
+	GetWorldTimerManager().SetTimer(EnemyTimerHandle, this, &AFortRogueGameMode::RunEnemyTurn, GetCurrentStageDifficulty().EnemyTurnDelaySeconds, false);
 }
 
 void AFortRogueGameMode::RunEnemyTurn()
@@ -279,7 +470,7 @@ void AFortRogueGameMode::RunEnemyTurn()
 		return;
 	}
 
-	EnemyCharacter->FireAtTarget(PlayerCharacter);
+	EnemyCharacter->FireAtTarget(PlayerCharacter, GetCurrentStageDifficulty());
 	const int32 SpawnedProjectiles = EnemyCharacter->FireSelectedWeapon();
 	if (SpawnedProjectiles <= 0)
 	{
@@ -295,7 +486,7 @@ void AFortRogueGameMode::FinishShotResolution()
 {
 	if (EnemyCharacter && EnemyCharacter->IsDefeated())
 	{
-		EnterRewardState();
+		HandleEnemyDefeated();
 		return;
 	}
 
@@ -327,42 +518,10 @@ void AFortRogueGameMode::EnterRewardState()
 void AFortRogueGameMode::BuildRewardChoices()
 {
 	RewardChoices.Reset();
-	if (RewardPool.Num() > 0)
+	if (StageRunDefinition && StageRunDefinition->RewardPool.Num() > 0)
 	{
-		RewardChoices = RewardPool;
-		return;
+		RewardChoices = StageRunDefinition->RewardPool;
 	}
-
-	FFortRogueRewardChoice Warhead;
-	Warhead.Type = EFortRogueRewardType::Trait;
-	Warhead.DisplayName = FText::FromString(TEXT("Heavy Warhead"));
-	Warhead.Description = FText::FromString(TEXT("+15 weapon damage"));
-	Warhead.RewardTag = FortRogueGameplayTags::Trait_Damage;
-	Warhead.DamageBonus = 15.0f;
-	RewardChoices.Add(Warhead);
-
-	FFortRogueRewardChoice Cluster;
-	Cluster.Type = EFortRogueRewardType::Weapon;
-	Cluster.DisplayName = FText::FromString(TEXT("Cluster Shell"));
-	Cluster.Description = FText::FromString(TEXT("+1 projectile per shot"));
-	Cluster.RewardTag = FortRogueGameplayTags::Trait_Projectiles;
-	Cluster.ProjectileBonus = 1;
-	RewardChoices.Add(Cluster);
-
-	FFortRogueRewardChoice Repair;
-	Repair.Type = EFortRogueRewardType::Consumable;
-	Repair.DisplayName = FText::FromString(TEXT("Repair Kit"));
-	Repair.Description = FText::FromString(TEXT("+2 repair item charges"));
-	Repair.RewardTag = FortRogueGameplayTags::Item_Repair;
-	UFortRogueItemDefinition* RepairItem = NewObject<UFortRogueItemDefinition>(this, TEXT("RewardRepairKit"));
-	RepairItem->DisplayName = Repair.DisplayName;
-	RepairItem->ItemTag = FortRogueGameplayTags::Item_Repair;
-	RepairItem->ItemType = EFortRogueItemType::Heal;
-	RepairItem->InitialCharges = 1;
-	RepairItem->HealAmount = 35.0f;
-	Repair.ItemReward = RepairItem;
-	Repair.RepairCharges = 2;
-	RewardChoices.Add(Repair);
 }
 
 void AFortRogueGameMode::CheckTurnDefeatState()
@@ -374,7 +533,7 @@ void AFortRogueGameMode::CheckTurnDefeatState()
 
 	if (EnemyCharacter && EnemyCharacter->IsDefeated())
 	{
-		EnterRewardState();
+		HandleEnemyDefeated();
 		return;
 	}
 
@@ -413,7 +572,7 @@ void AFortRogueGameMode::ResetShotCameraState()
 
 float AFortRogueGameMode::GetInitialCameraOrthoWidth() const
 {
-	if (!Terrain || !TerrainMapDefinition)
+	if (!Terrain)
 	{
 		return CameraOrthoWidth;
 	}

@@ -7,12 +7,15 @@
 #include "Characters/FortRogueCharacterDefinition.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+#include "Run/FortRogueStageRunDefinition.h"
 #include "Weapons/FortRogueWeaponDefinition.h"
 #include "FortRogueBattleCharacter.generated.h"
 
 class UFortRogueAbilitySet;
 class UFortRogueAbilitySystemComponent;
 class UFortRogueCombatSet;
+class UFortRogueDefaultLoadoutDefinition;
+class UPaperFlipbookComponent;
 class UStaticMeshComponent;
 class UFortRogueItemDefinition;
 class UFortRoguePerkDefinition;
@@ -67,7 +70,7 @@ public:
 	int32 FireSelectedWeapon();
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|AI")
-	void FireAtTarget(AFortRogueBattleCharacter* Target);
+	void FireAtTarget(AFortRogueBattleCharacter* Target, const FFortRogueStageDifficultyData& DifficultyData);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
 	void ApplyDamage(float DamageAmount);
@@ -162,6 +165,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Items")
 	TArray<FFortRogueItemStack> ItemLoadout;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Loadout")
+	TObjectPtr<UFortRogueDefaultLoadoutDefinition> DefaultLoadoutDefinition;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Charge", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float MinShotPower = 0.25f;
 
@@ -195,6 +201,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue")
 	TObjectPtr<UStaticMeshComponent> Body;
+
+	UPROPERTY(VisibleAnywhere, Category = "FortRogue")
+	TObjectPtr<UPaperFlipbookComponent> BodySprite;
 
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue|Abilities")
 	TObjectPtr<UFortRogueAbilitySystemComponent> AbilitySystemComponent;

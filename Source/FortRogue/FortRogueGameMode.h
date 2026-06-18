@@ -13,7 +13,10 @@ class AFortRogueDestructibleTerrain;
 class AFortRogueProjectile;
 class ACameraActor;
 class UFortRogueCharacterDefinition;
+class UFortRogueDefaultLoadoutDefinition;
+class UFortRogueStageRunDefinition;
 class UFortRogueTerrainMapDefinition;
+struct FFortRogueStageDifficultyData;
 
 UENUM(BlueprintType)
 enum class EFortRogueBattleState : uint8
@@ -22,6 +25,7 @@ enum class EFortRogueBattleState : uint8
 	EnemyTurn,
 	ResolvingShot,
 	Reward,
+	Won,
 	Lost
 };
 
@@ -70,8 +74,23 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")
 	FText GetStatusText() const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Run")
+	int32 GetCurrentStage() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Run")
+	int32 GetMaxStages() const;
+
 private:
 	void SpawnMVPBattle();
+	void ClearBattleStage(bool bKeepPlayerCharacter);
+	void SelectNextEnemyDefinition();
+	UFortRogueTerrainMapDefinition* GetStageTerrainMapDefinition() const;
+	UFortRogueDefaultLoadoutDefinition* GetDefaultLoadoutDefinition() const;
+	const FFortRogueStageDifficultyData& GetCurrentStageDifficulty() const;
+	int32 GetConfiguredStageCount() const;
+	void HandleEnemyDefeated();
+	void ApplyRandomRewardAndLog();
+	void ApplyRewardToPlayer(const FFortRogueRewardChoice& Reward);
 	void StartPlayerTurn();
 	void StartEnemyTurn();
 	void RunEnemyTurn();
@@ -106,6 +125,12 @@ private:
 	UPROPERTY()
 	TArray<TWeakObjectPtr<AFortRogueProjectile>> ActiveProjectiles;
 
+	UPROPERTY()
+	TObjectPtr<UFortRogueCharacterDefinition> CurrentEnemyDefinition;
+
+	UPROPERTY()
+	TArray<TObjectPtr<UFortRogueCharacterDefinition>> EncounteredEnemyDefinitions;
+
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup")
 	TSubclassOf<AFortRogueBattleCharacter> PlayerCharacterClass;
 
@@ -126,6 +151,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup")
 	TObjectPtr<UFortRogueCharacterDefinition> EnemyDefinition;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Run")
+	TObjectPtr<UFortRogueStageRunDefinition> StageRunDefinition;
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup")
 	FVector TerrainLocation = FVector::ZeroVector;
@@ -160,10 +188,8 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup")
 	float MaxWind = 180.0f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Rewards")
-	TArray<FFortRogueRewardChoice> RewardPool;
-
 	EFortRogueBattleState BattleState = EFortRogueBattleState::PlayerTurn;
+	int32 CurrentStage = 1;
 	float Wind = 0.0f;
 	int32 PendingProjectiles = 0;
 	TWeakObjectPtr<AFortRogueBattleCharacter> LastShooter;

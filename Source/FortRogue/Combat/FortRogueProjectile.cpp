@@ -150,7 +150,21 @@ void AFortRogueProjectile::Tick(float DeltaSeconds)
 		return;
 	}
 
-	if (LifeSeconds > 8.0f || FMath::Abs(NewLocation.X) > 4000.0f || NewLocation.Z < -400.0f || NewLocation.Z > 3000.0f)
+	bool bOutOfBounds = false;
+	if (AssignedTerrain)
+	{
+		bOutOfBounds = AssignedTerrain->IsProjectileOutOfBounds(NewLocation);
+	}
+	else
+	{
+		for (TActorIterator<AFortRogueDestructibleTerrain> It(GetWorld()); It; ++It)
+		{
+			bOutOfBounds = It->IsProjectileOutOfBounds(NewLocation);
+			break;
+		}
+	}
+
+	if (LifeSeconds > MaxLifeSeconds || bOutOfBounds)
 	{
 		ResolveImpact(NewLocation);
 	}

@@ -8,14 +8,16 @@
 #include "Combat/FortRogueDestructibleTerrain.h"
 #include "Combat/FortRogueProjectile.h"
 #include "FortRogueGameMode.h"
-#include "FortRogueGameplayTags.h"
 #include "Items/FortRogueItemDefinition.h"
 #include "Perks/FortRoguePerkDefinition.h"
+#include "Run/FortRogueDefaultLoadoutDefinition.h"
 #include "Weapons/FortRogueWeaponDefinition.h"
 #include "Components/StaticMeshComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/StaticMesh.h"
 #include "EngineUtils.h"
+#include "PaperFlipbook.h"
+#include "PaperFlipbookComponent.h"
 #include "UObject/ConstructorHelpers.h"
 
 AFortRogueBattleCharacter::AFortRogueBattleCharacter()
@@ -35,6 +37,12 @@ AFortRogueBattleCharacter::AFortRogueBattleCharacter()
 	{
 		Body->SetStaticMesh(CubeMesh.Object);
 	}
+
+	BodySprite = CreateDefaultSubobject<UPaperFlipbookComponent>(TEXT("BodySprite"));
+	BodySprite->SetupAttachment(Body);
+	BodySprite->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	BodySprite->SetVisibility(false);
+	BodySprite->SetRelativeRotation(FRotator(0.0f, 90.0f, 0.0f));
 
 	AbilitySystemComponent = CreateDefaultSubobject<UFortRogueAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	CombatSet = CreateDefaultSubobject<UFortRogueCombatSet>(TEXT("CombatSet"));
@@ -77,6 +85,15 @@ void AFortRogueBattleCharacter::InitializeFromDefinition(UFortRogueCharacterDefi
 	CharacterDefinition = InCharacterDefinition;
 	CharacterDisplayName = InCharacterDefinition->DisplayName;
 	StartupAbilitySets = InCharacterDefinition->StartupAbilitySets;
+	if (BodySprite)
+	{
+		BodySprite->SetFlipbook(InCharacterDefinition->BodyFlipbook);
+		BodySprite->SetVisibility(InCharacterDefinition->BodyFlipbook != nullptr);
+		if (Body)
+		{
+			Body->SetVisibility(InCharacterDefinition->BodyFlipbook == nullptr);
+		}
+	}
 
 	CombatSet->SetMaxHealth(InCharacterDefinition->MaxHealth);
 	CombatSet->SetHealth(InCharacterDefinition->MaxHealth);
@@ -285,6 +302,10 @@ int32 AFortRogueBattleCharacter::FireSelectedWeapon()
 	{
 		return 0;
 	}
+	if (!WeaponLoadout.IsValidIndex(SelectedWeaponIndex))
+	{
+		return 0;
+	}
 
 	bChargingShot = false;
 	bFiredThisTurn = true;
@@ -321,7 +342,7 @@ int32 AFortRogueBattleCharacter::FireSelectedWeapon()
 	return SpawnedProjectiles;
 }
 
-void AFortRogueBattleCharacter::FireAtTarget(AFortRogueBattleCharacter* Target)
+void AFortRogueBattleCharacter::FireAtTarget(AFortRogueBattleCharacter* Target, const FFortRogueStageDifficultyData& DifficultyData)
 {
 	if (!Target)
 	{
@@ -330,8 +351,16 @@ void AFortRogueBattleCharacter::FireAtTarget(AFortRogueBattleCharacter* Target)
 
 	const FVector ToTarget = Target->GetActorLocation() - GetActorLocation();
 	bFacingRight = ToTarget.X >= 0.0f;
-	AimAngle = FMath::Clamp(FMath::RadiansToDegrees(FMath::Atan2(FMath::Max(220.0f, FMath::Abs(ToTarget.Z) + 300.0f), FMath::Max(1.0f, FMath::Abs(ToTarget.X)))), 35.0f, 72.0f);
-	ShotPower = FMath::Clamp(FMath::Abs(ToTarget.X) / 1450.0f, 0.45f, 0.92f);
+	const float AimArcHeight = FMath::Max(DifficultyData.MinAimArcHeight, FMath::Abs(ToTarget.Z) + DifficultyData.AimHeightOffset);
+	const float Distance = FMath::Max(1.0f, FMath::Abs(ToTarget.X));
+	const float AimError = DifficultyData.AimAngleErrorDegrees > 0.0f ? FMath::RandRange(-DifficultyData.AimAngleErrorDegrees, DifficultyData.AimAngleErrorDegrees) : 0.0f;
+	const float PowerError = DifficultyData.ShotPowerError > 0.0f ? FMath::RandRange(-DifficultyData.ShotPowerError, DifficultyData.ShotPowerError) : 0.0f;
+	const float MinAim = FMath::Min(DifficultyData.MinAimAngleDegrees, DifficultyData.MaxAimAngleDegrees);
+	const float MaxAim = FMath::Max(DifficultyData.MinAimAngleDegrees, DifficultyData.MaxAimAngleDegrees);
+	const float MinPower = FMath::Min(DifficultyData.MinShotPower, DifficultyData.MaxShotPower);
+	const float MaxPower = FMath::Max(DifficultyData.MinShotPower, DifficultyData.MaxShotPower);
+	AimAngle = FMath::Clamp(FMath::RadiansToDegrees(FMath::Atan2(AimArcHeight, Distance)) + AimError, MinAim, MaxAim);
+	ShotPower = FMath::Clamp(Distance / FMath::Max(1.0f, DifficultyData.ShotPowerDistanceScale) + PowerError, MinPower, MaxPower);
 }
 
 void AFortRogueBattleCharacter::ApplyDamage(float DamageAmount)
@@ -552,7 +581,18 @@ const FFortRogueWeaponSpec& AFortRogueBattleCharacter::GetCurrentWeapon() const
 		return WeaponLoadout[SelectedWeaponIndex];
 	}
 
-	static const FFortRogueWeaponSpec FallbackWeapon;
+	static const FFortRogueWeaponSpec FallbackWeapon = []()
+	{
+		FFortRogueWeaponSpec Weapon;
+		Weapon.DisplayName = FText::FromString(TEXT("No Weapon"));
+		Weapon.Description = FText::GetEmpty();
+		Weapon.Damage = 0.0f;
+		Weapon.BlastRadius = 0.0f;
+		Weapon.ProjectileSpeed = 0.0f;
+		Weapon.Gravity = 0.0f;
+		Weapon.ProjectilesPerShot = 0;
+		return Weapon;
+	}();
 	return FallbackWeapon;
 }
 
@@ -824,6 +864,10 @@ void AFortRogueBattleCharacter::DrawProjectileTrajectory() const
 	{
 		return;
 	}
+	if (!WeaponLoadout.IsValidIndex(SelectedWeaponIndex))
+	{
+		return;
+	}
 
 	const FFortRogueWeaponSpec& Weapon = GetCurrentWeapon();
 	const float Speed = Weapon.ProjectileSpeed * ShotPower * CombatSet->GetShotPowerMultiplier();
@@ -867,53 +911,19 @@ void AFortRogueBattleCharacter::GrantStartupAbilitySets()
 
 void AFortRogueBattleCharacter::EnsureDefaultLoadout()
 {
-	if (WeaponLoadout.Num() == 0)
+	if (DefaultLoadoutDefinition && WeaponLoadout.Num() == 0)
 	{
-		FFortRogueWeaponSpec Shell1;
-		Shell1.DisplayName = FText::FromString(TEXT("Cannon Shot 1"));
-		Shell1.Description = FText::FromString(TEXT("Fortress-style basic weapon 1: stable direct shell."));
-		Shell1.WeaponTag = FortRogueGameplayTags::Weapon_Shell;
-		Shell1.Damage = 35.0f;
-		Shell1.BlastRadius = 145.0f;
-		Shell1.ProjectileSpeed = 1180.0f;
-		Shell1.ProjectilesPerShot = 1;
-		WeaponLoadout.Add(Shell1);
-
-		FFortRogueWeaponSpec Shell2;
-		Shell2.DisplayName = FText::FromString(TEXT("Cannon Shot 2"));
-		Shell2.Description = FText::FromString(TEXT("Fortress-style basic weapon 2: heavier arc and wider crater."));
-		Shell2.WeaponTag = FortRogueGameplayTags::Weapon_Cluster;
-		Shell2.Damage = 25.0f;
-		Shell2.BlastRadius = 185.0f;
-		Shell2.ProjectileSpeed = 980.0f;
-		Shell2.ProjectilesPerShot = 2;
-		WeaponLoadout.Add(Shell2);
+		for (UFortRogueWeaponDefinition* WeaponDefinition : DefaultLoadoutDefinition->WeaponDefinitions)
+		{
+			AddWeaponDefinition(WeaponDefinition);
+		}
 	}
 
-	if (ItemLoadout.Num() == 0)
+	if (DefaultLoadoutDefinition && ItemLoadout.Num() == 0)
 	{
-		UFortRogueItemDefinition* AttackItem = NewObject<UFortRogueItemDefinition>(this, TEXT("DefaultAttackMultiplierItem"));
-		AttackItem->DisplayName = FText::FromString(TEXT("Attack Amp"));
-		AttackItem->ItemTag = FortRogueGameplayTags::Trait_Damage;
-		AttackItem->ItemType = EFortRogueItemType::AttackMultiplier;
-		AttackItem->InitialCharges = 1;
-		AttackItem->AttackMultiplier = 1.5f;
-
-		FFortRogueItemStack AttackStack;
-		AttackStack.ItemDefinition = AttackItem;
-		AttackStack.Charges = AttackItem->InitialCharges;
-		ItemLoadout.Add(AttackStack);
-
-		UFortRogueItemDefinition* HealItem = NewObject<UFortRogueItemDefinition>(this, TEXT("DefaultHealItem"));
-		HealItem->DisplayName = FText::FromString(TEXT("Repair Kit"));
-		HealItem->ItemTag = FortRogueGameplayTags::Item_Repair;
-		HealItem->ItemType = EFortRogueItemType::Heal;
-		HealItem->InitialCharges = 1;
-		HealItem->HealAmount = 35.0f;
-
-		FFortRogueItemStack HealStack;
-		HealStack.ItemDefinition = HealItem;
-		HealStack.Charges = HealItem->InitialCharges;
-		ItemLoadout.Add(HealStack);
+		for (const FFortRogueDefaultItemStack& ItemStack : DefaultLoadoutDefinition->ItemDefinitions)
+		{
+			AddItemDefinition(ItemStack.ItemDefinition, ItemStack.Charges);
+		}
 	}
 }

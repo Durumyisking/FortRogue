@@ -7,6 +7,8 @@
 #include "FortRogueCharacterDefinition.generated.h"
 
 class UFortRogueAbilitySet;
+class UPaperFlipbook;
+class UFortRogueTerrainMapDefinition;
 class UFortRogueWeaponDefinition;
 
 USTRUCT(BlueprintType)
@@ -31,7 +33,10 @@ public:
 	FText DisplayName = FText::FromString(TEXT("Rookie Tank"));
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Character")
-	FLinearColor BodyTint = FLinearColor(0.1f, 0.7f, 1.0f);
+	TObjectPtr<UFortRogueTerrainMapDefinition> BattleMapDefinition;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visual")
+	TObjectPtr<UPaperFlipbook> BodyFlipbook;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats", meta = (ClampMin = "1.0"))
 	float MaxHealth = 100.0f;

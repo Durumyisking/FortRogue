@@ -22,7 +22,31 @@
 #include "EngineUtils.h"
 #include "FortRogueGameMode.h"
 #include "Kismet/GameplayStatics.h"
+#include "Run/FortRogueDefaultLoadoutDefinition.h"
+#include "Run/FortRogueStageRunDefinition.h"
+#include "Weapons/FortRogueWeaponDefinition.h"
 #include "UObject/UnrealType.h"
+
+namespace
+{
+UFortRogueWeaponDefinition* CreateTestWeaponDefinition(UObject* Outer)
+{
+	UFortRogueWeaponDefinition* WeaponDefinition = NewObject<UFortRogueWeaponDefinition>(Outer);
+	WeaponDefinition->Weapon.DisplayName = FText::FromString(TEXT("Test Shell"));
+	WeaponDefinition->Weapon.Damage = 35.0f;
+	WeaponDefinition->Weapon.BlastRadius = 145.0f;
+	WeaponDefinition->Weapon.ProjectileSpeed = 1180.0f;
+	WeaponDefinition->Weapon.ProjectilesPerShot = 1;
+	return WeaponDefinition;
+}
+
+UFortRogueDefaultLoadoutDefinition* CreateTestDefaultLoadout(UObject* Outer)
+{
+	UFortRogueDefaultLoadoutDefinition* LoadoutDefinition = NewObject<UFortRogueDefaultLoadoutDefinition>(Outer);
+	LoadoutDefinition->WeaponDefinitions.Add(CreateTestWeaponDefinition(LoadoutDefinition));
+	return LoadoutDefinition;
+}
+}
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFortRogueTerrainMapDefinitionEditTest, "FortRogue.Terrain.MapDefinition.Edits", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
@@ -37,6 +61,18 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Default player spawn is inside the map width"), FMath::Abs(Map->PlayerSpawnLocal.X) < HalfMapWidth);
 	TestTrue(TEXT("Default enemy spawn is inside the map width"), FMath::Abs(Map->EnemySpawnLocal.X) < HalfMapWidth);
 	TestTrue(TEXT("Default spawns start above the map"), Map->PlayerSpawnLocal.Z > Map->CellsZ * Map->CellSize && Map->EnemySpawnLocal.Z > Map->CellsZ * Map->CellSize);
+
+	UFortRogueStageRunDefinition* StageRun = NewObject<UFortRogueStageRunDefinition>();
+	TestNotNull(TEXT("Stage run definition object is created"), StageRun);
+	if (StageRun)
+	{
+		TestEqual(TEXT("Stage run starts with seven difficulty rows"), StageRun->StageDifficultyData.Num(), 7);
+		StageRun->StageCount = 3;
+		StageRun->NormalizeStageData();
+		TestEqual(TEXT("Stage run difficulty rows follow the stage count"), StageRun->StageDifficultyData.Num(), 3);
+		StageRun->StageDifficultyData[2].EnemyTurnDelaySeconds = 0.25f;
+		TestEqual(TEXT("Stage difficulty lookup uses one-based stage numbers"), StageRun->GetStageDifficulty(3).EnemyTurnDelaySeconds, 0.25f);
+	}
 
 	UFortRogueTerrainMapDefinition* CorruptMap = NewObject<UFortRogueTerrainMapDefinition>();
 	TestNotNull(TEXT("Corrupt map asset object is created"), CorruptMap);
@@ -356,6 +392,11 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 	}
 	TerrainMapProperty->SetObjectPropertyValue_InContainer(GameMode, Map);
 
+	UFortRogueStageRunDefinition* TestStageRunDefinition = NewObject<UFortRogueStageRunDefinition>(GameMode);
+	TestStageRunDefinition->StageCount = 2;
+	TestStageRunDefinition->NormalizeStageData();
+	GameMode->StageRunDefinition = TestStageRunDefinition;
+
 	if (FFloatProperty* MinWindProperty = FindFProperty<FFloatProperty>(GameMode->GetClass(), TEXT("MinWind")))
 	{
 		MinWindProperty->SetPropertyValue_InContainer(GameMode, 120.0f);
@@ -437,6 +478,36 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 		GameMode->NotifyProjectileResolved(StrayProjectile);
 		World->Tick(ELevelTick::LEVELTICK_All, 1.0f);
 		TestEqual(TEXT("Stray projectile resolution outside a shot does not advance the turn"), GameMode->GetBattleState(), EFortRogueBattleState::PlayerTurn);
+	}
+
+	UFortRogueTerrainMapDefinition* NextStageMap = NewObject<UFortRogueTerrainMapDefinition>();
+	NextStageMap->Resize(16, 8);
+	NextStageMap->CellSize = 12.0f;
+	NextStageMap->Clear(false);
+	NextStageMap->FillRect(0, 0, 15, 1, true);
+	NextStageMap->PlayerSpawnLocal = FVector(-36.0f, 0.0f, 140.0f);
+	NextStageMap->EnemySpawnLocal = FVector(36.0f, 0.0f, 140.0f);
+
+	UFortRogueCharacterDefinition* NextStageEnemyDefinition = NewObject<UFortRogueCharacterDefinition>();
+	NextStageEnemyDefinition->DisplayName = FText::FromString(TEXT("Map Carrier"));
+	NextStageEnemyDefinition->BattleMapDefinition = NextStageMap;
+
+	TestStageRunDefinition->EnemyDefinitionPool = { NextStageEnemyDefinition };
+	TestEqual(TEXT("Game mode begins on the first stage before enemy defeat transition"), GameMode->GetCurrentStage(), 1);
+	TestNotNull(TEXT("Game mode has an enemy before stage transition"), GameMode->GetEnemyCharacter());
+	if (GameMode->GetEnemyCharacter())
+	{
+		GameMode->GetEnemyCharacter()->ApplyDamage(100000.0f);
+		GameMode->CheckTurnDefeatState();
+		TestEqual(TEXT("Defeating an enemy advances to the next stage without entering rewards"), GameMode->GetCurrentStage(), 2);
+		TestEqual(TEXT("Next stage starts on the player turn"), GameMode->GetBattleState(), EFortRogueBattleState::PlayerTurn);
+		TestTrue(TEXT("Next stage uses the encountered enemy character definition"), GameMode->CurrentEnemyDefinition == NextStageEnemyDefinition);
+		TestNotNull(TEXT("Next stage respawns terrain"), GameMode->Terrain.Get());
+		if (GameMode->Terrain)
+		{
+			TestEqual(TEXT("Next stage terrain follows the selected enemy map definition"), GameMode->Terrain->MapDefinition.Get(), NextStageMap);
+			TestEqual(TEXT("Next stage terrain width follows the selected enemy map definition"), GameMode->Terrain->Width, 192.0f);
+		}
 	}
 
 	CleanupWorld();
@@ -789,6 +860,7 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	TestNotNull(TEXT("Exhausted turn battle character is spawned"), ExhaustedTurnCharacter);
 	if (ExhaustedTurnCharacter)
 	{
+		ExhaustedTurnCharacter->AddWeaponDefinition(CreateTestWeaponDefinition(ExhaustedTurnCharacter));
 		ExhaustedTurnCharacter->SetTerrain(Terrain);
 		ExhaustedTurnCharacter->BeginTurn();
 		if (UFortRogueCombatSet* CombatSet = GetCombatSet(ExhaustedTurnCharacter))

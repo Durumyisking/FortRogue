@@ -32,6 +32,7 @@ public:
 	bool FindSurfaceZAtWorldX(float WorldX, float StartWorldZ, float SearchDistance, float& OutSurfaceZ) const;
 	bool FindFirstSolidAlongWorldSegment(const FVector& StartWorldLocation, const FVector& EndWorldLocation, FVector& OutImpactLocation) const;
 	bool CarveCircle(const FVector& WorldLocation, float Radius);
+	bool IsProjectileOutOfBounds(const FVector& WorldLocation) const;
 	float GetSurfaceZ() const;
 	FVector GetPlayerSpawnWorldLocation() const;
 	FVector GetEnemySpawnWorldLocation() const;
@@ -48,6 +49,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Terrain")
 	float CellSize = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Projectile Bounds", meta = (ClampMin = "0.0"))
+	float ProjectileBoundsPadding = 800.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Terrain|Rendering")
 	TObjectPtr<UMaterialInterface> TextureTerrainMaterial;

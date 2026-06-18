@@ -1,14 +1,23 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Combat/FortRogueTerrainMapDefinition.h"
+#include "FortRogueSpriteFlipbookGenerator.h"
+#include "AssetImportTask.h"
+#include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetToolsModule.h"
 #include "AssetTypeActions_Base.h"
 #include "Editor.h"
 #include "Engine/Texture2D.h"
 #include "FileHelpers.h"
 #include "Framework/Docking/TabManager.h"
+#include "HAL/FileManager.h"
 #include "IAssetTools.h"
+#include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
+#include "PaperFlipbook.h"
+#include "PaperFlipbookFactory.h"
+#include "PaperSprite.h"
+#include "PaperSpriteFactory.h"
 #include "PropertyCustomizationHelpers.h"
 #include "ToolMenus.h"
 #include "Widgets/Docking/SDockTab.h"
@@ -28,9 +37,211 @@ namespace FortRogueEditor
 {
 static const FName TerrainMapEditorTabName(TEXT("FortRogueTerrainMapEditor"));
 constexpr float DefaultSpawnClearance = 80.0f;
+constexpr int32 GeneratedSpriteSheetColumns = 4;
+constexpr int32 GeneratedSpriteSheetRows = 4;
+constexpr int32 GeneratedSpriteFrameRun = 1;
+constexpr float GeneratedSpriteFramesPerSecond = 8.0f;
+static const TCHAR* GeneratedSpriteSourcePath = TEXT("/Game/GeneratedSprites");
+static const TCHAR* GeneratedSpriteSourceRelativePath = TEXT("GeneratedSprites");
+static const TCHAR* GeneratedSpriteOutputPath = TEXT("/Game/FortRogue/Character/GeneratedSprites");
 static TWeakObjectPtr<UFortRogueTerrainMapDefinition> PendingTerrainMapAsset;
 static TWeakPtr<SFortRogueTerrainMapEditor> ActiveTerrainMapEditor;
 static void OpenTerrainMapEditorForAsset(UFortRogueTerrainMapDefinition* Asset);
+
+static FString GetGeneratedSpriteBaseName(const UTexture2D& Texture)
+{
+	FString BaseName = Texture.GetName();
+	BaseName.RemoveFromEnd(TEXT("_sprite_sheet"));
+	return BaseName;
+}
+
+template <typename AssetType>
+static AssetType* LoadGeneratedSpriteAsset(const FString& AssetName)
+{
+	const FString ObjectPath = FString::Printf(TEXT("%s/%s.%s"), GeneratedSpriteOutputPath, *AssetName, *AssetName);
+	return LoadObject<AssetType>(nullptr, *ObjectPath);
+}
+
+static UTexture2D* LoadGeneratedSpriteTexture(const FString& AssetName)
+{
+	const FString ObjectPath = FString::Printf(TEXT("%s/%s.%s"), GeneratedSpriteSourcePath, *AssetName, *AssetName);
+	return LoadObject<UTexture2D>(nullptr, *ObjectPath);
+}
+
+static TArray<UTexture2D*> ImportGeneratedSpriteTextures(TArray<UPackage*>& OutPackagesToSave)
+{
+	TArray<FString> SourceFiles;
+	const FString SourceDirectory = FPaths::Combine(FPaths::ProjectContentDir(), GeneratedSpriteSourceRelativePath);
+	IFileManager::Get().FindFilesRecursive(SourceFiles, *SourceDirectory, TEXT("*.png"), true, false);
+	SourceFiles.Sort();
+
+	TArray<UTexture2D*> Textures;
+	TArray<UAssetImportTask*> ImportTasks;
+	for (const FString& SourceFile : SourceFiles)
+	{
+		const FString AssetName = FPaths::GetBaseFilename(SourceFile);
+		if (UTexture2D* ExistingTexture = LoadGeneratedSpriteTexture(AssetName))
+		{
+			Textures.Add(ExistingTexture);
+			continue;
+		}
+
+		UAssetImportTask* ImportTask = NewObject<UAssetImportTask>();
+		ImportTask->Filename = SourceFile;
+		ImportTask->DestinationPath = GeneratedSpriteSourcePath;
+		ImportTask->DestinationName = AssetName;
+		ImportTask->bAutomated = true;
+		ImportTask->bAsync = false;
+		ImportTask->bReplaceExisting = false;
+		ImportTask->bSave = true;
+		ImportTasks.Add(ImportTask);
+	}
+
+	if (ImportTasks.Num() > 0)
+	{
+		FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+		AssetToolsModule.Get().ImportAssetTasks(ImportTasks);
+		for (UAssetImportTask* ImportTask : ImportTasks)
+		{
+			for (UObject* ImportedObject : ImportTask->GetObjects())
+			{
+				if (UTexture2D* Texture = Cast<UTexture2D>(ImportedObject))
+				{
+					Textures.Add(Texture);
+					OutPackagesToSave.AddUnique(Texture->GetPackage());
+				}
+			}
+		}
+	}
+
+	return Textures;
+}
+
+static UPaperSprite* GetOrCreateGeneratedSprite(UTexture2D* Texture, const FString& AssetName, const FIntPoint& SourceUV, const FIntPoint& SourceDimension, TArray<UPackage*>& OutPackagesToSave)
+{
+	if (UPaperSprite* ExistingSprite = LoadGeneratedSpriteAsset<UPaperSprite>(AssetName))
+	{
+		return ExistingSprite;
+	}
+
+	UPaperSpriteFactory* SpriteFactory = NewObject<UPaperSpriteFactory>();
+	SpriteFactory->InitialTexture = Texture;
+	SpriteFactory->bUseSourceRegion = true;
+	SpriteFactory->InitialSourceUV = SourceUV;
+	SpriteFactory->InitialSourceDimension = SourceDimension;
+
+	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+	UPaperSprite* CreatedSprite = Cast<UPaperSprite>(AssetToolsModule.Get().CreateAsset(AssetName, GeneratedSpriteOutputPath, UPaperSprite::StaticClass(), SpriteFactory));
+	if (CreatedSprite)
+	{
+		OutPackagesToSave.AddUnique(CreatedSprite->GetPackage());
+	}
+	return CreatedSprite;
+}
+
+static UPaperFlipbook* GetOrCreateGeneratedFlipbook(const FString& AssetName, const TArray<UPaperSprite*>& Sprites, TArray<UPackage*>& OutPackagesToSave)
+{
+	UPaperFlipbook* Flipbook = LoadGeneratedSpriteAsset<UPaperFlipbook>(AssetName);
+	if (!Flipbook)
+	{
+		UPaperFlipbookFactory* FlipbookFactory = NewObject<UPaperFlipbookFactory>();
+		FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+		Flipbook = Cast<UPaperFlipbook>(AssetToolsModule.Get().CreateAsset(AssetName, GeneratedSpriteOutputPath, UPaperFlipbook::StaticClass(), FlipbookFactory));
+	}
+
+	if (Flipbook)
+	{
+		Flipbook->Modify();
+		FScopedFlipbookMutator FlipbookMutator(Flipbook);
+		FlipbookMutator.FramesPerSecond = GeneratedSpriteFramesPerSecond;
+		FlipbookMutator.KeyFrames.Reset();
+		for (UPaperSprite* Sprite : Sprites)
+		{
+			if (!Sprite)
+			{
+				continue;
+			}
+			FPaperFlipbookKeyFrame& KeyFrame = FlipbookMutator.KeyFrames.AddDefaulted_GetRef();
+			KeyFrame.Sprite = Sprite;
+			KeyFrame.FrameRun = GeneratedSpriteFrameRun;
+		}
+		Flipbook->MarkPackageDirty();
+		OutPackagesToSave.AddUnique(Flipbook->GetPackage());
+	}
+
+	return Flipbook;
+}
+
+int32 GenerateSpriteFlipbooks()
+{
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	AssetRegistryModule.Get().SearchAllAssets(true);
+
+	TArray<UPackage*> PackagesToSave;
+	TArray<UTexture2D*> Textures = FortRogueEditor::ImportGeneratedSpriteTextures(PackagesToSave);
+	TArray<FAssetData> TextureAssets;
+	AssetRegistryModule.Get().ScanPathsSynchronous({ FortRogueEditor::GeneratedSpriteSourcePath }, true);
+	AssetRegistryModule.Get().GetAssetsByPath(FName(FortRogueEditor::GeneratedSpriteSourcePath), TextureAssets, false);
+	for (const FAssetData& TextureAsset : TextureAssets)
+	{
+		if (UTexture2D* Texture = Cast<UTexture2D>(TextureAsset.GetAsset()))
+		{
+			Textures.AddUnique(Texture);
+		}
+	}
+
+	int32 GeneratedFlipbooks = 0;
+	for (UTexture2D* Texture : Textures)
+	{
+		if (!Texture)
+		{
+			continue;
+		}
+
+		const FIntPoint TextureSize = Texture->GetImportedSize();
+		const int32 FrameWidth = TextureSize.X / FortRogueEditor::GeneratedSpriteSheetColumns;
+		const int32 FrameHeight = TextureSize.Y / FortRogueEditor::GeneratedSpriteSheetRows;
+		if (FrameWidth <= 0 || FrameHeight <= 0)
+		{
+			continue;
+		}
+
+		const FString BaseName = FortRogueEditor::GetGeneratedSpriteBaseName(*Texture);
+		TArray<UPaperSprite*> FrameSprites;
+		for (int32 Row = 0; Row < FortRogueEditor::GeneratedSpriteSheetRows; ++Row)
+		{
+			for (int32 Column = 0; Column < FortRogueEditor::GeneratedSpriteSheetColumns; ++Column)
+			{
+				const int32 FrameIndex = Row * FortRogueEditor::GeneratedSpriteSheetColumns + Column;
+				const FString SpriteName = FString::Printf(TEXT("%s_frame_%02d"), *BaseName, FrameIndex);
+				const FIntPoint SourceUV(Column * FrameWidth, Row * FrameHeight);
+				const FIntPoint SourceDimension(FrameWidth, FrameHeight);
+				FrameSprites.Add(FortRogueEditor::GetOrCreateGeneratedSprite(Texture, SpriteName, SourceUV, SourceDimension, PackagesToSave));
+			}
+		}
+
+		const FString FlipbookName = FString::Printf(TEXT("%s_flipbook"), *BaseName);
+		if (FortRogueEditor::GetOrCreateGeneratedFlipbook(FlipbookName, FrameSprites, PackagesToSave))
+		{
+			++GeneratedFlipbooks;
+		}
+	}
+
+	if (PackagesToSave.Num() > 0)
+	{
+		if (FApp::IsUnattended())
+		{
+			UEditorLoadingAndSavingUtils::SavePackages(PackagesToSave, true);
+		}
+		else
+		{
+			FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, false, false);
+		}
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("FortRogue generated %d sprite flipbooks from %d textures."), GeneratedFlipbooks, Textures.Num());
+	return GeneratedFlipbooks;
+}
 }
 
 enum class EFortRogueTerrainEditMode : int32
@@ -1304,6 +1515,7 @@ public:
 		FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
 		TerrainMapAssetTypeActions = MakeShared<FFortRogueTerrainMapAssetTypeActions>();
 		AssetToolsModule.Get().RegisterAssetTypeActions(TerrainMapAssetTypeActions.ToSharedRef());
+
 	}
 
 	virtual void ShutdownModule() override
@@ -1351,11 +1563,22 @@ private:
 			LOCTEXT("OpenTerrainMapEditorTooltip", "Open the FortRogue terrain map editor."),
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateRaw(this, &FFortRogueEditorModule::OpenTerrainMapEditor)));
+		Section.AddMenuEntry(
+			"GenerateFortRogueSpriteFlipbooks",
+			LOCTEXT("GenerateSpriteFlipbooks", "Generate FortRogue Sprite Flipbooks"),
+			LOCTEXT("GenerateSpriteFlipbooksTooltip", "Create Paper2D sprites and flipbooks from textures in /Game/GeneratedSprites."),
+			FSlateIcon(),
+			FUIAction(FExecuteAction::CreateRaw(this, &FFortRogueEditorModule::GenerateSpriteFlipbooks)));
 	}
 
 	void OpenTerrainMapEditor()
 	{
 		FGlobalTabmanager::Get()->TryInvokeTab(FortRogueEditor::TerrainMapEditorTabName);
+	}
+
+	void GenerateSpriteFlipbooks()
+	{
+		FortRogueEditor::GenerateSpriteFlipbooks();
 	}
 
 	TSharedPtr<IAssetTypeActions> TerrainMapAssetTypeActions;

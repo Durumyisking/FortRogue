@@ -290,6 +290,17 @@ bool AFortRogueDestructibleTerrain::CarveCircle(const FVector& WorldLocation, fl
 	return bChanged;
 }
 
+bool AFortRogueDestructibleTerrain::IsProjectileOutOfBounds(const FVector& WorldLocation) const
+{
+	const float Padding = MapDefinition ? MapDefinition->ProjectileBoundsPadding : ProjectileBoundsPadding;
+	const FVector LocalLocation = WorldLocation - GetActorLocation();
+	const float HalfWidth = Width * 0.5f;
+	return LocalLocation.X < -HalfWidth - Padding
+		|| LocalLocation.X > HalfWidth + Padding
+		|| LocalLocation.Z < -Padding
+		|| LocalLocation.Z > Height + Padding;
+}
+
 float AFortRogueDestructibleTerrain::GetSurfaceZ() const
 {
 	return GetActorLocation().Z + Height;
@@ -369,6 +380,7 @@ void AFortRogueDestructibleTerrain::ApplyDefinitionDimensions()
 	CellSize = MapDefinition->CellSize;
 	Width = CellsX * CellSize;
 	Height = CellsZ * CellSize;
+	ProjectileBoundsPadding = MapDefinition->ProjectileBoundsPadding;
 }
 
 void AFortRogueDestructibleTerrain::NormalizeActorTransformForGameplayPlane()

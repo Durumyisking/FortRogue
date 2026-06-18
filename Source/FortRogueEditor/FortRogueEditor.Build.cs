@@ -19,7 +19,10 @@ public class FortRogueEditor : ModuleRules
 			"ToolMenus",
 			"UnrealEd",
 			"PropertyEditor",
-			"AssetTools"
+			"AssetTools",
+			"AssetRegistry",
+			"Paper2D",
+			"Paper2DEditor"
 		});
 	}
 }

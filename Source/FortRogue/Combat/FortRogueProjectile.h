@@ -38,6 +38,9 @@ private:
 	UPROPERTY()
 	TObjectPtr<AFortRogueDestructibleTerrain> AssignedTerrain;
 
+	UPROPERTY(EditDefaultsOnly, Category = "Projectile|Lifetime", meta = (ClampMin = "0.1"))
+	float MaxLifeSeconds = 8.0f;
+
 	FVector Velocity = FVector::ZeroVector;
 	float Damage = 35.0f;
 	float BlastRadius = 150.0f;

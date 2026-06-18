@@ -24,7 +24,7 @@ struct FFortRogueTerrainTextureLayer
 };
 
 UCLASS(BlueprintType)
-class FORTROGUE_API UFortRogueTerrainMapDefinition : public UDataAsset
+class FORTROGUE_API UFortRogueTerrainMapDefinition : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 
@@ -120,4 +120,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spawn")
 	FVector EnemySpawnLocal = FVector(448.0f, 0.0f, 1040.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Projectile Bounds", meta = (ClampMin = "0.0"))
+	float ProjectileBoundsPadding = 800.0f;
 };
