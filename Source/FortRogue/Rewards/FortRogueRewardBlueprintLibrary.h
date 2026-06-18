@@ -7,6 +7,7 @@
 #include "Rewards/FortRogueRewardTypes.h"
 #include "FortRogueRewardBlueprintLibrary.generated.h"
 
+class UFortRogueAbilitySet;
 class UFortRogueItemDefinition;
 class UFortRoguePerkDefinition;
 class UFortRogueWeaponDefinition;
@@ -28,4 +29,7 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
 	static FText GetPerkEffectSummary(UFortRoguePerkDefinition* PerkDefinition);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	static FText GetAbilitySetEffectSummary(UFortRogueAbilitySet* AbilitySet);
 };

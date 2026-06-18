@@ -24,9 +24,9 @@ void AddAbilitySetSummary(TArray<FString>& Parts, const UFortRogueAbilitySet* Ab
 		return;
 	}
 
-	const FString DisplayName = AbilitySet->DisplayName.ToString();
-	const FString AbilitySetName = DisplayName.IsEmpty() ? AbilitySet->GetName() : DisplayName;
-	AddSummaryPart(Parts, FString::Printf(TEXT("ability set %s"), *AbilitySetName));
+	const FString AbilitySetSummary = AbilitySet->GetEffectSummary().ToString();
+	const FString SummaryText = AbilitySetSummary.IsEmpty() ? AbilitySet->GetName() : AbilitySetSummary;
+	AddSummaryPart(Parts, FString::Printf(TEXT("ability set %s"), *SummaryText));
 }
 
 int32 CountImpactSpawnProjectiles(const TArray<FFortRogueImpactSpawnSpec>& ImpactSpawns)

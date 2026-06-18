@@ -2,6 +2,7 @@
 
 #include "Rewards/FortRogueRewardBlueprintLibrary.h"
 
+#include "AbilitySystem/FortRogueAbilitySet.h"
 #include "Items/FortRogueItemDefinition.h"
 #include "Perks/FortRoguePerkDefinition.h"
 #include "Weapons/FortRogueWeaponDefinition.h"
@@ -30,4 +31,9 @@ FText UFortRogueRewardBlueprintLibrary::GetPerkEffectSummary(UFortRoguePerkDefin
 	FFortRogueRewardChoice RewardChoice;
 	RewardChoice.PerkReward = PerkDefinition;
 	return RewardChoice.GetEffectSummary();
+}
+
+FText UFortRogueRewardBlueprintLibrary::GetAbilitySetEffectSummary(UFortRogueAbilitySet* AbilitySet)
+{
+	return AbilitySet ? AbilitySet->GetEffectSummary() : FText::GetEmpty();
 }

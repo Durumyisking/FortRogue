@@ -88,6 +88,8 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 
 	UFortRogueAbilitySet* NamedAbilitySet = NewObject<UFortRogueAbilitySet>();
 	NamedAbilitySet->DisplayName = FText::FromString(TEXT("Wind Split"));
+	TestTrue(TEXT("Ability set summary includes display name"), NamedAbilitySet->GetEffectSummary().ToString().Contains(TEXT("Wind Split")));
+	TestTrue(TEXT("Blueprint helper summarizes ability set assets"), UFortRogueRewardBlueprintLibrary::GetAbilitySetEffectSummary(NamedAbilitySet).ToString().Contains(TEXT("Wind Split")));
 	FFortRogueRewardChoice AbilitySetReward;
 	AbilitySetReward.GrantedAbilitySet = NamedAbilitySet;
 	TestTrue(TEXT("Reward summary names directly granted ability set"), AbilitySetReward.GetEffectSummary().ToString().Contains(TEXT("ability set Wind Split")));

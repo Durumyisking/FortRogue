@@ -80,6 +80,9 @@ public:
 
 	void GiveToAbilitySystem(UFortRogueAbilitySystemComponent* AbilitySystemComponent, FFortRogueAbilitySet_GrantedHandles* OutGrantedHandles, UObject* SourceObject = nullptr) const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Ability Set")
+	FText GetEffectSummary() const;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability Set")
 	FText DisplayName = FText::FromString(TEXT("Ability Set"));
 
