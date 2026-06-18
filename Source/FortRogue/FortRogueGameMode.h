@@ -75,6 +75,9 @@ public:
 	TArray<FFortRogueRewardChoice> GetRewardChoices() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	FText GetRewardChoiceSummary(int32 ChoiceIndex) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
 	FGameplayTagContainer GetChosenRewardTags() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")
