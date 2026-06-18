@@ -107,6 +107,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
 	FText GetPlayerCurrentShotSummary() const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	bool DoesPlayerShotModifierMeetCurrentShotConditions(const FFortRogueShotModifierSpec& ShotModifier) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	FText GetPlayerShotModifierCurrentConditionFailureSummary(const FFortRogueShotModifierSpec& ShotModifier) const;
+
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
 	bool TryGetPlayerCombatAttributeValueByTag(FGameplayTag AttributeTag, float& OutValue) const;
 

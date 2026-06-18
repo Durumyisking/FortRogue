@@ -678,6 +678,26 @@ FText AFortRoguePlayerController::GetPlayerCurrentShotSummary() const
 	return FText::GetEmpty();
 }
 
+bool AFortRoguePlayerController::DoesPlayerShotModifierMeetCurrentShotConditions(const FFortRogueShotModifierSpec& ShotModifier) const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->DoesShotModifierMeetCurrentShotConditions(ShotModifier);
+	}
+	return false;
+}
+
+FText AFortRoguePlayerController::GetPlayerShotModifierCurrentConditionFailureSummary(const FFortRogueShotModifierSpec& ShotModifier) const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->GetShotModifierCurrentConditionFailureSummary(ShotModifier);
+	}
+	return FText::GetEmpty();
+}
+
 bool AFortRoguePlayerController::TryGetPlayerCombatAttributeValueByTag(FGameplayTag AttributeTag, float& OutValue) const
 {
 	OutValue = 0.0f;

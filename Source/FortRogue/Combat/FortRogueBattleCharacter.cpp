@@ -1241,6 +1241,20 @@ FText AFortRogueBattleCharacter::GetCurrentShotSummary() const
 		*ImpactText));
 }
 
+bool AFortRogueBattleCharacter::DoesShotModifierMeetCurrentShotConditions(const FFortRogueShotModifierSpec& ShotModifier) const
+{
+	const AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	const float Wind = GameMode ? GameMode->GetWind() : 0.0f;
+	return ShotModifier.MeetsShotConditions(GetCurrentShotSpec(), AimAngle, Wind, bFacingRight);
+}
+
+FText AFortRogueBattleCharacter::GetShotModifierCurrentConditionFailureSummary(const FFortRogueShotModifierSpec& ShotModifier) const
+{
+	const AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	const float Wind = GameMode ? GameMode->GetWind() : 0.0f;
+	return ShotModifier.GetShotConditionFailureSummary(GetCurrentShotSpec(), AimAngle, Wind, bFacingRight);
+}
+
 const TArray<FFortRogueWeaponSpec>& AFortRogueBattleCharacter::GetWeaponLoadout() const
 {
 	return WeaponLoadout;

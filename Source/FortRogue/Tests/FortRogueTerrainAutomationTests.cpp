@@ -601,6 +601,14 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 		TestEqual(TEXT("Player controller exposes current shot weapon tag"), ControllerShotSpec.WeaponTag, FortRogueGameplayTags::Weapon_Cluster);
 		TestTrue(TEXT("Player controller exposes current shot effect tags"), ControllerShotSpec.EffectTags.HasTagExact(FortRogueGameplayTags::Weapon_Cluster));
 		TestFalse(TEXT("Player controller exposes current shot summary"), TestPlayerController->GetPlayerCurrentShotSummary().ToString().IsEmpty());
+		FFortRogueShotModifierSpec CurrentShotConditionModifier;
+		CurrentShotConditionModifier.RequiredShotTags.AddTag(FortRogueGameplayTags::Weapon_Cluster);
+		TestTrue(TEXT("Player controller checks current shot modifier conditions"), TestPlayerController->DoesPlayerShotModifierMeetCurrentShotConditions(CurrentShotConditionModifier));
+		TestTrue(TEXT("Battle character checks current shot modifier conditions"), GameMode->GetPlayerCharacter()->DoesShotModifierMeetCurrentShotConditions(CurrentShotConditionModifier));
+		CurrentShotConditionModifier.RequiredShotTags.Reset();
+		CurrentShotConditionModifier.RequiredShotTags.AddTag(FortRogueGameplayTags::Weapon_Shell);
+		TestFalse(TEXT("Player controller rejects current shot modifier conditions"), TestPlayerController->DoesPlayerShotModifierMeetCurrentShotConditions(CurrentShotConditionModifier));
+		TestTrue(TEXT("Player controller reports current shot modifier condition failures"), TestPlayerController->GetPlayerShotModifierCurrentConditionFailureSummary(CurrentShotConditionModifier).ToString().Contains(TEXT("requires shot tag")));
 		UFortRogueAbilitySet* ControllerAbilitySet = NewObject<UFortRogueAbilitySet>(TestPlayerController);
 		ControllerAbilitySet->DisplayName = FText::FromString(TEXT("Controller Ability Set"));
 		ControllerAbilitySet->AbilitySetTag = FortRogueGameplayTags::Trait_ShotModifier;

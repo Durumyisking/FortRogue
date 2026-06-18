@@ -293,6 +293,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
 	FText GetCurrentShotSummary() const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	bool DoesShotModifierMeetCurrentShotConditions(const FFortRogueShotModifierSpec& ShotModifier) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	FText GetShotModifierCurrentConditionFailureSummary(const FFortRogueShotModifierSpec& ShotModifier) const;
+
 	const TArray<FFortRogueWeaponSpec>& GetWeaponLoadout() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
