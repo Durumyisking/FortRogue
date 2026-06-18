@@ -536,7 +536,27 @@ void AFortRogueGameMode::BuildRewardChoices()
 	const int32 ChoiceCount = FMath::Clamp(StageRunDefinition->RewardChoiceCount, 1, CandidateRewards.Num());
 	for (int32 ChoiceIndex = 0; ChoiceIndex < ChoiceCount; ++ChoiceIndex)
 	{
-		const int32 CandidateIndex = FMath::RandRange(0, CandidateRewards.Num() - 1);
+		float TotalWeight = 0.0f;
+		for (const FFortRogueRewardChoice& CandidateReward : CandidateRewards)
+		{
+			TotalWeight += FMath::Max(0.0f, CandidateReward.RewardWeight);
+		}
+
+		int32 CandidateIndex = FMath::RandRange(0, CandidateRewards.Num() - 1);
+		if (TotalWeight > KINDA_SMALL_NUMBER)
+		{
+			float WeightRoll = FMath::FRandRange(0.0f, TotalWeight);
+			for (int32 Index = 0; Index < CandidateRewards.Num(); ++Index)
+			{
+				WeightRoll -= FMath::Max(0.0f, CandidateRewards[Index].RewardWeight);
+				if (WeightRoll <= 0.0f)
+				{
+					CandidateIndex = Index;
+					break;
+				}
+			}
+		}
+
 		RewardChoices.Add(CandidateRewards[CandidateIndex]);
 		CandidateRewards.RemoveAtSwap(CandidateIndex, 1, EAllowShrinking::No);
 	}

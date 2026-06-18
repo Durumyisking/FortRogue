@@ -37,6 +37,9 @@ struct FFortRogueRewardChoice
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
 	FGameplayTag RewardTag;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward", meta = (ClampMin = "0.0"))
+	float RewardWeight = 1.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
 	TObjectPtr<UFortRogueWeaponDefinition> WeaponReward;
 
