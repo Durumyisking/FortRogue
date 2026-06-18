@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerController.h"
 #include "GameplayTagContainer.h"
 #include "Items/FortRogueItemDefinition.h"
+#include "Rewards/FortRogueRewardTypes.h"
 #include "FortRoguePlayerController.generated.h"
 
 class UFortRogueBattleHUDWidget;
@@ -26,6 +27,30 @@ public:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 	virtual void Tick(float DeltaSeconds) override;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	TArray<FFortRogueRewardChoice> GetCurrentRewardChoices() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	int32 GetCurrentRewardChoiceCount() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	FFortRogueRewardChoice GetCurrentRewardChoice(int32 ChoiceIndex) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	FText GetCurrentRewardChoiceSummary(int32 ChoiceIndex) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	FText GetCurrentRewardChoiceConditionFailureSummary(int32 ChoiceIndex) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	FGameplayTagContainer GetChosenRewardTags() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	bool CanChooseReward(int32 ChoiceIndex) const;
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
+	bool ChooseRewardByIndex(int32 ChoiceIndex);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Items")
 	void UsePlayerItemByTag(FGameplayTag ItemTag);

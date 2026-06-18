@@ -151,6 +151,67 @@ void AFortRoguePlayerController::Tick(float DeltaSeconds)
 	TickBattleInput(DeltaSeconds);
 }
 
+TArray<FFortRogueRewardChoice> AFortRoguePlayerController::GetCurrentRewardChoices() const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode)
+	{
+		return GameMode->GetRewardChoices();
+	}
+	return TArray<FFortRogueRewardChoice>();
+}
+
+int32 AFortRoguePlayerController::GetCurrentRewardChoiceCount() const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	return GameMode ? GameMode->GetRewardChoiceCount() : 0;
+}
+
+FFortRogueRewardChoice AFortRoguePlayerController::GetCurrentRewardChoice(int32 ChoiceIndex) const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode)
+	{
+		return GameMode->GetRewardChoice(ChoiceIndex);
+	}
+	return FFortRogueRewardChoice();
+}
+
+FText AFortRoguePlayerController::GetCurrentRewardChoiceSummary(int32 ChoiceIndex) const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	return GameMode ? GameMode->GetRewardChoiceSummary(ChoiceIndex) : FText::GetEmpty();
+}
+
+FText AFortRoguePlayerController::GetCurrentRewardChoiceConditionFailureSummary(int32 ChoiceIndex) const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	return GameMode ? GameMode->GetRewardChoiceConditionFailureSummary(ChoiceIndex) : FText::GetEmpty();
+}
+
+FGameplayTagContainer AFortRoguePlayerController::GetChosenRewardTags() const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	return GameMode ? GameMode->GetChosenRewardTags() : FGameplayTagContainer();
+}
+
+bool AFortRoguePlayerController::CanChooseReward(int32 ChoiceIndex) const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	return GameMode && GameMode->CanApplyRewardChoice(ChoiceIndex);
+}
+
+bool AFortRoguePlayerController::ChooseRewardByIndex(int32 ChoiceIndex)
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->CanApplyRewardChoice(ChoiceIndex))
+	{
+		GameMode->ApplyRewardChoice(ChoiceIndex);
+		return true;
+	}
+	return false;
+}
+
 void AFortRoguePlayerController::TickBattleInput(float DeltaSeconds)
 {
 	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
@@ -742,9 +803,5 @@ int32 AFortRoguePlayerController::RemovePlayerPendingShotModifiersByTag(FGamepla
 
 void AFortRoguePlayerController::ChooseReward(int32 ChoiceIndex)
 {
-	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
-	if (GameMode && GameMode->CanApplyRewardChoice(ChoiceIndex))
-	{
-		GameMode->ApplyRewardChoice(ChoiceIndex);
-	}
+	ChooseRewardByIndex(ChoiceIndex);
 }

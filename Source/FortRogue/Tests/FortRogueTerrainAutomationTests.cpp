@@ -657,6 +657,14 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 	GameMode->RewardChoices = { RequiredReward, BlockedReward };
 	TestTrue(TEXT("Game mode reward choice failure summary names missing required tags"), GameMode->GetRewardChoiceConditionFailureSummary(0).ToString().Contains(TEXT("requires reward")));
 	TestTrue(TEXT("Game mode reward choice failure summary is empty for invalid choices"), GameMode->GetRewardChoiceConditionFailureSummary(GameMode->GetRewardChoices().Num()).ToString().IsEmpty());
+	if (TestPlayerController)
+	{
+		TestEqual(TEXT("Player controller exposes current reward choice count"), TestPlayerController->GetCurrentRewardChoiceCount(), GameMode->GetRewardChoiceCount());
+		TestEqual(TEXT("Player controller exposes current reward choices"), TestPlayerController->GetCurrentRewardChoices().Num(), GameMode->GetRewardChoices().Num());
+		TestTrue(TEXT("Player controller exposes reward condition failure summaries"), TestPlayerController->GetCurrentRewardChoiceConditionFailureSummary(0).ToString().Contains(TEXT("requires reward")));
+		TestFalse(TEXT("Player controller rejects rewards outside reward state"), TestPlayerController->CanChooseReward(0));
+		TestFalse(TEXT("Player controller does not choose rewards outside reward state"), TestPlayerController->ChooseRewardByIndex(0));
+	}
 
 	GameMode->ChosenRewardTags = { FortRogueGameplayTags::Trait_Damage };
 	TestTrue(TEXT("Game mode exposes chosen reward tags for UI"), GameMode->GetChosenRewardTags().HasTagExact(FortRogueGameplayTags::Trait_Damage));
@@ -675,13 +683,32 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 	TestFalse(TEXT("Game mode rejects reward choice outside reward state"), GameMode->CanApplyRewardChoice(0));
 	TestFalse(TEXT("Game mode reward choice summary is available for valid choices"), GameMode->GetRewardChoiceSummary(0).ToString().IsEmpty());
 	TestTrue(TEXT("Game mode reward choice summary is empty for invalid choices"), GameMode->GetRewardChoiceSummary(GameMode->GetRewardChoices().Num()).ToString().IsEmpty());
+	if (TestPlayerController)
+	{
+		TestTrue(TEXT("Player controller exposes chosen reward tags"), TestPlayerController->GetChosenRewardTags().HasTagExact(FortRogueGameplayTags::Trait_Damage));
+		TestTrue(TEXT("Player controller returns reward choices by index"), TestPlayerController->GetCurrentRewardChoice(0).RewardTag.IsValid());
+		TestFalse(TEXT("Player controller reward choice summary is available for valid choices"), TestPlayerController->GetCurrentRewardChoiceSummary(0).ToString().IsEmpty());
+		TestTrue(TEXT("Player controller reward choice failure summary is empty for valid choices"), TestPlayerController->GetCurrentRewardChoiceConditionFailureSummary(0).ToString().IsEmpty());
+	}
 	GameMode->BattleState = EFortRogueBattleState::Reward;
 	TestTrue(TEXT("Game mode reports valid reward choices selectable"), GameMode->CanApplyRewardChoice(0));
 	TestFalse(TEXT("Game mode rejects negative reward choice indexes"), GameMode->CanApplyRewardChoice(-1));
 	TestFalse(TEXT("Game mode rejects reward choice indexes past the end"), GameMode->CanApplyRewardChoice(GameMode->GetRewardChoices().Num()));
+	if (TestPlayerController)
+	{
+		TestTrue(TEXT("Player controller reports valid reward choices selectable"), TestPlayerController->CanChooseReward(0));
+		TestFalse(TEXT("Player controller rejects invalid reward choice indexes"), TestPlayerController->CanChooseReward(GameMode->GetRewardChoices().Num()));
+	}
 	const int32 StageBeforeRewardChoice = GameMode->GetCurrentStage();
 	const FGameplayTag AppliedRewardTag = GameMode->GetRewardChoice(0).RewardTag;
-	GameMode->ApplyRewardChoice(0);
+	if (TestPlayerController)
+	{
+		TestTrue(TEXT("Player controller chooses rewards by index"), TestPlayerController->ChooseRewardByIndex(0));
+	}
+	else
+	{
+		GameMode->ApplyRewardChoice(0);
+	}
 	TestTrue(TEXT("Game mode records applied reward tags"), AppliedRewardTag.IsValid() && GameMode->GetChosenRewardTags().HasTagExact(AppliedRewardTag));
 	TestEqual(TEXT("Game mode advances to the next stage after reward choice"), GameMode->GetCurrentStage(), StageBeforeRewardChoice + 1);
 	TestEqual(TEXT("Game mode clears reward choices after applying one"), GameMode->GetRewardChoiceCount(), 0);

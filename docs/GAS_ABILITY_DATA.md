@@ -144,6 +144,7 @@ UI나 디버그 화면에서 현재 런의 선택 보상 태그를 보여줄 때
 보상 조건 실패 이유를 인덱스 기준으로 표시해야 한다면 `AFortRogueGameMode::GetRewardChoiceConditionFailureSummary()`를 사용한다.
 UMG 보상 화면에서는 `UFortRogueRewardScreenWidget::GetRewardChoices()`, `GetRewardChoiceCount()`, `GetRewardChoice()`, `GetRewardChoiceSummary()`, `GetRewardChoiceConditionFailureSummary()`, `GetChosenRewardTags()`, `CanChooseReward()`를 사용한다.
 UMG 보상 버튼은 `UFortRogueRewardScreenWidget::ChooseReward()`에 선택 인덱스를 넘기면 GameMode의 보상 적용과 다음 스테이지 진행까지 처리한다.
+PlayerController 경유 UI에서는 `GetCurrentRewardChoices()`, `GetCurrentRewardChoiceCount()`, `GetCurrentRewardChoice()`, `GetCurrentRewardChoiceSummary()`, `GetCurrentRewardChoiceConditionFailureSummary()`, `GetChosenRewardTags()`, `CanChooseReward()`, `ChooseRewardByIndex()`를 사용한다.
 
 보상 화면은 `RewardChoice.GetEffectSummary()`를 통해 무기, 아이템, 퍽, ShotModifier, AbilitySet 효과를 자동 요약할 수 있다. UMG에서는 `UFortRogueRewardBlueprintLibrary::GetRewardEffectSummary()`를 사용한다.
 GameMode의 현재 보상 슬롯을 바로 표시해야 한다면 `AFortRogueGameMode::GetRewardChoiceSummary()`를 사용한다. 잘못된 인덱스는 빈 텍스트를 반환한다.
