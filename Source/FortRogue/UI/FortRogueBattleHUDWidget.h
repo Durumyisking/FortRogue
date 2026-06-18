@@ -111,6 +111,15 @@ public:
 	FText GetPlayerGrantedAbilitySetsSummary() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	int32 GetPlayerGrantedAbilitySetCount(UFortRogueAbilitySet* AbilitySet) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	int32 GetPlayerGrantedAbilitySetCountByTag(FGameplayTag AbilitySetTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	bool HasPlayerGrantedAbilitySetByTag(FGameplayTag AbilitySetTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	float GetPlayerAimAngle() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")

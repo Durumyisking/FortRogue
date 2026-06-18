@@ -280,6 +280,33 @@ FText UFortRogueBattleHUDWidget::GetPlayerGrantedAbilitySetsSummary() const
 	return FText::GetEmpty();
 }
 
+int32 UFortRogueBattleHUDWidget::GetPlayerGrantedAbilitySetCount(UFortRogueAbilitySet* AbilitySet) const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->GetGrantedAbilitySetCount(AbilitySet);
+	}
+	return 0;
+}
+
+int32 UFortRogueBattleHUDWidget::GetPlayerGrantedAbilitySetCountByTag(FGameplayTag AbilitySetTag) const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->GetGrantedAbilitySetCountByTag(AbilitySetTag);
+	}
+	return 0;
+}
+
+bool UFortRogueBattleHUDWidget::HasPlayerGrantedAbilitySetByTag(FGameplayTag AbilitySetTag) const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->HasGrantedAbilitySetByTag(AbilitySetTag);
+	}
+	return false;
+}
+
 float UFortRogueBattleHUDWidget::GetPlayerAimAngle() const
 {
 	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())

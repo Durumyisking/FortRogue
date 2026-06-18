@@ -188,7 +188,7 @@ AbilitySet 자체를 UI에 표시할 때는 `UFortRogueAbilitySet::GetEffectSumm
 태그 기반으로 관리하려면 `GetGrantedAbilitySetCountByTag()`, `HasGrantedAbilitySetByTag()`, `RemoveAbilitySetsByTag()`를 사용한다.
 현재 부여된 AbilitySet 목록과 요약을 표시하려면 `GetGrantedAbilitySetsForBlueprint()`, `GetGrantedAbilitySetsSummary()`를 사용한다.
 PlayerController 경유 UI에서는 `GrantPlayerAbilitySet()`, `RemovePlayerAbilitySet()`, `GetPlayerGrantedAbilitySetCount()`, `GetPlayerGrantedAbilitySetCountByTag()`, `HasPlayerGrantedAbilitySetByTag()`, `GetPlayerGrantedAbilitySets()`, `GetPlayerGrantedAbilitySetsSummary()`, `RemovePlayerAbilitySetsByTag()`를 사용한다.
-UMG 전투 HUD에서는 `UFortRogueBattleHUDWidget::GetPlayerGrantedAbilitySets()`, `GetPlayerGrantedAbilitySetsSummary()`로 현재 부여된 AbilitySet 목록과 요약을 읽을 수 있다.
+UMG 전투 HUD에서는 `UFortRogueBattleHUDWidget::GetPlayerGrantedAbilitySets()`, `GetPlayerGrantedAbilitySetsSummary()`, `GetPlayerGrantedAbilitySetCount()`, `GetPlayerGrantedAbilitySetCountByTag()`, `HasPlayerGrantedAbilitySetByTag()`로 현재 부여된 AbilitySet 목록과 태그 상태를 읽을 수 있다.
 
 UI나 블루프린트에서는 `AFortRoguePlayerController::UsePlayerItemByTag()`로 `ItemTag` 기반 아이템 사용을 연결할 수 있다.
 현재 표시 중인 아이템 배열을 그대로 버튼에 연결하려면 `AFortRoguePlayerController::UsePlayerItemByIndex()` 또는 `AFortRogueBattleCharacter::UseItemByIndex()`를 사용한다. 인덱스는 `ItemLoadout` 기준 0부터 시작한다.
