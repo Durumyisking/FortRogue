@@ -2,6 +2,7 @@
 
 #include "Rewards/FortRogueRewardTypes.h"
 
+#include "AbilitySystem/FortRogueAbilitySet.h"
 #include "Items/FortRogueItemDefinition.h"
 #include "Perks/FortRoguePerkDefinition.h"
 #include "Weapons/FortRogueWeaponDefinition.h"
@@ -14,6 +15,18 @@ void AddSummaryPart(TArray<FString>& Parts, const FString& Part)
 	{
 		Parts.Add(Part);
 	}
+}
+
+void AddAbilitySetSummary(TArray<FString>& Parts, const UFortRogueAbilitySet* AbilitySet)
+{
+	if (!AbilitySet)
+	{
+		return;
+	}
+
+	const FString DisplayName = AbilitySet->DisplayName.ToString();
+	const FString AbilitySetName = DisplayName.IsEmpty() ? AbilitySet->GetName() : DisplayName;
+	AddSummaryPart(Parts, FString::Printf(TEXT("ability set %s"), *AbilitySetName));
 }
 
 int32 CountImpactSpawnProjectiles(const TArray<FFortRogueImpactSpawnSpec>& ImpactSpawns)
@@ -146,11 +159,13 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("item %s"), *ItemReward->DisplayName.ToString()));
 		AddShotModifierSummary(Parts, ItemReward->UseShotModifiers);
+		AddAbilitySetSummary(Parts, ItemReward->UseAbilitySet);
 	}
 	if (PerkReward)
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("perk %s"), *PerkReward->DisplayName.ToString()));
 		AddShotModifierSummary(Parts, PerkReward->ShotModifiers);
+		AddAbilitySetSummary(Parts, PerkReward->GrantedAbilitySet);
 		if (PerkReward->DamageBonus > 0.0f)
 		{
 			AddSummaryPart(Parts, FString::Printf(TEXT("damage +%.0f"), PerkReward->DamageBonus));
@@ -174,7 +189,7 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 	}
 	if (GrantedAbilitySet)
 	{
-		AddSummaryPart(Parts, TEXT("grants AbilitySet"));
+		AddAbilitySetSummary(Parts, GrantedAbilitySet);
 	}
 	AddShotModifierSummary(Parts, ShotModifiers);
 

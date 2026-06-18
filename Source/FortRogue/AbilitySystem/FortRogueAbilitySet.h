@@ -80,6 +80,12 @@ public:
 
 	void GiveToAbilitySystem(UFortRogueAbilitySystemComponent* AbilitySystemComponent, FFortRogueAbilitySet_GrantedHandles* OutGrantedHandles, UObject* SourceObject = nullptr) const;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability Set")
+	FText DisplayName = FText::FromString(TEXT("Ability Set"));
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability Set", meta = (MultiLine = "true"))
+	FText Description;
+
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Abilities", meta = (TitleProperty = Ability))
 	TArray<FFortRogueAbilitySet_GameplayAbility> GrantedGameplayAbilities;

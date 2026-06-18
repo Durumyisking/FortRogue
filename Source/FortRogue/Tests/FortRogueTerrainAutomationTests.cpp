@@ -5,6 +5,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "AbilitySystem/Attributes/FortRogueCombatSet.h"
+#include "AbilitySystem/FortRogueAbilitySet.h"
 #include "Characters/FortRogueCharacterDefinition.h"
 #include "Combat/FortRogueBattleCharacter.h"
 #include "Combat/FortRogueDestructibleTerrain.h"
@@ -23,6 +24,8 @@
 #include "FortRogueGameMode.h"
 #include "Items/FortRogueItemDefinition.h"
 #include "Kismet/GameplayStatics.h"
+#include "Perks/FortRoguePerkDefinition.h"
+#include "Rewards/FortRogueRewardTypes.h"
 #include "Run/FortRogueDefaultLoadoutDefinition.h"
 #include "Run/FortRogueStageRunDefinition.h"
 #include "Weapons/FortRogueWeaponDefinition.h"
@@ -80,6 +83,26 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 		StageRun->StageDifficultyData[2].EnemyTurnDelaySeconds = 0.25f;
 		TestEqual(TEXT("Stage difficulty lookup uses one-based stage numbers"), StageRun->GetStageDifficulty(3).EnemyTurnDelaySeconds, 0.25f);
 	}
+
+	UFortRogueAbilitySet* NamedAbilitySet = NewObject<UFortRogueAbilitySet>();
+	NamedAbilitySet->DisplayName = FText::FromString(TEXT("Wind Split"));
+	FFortRogueRewardChoice AbilitySetReward;
+	AbilitySetReward.GrantedAbilitySet = NamedAbilitySet;
+	TestTrue(TEXT("Reward summary names directly granted ability set"), AbilitySetReward.GetEffectSummary().ToString().Contains(TEXT("ability set Wind Split")));
+
+	UFortRogueItemDefinition* AbilityItem = NewObject<UFortRogueItemDefinition>();
+	AbilityItem->DisplayName = FText::FromString(TEXT("Storm Capsule"));
+	AbilityItem->UseAbilitySet = NamedAbilitySet;
+	FFortRogueRewardChoice ItemAbilityReward;
+	ItemAbilityReward.ItemReward = AbilityItem;
+	TestTrue(TEXT("Reward summary names item ability set"), ItemAbilityReward.GetEffectSummary().ToString().Contains(TEXT("ability set Wind Split")));
+
+	UFortRoguePerkDefinition* AbilityPerk = NewObject<UFortRoguePerkDefinition>();
+	AbilityPerk->DisplayName = FText::FromString(TEXT("Storm Training"));
+	AbilityPerk->GrantedAbilitySet = NamedAbilitySet;
+	FFortRogueRewardChoice PerkAbilityReward;
+	PerkAbilityReward.PerkReward = AbilityPerk;
+	TestTrue(TEXT("Reward summary names perk ability set"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("ability set Wind Split")));
 
 	UFortRogueTerrainMapDefinition* CorruptMap = NewObject<UFortRogueTerrainMapDefinition>();
 	TestNotNull(TEXT("Corrupt map asset object is created"), CorruptMap);
