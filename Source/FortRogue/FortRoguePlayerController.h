@@ -32,6 +32,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Items")
 	void UsePlayerItemByIndex(int32 ItemIndex);
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
+	bool CanUsePlayerItemByType(EFortRogueItemType ItemType) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
+	bool CanUsePlayerItemByTag(FGameplayTag ItemTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
+	bool CanUsePlayerItemByIndex(int32 ItemIndex) const;
+
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Weapons")
 	bool SelectPlayerWeaponByTag(FGameplayTag WeaponTag);
 

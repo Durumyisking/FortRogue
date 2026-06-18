@@ -460,6 +460,36 @@ void AFortRoguePlayerController::UsePlayerItemByIndex(int32 ItemIndex)
 	}
 }
 
+bool AFortRoguePlayerController::CanUsePlayerItemByType(EFortRogueItemType ItemType) const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetBattleState() == EFortRogueBattleState::PlayerTurn && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->CanUseItemByType(ItemType);
+	}
+	return false;
+}
+
+bool AFortRoguePlayerController::CanUsePlayerItemByTag(FGameplayTag ItemTag) const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetBattleState() == EFortRogueBattleState::PlayerTurn && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->CanUseItemByTag(ItemTag);
+	}
+	return false;
+}
+
+bool AFortRoguePlayerController::CanUsePlayerItemByIndex(int32 ItemIndex) const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetBattleState() == EFortRogueBattleState::PlayerTurn && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->CanUseItemByIndex(ItemIndex);
+	}
+	return false;
+}
+
 bool AFortRoguePlayerController::SelectPlayerWeaponByTag(FGameplayTag WeaponTag)
 {
 	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
