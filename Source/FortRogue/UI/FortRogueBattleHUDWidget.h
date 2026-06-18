@@ -69,6 +69,18 @@ public:
 	TArray<FFortRogueItemStack> GetPlayerItemLoadout() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	bool CanUsePlayerItemByType(EFortRogueItemType ItemType) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	bool CanUsePlayerItemByTag(FGameplayTag ItemTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	bool CanUsePlayerItemByIndex(int32 ItemIndex) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	int32 GetPlayerItemIndexByTag(FGameplayTag ItemTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	TArray<FFortRogueShotModifierSpec> GetPlayerGrantedShotModifiers() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")

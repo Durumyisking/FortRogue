@@ -154,6 +154,42 @@ TArray<FFortRogueItemStack> UFortRogueBattleHUDWidget::GetPlayerItemLoadout() co
 	return TArray<FFortRogueItemStack>();
 }
 
+bool UFortRogueBattleHUDWidget::CanUsePlayerItemByType(EFortRogueItemType ItemType) const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->CanUseItemByType(ItemType);
+	}
+	return false;
+}
+
+bool UFortRogueBattleHUDWidget::CanUsePlayerItemByTag(FGameplayTag ItemTag) const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->CanUseItemByTag(ItemTag);
+	}
+	return false;
+}
+
+bool UFortRogueBattleHUDWidget::CanUsePlayerItemByIndex(int32 ItemIndex) const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->CanUseItemByIndex(ItemIndex);
+	}
+	return false;
+}
+
+int32 UFortRogueBattleHUDWidget::GetPlayerItemIndexByTag(FGameplayTag ItemTag) const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->GetItemIndexByTag(ItemTag);
+	}
+	return INDEX_NONE;
+}
+
 TArray<FFortRogueShotModifierSpec> UFortRogueBattleHUDWidget::GetPlayerGrantedShotModifiers() const
 {
 	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())

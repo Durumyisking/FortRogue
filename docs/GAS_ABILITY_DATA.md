@@ -192,8 +192,8 @@ UMG 전투 HUD에서는 `UFortRogueBattleHUDWidget::GetPlayerGrantedAbilitySets(
 
 UI나 블루프린트에서는 `AFortRoguePlayerController::UsePlayerItemByTag()`로 `ItemTag` 기반 아이템 사용을 연결할 수 있다.
 현재 표시 중인 아이템 배열을 그대로 버튼에 연결하려면 `AFortRoguePlayerController::UsePlayerItemByIndex()` 또는 `AFortRogueBattleCharacter::UseItemByIndex()`를 사용한다. 인덱스는 `ItemLoadout` 기준 0부터 시작한다.
-아이템 버튼을 누르기 전에 활성화 가능 여부를 확인하려면 `CanUseItemByType()`, `CanUseItemByTag()`, `CanUseItemByIndex()`를 사용한다. PlayerController 경유 UI에서는 `CanUsePlayerItemByType()`, `CanUsePlayerItemByTag()`, `CanUsePlayerItemByIndex()`를 사용한다.
-태그 기반 아이템 버튼이 실제 어느 슬롯에 있는지 확인하려면 `GetItemIndexByTag()` 또는 `GetPlayerItemIndexByTag()`를 사용한다.
+아이템 버튼을 누르기 전에 활성화 가능 여부를 확인하려면 `CanUseItemByType()`, `CanUseItemByTag()`, `CanUseItemByIndex()`를 사용한다. PlayerController 경유 UI에서는 `CanUsePlayerItemByType()`, `CanUsePlayerItemByTag()`, `CanUsePlayerItemByIndex()`를 사용한다. UMG 전투 HUD에서도 같은 이름의 `CanUsePlayerItemByType()`, `CanUsePlayerItemByTag()`, `CanUsePlayerItemByIndex()`를 사용할 수 있다.
+태그 기반 아이템 버튼이 실제 어느 슬롯에 있는지 확인하려면 `GetItemIndexByTag()` 또는 `GetPlayerItemIndexByTag()`를 사용한다. UMG 전투 HUD에서도 `GetPlayerItemIndexByTag()`를 사용할 수 있다.
 아이템 목록 UI는 `AFortRogueBattleCharacter::GetItemLoadoutForBlueprint()`로 현재 아이템과 수량을 읽을 수 있다.
 UMG 전투 HUD에서는 `UFortRogueBattleHUDWidget::GetPlayerItemLoadout()`으로 현재 아이템 배열과 수량을 읽을 수 있다.
 PlayerController 경유 UI에서는 `GetPlayerItemLoadout()`으로 현재 아이템 배열과 수량을 읽을 수 있다.
