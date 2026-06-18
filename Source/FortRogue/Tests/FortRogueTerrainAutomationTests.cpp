@@ -109,6 +109,14 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	ItemAbilityReward.ItemReward = AbilityItem;
 	TestTrue(TEXT("Reward summary names item ability set"), ItemAbilityReward.GetEffectSummary().ToString().Contains(TEXT("ability set Wind Split")));
 	TestTrue(TEXT("Blueprint helper summarizes item assets"), UFortRogueRewardBlueprintLibrary::GetItemEffectSummary(AbilityItem).ToString().Contains(TEXT("ability set Wind Split")));
+	UFortRogueItemDefinition* HealSummaryItem = NewObject<UFortRogueItemDefinition>();
+	HealSummaryItem->ItemType = EFortRogueItemType::Heal;
+	HealSummaryItem->HealAmount = 42.0f;
+	TestTrue(TEXT("Reward summary names heal item amount"), UFortRogueRewardBlueprintLibrary::GetItemEffectSummary(HealSummaryItem).ToString().Contains(TEXT("heal +42")));
+	UFortRogueItemDefinition* AttackSummaryItem = NewObject<UFortRogueItemDefinition>();
+	AttackSummaryItem->ItemType = EFortRogueItemType::AttackMultiplier;
+	AttackSummaryItem->AttackMultiplier = 2.0f;
+	TestTrue(TEXT("Reward summary names attack multiplier item amount"), UFortRogueRewardBlueprintLibrary::GetItemEffectSummary(AttackSummaryItem).ToString().Contains(TEXT("next shot attack x2")));
 
 	UFortRoguePerkDefinition* AbilityPerk = NewObject<UFortRoguePerkDefinition>();
 	AbilityPerk->DisplayName = FText::FromString(TEXT("Storm Training"));

@@ -158,6 +158,14 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 	if (ItemReward)
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("item %s"), *ItemReward->DisplayName.ToString()));
+		if (ItemReward->ItemType == EFortRogueItemType::Heal && ItemReward->HealAmount > 0.0f)
+		{
+			AddSummaryPart(Parts, FString::Printf(TEXT("heal +%.0f"), ItemReward->HealAmount));
+		}
+		if (ItemReward->ItemType == EFortRogueItemType::AttackMultiplier && !FMath::IsNearlyEqual(ItemReward->AttackMultiplier, 1.0f))
+		{
+			AddSummaryPart(Parts, FString::Printf(TEXT("next shot attack x%.2g"), ItemReward->AttackMultiplier));
+		}
 		AddShotModifierSummary(Parts, ItemReward->UseShotModifiers);
 		AddAbilitySetSummary(Parts, ItemReward->UseAbilitySet);
 	}
