@@ -88,7 +88,9 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 
 	UFortRogueAbilitySet* NamedAbilitySet = NewObject<UFortRogueAbilitySet>();
 	NamedAbilitySet->DisplayName = FText::FromString(TEXT("Wind Split"));
+	NamedAbilitySet->Description = FText::FromString(TEXT("Adds wind-aware split behavior."));
 	TestTrue(TEXT("Ability set summary includes display name"), NamedAbilitySet->GetEffectSummary().ToString().Contains(TEXT("Wind Split")));
+	TestTrue(TEXT("Ability set summary includes descriptions"), NamedAbilitySet->GetEffectSummary().ToString().Contains(TEXT("Adds wind-aware split behavior.")));
 	TestTrue(TEXT("Blueprint helper summarizes ability set assets"), UFortRogueRewardBlueprintLibrary::GetAbilitySetEffectSummary(NamedAbilitySet).ToString().Contains(TEXT("Wind Split")));
 	FFortRogueShotModifierSpec SummaryModifier;
 	SummaryModifier.DisplayName = FText::FromString(TEXT("Split Boost"));

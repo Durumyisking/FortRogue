@@ -82,6 +82,11 @@ FText UFortRogueAbilitySet::GetEffectSummary() const
 	const FString DisplayNameString = DisplayName.ToString();
 	const FString AbilitySetName = DisplayNameString.IsEmpty() ? GetName() : DisplayNameString;
 	AddSummaryPart(Parts, AbilitySetName);
+	const FString DescriptionString = Description.ToString();
+	if (!DescriptionString.IsEmpty())
+	{
+		AddSummaryPart(Parts, DescriptionString);
+	}
 	if (AbilitySetTag.IsValid())
 	{
 		AddSummaryPart(Parts, AbilitySetTag.ToString());
