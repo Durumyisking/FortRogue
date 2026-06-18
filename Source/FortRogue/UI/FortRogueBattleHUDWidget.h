@@ -2,7 +2,9 @@
 
 #pragma once
 
+#include "Items/FortRogueItemDefinition.h"
 #include "UI/FortRogueActivatableWidget.h"
+#include "Weapons/FortRogueWeaponDefinition.h"
 #include "FortRogueBattleHUDWidget.generated.h"
 
 UCLASS(Abstract, Blueprintable)
@@ -31,6 +33,18 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	FText GetPlayerShotSummary() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	TArray<FFortRogueWeaponSpec> GetPlayerWeaponLoadout() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	FFortRogueWeaponSpec GetPlayerCurrentWeaponSpec() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	int32 GetPlayerSelectedWeaponIndex() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	TArray<FFortRogueItemStack> GetPlayerItemLoadout() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	float GetPlayerAimAngle() const;

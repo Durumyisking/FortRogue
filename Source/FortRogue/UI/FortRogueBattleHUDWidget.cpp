@@ -64,6 +64,42 @@ FText UFortRogueBattleHUDWidget::GetPlayerShotSummary() const
 	return FText::GetEmpty();
 }
 
+TArray<FFortRogueWeaponSpec> UFortRogueBattleHUDWidget::GetPlayerWeaponLoadout() const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->GetWeaponLoadoutForBlueprint();
+	}
+	return TArray<FFortRogueWeaponSpec>();
+}
+
+FFortRogueWeaponSpec UFortRogueBattleHUDWidget::GetPlayerCurrentWeaponSpec() const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->GetCurrentWeaponSpec();
+	}
+	return FFortRogueWeaponSpec();
+}
+
+int32 UFortRogueBattleHUDWidget::GetPlayerSelectedWeaponIndex() const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->GetSelectedWeaponIndex();
+	}
+	return INDEX_NONE;
+}
+
+TArray<FFortRogueItemStack> UFortRogueBattleHUDWidget::GetPlayerItemLoadout() const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->GetItemLoadoutForBlueprint();
+	}
+	return TArray<FFortRogueItemStack>();
+}
+
 float UFortRogueBattleHUDWidget::GetPlayerAimAngle() const
 {
 	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
