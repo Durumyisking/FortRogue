@@ -87,6 +87,9 @@ public:
 	FText GetRewardChoiceSummary(int32 ChoiceIndex) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	FText GetRewardChoiceConditionFailureSummary(int32 ChoiceIndex) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
 	FGameplayTagContainer GetChosenRewardTags() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")

@@ -45,6 +45,15 @@ FText UFortRogueRewardScreenWidget::GetRewardChoiceSummary(int32 ChoiceIndex) co
 	return FText::GetEmpty();
 }
 
+FText UFortRogueRewardScreenWidget::GetRewardChoiceConditionFailureSummary(int32 ChoiceIndex) const
+{
+	if (AFortRogueGameMode* GameMode = GetFortRogueGameMode())
+	{
+		return GameMode->GetRewardChoiceConditionFailureSummary(ChoiceIndex);
+	}
+	return FText::GetEmpty();
+}
+
 FGameplayTagContainer UFortRogueRewardScreenWidget::GetChosenRewardTags() const
 {
 	if (AFortRogueGameMode* GameMode = GetFortRogueGameMode())

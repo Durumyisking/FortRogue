@@ -187,6 +187,11 @@ FText AFortRogueGameMode::GetRewardChoiceSummary(int32 ChoiceIndex) const
 	return RewardChoices.IsValidIndex(ChoiceIndex) ? GetRewardChoice(ChoiceIndex).GetEffectSummary() : FText::GetEmpty();
 }
 
+FText AFortRogueGameMode::GetRewardChoiceConditionFailureSummary(int32 ChoiceIndex) const
+{
+	return RewardChoices.IsValidIndex(ChoiceIndex) ? GetRewardChoice(ChoiceIndex).GetRewardTagConditionFailureSummary(GetChosenRewardTags()) : FText::GetEmpty();
+}
+
 FGameplayTagContainer AFortRogueGameMode::GetChosenRewardTags() const
 {
 	FGameplayTagContainer ChosenRewardTagContainer;
