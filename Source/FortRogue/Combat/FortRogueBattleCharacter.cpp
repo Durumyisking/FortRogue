@@ -675,6 +675,11 @@ FFortRogueWeaponSpec AFortRogueBattleCharacter::GetCurrentWeaponSpec() const
 	return GetCurrentWeapon();
 }
 
+FFortRogueShotSpec AFortRogueBattleCharacter::GetCurrentShotSpec() const
+{
+	return BuildShotSpec(GetCurrentWeapon());
+}
+
 const TArray<FFortRogueWeaponSpec>& AFortRogueBattleCharacter::GetWeaponLoadout() const
 {
 	return WeaponLoadout;

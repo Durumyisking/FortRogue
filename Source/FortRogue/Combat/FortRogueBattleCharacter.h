@@ -168,6 +168,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
 	FFortRogueWeaponSpec GetCurrentWeaponSpec() const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	FFortRogueShotSpec GetCurrentShotSpec() const;
+
 	const TArray<FFortRogueWeaponSpec>& GetWeaponLoadout() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
