@@ -262,25 +262,25 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 	}
 	AddShotModifierSummary(Parts, ShotModifiers);
 
-	if (DamageBonus > 0.0f)
+	if (!FMath::IsNearlyZero(DamageBonus))
 	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("damage +%.0f"), DamageBonus));
+		AddSummaryPart(Parts, FString::Printf(TEXT("damage %+.0f"), DamageBonus));
 	}
-	if (MaxHealthBonus > 0.0f)
+	if (!FMath::IsNearlyZero(MaxHealthBonus))
 	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("max HP +%.0f"), MaxHealthBonus));
+		AddSummaryPart(Parts, FString::Printf(TEXT("max HP %+.0f"), MaxHealthBonus));
 	}
-	if (MaxMoveBudgetBonus > 0.0f)
+	if (!FMath::IsNearlyZero(MaxMoveBudgetBonus))
 	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("move +%.0f"), MaxMoveBudgetBonus));
+		AddSummaryPart(Parts, FString::Printf(TEXT("move %+.0f"), MaxMoveBudgetBonus));
 	}
-	if (ProjectileBonus > 0)
+	if (ProjectileBonus != 0)
 	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("projectiles +%d"), ProjectileBonus));
+		AddSummaryPart(Parts, FString::Printf(TEXT("projectiles %+d"), ProjectileBonus));
 	}
-	if (ShotPowerMultiplierBonus > 0.0f)
+	if (!FMath::IsNearlyZero(ShotPowerMultiplierBonus))
 	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("shot power +%.2g"), ShotPowerMultiplierBonus));
+		AddSummaryPart(Parts, FString::Printf(TEXT("shot power %+.2g"), ShotPowerMultiplierBonus));
 	}
 	if (RepairCharges > 0)
 	{
