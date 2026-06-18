@@ -1015,6 +1015,12 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		TestEqual(TEXT("Battle character getter exposes base projectile count"), StatCharacter->GetProjectileCount(), 1.0f);
 		StatCharacter->ApplyRewardProjectiles(2);
 		TestEqual(TEXT("Battle character getter exposes projectile count rewards"), StatCharacter->GetProjectileCount(), 3.0f);
+		const FString CombatStatsSummary = StatCharacter->GetCombatStatsSummary().ToString();
+		TestTrue(TEXT("Battle character stats summary includes health"), CombatStatsSummary.Contains(TEXT("HP 175/175")));
+		TestTrue(TEXT("Battle character stats summary includes move budget"), CombatStatsSummary.Contains(TEXT("move 25/25")));
+		TestTrue(TEXT("Battle character stats summary includes damage bonus"), CombatStatsSummary.Contains(TEXT("damage +12")));
+		TestTrue(TEXT("Battle character stats summary includes shot power multiplier"), CombatStatsSummary.Contains(TEXT("shot power x1.8")));
+		TestTrue(TEXT("Battle character stats summary includes projectile count"), CombatStatsSummary.Contains(TEXT("projectiles 3")));
 		UFortRogueAbilitySet* EmptyAbilitySet = NewObject<UFortRogueAbilitySet>(StatCharacter);
 		TestEqual(TEXT("Battle character ability set count starts empty"), StatCharacter->GetGrantedAbilitySetCount(EmptyAbilitySet), 0);
 		StatCharacter->GrantAbilitySet(EmptyAbilitySet);

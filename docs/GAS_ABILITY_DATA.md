@@ -110,7 +110,7 @@ modifier 적용 순서:
 보상 카드에서 바로 탄 방식을 바꾸려면 `FFortRogueRewardChoice::ShotModifiers`를 사용한다.
 
 직접 스탯 보상은 `DamageBonus`, `MaxHealthBonus`, `MaxMoveBudgetBonus`, `ProjectileBonus`, `ShotPowerMultiplierBonus`를 사용한다.
-현재 누적된 전투 스탯은 캐릭터 Blueprint getter인 `GetDamageBonus()`, `GetMaxMoveBudget()`, `GetShotPowerMultiplier()`, `GetProjectileCount()`로 UI나 디버그 화면에서 확인할 수 있다.
+현재 누적된 전투 스탯은 캐릭터 Blueprint getter인 `GetDamageBonus()`, `GetMaxMoveBudget()`, `GetShotPowerMultiplier()`, `GetProjectileCount()`로 UI나 디버그 화면에서 확인할 수 있다. 한 줄 요약이 필요하면 `GetCombatStatsSummary()`를 사용한다.
 
 `WeaponReward`로 추가된 무기는 전투 중 1-5번 슬롯으로 선택할 수 있다.
 무기 목록 UI가 슬롯 번호 대신 데이터 태그를 기준으로 선택해야 한다면 `AFortRogueBattleCharacter::SelectWeaponByTag()` 또는 `AFortRoguePlayerController::SelectPlayerWeaponByTag()`를 사용한다.

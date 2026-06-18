@@ -214,6 +214,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
 	float GetProjectileCount() const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
+	FText GetCombatStatsSummary() const;
+
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
 	float GetAimAngle() const;
 

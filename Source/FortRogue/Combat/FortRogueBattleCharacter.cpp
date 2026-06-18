@@ -888,6 +888,19 @@ float AFortRogueBattleCharacter::GetProjectileCount() const
 	return CombatSet->GetProjectileCount();
 }
 
+FText AFortRogueBattleCharacter::GetCombatStatsSummary() const
+{
+	return FText::FromString(FString::Printf(
+		TEXT("HP %.0f/%.0f | move %.0f/%.0f | damage +%.0f | shot power x%.2g | projectiles %.0f"),
+		GetHealth(),
+		GetMaxHealth(),
+		GetMoveBudget(),
+		GetMaxMoveBudget(),
+		GetDamageBonus(),
+		GetShotPowerMultiplier(),
+		GetProjectileCount()));
+}
+
 float AFortRogueBattleCharacter::GetAimAngle() const
 {
 	return AimAngle;
