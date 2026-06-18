@@ -134,6 +134,18 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("perk %s"), *PerkReward->DisplayName.ToString()));
 		AddShotModifierSummary(Parts, PerkReward->ShotModifiers);
+		if (PerkReward->DamageBonus > 0.0f)
+		{
+			AddSummaryPart(Parts, FString::Printf(TEXT("damage +%.0f"), PerkReward->DamageBonus));
+		}
+		if (PerkReward->MaxHealthBonus > 0.0f)
+		{
+			AddSummaryPart(Parts, FString::Printf(TEXT("max HP +%.0f"), PerkReward->MaxHealthBonus));
+		}
+		if (PerkReward->ProjectileBonus > 0)
+		{
+			AddSummaryPart(Parts, FString::Printf(TEXT("projectiles +%d"), PerkReward->ProjectileBonus));
+		}
 	}
 	if (GrantedAbilitySet)
 	{
