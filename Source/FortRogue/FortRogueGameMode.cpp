@@ -51,6 +51,7 @@ void AFortRogueGameMode::BeginPlay()
 		StageRunDefinition->NormalizeStageData();
 	}
 	EncounteredEnemyDefinitions.Reset();
+	ChosenRewardTags.Reset();
 	SelectNextEnemyDefinition();
 	SpawnMVPBattle();
 	StartPlayerTurn();
@@ -123,6 +124,10 @@ void AFortRogueGameMode::ApplyRewardChoice(int32 ChoiceIndex)
 
 	const FFortRogueRewardChoice Reward = RewardChoices[ChoiceIndex];
 	ApplyRewardToPlayer(Reward);
+	if (Reward.bOfferOncePerRun && Reward.RewardTag.IsValid())
+	{
+		ChosenRewardTags.AddUnique(Reward.RewardTag);
+	}
 
 	SetStatus(FString::Printf(TEXT("Reward chosen: %s"), *Reward.DisplayName.ToString()));
 	RewardChoices.Reset();
@@ -530,7 +535,21 @@ void AFortRogueGameMode::BuildRewardChoices()
 		return;
 	}
 
-	TArray<FFortRogueRewardChoice> CandidateRewards = StageRunDefinition->RewardPool;
+	TArray<FFortRogueRewardChoice> CandidateRewards;
+	for (const FFortRogueRewardChoice& Reward : StageRunDefinition->RewardPool)
+	{
+		if (Reward.bOfferOncePerRun && Reward.RewardTag.IsValid() && ChosenRewardTags.Contains(Reward.RewardTag))
+		{
+			continue;
+		}
+
+		CandidateRewards.Add(Reward);
+	}
+	if (CandidateRewards.Num() <= 0)
+	{
+		CandidateRewards = StageRunDefinition->RewardPool;
+	}
+
 	const int32 ChoiceCount = FMath::Clamp(StageRunDefinition->RewardChoiceCount, 1, CandidateRewards.Num());
 	for (int32 ChoiceIndex = 0; ChoiceIndex < ChoiceCount; ++ChoiceIndex)
 	{

@@ -131,6 +131,9 @@ private:
 	UPROPERTY()
 	TArray<TObjectPtr<UFortRogueCharacterDefinition>> EncounteredEnemyDefinitions;
 
+	UPROPERTY()
+	TArray<FGameplayTag> ChosenRewardTags;
+
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup")
 	TSubclassOf<AFortRogueBattleCharacter> PlayerCharacterClass;
 

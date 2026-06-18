@@ -41,6 +41,9 @@ struct FFortRogueRewardChoice
 	float RewardWeight = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
+	bool bOfferOncePerRun = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
 	TObjectPtr<UFortRogueWeaponDefinition> WeaponReward;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
