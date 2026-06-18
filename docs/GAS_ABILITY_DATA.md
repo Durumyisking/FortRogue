@@ -25,7 +25,7 @@
 HUD는 `GetCurrentShotSpec()` 또는 `GetCurrentShotSummary()`를 통해 modifier가 적용된 최종 값과 충돌 후 생성될 자식 탄 수를 표시한다.
 UMG 전투 HUD에서는 `UFortRogueBattleHUDWidget::GetPlayerShotSummary()`와 `GetPlayerCombatStatsSummary()`로 같은 정보를 바로 읽을 수 있다.
 PlayerController 경유 UI에서는 `GetPlayerCurrentShotSpec()`과 `GetPlayerCurrentShotSummary()`로 현재 선택 무기에 modifier가 반영된 최종 샷을 읽을 수 있다.
-조준 HUD는 PlayerController의 `GetPlayerAimAngle()`, `GetPlayerShotPower()`, `GetPlayerShotChargeAlpha()`, `IsPlayerChargingShot()`로 현재 조준과 차지 상태를 읽을 수 있다.
+조준 HUD는 `UFortRogueBattleHUDWidget::GetPlayerAimAngle()`, `GetPlayerShotPower()`, `GetPlayerShotChargeAlpha()`, `IsPlayerChargingShot()`로 현재 조준과 차지 상태를 읽을 수 있다. PlayerController 경유 UI에서는 같은 목적의 `GetPlayerAimAngle()`, `GetPlayerShotPower()`, `GetPlayerShotChargeAlpha()`, `IsPlayerChargingShot()`를 사용한다.
 현재 샷 기준으로 후보 modifier가 적용 가능한지 보려면 `DoesShotModifierMeetCurrentShotConditions()` 또는 PlayerController의 `DoesPlayerShotModifierMeetCurrentShotConditions()`를 사용한다. 실패 이유는 `GetShotModifierCurrentConditionFailureSummary()` 또는 `GetPlayerShotModifierCurrentConditionFailureSummary()`로 표시한다.
 발사 버튼 활성화 여부는 캐릭터의 `CanFireSelectedWeapon()` 또는 PlayerController의 `CanFirePlayerWeapon()`으로 확인한다. 차지 시작 가능 여부만 별도로 봐야 하면 `CanBeginShotCharge()`를 사용한다.
 바람 UI는 `AFortRogueGameMode::GetWindSummary()`로 현재 바람을 부호 포함 한 줄로 표시할 수 있다. UMG 전투 HUD에서는 `UFortRogueBattleHUDWidget::GetWindSummary()`를 사용할 수 있다.

@@ -64,6 +64,42 @@ FText UFortRogueBattleHUDWidget::GetPlayerShotSummary() const
 	return FText::GetEmpty();
 }
 
+float UFortRogueBattleHUDWidget::GetPlayerAimAngle() const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->GetAimAngle();
+	}
+	return 0.0f;
+}
+
+float UFortRogueBattleHUDWidget::GetPlayerShotPower() const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->GetShotPower();
+	}
+	return 0.0f;
+}
+
+float UFortRogueBattleHUDWidget::GetPlayerShotChargeAlpha() const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->GetShotChargeAlpha();
+	}
+	return 0.0f;
+}
+
+bool UFortRogueBattleHUDWidget::IsPlayerChargingShot() const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->IsChargingShot();
+	}
+	return false;
+}
+
 bool UFortRogueBattleHUDWidget::CanFirePlayerWeapon() const
 {
 	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())

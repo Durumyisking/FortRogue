@@ -33,6 +33,18 @@ public:
 	FText GetPlayerShotSummary() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	float GetPlayerAimAngle() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	float GetPlayerShotPower() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	float GetPlayerShotChargeAlpha() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	bool IsPlayerChargingShot() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	bool CanFirePlayerWeapon() const;
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "FortRogue|UI")
