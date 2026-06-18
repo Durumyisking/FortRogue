@@ -174,6 +174,11 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 	if (ItemReward)
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("item %s"), *ItemReward->DisplayName.ToString()));
+		const FString ItemDescription = ItemReward->Description.ToString();
+		if (!ItemDescription.IsEmpty())
+		{
+			AddSummaryPart(Parts, ItemDescription);
+		}
 		if (ItemReward->ItemTag.IsValid())
 		{
 			AddSummaryPart(Parts, FString::Printf(TEXT("tag %s"), *ItemReward->ItemTag.ToString()));

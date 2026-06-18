@@ -26,6 +26,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	FText DisplayName = FText::FromString(TEXT("Item"));
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item", meta = (MultiLine = "true"))
+	FText Description;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	FGameplayTag ItemTag;
 
