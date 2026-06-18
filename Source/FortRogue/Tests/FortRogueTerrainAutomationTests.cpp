@@ -981,6 +981,13 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		TestEqual(TEXT("Battle character ability set count tracks repeated grants"), StatCharacter->GetGrantedAbilitySetCount(EmptyAbilitySet), 2);
 		TestTrue(TEXT("Battle character removes one granted ability set entry"), StatCharacter->RemoveAbilitySet(EmptyAbilitySet));
 		TestEqual(TEXT("Battle character ability set count updates after removal"), StatCharacter->GetGrantedAbilitySetCount(EmptyAbilitySet), 1);
+		UFortRogueAbilitySet* TaggedAbilitySet = NewObject<UFortRogueAbilitySet>(StatCharacter);
+		TaggedAbilitySet->AbilitySetTag = FortRogueGameplayTags::Trait_ShotModifier;
+		StatCharacter->GrantAbilitySet(TaggedAbilitySet);
+		StatCharacter->GrantAbilitySet(TaggedAbilitySet);
+		TestEqual(TEXT("Battle character ability set tag count tracks repeated grants"), StatCharacter->GetGrantedAbilitySetCountByTag(FortRogueGameplayTags::Trait_ShotModifier), 2);
+		TestEqual(TEXT("Battle character removes granted ability sets by tag"), StatCharacter->RemoveAbilitySetsByTag(FortRogueGameplayTags::Trait_ShotModifier), 2);
+		TestEqual(TEXT("Battle character ability set tag count updates after removal"), StatCharacter->GetGrantedAbilitySetCountByTag(FortRogueGameplayTags::Trait_ShotModifier), 0);
 		UFortRogueWeaponDefinition* ShellWeapon = CreateTestWeaponDefinition(StatCharacter);
 		ShellWeapon->Weapon.WeaponTag = FortRogueGameplayTags::Weapon_Shell;
 		UFortRogueWeaponDefinition* ClusterWeapon = CreateTestWeaponDefinition(StatCharacter);

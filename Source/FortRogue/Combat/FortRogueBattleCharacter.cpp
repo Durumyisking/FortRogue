@@ -27,6 +27,11 @@ bool DoesShotModifierMatchTag(const FFortRogueShotModifierSpec& Modifier, FGamep
 	return (Modifier.ModifierTag.IsValid() && Modifier.ModifierTag.MatchesTagExact(ModifierTag))
 		|| Modifier.EffectTags.HasTagExact(ModifierTag);
 }
+
+bool DoesAbilitySetMatchTag(const UFortRogueAbilitySet* AbilitySet, FGameplayTag AbilitySetTag)
+{
+	return AbilitySet && AbilitySetTag.IsValid() && AbilitySet->AbilitySetTag.MatchesTagExact(AbilitySetTag);
+}
 }
 
 AFortRogueBattleCharacter::AFortRogueBattleCharacter()
@@ -586,6 +591,29 @@ bool AFortRogueBattleCharacter::RemoveAbilitySet(UFortRogueAbilitySet* AbilitySe
 	return false;
 }
 
+int32 AFortRogueBattleCharacter::RemoveAbilitySetsByTag(FGameplayTag AbilitySetTag)
+{
+	if (!AbilitySetTag.IsValid() || !AbilitySystemComponent)
+	{
+		return 0;
+	}
+
+	int32 RemovedCount = 0;
+	for (int32 Index = GrantedAbilitySetEntries.Num() - 1; Index >= 0; --Index)
+	{
+		FFortRogueGrantedAbilitySetEntry& Entry = GrantedAbilitySetEntries[Index];
+		if (!DoesAbilitySetMatchTag(Entry.AbilitySet, AbilitySetTag))
+		{
+			continue;
+		}
+
+		Entry.Handles.TakeFromAbilitySystem(AbilitySystemComponent);
+		GrantedAbilitySetEntries.RemoveAt(Index);
+		++RemovedCount;
+	}
+	return RemovedCount;
+}
+
 int32 AFortRogueBattleCharacter::GetGrantedAbilitySetCount(UFortRogueAbilitySet* AbilitySet) const
 {
 	if (!AbilitySet)
@@ -597,6 +625,24 @@ int32 AFortRogueBattleCharacter::GetGrantedAbilitySetCount(UFortRogueAbilitySet*
 	for (const FFortRogueGrantedAbilitySetEntry& Entry : GrantedAbilitySetEntries)
 	{
 		if (Entry.AbilitySet == AbilitySet)
+		{
+			++GrantedCount;
+		}
+	}
+	return GrantedCount;
+}
+
+int32 AFortRogueBattleCharacter::GetGrantedAbilitySetCountByTag(FGameplayTag AbilitySetTag) const
+{
+	if (!AbilitySetTag.IsValid())
+	{
+		return 0;
+	}
+
+	int32 GrantedCount = 0;
+	for (const FFortRogueGrantedAbilitySetEntry& Entry : GrantedAbilitySetEntries)
+	{
+		if (DoesAbilitySetMatchTag(Entry.AbilitySet, AbilitySetTag))
 		{
 			++GrantedCount;
 		}

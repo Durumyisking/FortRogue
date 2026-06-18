@@ -82,6 +82,10 @@ FText UFortRogueAbilitySet::GetEffectSummary() const
 	const FString DisplayNameString = DisplayName.ToString();
 	const FString AbilitySetName = DisplayNameString.IsEmpty() ? GetName() : DisplayNameString;
 	AddSummaryPart(Parts, AbilitySetName);
+	if (AbilitySetTag.IsValid())
+	{
+		AddSummaryPart(Parts, AbilitySetTag.ToString());
+	}
 
 	int32 AbilityCount = 0;
 	for (const FFortRogueAbilitySet_GameplayAbility& AbilityToGrant : GrantedGameplayAbilities)

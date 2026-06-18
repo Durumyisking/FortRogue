@@ -89,6 +89,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability Set", meta = (MultiLine = "true"))
 	FText Description;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability Set")
+	FGameplayTag AbilitySetTag;
+
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay Abilities", meta = (TitleProperty = Ability))
 	TArray<FFortRogueAbilitySet_GameplayAbility> GrantedGameplayAbilities;
