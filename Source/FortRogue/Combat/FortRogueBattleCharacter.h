@@ -169,6 +169,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Abilities")
 	bool HasGrantedAbilitySetByTag(FGameplayTag AbilitySetTag) const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Abilities")
+	TArray<UFortRogueAbilitySet*> GetGrantedAbilitySetsForBlueprint() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Abilities")
+	FText GetGrantedAbilitySetsSummary() const;
+
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
 	void GrantShotModifiers(const TArray<FFortRogueShotModifierSpec>& ShotModifiers);
 

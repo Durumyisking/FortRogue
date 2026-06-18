@@ -764,6 +764,35 @@ bool AFortRogueBattleCharacter::HasGrantedAbilitySetByTag(FGameplayTag AbilitySe
 	return GetGrantedAbilitySetCountByTag(AbilitySetTag) > 0;
 }
 
+TArray<UFortRogueAbilitySet*> AFortRogueBattleCharacter::GetGrantedAbilitySetsForBlueprint() const
+{
+	TArray<UFortRogueAbilitySet*> AbilitySets;
+	for (const FFortRogueGrantedAbilitySetEntry& Entry : GrantedAbilitySetEntries)
+	{
+		if (Entry.AbilitySet)
+		{
+			AbilitySets.Add(Entry.AbilitySet);
+		}
+	}
+	return AbilitySets;
+}
+
+FText AFortRogueBattleCharacter::GetGrantedAbilitySetsSummary() const
+{
+	TArray<FString> Parts;
+	for (const FFortRogueGrantedAbilitySetEntry& Entry : GrantedAbilitySetEntries)
+	{
+		if (!Entry.AbilitySet)
+		{
+			continue;
+		}
+
+		const FString AbilitySetSummary = Entry.AbilitySet->GetEffectSummary().ToString();
+		Parts.Add(AbilitySetSummary.IsEmpty() ? Entry.AbilitySet->GetName() : AbilitySetSummary);
+	}
+	return Parts.Num() > 0 ? FText::FromString(FString::Join(Parts, TEXT(" | "))) : FText::GetEmpty();
+}
+
 void AFortRogueBattleCharacter::GrantShotModifiers(const TArray<FFortRogueShotModifierSpec>& ShotModifiers)
 {
 	if (ShotModifiers.Num() <= 0)

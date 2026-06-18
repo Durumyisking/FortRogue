@@ -572,6 +572,7 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 		TestEqual(TEXT("Player controller exposes current weapon spec"), TestPlayerController->GetPlayerCurrentWeaponSpec().WeaponTag, FortRogueGameplayTags::Weapon_Cluster);
 		TestEqual(TEXT("Player controller exposes selected weapon index"), TestPlayerController->GetPlayerSelectedWeaponIndex(), ControllerWeaponIndex);
 		UFortRogueAbilitySet* ControllerAbilitySet = NewObject<UFortRogueAbilitySet>(TestPlayerController);
+		ControllerAbilitySet->DisplayName = FText::FromString(TEXT("Controller Ability Set"));
 		ControllerAbilitySet->AbilitySetTag = FortRogueGameplayTags::Trait_ShotModifier;
 		TestEqual(TEXT("Player controller ability set count starts empty"), TestPlayerController->GetPlayerGrantedAbilitySetCount(ControllerAbilitySet), 0);
 		TestPlayerController->GrantPlayerAbilitySet(ControllerAbilitySet);
@@ -579,6 +580,8 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 		TestEqual(TEXT("Player controller counts granted ability sets"), TestPlayerController->GetPlayerGrantedAbilitySetCount(ControllerAbilitySet), 2);
 		TestEqual(TEXT("Player controller counts granted ability sets by tag"), TestPlayerController->GetPlayerGrantedAbilitySetCountByTag(FortRogueGameplayTags::Trait_ShotModifier), 2);
 		TestTrue(TEXT("Player controller reports granted ability sets by tag"), TestPlayerController->HasPlayerGrantedAbilitySetByTag(FortRogueGameplayTags::Trait_ShotModifier));
+		TestEqual(TEXT("Player controller exposes granted ability set list"), TestPlayerController->GetPlayerGrantedAbilitySets().Num(), 2);
+		TestTrue(TEXT("Player controller summarizes granted ability sets"), TestPlayerController->GetPlayerGrantedAbilitySetsSummary().ToString().Contains(TEXT("Controller Ability Set")));
 		TestTrue(TEXT("Player controller removes one granted ability set"), TestPlayerController->RemovePlayerAbilitySet(ControllerAbilitySet));
 		TestEqual(TEXT("Player controller ability set count updates after object removal"), TestPlayerController->GetPlayerGrantedAbilitySetCount(ControllerAbilitySet), 1);
 		TestEqual(TEXT("Player controller removes granted ability sets by tag"), TestPlayerController->RemovePlayerAbilitySetsByTag(FortRogueGameplayTags::Trait_ShotModifier), 1);
@@ -1241,10 +1244,13 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		StatCharacter->ApplyRewardProjectiles(-1);
 		TestEqual(TEXT("Battle character applies negative projectile reward deltas"), StatCharacter->GetProjectileCount(), 2.0f);
 		UFortRogueAbilitySet* EmptyAbilitySet = NewObject<UFortRogueAbilitySet>(StatCharacter);
+		EmptyAbilitySet->DisplayName = FText::FromString(TEXT("Empty Ability Set"));
 		TestEqual(TEXT("Battle character ability set count starts empty"), StatCharacter->GetGrantedAbilitySetCount(EmptyAbilitySet), 0);
 		StatCharacter->GrantAbilitySet(EmptyAbilitySet);
 		StatCharacter->GrantAbilitySet(EmptyAbilitySet);
 		TestEqual(TEXT("Battle character ability set count tracks repeated grants"), StatCharacter->GetGrantedAbilitySetCount(EmptyAbilitySet), 2);
+		TestEqual(TEXT("Battle character exposes granted ability set list"), StatCharacter->GetGrantedAbilitySetsForBlueprint().Num(), 2);
+		TestTrue(TEXT("Battle character summarizes granted ability sets"), StatCharacter->GetGrantedAbilitySetsSummary().ToString().Contains(TEXT("Empty Ability Set")));
 		TestTrue(TEXT("Battle character removes one granted ability set entry"), StatCharacter->RemoveAbilitySet(EmptyAbilitySet));
 		TestEqual(TEXT("Battle character ability set count updates after removal"), StatCharacter->GetGrantedAbilitySetCount(EmptyAbilitySet), 1);
 		UFortRogueAbilitySet* TaggedAbilitySet = NewObject<UFortRogueAbilitySet>(StatCharacter);
