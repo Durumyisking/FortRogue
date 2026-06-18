@@ -911,6 +911,15 @@ FFortRogueShotSpec AFortRogueBattleCharacter::BuildShotSpec(const FFortRogueWeap
 	ShotSpec.Gravity = Weapon.Gravity;
 	ShotSpec.ProjectileCount = FMath::Max(1, Weapon.ProjectilesPerShot + FMath::RoundToInt(CombatSet->GetProjectileCount()) - 1);
 	ShotSpec.ProjectileClass = Weapon.ProjectileClass ? Weapon.ProjectileClass : TSubclassOf<AFortRogueProjectile>(AFortRogueProjectile::StaticClass());
+	for (const FFortRogueShotModifierSpec& Modifier : Weapon.ShotModifiers)
+	{
+		ShotSpec.EffectTags.AppendTags(Modifier.EffectTags);
+		ShotSpec.Damage = (ShotSpec.Damage + Modifier.DamageBonus) * Modifier.DamageMultiplier;
+		ShotSpec.BlastRadius = FMath::Max(0.0f, (ShotSpec.BlastRadius + Modifier.BlastRadiusBonus) * Modifier.BlastRadiusMultiplier);
+		ShotSpec.LaunchSpeed = FMath::Max(0.0f, ShotSpec.LaunchSpeed * Modifier.LaunchSpeedMultiplier);
+		ShotSpec.Gravity = FMath::Max(0.0f, ShotSpec.Gravity * Modifier.GravityMultiplier);
+		ShotSpec.ProjectileCount = FMath::Max(1, ShotSpec.ProjectileCount + Modifier.ProjectileCountBonus);
+	}
 	return ShotSpec;
 }
 

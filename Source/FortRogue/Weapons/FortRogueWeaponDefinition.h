@@ -9,6 +9,36 @@
 class AFortRogueProjectile;
 
 USTRUCT(BlueprintType)
+struct FFortRogueShotModifierSpec
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier")
+	FGameplayTagContainer EffectTags;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier")
+	float DamageBonus = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (ClampMin = "0.0"))
+	float DamageMultiplier = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier")
+	float BlastRadiusBonus = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (ClampMin = "0.0"))
+	float BlastRadiusMultiplier = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (ClampMin = "0.0"))
+	float LaunchSpeedMultiplier = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (ClampMin = "0.0"))
+	float GravityMultiplier = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier")
+	int32 ProjectileCountBonus = 0;
+};
+
+USTRUCT(BlueprintType)
 struct FFortRogueWeaponSpec
 {
 	GENERATED_BODY()
@@ -24,6 +54,9 @@ struct FFortRogueWeaponSpec
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	FGameplayTagContainer ShotEffectTags;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (TitleProperty = EffectTags))
+	TArray<FFortRogueShotModifierSpec> ShotModifiers;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	float Damage = 35.0f;
