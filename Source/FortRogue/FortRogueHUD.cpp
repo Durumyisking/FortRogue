@@ -3,7 +3,6 @@
 #include "FortRogueHUD.h"
 
 #include "Combat/FortRogueBattleCharacter.h"
-#include "Combat/FortRogueImpactSpawnSpec.h"
 #include "FortRogueGameMode.h"
 #include "Engine/Canvas.h"
 #include "Engine/Engine.h"
@@ -11,16 +10,6 @@
 
 namespace
 {
-int32 CountImpactSpawnProjectiles(const TArray<FFortRogueImpactSpawnSpec>& ImpactSpawns)
-{
-	int32 TotalCount = 0;
-	for (const FFortRogueImpactSpawnSpec& ImpactSpawn : ImpactSpawns)
-	{
-		TotalCount += FMath::Max(0, ImpactSpawn.ProjectileCount);
-	}
-	return TotalCount;
-}
-
 FString GetItemInputPrefix(EFortRogueItemType ItemType)
 {
 	if (ItemType == EFortRogueItemType::AttackMultiplier)
@@ -102,20 +91,7 @@ void AFortRogueHUD::DrawBattleHUD(AFortRogueGameMode* GameMode, float X, float& 
 		DrawText(BuildItemLoadoutText(*Player),
 			FColor::Cyan, X, Y, GEngine->GetSmallFont(), Scale);
 		Y += 24.0f;
-		const FFortRogueShotSpec ShotSpec = Player->GetCurrentShotSpec();
-		const bool bFillsTerrain = ShotSpec.TerrainFillRadius > 0.0f;
-		const int32 ImpactProjectileCount = CountImpactSpawnProjectiles(ShotSpec.ImpactSpawns);
-		const FString ImpactText = ImpactProjectileCount > 0
-			? FString::Printf(TEXT(" | Impact +%d"), ImpactProjectileCount)
-			: FString();
-		DrawText(FString::Printf(TEXT("Shot Dmg %.0f | Blast %.0f | %s %.0f | Projectiles %d%s"),
-			ShotSpec.Damage,
-			ShotSpec.BlastRadius,
-			bFillsTerrain ? TEXT("Fill") : TEXT("Carve"),
-			bFillsTerrain ? ShotSpec.TerrainFillRadius : ShotSpec.TerrainCarveRadius,
-			ShotSpec.ProjectileCount,
-			*ImpactText),
-			FColor::Cyan, X, Y, GEngine->GetSmallFont(), Scale);
+		DrawText(Player->GetCurrentShotSummary().ToString(), FColor::Cyan, X, Y, GEngine->GetSmallFont(), Scale);
 		Y += 24.0f;
 		DrawText(TEXT("A/D Move | W/S Aim | Hold Space Power / Release Fire"), FColor::Cyan, X, Y, GEngine->GetSmallFont(), Scale);
 		Y += 24.0f;

@@ -1097,6 +1097,10 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		TestEqual(TEXT("Shot spec clamps negative terrain carve radius"), UnsafeShotSpec.TerrainCarveRadius, 0.0f);
 		TestEqual(TEXT("Shot spec clamps negative launch speed"), UnsafeShotSpec.LaunchSpeed, 0.0f);
 		TestEqual(TEXT("Shot spec clamps negative gravity"), UnsafeShotSpec.Gravity, 0.0f);
+		const FString CurrentShotSummary = StatCharacter->GetCurrentShotSummary().ToString();
+		TestTrue(TEXT("Battle character shot summary includes damage"), CurrentShotSummary.Contains(TEXT("Shot Dmg 0")));
+		TestTrue(TEXT("Battle character shot summary includes blast radius"), CurrentShotSummary.Contains(TEXT("Blast 0")));
+		TestTrue(TEXT("Battle character shot summary includes projectile count"), CurrentShotSummary.Contains(TEXT("Projectiles 3")));
 		UFortRogueItemDefinition* PendingModifierItem = NewObject<UFortRogueItemDefinition>(StatCharacter);
 		PendingModifierItem->ItemType = EFortRogueItemType::AbilitySet;
 		FFortRogueShotModifierSpec PendingModifier;

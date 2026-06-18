@@ -32,6 +32,16 @@ bool DoesAbilitySetMatchTag(const UFortRogueAbilitySet* AbilitySet, FGameplayTag
 {
 	return AbilitySet && AbilitySetTag.IsValid() && AbilitySet->AbilitySetTag.MatchesTagExact(AbilitySetTag);
 }
+
+int32 CountImpactSpawnProjectiles(const TArray<FFortRogueImpactSpawnSpec>& ImpactSpawns)
+{
+	int32 TotalCount = 0;
+	for (const FFortRogueImpactSpawnSpec& ImpactSpawn : ImpactSpawns)
+	{
+		TotalCount += FMath::Max(0, ImpactSpawn.ProjectileCount);
+	}
+	return TotalCount;
+}
 }
 
 AFortRogueBattleCharacter::AFortRogueBattleCharacter()
@@ -1050,6 +1060,24 @@ FFortRogueWeaponSpec AFortRogueBattleCharacter::GetCurrentWeaponSpec() const
 FFortRogueShotSpec AFortRogueBattleCharacter::GetCurrentShotSpec() const
 {
 	return BuildShotSpec(GetCurrentWeapon());
+}
+
+FText AFortRogueBattleCharacter::GetCurrentShotSummary() const
+{
+	const FFortRogueShotSpec ShotSpec = GetCurrentShotSpec();
+	const bool bFillsTerrain = ShotSpec.TerrainFillRadius > 0.0f;
+	const int32 ImpactProjectileCount = CountImpactSpawnProjectiles(ShotSpec.ImpactSpawns);
+	const FString ImpactText = ImpactProjectileCount > 0
+		? FString::Printf(TEXT(" | Impact +%d"), ImpactProjectileCount)
+		: FString();
+
+	return FText::FromString(FString::Printf(TEXT("Shot Dmg %.0f | Blast %.0f | %s %.0f | Projectiles %d%s"),
+		ShotSpec.Damage,
+		ShotSpec.BlastRadius,
+		bFillsTerrain ? TEXT("Fill") : TEXT("Carve"),
+		bFillsTerrain ? ShotSpec.TerrainFillRadius : ShotSpec.TerrainCarveRadius,
+		ShotSpec.ProjectileCount,
+		*ImpactText));
 }
 
 const TArray<FFortRogueWeaponSpec>& AFortRogueBattleCharacter::GetWeaponLoadout() const
