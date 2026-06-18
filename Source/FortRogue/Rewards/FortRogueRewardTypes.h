@@ -61,7 +61,7 @@ struct FFortRogueRewardChoice
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
 	TObjectPtr<UFortRogueAbilitySet> GrantedAbilitySet;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (TitleProperty = EffectTags))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (TitleProperty = DisplayName))
 	TArray<FFortRogueShotModifierSpec> ShotModifiers;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")

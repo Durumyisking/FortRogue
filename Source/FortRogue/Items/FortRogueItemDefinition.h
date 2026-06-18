@@ -41,7 +41,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	TObjectPtr<UFortRogueAbilitySet> UseAbilitySet;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shot Modifier", meta = (TitleProperty = EffectTags))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shot Modifier", meta = (TitleProperty = DisplayName))
 	TArray<FFortRogueShotModifierSpec> UseShotModifiers;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item", meta = (EditCondition = "ItemType == EFortRogueItemType::AttackMultiplier", ClampMin = "1.0"))

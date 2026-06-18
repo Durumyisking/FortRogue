@@ -101,7 +101,7 @@ struct FFortRogueWeaponSpec
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	FGameplayTagContainer ShotEffectTags;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (TitleProperty = EffectTags))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (TitleProperty = DisplayName))
 	TArray<FFortRogueShotModifierSpec> ShotModifiers;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (TitleProperty = ProjectileCount))
