@@ -109,11 +109,17 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	UFortRogueItemDefinition* AbilityItem = NewObject<UFortRogueItemDefinition>();
 	AbilityItem->DisplayName = FText::FromString(TEXT("Storm Capsule"));
 	AbilityItem->ItemTag = FortRogueGameplayTags::Item_NextShot;
+	AbilityItem->InitialCharges = 2;
 	AbilityItem->UseAbilitySet = NamedAbilitySet;
 	FFortRogueRewardChoice ItemAbilityReward;
 	ItemAbilityReward.ItemReward = AbilityItem;
 	TestTrue(TEXT("Reward summary names item ability set"), ItemAbilityReward.GetEffectSummary().ToString().Contains(TEXT("ability set Wind Split")));
 	TestTrue(TEXT("Reward summary names item tags"), ItemAbilityReward.GetEffectSummary().ToString().Contains(TEXT("tag Item.NextShot")));
+	TestTrue(TEXT("Reward summary names item initial charges"), ItemAbilityReward.GetEffectSummary().ToString().Contains(TEXT("charges 2")));
+	ItemAbilityReward.RepairCharges = 3;
+	TestFalse(TEXT("Reward summary does not duplicate default charges when override charges exist"), ItemAbilityReward.GetEffectSummary().ToString().Contains(TEXT("charges 2")));
+	TestTrue(TEXT("Reward summary keeps override charges when present"), ItemAbilityReward.GetEffectSummary().ToString().Contains(TEXT("charges +3")));
+	ItemAbilityReward.RepairCharges = 0;
 	TestTrue(TEXT("Blueprint helper summarizes item assets"), UFortRogueRewardBlueprintLibrary::GetItemEffectSummary(AbilityItem).ToString().Contains(TEXT("ability set Wind Split")));
 	UFortRogueItemDefinition* HealSummaryItem = NewObject<UFortRogueItemDefinition>();
 	HealSummaryItem->ItemType = EFortRogueItemType::Heal;

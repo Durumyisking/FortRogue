@@ -178,6 +178,10 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 		{
 			AddSummaryPart(Parts, FString::Printf(TEXT("tag %s"), *ItemReward->ItemTag.ToString()));
 		}
+		if (RepairCharges <= 0 && ItemReward->InitialCharges > 1)
+		{
+			AddSummaryPart(Parts, FString::Printf(TEXT("charges %d"), ItemReward->InitialCharges));
+		}
 		if (ItemReward->ItemType == EFortRogueItemType::Heal && ItemReward->HealAmount > 0.0f)
 		{
 			AddSummaryPart(Parts, FString::Printf(TEXT("heal +%.0f"), ItemReward->HealAmount));
