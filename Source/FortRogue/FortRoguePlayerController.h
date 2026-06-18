@@ -29,6 +29,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Items")
 	void UsePlayerItemByTag(FGameplayTag ItemTag);
 
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Items")
+	void UsePlayerItemByIndex(int32 ItemIndex);
+
 private:
 	void TickBattleInput(float DeltaSeconds);
 	void TickKeyboardFireInput();

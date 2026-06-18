@@ -21,6 +21,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "FortRogueGameMode.h"
+#include "Items/FortRogueItemDefinition.h"
 #include "Kismet/GameplayStatics.h"
 #include "Run/FortRogueDefaultLoadoutDefinition.h"
 #include "Run/FortRogueStageRunDefinition.h"
@@ -878,6 +879,28 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 			TestEqual(TEXT("Character definition controls turn movement budget"), CombatSet->GetMaxMoveBudget(), 25.0f);
 			TestEqual(TEXT("Character definition controls shot power multiplier"), CombatSet->GetShotPowerMultiplier(), 1.8f);
 		}
+	}
+
+	AFortRogueBattleCharacter* ItemSlotCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(-15.0f, 0.0f, 55.0f), FRotator::ZeroRotator, SpawnParams);
+	TestNotNull(TEXT("Item slot battle character is spawned"), ItemSlotCharacter);
+	if (ItemSlotCharacter)
+	{
+		UFortRogueItemDefinition* HealItem = NewObject<UFortRogueItemDefinition>(ItemSlotCharacter);
+		HealItem->DisplayName = FText::FromString(TEXT("Test Repair"));
+		HealItem->ItemType = EFortRogueItemType::Heal;
+		HealItem->InitialCharges = 2;
+		HealItem->HealAmount = 25.0f;
+		ItemSlotCharacter->SetTerrain(Terrain);
+		ItemSlotCharacter->AddItemDefinition(HealItem, 2);
+		ItemSlotCharacter->BeginTurn();
+		ItemSlotCharacter->ApplyDamage(40.0f);
+		const float HealthBeforeItem = ItemSlotCharacter->GetHealth();
+		TestFalse(TEXT("Battle character rejects negative item loadout index"), ItemSlotCharacter->UseItemByIndex(-1));
+		TestFalse(TEXT("Battle character rejects item loadout index past the end"), ItemSlotCharacter->UseItemByIndex(1));
+		TestEqual(TEXT("Rejected item slot use keeps item charges"), ItemSlotCharacter->GetItemCharges(EFortRogueItemType::Heal), 2);
+		TestTrue(TEXT("Battle character uses an item by loadout index"), ItemSlotCharacter->UseItemByIndex(0));
+		TestEqual(TEXT("Item slot use consumes one charge"), ItemSlotCharacter->GetItemCharges(EFortRogueItemType::Heal), 1);
+		TestTrue(TEXT("Item slot use applies the item effect"), ItemSlotCharacter->GetHealth() > HealthBeforeItem);
 	}
 
 	AFortRogueBattleCharacter* ExhaustedTurnCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(45.0f, 0.0f, 55.0f), FRotator::ZeroRotator, SpawnParams);
