@@ -329,7 +329,7 @@ int32 AFortRogueBattleCharacter::FireSelectedWeapon()
 		AFortRogueProjectile* Projectile = GetWorld()->SpawnActor<AFortRogueProjectile>(ShotSpec.ProjectileClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
 		if (Projectile)
 		{
-			Projectile->InitializeProjectile(this, FindTerrain(), Direction * ShotSpec.LaunchSpeed, ShotSpec.Damage, ShotSpec.BlastRadius, ShotSpec.Gravity, ShotSpec.TerrainCarveRadius, ShotSpec.WeaponTag, ShotSpec.EffectTags);
+			Projectile->InitializeProjectile(this, FindTerrain(), Direction * ShotSpec.LaunchSpeed, ShotSpec.Damage, ShotSpec.BlastRadius, ShotSpec.Gravity, ShotSpec.TerrainCarveRadius, ShotSpec.WeaponTag, ShotSpec.EffectTags, ShotSpec.ImpactSpawns);
 			if (AFortRogueGameMode* GameMode = GetWorld()->GetAuthGameMode<AFortRogueGameMode>())
 			{
 				GameMode->NotifyProjectileSpawned(Projectile);
@@ -948,6 +948,7 @@ FFortRogueShotSpec AFortRogueBattleCharacter::BuildShotSpec(const FFortRogueWeap
 	ShotSpec.Gravity = Weapon.Gravity;
 	ShotSpec.ProjectileCount = FMath::Max(1, Weapon.ProjectilesPerShot + FMath::RoundToInt(CombatSet->GetProjectileCount()) - 1);
 	ShotSpec.ProjectileClass = Weapon.ProjectileClass ? Weapon.ProjectileClass : TSubclassOf<AFortRogueProjectile>(AFortRogueProjectile::StaticClass());
+	ShotSpec.ImpactSpawns = Weapon.ImpactSpawns;
 	auto ApplyShotModifier = [&ShotSpec](const FFortRogueShotModifierSpec& Modifier)
 	{
 		ShotSpec.EffectTags.AppendTags(Modifier.EffectTags);

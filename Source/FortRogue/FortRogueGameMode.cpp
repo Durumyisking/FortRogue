@@ -69,6 +69,10 @@ void AFortRogueGameMode::NotifyProjectileSpawned(AFortRogueProjectile* Projectil
 	if (Projectile)
 	{
 		ActiveProjectiles.Add(Projectile);
+		if (BattleState == EFortRogueBattleState::ResolvingShot)
+		{
+			++PendingProjectiles;
+		}
 	}
 }
 

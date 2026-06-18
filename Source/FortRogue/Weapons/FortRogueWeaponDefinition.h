@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Combat/FortRogueImpactSpawnSpec.h"
 #include "Engine/DataAsset.h"
 #include "GameplayTagContainer.h"
 #include "FortRogueWeaponDefinition.generated.h"
@@ -63,6 +64,9 @@ struct FFortRogueWeaponSpec
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (TitleProperty = EffectTags))
 	TArray<FFortRogueShotModifierSpec> ShotModifiers;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (TitleProperty = ProjectileCount))
+	TArray<FFortRogueImpactSpawnSpec> ImpactSpawns;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	float Damage = 35.0f;

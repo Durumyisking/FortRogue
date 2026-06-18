@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Combat/FortRogueImpactSpawnSpec.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "GameplayTagContainer.h"
@@ -22,10 +23,11 @@ public:
 
 	virtual void Tick(float DeltaSeconds) override;
 
-	void InitializeProjectile(AFortRogueBattleCharacter* InOwnerCharacter, AFortRogueDestructibleTerrain* InTerrain, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity, float InTerrainCarveRadius = -1.0f, FGameplayTag InWeaponTag = FGameplayTag(), FGameplayTagContainer InEffectTags = FGameplayTagContainer());
+	void InitializeProjectile(AFortRogueBattleCharacter* InOwnerCharacter, AFortRogueDestructibleTerrain* InTerrain, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity, float InTerrainCarveRadius = -1.0f, FGameplayTag InWeaponTag = FGameplayTag(), FGameplayTagContainer InEffectTags = FGameplayTagContainer(), TArray<FFortRogueImpactSpawnSpec> InImpactSpawns = TArray<FFortRogueImpactSpawnSpec>());
 
 private:
 	void ResolveImpact(const FVector& ImpactLocation);
+	void SpawnImpactProjectiles(const FVector& ImpactLocation);
 
 	UPROPERTY(VisibleAnywhere, Category = "Projectile")
 	TObjectPtr<USphereComponent> Collision;
@@ -45,6 +47,7 @@ private:
 	FVector Velocity = FVector::ZeroVector;
 	FGameplayTag WeaponTag;
 	FGameplayTagContainer EffectTags;
+	TArray<FFortRogueImpactSpawnSpec> ImpactSpawns;
 	float Damage = 35.0f;
 	float BlastRadius = 150.0f;
 	float TerrainCarveRadius = 150.0f;

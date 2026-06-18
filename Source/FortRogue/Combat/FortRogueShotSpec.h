@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Combat/FortRogueImpactSpawnSpec.h"
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
 #include "FortRogueShotSpec.generated.h"
@@ -39,4 +40,7 @@ struct FFortRogueShotSpec
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot")
 	TSubclassOf<AFortRogueProjectile> ProjectileClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot")
+	TArray<FFortRogueImpactSpawnSpec> ImpactSpawns;
 };
