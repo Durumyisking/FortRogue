@@ -584,6 +584,7 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 		TestEqual(TEXT("Player controller exposes player shot power"), TestPlayerController->GetPlayerShotPower(), GameMode->GetPlayerCharacter()->GetShotPower());
 		TestEqual(TEXT("Player controller exposes player shot charge alpha"), TestPlayerController->GetPlayerShotChargeAlpha(), GameMode->GetPlayerCharacter()->GetShotChargeAlpha());
 		TestEqual(TEXT("Player controller exposes player shot charge state"), TestPlayerController->IsPlayerChargingShot(), GameMode->GetPlayerCharacter()->IsChargingShot());
+		TestEqual(TEXT("Player controller exposes player shot charge begin state"), TestPlayerController->CanBeginPlayerShotCharge(), GameMode->GetBattleState() == EFortRogueBattleState::PlayerTurn && GameMode->GetPlayerCharacter()->CanBeginShotCharge());
 		const float PlayerBaseDamage = GameMode->GetPlayerCharacter()->GetDamageBonus();
 		TestTrue(TEXT("Player controller applies player attribute deltas by tag"), TestPlayerController->TryApplyPlayerCombatAttributeDeltaByTag(FortRogueGameplayTags::Attribute_Damage, 3.0f));
 		TestEqual(TEXT("Player controller attribute delta updates player character"), GameMode->GetPlayerCharacter()->GetDamageBonus(), PlayerBaseDamage + 3.0f);

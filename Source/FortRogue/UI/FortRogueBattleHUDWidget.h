@@ -143,6 +143,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	bool CanFirePlayerWeapon() const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	bool CanBeginPlayerShotCharge() const;
+
 	UFUNCTION(BlueprintImplementableEvent, Category = "FortRogue|UI")
 	void RefreshBattleHUD();
 };

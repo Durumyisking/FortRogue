@@ -678,6 +678,16 @@ bool AFortRoguePlayerController::CanFirePlayerWeapon() const
 	return false;
 }
 
+bool AFortRoguePlayerController::CanBeginPlayerShotCharge() const
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetBattleState() == EFortRogueBattleState::PlayerTurn && GameMode->GetPlayerCharacter())
+	{
+		return GameMode->GetPlayerCharacter()->CanBeginShotCharge();
+	}
+	return false;
+}
+
 float AFortRoguePlayerController::GetPlayerAimAngle() const
 {
 	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;

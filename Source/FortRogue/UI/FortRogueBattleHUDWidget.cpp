@@ -379,3 +379,12 @@ bool UFortRogueBattleHUDWidget::CanFirePlayerWeapon() const
 	}
 	return false;
 }
+
+bool UFortRogueBattleHUDWidget::CanBeginPlayerShotCharge() const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->CanBeginShotCharge();
+	}
+	return false;
+}
