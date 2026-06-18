@@ -21,9 +21,25 @@ void UFortRogueCombatSet::PreAttributeChange(const FGameplayAttribute& Attribute
 	{
 		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxHealth());
 	}
+	else if (Attribute == GetMaxHealthAttribute())
+	{
+		NewValue = FMath::Max(1.0f, NewValue);
+	}
 	else if (Attribute == GetMoveBudgetAttribute())
 	{
 		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxMoveBudget());
+	}
+	else if (Attribute == GetMaxMoveBudgetAttribute())
+	{
+		NewValue = FMath::Max(0.0f, NewValue);
+	}
+	else if (Attribute == GetDamageAttribute())
+	{
+		NewValue = FMath::Max(0.0f, NewValue);
+	}
+	else if (Attribute == GetShotPowerMultiplierAttribute())
+	{
+		NewValue = FMath::Max(0.0f, NewValue);
 	}
 	else if (Attribute == GetProjectileCountAttribute())
 	{
