@@ -22,7 +22,7 @@ public:
 
 	virtual void Tick(float DeltaSeconds) override;
 
-	void InitializeProjectile(AFortRogueBattleCharacter* InOwnerCharacter, AFortRogueDestructibleTerrain* InTerrain, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity, FGameplayTag InWeaponTag = FGameplayTag(), FGameplayTagContainer InEffectTags = FGameplayTagContainer());
+	void InitializeProjectile(AFortRogueBattleCharacter* InOwnerCharacter, AFortRogueDestructibleTerrain* InTerrain, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity, float InTerrainCarveRadius = -1.0f, FGameplayTag InWeaponTag = FGameplayTag(), FGameplayTagContainer InEffectTags = FGameplayTagContainer());
 
 private:
 	void ResolveImpact(const FVector& ImpactLocation);
@@ -47,6 +47,7 @@ private:
 	FGameplayTagContainer EffectTags;
 	float Damage = 35.0f;
 	float BlastRadius = 150.0f;
+	float TerrainCarveRadius = 150.0f;
 	float Gravity = 980.0f;
 	float LifeSeconds = 0.0f;
 	bool bResolved = false;

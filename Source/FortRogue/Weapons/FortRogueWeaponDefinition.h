@@ -28,6 +28,12 @@ struct FFortRogueShotModifierSpec
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (ClampMin = "0.0"))
 	float BlastRadiusMultiplier = 1.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier")
+	float TerrainCarveRadiusBonus = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (ClampMin = "0.0"))
+	float TerrainCarveRadiusMultiplier = 1.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (ClampMin = "0.0"))
 	float LaunchSpeedMultiplier = 1.0f;
 

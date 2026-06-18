@@ -328,7 +328,7 @@ int32 AFortRogueBattleCharacter::FireSelectedWeapon()
 		AFortRogueProjectile* Projectile = GetWorld()->SpawnActor<AFortRogueProjectile>(ShotSpec.ProjectileClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
 		if (Projectile)
 		{
-			Projectile->InitializeProjectile(this, FindTerrain(), Direction * ShotSpec.LaunchSpeed, ShotSpec.Damage, ShotSpec.BlastRadius, ShotSpec.Gravity, ShotSpec.WeaponTag, ShotSpec.EffectTags);
+			Projectile->InitializeProjectile(this, FindTerrain(), Direction * ShotSpec.LaunchSpeed, ShotSpec.Damage, ShotSpec.BlastRadius, ShotSpec.Gravity, ShotSpec.TerrainCarveRadius, ShotSpec.WeaponTag, ShotSpec.EffectTags);
 			if (AFortRogueGameMode* GameMode = GetWorld()->GetAuthGameMode<AFortRogueGameMode>())
 			{
 				GameMode->NotifyProjectileSpawned(Projectile);
@@ -907,6 +907,7 @@ FFortRogueShotSpec AFortRogueBattleCharacter::BuildShotSpec(const FFortRogueWeap
 	}
 	ShotSpec.Damage = (Weapon.Damage + CombatSet->GetDamage()) * PendingAttackMultiplier;
 	ShotSpec.BlastRadius = Weapon.BlastRadius;
+	ShotSpec.TerrainCarveRadius = ShotSpec.BlastRadius;
 	ShotSpec.LaunchSpeed = Weapon.ProjectileSpeed * ShotPower * CombatSet->GetShotPowerMultiplier();
 	ShotSpec.Gravity = Weapon.Gravity;
 	ShotSpec.ProjectileCount = FMath::Max(1, Weapon.ProjectilesPerShot + FMath::RoundToInt(CombatSet->GetProjectileCount()) - 1);
@@ -916,6 +917,7 @@ FFortRogueShotSpec AFortRogueBattleCharacter::BuildShotSpec(const FFortRogueWeap
 		ShotSpec.EffectTags.AppendTags(Modifier.EffectTags);
 		ShotSpec.Damage = (ShotSpec.Damage + Modifier.DamageBonus) * Modifier.DamageMultiplier;
 		ShotSpec.BlastRadius = FMath::Max(0.0f, (ShotSpec.BlastRadius + Modifier.BlastRadiusBonus) * Modifier.BlastRadiusMultiplier);
+		ShotSpec.TerrainCarveRadius = FMath::Max(0.0f, (ShotSpec.TerrainCarveRadius + Modifier.TerrainCarveRadiusBonus) * Modifier.TerrainCarveRadiusMultiplier);
 		ShotSpec.LaunchSpeed = FMath::Max(0.0f, ShotSpec.LaunchSpeed * Modifier.LaunchSpeedMultiplier);
 		ShotSpec.Gravity = FMath::Max(0.0f, ShotSpec.Gravity * Modifier.GravityMultiplier);
 		ShotSpec.ProjectileCount = FMath::Max(1, ShotSpec.ProjectileCount + Modifier.ProjectileCountBonus);

@@ -65,7 +65,7 @@ AFortRogueProjectile::AFortRogueProjectile()
 	}
 }
 
-void AFortRogueProjectile::InitializeProjectile(AFortRogueBattleCharacter* InOwnerCharacter, AFortRogueDestructibleTerrain* InTerrain, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity, FGameplayTag InWeaponTag, FGameplayTagContainer InEffectTags)
+void AFortRogueProjectile::InitializeProjectile(AFortRogueBattleCharacter* InOwnerCharacter, AFortRogueDestructibleTerrain* InTerrain, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity, float InTerrainCarveRadius, FGameplayTag InWeaponTag, FGameplayTagContainer InEffectTags)
 {
 	OwnerCharacter = InOwnerCharacter;
 	AssignedTerrain = InTerrain;
@@ -74,6 +74,7 @@ void AFortRogueProjectile::InitializeProjectile(AFortRogueBattleCharacter* InOwn
 	EffectTags = InEffectTags;
 	Damage = InDamage;
 	BlastRadius = FMath::Max(0.0f, InBlastRadius);
+	TerrainCarveRadius = InTerrainCarveRadius >= 0.0f ? FMath::Max(0.0f, InTerrainCarveRadius) : BlastRadius;
 	Gravity = InGravity;
 }
 
@@ -184,13 +185,13 @@ void AFortRogueProjectile::ResolveImpact(const FVector& ImpactLocation)
 
 	if (AssignedTerrain)
 	{
-		AssignedTerrain->CarveCircle(ImpactLocation, BlastRadius);
+		AssignedTerrain->CarveCircle(ImpactLocation, TerrainCarveRadius);
 	}
 	else
 	{
 		for (TActorIterator<AFortRogueDestructibleTerrain> It(GetWorld()); It; ++It)
 		{
-			It->CarveCircle(ImpactLocation, BlastRadius);
+			It->CarveCircle(ImpactLocation, TerrainCarveRadius);
 		}
 	}
 
