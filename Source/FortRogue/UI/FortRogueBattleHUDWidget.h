@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Combat/FortRogueShotSpec.h"
+#include "GameplayTagContainer.h"
 #include "Items/FortRogueItemDefinition.h"
 #include "UI/FortRogueActivatableWidget.h"
 #include "Weapons/FortRogueWeaponDefinition.h"
@@ -54,6 +55,15 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	int32 GetPlayerSelectedWeaponIndex() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	bool CanSelectPlayerWeapon(int32 WeaponIndex) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	bool CanSelectPlayerWeaponByTag(FGameplayTag WeaponTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
+	int32 GetPlayerWeaponIndexByTag(FGameplayTag WeaponTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	TArray<FFortRogueItemStack> GetPlayerItemLoadout() const;

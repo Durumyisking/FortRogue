@@ -118,6 +118,33 @@ int32 UFortRogueBattleHUDWidget::GetPlayerSelectedWeaponIndex() const
 	return INDEX_NONE;
 }
 
+bool UFortRogueBattleHUDWidget::CanSelectPlayerWeapon(int32 WeaponIndex) const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->CanSelectWeapon(WeaponIndex);
+	}
+	return false;
+}
+
+bool UFortRogueBattleHUDWidget::CanSelectPlayerWeaponByTag(FGameplayTag WeaponTag) const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->CanSelectWeaponByTag(WeaponTag);
+	}
+	return false;
+}
+
+int32 UFortRogueBattleHUDWidget::GetPlayerWeaponIndexByTag(FGameplayTag WeaponTag) const
+{
+	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())
+	{
+		return PlayerCharacter->GetWeaponIndexByTag(WeaponTag);
+	}
+	return INDEX_NONE;
+}
+
 TArray<FFortRogueItemStack> UFortRogueBattleHUDWidget::GetPlayerItemLoadout() const
 {
 	if (AFortRogueBattleCharacter* PlayerCharacter = GetPlayerCharacter())

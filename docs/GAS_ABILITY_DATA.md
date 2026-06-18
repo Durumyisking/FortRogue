@@ -123,7 +123,7 @@ modifier 적용 순서:
 `WeaponReward`로 추가된 무기는 전투 중 1-5번 슬롯으로 선택할 수 있다.
 무기 목록 UI가 슬롯 번호로 선택한다면 `AFortRoguePlayerController::SelectPlayerWeaponByIndex()`를 사용한다.
 무기 목록 UI가 슬롯 번호 대신 데이터 태그를 기준으로 선택해야 한다면 `AFortRogueBattleCharacter::SelectWeaponByTag()` 또는 `AFortRoguePlayerController::SelectPlayerWeaponByTag()`를 사용한다.
-무기 버튼의 활성화 여부나 태그 기반 슬롯 위치를 확인할 때는 `CanSelectWeapon()`, `CanSelectWeaponByTag()`, `GetWeaponIndexByTag()`를 사용한다. PlayerController 경유 UI에서는 `CanSelectPlayerWeapon()`, `CanSelectPlayerWeaponByTag()`, `GetPlayerWeaponIndexByTag()`를 사용한다.
+무기 버튼의 활성화 여부나 태그 기반 슬롯 위치를 확인할 때는 `CanSelectWeapon()`, `CanSelectWeaponByTag()`, `GetWeaponIndexByTag()`를 사용한다. PlayerController 경유 UI에서는 `CanSelectPlayerWeapon()`, `CanSelectPlayerWeaponByTag()`, `GetPlayerWeaponIndexByTag()`를 사용한다. UMG 전투 HUD에서도 같은 이름의 `CanSelectPlayerWeapon()`, `CanSelectPlayerWeaponByTag()`, `GetPlayerWeaponIndexByTag()`를 사용할 수 있다.
 UMG 전투 HUD에서는 `UFortRogueBattleHUDWidget::GetPlayerWeaponLoadout()`, `GetPlayerCurrentWeaponSpec()`, `GetPlayerSelectedWeaponIndex()`로 현재 무기 목록과 선택 상태를 읽을 수 있다.
 현재 무기 목록과 선택 상태를 PlayerController 경유 UI에서 읽어야 한다면 `GetPlayerWeaponLoadout()`, `GetPlayerCurrentWeaponSpec()`, `GetPlayerSelectedWeaponIndex()`를 사용한다.
 
