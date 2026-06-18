@@ -5,6 +5,7 @@
 #include "AbilitySystemInterface.h"
 #include "AbilitySystem/FortRogueAbilitySet.h"
 #include "Characters/FortRogueCharacterDefinition.h"
+#include "Combat/FortRogueShotSpec.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "Run/FortRogueStageRunDefinition.h"
@@ -83,6 +84,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Items")
 	bool UseItemByType(EFortRogueItemType ItemType);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Items")
+	bool UseItemByTag(FGameplayTag ItemTag);
+
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
 	void ApplyRewardDamage(float BonusDamage);
 
@@ -94,6 +99,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
 	void ApplyPerkDefinition(UFortRoguePerkDefinition* PerkDefinition);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Abilities")
+	void GrantAbilitySet(UFortRogueAbilitySet* AbilitySet);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Weapons")
 	void AddWeaponDefinition(UFortRogueWeaponDefinition* WeaponDefinition);
@@ -179,6 +187,7 @@ public:
 
 private:
 	AFortRogueDestructibleTerrain* FindTerrain() const;
+	bool UseItemStack(FFortRogueItemStack& ItemStack);
 	bool IsSupportedByTerrain() const;
 	bool FindFootprintSurfaceZ(const AFortRogueDestructibleTerrain& Terrain, float CenterWorldX, float StartWorldZ, float SearchDistance, float& OutSurfaceZ) const;
 	bool IsFootprintBlocked(const AFortRogueDestructibleTerrain& Terrain, const FVector& CenterLocation, float FootWorldZ) const;
@@ -192,6 +201,7 @@ private:
 	float GetBodyPitchDegrees() const;
 	FVector GetProjectileLaunchDirection(float SpreadDegrees) const;
 	FVector GetProjectileSpawnLocation(const FVector& LaunchDirection) const;
+	FFortRogueShotSpec BuildShotSpec(const FFortRogueWeaponSpec& Weapon) const;
 	void DrawProjectileTrajectory() const;
 	void GrantStartupAbilitySets();
 	void EnsureDefaultLoadout();

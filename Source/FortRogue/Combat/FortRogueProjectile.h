@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "GameplayTagContainer.h"
 #include "FortRogueProjectile.generated.h"
 
 class AFortRogueBattleCharacter;
@@ -21,7 +22,7 @@ public:
 
 	virtual void Tick(float DeltaSeconds) override;
 
-	void InitializeProjectile(AFortRogueBattleCharacter* InOwnerCharacter, AFortRogueDestructibleTerrain* InTerrain, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity);
+	void InitializeProjectile(AFortRogueBattleCharacter* InOwnerCharacter, AFortRogueDestructibleTerrain* InTerrain, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity, FGameplayTag InWeaponTag = FGameplayTag(), FGameplayTagContainer InEffectTags = FGameplayTagContainer());
 
 private:
 	void ResolveImpact(const FVector& ImpactLocation);
@@ -42,6 +43,8 @@ private:
 	float MaxLifeSeconds = 8.0f;
 
 	FVector Velocity = FVector::ZeroVector;
+	FGameplayTag WeaponTag;
+	FGameplayTagContainer EffectTags;
 	float Damage = 35.0f;
 	float BlastRadius = 150.0f;
 	float Gravity = 980.0f;

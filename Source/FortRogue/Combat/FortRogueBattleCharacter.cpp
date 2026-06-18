@@ -311,9 +311,8 @@ int32 AFortRogueBattleCharacter::FireSelectedWeapon()
 	bFiredThisTurn = true;
 
 	const FFortRogueWeaponSpec& Weapon = GetCurrentWeapon();
-	const int32 ProjectileCount = FMath::Max(1, Weapon.ProjectilesPerShot + FMath::RoundToInt(CombatSet->GetProjectileCount()) - 1);
-	const float Damage = (Weapon.Damage + CombatSet->GetDamage()) * PendingAttackMultiplier;
-	const float Speed = Weapon.ProjectileSpeed * ShotPower * CombatSet->GetShotPowerMultiplier();
+	const FFortRogueShotSpec ShotSpec = BuildShotSpec(Weapon);
+	const int32 ProjectileCount = ShotSpec.ProjectileCount;
 	int32 SpawnedProjectiles = 0;
 	PendingAttackMultiplier = 1.0f;
 
@@ -326,11 +325,10 @@ int32 AFortRogueBattleCharacter::FireSelectedWeapon()
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = this;
 		SpawnParams.Instigator = this;
-		const TSubclassOf<AFortRogueProjectile> ProjectileClass = Weapon.ProjectileClass ? Weapon.ProjectileClass : TSubclassOf<AFortRogueProjectile>(AFortRogueProjectile::StaticClass());
-		AFortRogueProjectile* Projectile = GetWorld()->SpawnActor<AFortRogueProjectile>(ProjectileClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
+		AFortRogueProjectile* Projectile = GetWorld()->SpawnActor<AFortRogueProjectile>(ShotSpec.ProjectileClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
 		if (Projectile)
 		{
-			Projectile->InitializeProjectile(this, FindTerrain(), Direction * Speed, Damage, Weapon.BlastRadius, Weapon.Gravity);
+			Projectile->InitializeProjectile(this, FindTerrain(), Direction * ShotSpec.LaunchSpeed, ShotSpec.Damage, ShotSpec.BlastRadius, ShotSpec.Gravity, ShotSpec.WeaponTag, ShotSpec.EffectTags);
 			if (AFortRogueGameMode* GameMode = GetWorld()->GetAuthGameMode<AFortRogueGameMode>())
 			{
 				GameMode->NotifyProjectileSpawned(Projectile);
@@ -420,19 +418,52 @@ bool AFortRogueBattleCharacter::UseItemByType(EFortRogueItemType ItemType)
 			continue;
 		}
 
-		--ItemStack.Charges;
-		if (ItemType == EFortRogueItemType::Heal)
-		{
-			CombatSet->Heal(ItemDefinition->HealAmount);
-		}
-		else if (ItemType == EFortRogueItemType::AttackMultiplier)
-		{
-			PendingAttackMultiplier = FMath::Max(PendingAttackMultiplier, ItemDefinition->AttackMultiplier);
-		}
-		return true;
+		return UseItemStack(ItemStack);
 	}
 
 	return false;
+}
+
+bool AFortRogueBattleCharacter::UseItemByTag(FGameplayTag ItemTag)
+{
+	if (!ItemTag.IsValid() || !bActiveTurn || IsDefeated() || !IsSupportedByTerrain())
+	{
+		return false;
+	}
+
+	for (FFortRogueItemStack& ItemStack : ItemLoadout)
+	{
+		const UFortRogueItemDefinition* ItemDefinition = ItemStack.ItemDefinition;
+		if (!ItemDefinition || !ItemDefinition->ItemTag.MatchesTagExact(ItemTag) || ItemStack.Charges <= 0)
+		{
+			continue;
+		}
+
+		return UseItemStack(ItemStack);
+	}
+
+	return false;
+}
+
+bool AFortRogueBattleCharacter::UseItemStack(FFortRogueItemStack& ItemStack)
+{
+	const UFortRogueItemDefinition* ItemDefinition = ItemStack.ItemDefinition;
+	if (!ItemDefinition || ItemStack.Charges <= 0)
+	{
+		return false;
+	}
+
+	--ItemStack.Charges;
+	if (ItemDefinition->ItemType == EFortRogueItemType::Heal)
+	{
+		CombatSet->Heal(ItemDefinition->HealAmount);
+	}
+	else if (ItemDefinition->ItemType == EFortRogueItemType::AttackMultiplier)
+	{
+		PendingAttackMultiplier = FMath::Max(PendingAttackMultiplier, ItemDefinition->AttackMultiplier);
+	}
+	GrantAbilitySet(ItemDefinition->UseAbilitySet);
+	return true;
 }
 
 void AFortRogueBattleCharacter::ApplyRewardDamage(float BonusDamage)
@@ -461,12 +492,19 @@ void AFortRogueBattleCharacter::ApplyPerkDefinition(UFortRoguePerkDefinition* Pe
 	ApplyRewardHealth(PerkDefinition->MaxHealthBonus);
 	ApplyRewardProjectiles(PerkDefinition->ProjectileBonus);
 
-	if (PerkDefinition->GrantedAbilitySet)
+	GrantAbilitySet(PerkDefinition->GrantedAbilitySet);
+}
+
+void AFortRogueBattleCharacter::GrantAbilitySet(UFortRogueAbilitySet* AbilitySet)
+{
+	if (!AbilitySet || !AbilitySystemComponent)
 	{
-		FFortRogueAbilitySet_GrantedHandles Handles;
-		PerkDefinition->GrantedAbilitySet->GiveToAbilitySystem(AbilitySystemComponent, &Handles, this);
-		StartupAbilitySetHandles.Add(Handles);
+		return;
 	}
+
+	FFortRogueAbilitySet_GrantedHandles Handles;
+	AbilitySet->GiveToAbilitySystem(AbilitySystemComponent, &Handles, this);
+	StartupAbilitySetHandles.Add(Handles);
 }
 
 void AFortRogueBattleCharacter::AddWeaponDefinition(UFortRogueWeaponDefinition* WeaponDefinition)
@@ -858,6 +896,24 @@ FVector AFortRogueBattleCharacter::GetProjectileSpawnLocation(const FVector& Lau
 	return GetActorLocation() + LaunchDirection * 70.0f + FVector(0.0f, 0.0f, 35.0f);
 }
 
+FFortRogueShotSpec AFortRogueBattleCharacter::BuildShotSpec(const FFortRogueWeaponSpec& Weapon) const
+{
+	FFortRogueShotSpec ShotSpec;
+	ShotSpec.WeaponTag = Weapon.WeaponTag;
+	ShotSpec.EffectTags = Weapon.ShotEffectTags;
+	if (Weapon.WeaponTag.IsValid())
+	{
+		ShotSpec.EffectTags.AddTag(Weapon.WeaponTag);
+	}
+	ShotSpec.Damage = (Weapon.Damage + CombatSet->GetDamage()) * PendingAttackMultiplier;
+	ShotSpec.BlastRadius = Weapon.BlastRadius;
+	ShotSpec.LaunchSpeed = Weapon.ProjectileSpeed * ShotPower * CombatSet->GetShotPowerMultiplier();
+	ShotSpec.Gravity = Weapon.Gravity;
+	ShotSpec.ProjectileCount = FMath::Max(1, Weapon.ProjectilesPerShot + FMath::RoundToInt(CombatSet->GetProjectileCount()) - 1);
+	ShotSpec.ProjectileClass = Weapon.ProjectileClass ? Weapon.ProjectileClass : TSubclassOf<AFortRogueProjectile>(AFortRogueProjectile::StaticClass());
+	return ShotSpec;
+}
+
 void AFortRogueBattleCharacter::DrawProjectileTrajectory() const
 {
 	if (!bDrawProjectileTrajectory || !bActiveTurn || bFiredThisTurn || IsDefeated() || !IsSupportedByTerrain() || !GetWorld())
@@ -870,8 +926,8 @@ void AFortRogueBattleCharacter::DrawProjectileTrajectory() const
 	}
 
 	const FFortRogueWeaponSpec& Weapon = GetCurrentWeapon();
-	const float Speed = Weapon.ProjectileSpeed * ShotPower * CombatSet->GetShotPowerMultiplier();
-	FVector Velocity = GetProjectileLaunchDirection(0.0f) * Speed;
+	const FFortRogueShotSpec ShotSpec = BuildShotSpec(Weapon);
+	FVector Velocity = GetProjectileLaunchDirection(0.0f) * ShotSpec.LaunchSpeed;
 	FVector Location = GetProjectileSpawnLocation(Velocity.GetSafeNormal());
 	const float StepSeconds = FMath::Max(TrajectoryDebugTimeStep, KINDA_SMALL_NUMBER);
 	const int32 StepCount = FMath::Max(1, TrajectoryDebugSteps);
@@ -882,7 +938,7 @@ void AFortRogueBattleCharacter::DrawProjectileTrajectory() const
 	for (int32 Step = 0; Step < StepCount; ++Step)
 	{
 		const FVector PreviousLocation = Location;
-		Velocity += FVector(Wind, 0.0f, -Weapon.Gravity) * StepSeconds;
+		Velocity += FVector(Wind, 0.0f, -ShotSpec.Gravity) * StepSeconds;
 		Location += Velocity * StepSeconds;
 		DrawDebugLine(GetWorld(), PreviousLocation, Location, FColor::Yellow, false, 0.0f, 0, 2.0f);
 
@@ -896,16 +952,9 @@ void AFortRogueBattleCharacter::DrawProjectileTrajectory() const
 
 void AFortRogueBattleCharacter::GrantStartupAbilitySets()
 {
-	for (const UFortRogueAbilitySet* AbilitySet : StartupAbilitySets)
+	for (UFortRogueAbilitySet* AbilitySet : StartupAbilitySets)
 	{
-		if (!AbilitySet)
-		{
-			continue;
-		}
-
-		FFortRogueAbilitySet_GrantedHandles Handles;
-		AbilitySet->GiveToAbilitySystem(AbilitySystemComponent, &Handles, this);
-		StartupAbilitySetHandles.Add(Handles);
+		GrantAbilitySet(AbilitySet);
 	}
 }
 

@@ -8,6 +8,7 @@
 class UFortRogueItemDefinition;
 class UFortRoguePerkDefinition;
 class UFortRogueWeaponDefinition;
+class UFortRogueAbilitySet;
 
 UENUM(BlueprintType)
 enum class EFortRogueRewardType : uint8
@@ -42,6 +43,9 @@ struct FFortRogueRewardChoice
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
 	TObjectPtr<UFortRoguePerkDefinition> PerkReward;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
+	TObjectPtr<UFortRogueAbilitySet> GrantedAbilitySet;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
 	float DamageBonus = 0.0f;

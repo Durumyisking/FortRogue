@@ -65,11 +65,13 @@ AFortRogueProjectile::AFortRogueProjectile()
 	}
 }
 
-void AFortRogueProjectile::InitializeProjectile(AFortRogueBattleCharacter* InOwnerCharacter, AFortRogueDestructibleTerrain* InTerrain, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity)
+void AFortRogueProjectile::InitializeProjectile(AFortRogueBattleCharacter* InOwnerCharacter, AFortRogueDestructibleTerrain* InTerrain, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity, FGameplayTag InWeaponTag, FGameplayTagContainer InEffectTags)
 {
 	OwnerCharacter = InOwnerCharacter;
 	AssignedTerrain = InTerrain;
 	Velocity = InVelocity;
+	WeaponTag = InWeaponTag;
+	EffectTags = InEffectTags;
 	Damage = InDamage;
 	BlastRadius = FMath::Max(0.0f, InBlastRadius);
 	Gravity = InGravity;

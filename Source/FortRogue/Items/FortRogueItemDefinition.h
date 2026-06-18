@@ -6,6 +6,8 @@
 #include "GameplayTagContainer.h"
 #include "FortRogueItemDefinition.generated.h"
 
+class UFortRogueAbilitySet;
+
 UENUM(BlueprintType)
 enum class EFortRogueItemType : uint8
 {
@@ -30,6 +32,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item", meta = (ClampMin = "1"))
 	int32 InitialCharges = 1;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
+	TObjectPtr<UFortRogueAbilitySet> UseAbilitySet;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item", meta = (EditCondition = "ItemType == EFortRogueItemType::AttackMultiplier", ClampMin = "1.0"))
 	float AttackMultiplier = 1.5f;

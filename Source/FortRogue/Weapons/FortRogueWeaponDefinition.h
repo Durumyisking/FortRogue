@@ -23,6 +23,9 @@ struct FFortRogueWeaponSpec
 	FGameplayTag WeaponTag;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	FGameplayTagContainer ShotEffectTags;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	float Damage = 35.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
