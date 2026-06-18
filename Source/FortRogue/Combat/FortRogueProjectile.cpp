@@ -304,7 +304,7 @@ void AFortRogueProjectile::SpawnImpactProjectiles(const FVector& ImpactLocation)
 				BlastRadius * ImpactSpawn.BlastRadiusMultiplier,
 				Gravity * ImpactSpawn.GravityMultiplier,
 				TerrainCarveRadius * ImpactSpawn.TerrainCarveRadiusMultiplier,
-				0.0f,
+				ImpactSpawn.TerrainFillRadius,
 				WeaponTag,
 				ChildEffectTags);
 

@@ -32,6 +32,9 @@ struct FFortRogueImpactSpawnSpec
 	float TerrainCarveRadiusMultiplier = 0.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Impact Spawn", meta = (ClampMin = "0.0"))
+	float TerrainFillRadius = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Impact Spawn", meta = (ClampMin = "0.0"))
 	float GravityMultiplier = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Impact Spawn")

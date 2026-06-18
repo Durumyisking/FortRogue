@@ -96,6 +96,8 @@ modifier 적용 순서:
 - `TerrainCarveRadiusMultiplier = 0.5`
 - `ChildEffectTags`에 `ShotEffect.SplitOnImpact`
 
+자식 탄이 지형을 만들게 하려면 `TerrainFillRadius`를 0보다 크게 설정한다. 이 값이 0이면 자식 탄은 `TerrainCarveRadiusMultiplier` 기준으로 지형을 판다.
+
 자식 탄은 기본적으로 다시 분열하지 않는다. 무한 분열을 막기 위해 `ImpactSpawns`를 자식에게 전달하지 않는다.
 
 런 보상이나 다음 발 아이템으로 분열 효과를 주고 싶다면 무기 `ImpactSpawns` 대신 `ShotModifier::ImpactSpawns`에 같은 데이터를 넣는다.
