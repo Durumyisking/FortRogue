@@ -220,6 +220,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
 	bool TryGetCombatAttributeValueByTag(FGameplayTag AttributeTag, float& OutValue) const;
 
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Stats")
+	bool TryApplyCombatAttributeDeltaByTag(FGameplayTag AttributeTag, float DeltaValue);
+
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
 	FText GetCombatStatsSummary() const;
 

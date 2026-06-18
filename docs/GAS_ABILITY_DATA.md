@@ -113,7 +113,7 @@ modifier 적용 순서:
 보상 카드에서 바로 탄 방식을 바꾸려면 `FFortRogueRewardChoice::ShotModifiers`를 사용한다.
 
 직접 스탯 보상은 `DamageBonus`, `MaxHealthBonus`, `MaxMoveBudgetBonus`, `ProjectileBonus`, `ShotPowerMultiplierBonus`를 사용한다. 리스크/보상 카드처럼 음수 값을 넣으면 실제 어트리뷰트도 낮아지고, 요약에도 손해가 부호와 함께 표시된다. 최종 값은 MaxHealth 1, MaxMoveBudget 0, Damage 0, ShotPowerMultiplier 0, ProjectileCount 1 하한에서 멈춘다.
-현재 누적된 전투 스탯은 캐릭터 Blueprint getter인 `GetDamageBonus()`, `GetMaxMoveBudget()`, `GetShotPowerMultiplier()`, `GetProjectileCount()`로 UI나 디버그 화면에서 확인할 수 있다. 태그 기반 UI에서는 `Attribute.Health`, `Attribute.MaxHealth`, `Attribute.MoveBudget`, `Attribute.MaxMoveBudget`, `Attribute.Damage`, `Attribute.ShotPowerMultiplier`, `Attribute.ProjectileCount`와 `TryGetCombatAttributeValueByTag()`를 사용한다. 한 줄 요약이 필요하면 `GetCombatStatsSummary()`를 사용한다.
+현재 누적된 전투 스탯은 캐릭터 Blueprint getter인 `GetDamageBonus()`, `GetMaxMoveBudget()`, `GetShotPowerMultiplier()`, `GetProjectileCount()`로 UI나 디버그 화면에서 확인할 수 있다. 태그 기반 UI에서는 `Attribute.Health`, `Attribute.MaxHealth`, `Attribute.MoveBudget`, `Attribute.MaxMoveBudget`, `Attribute.Damage`, `Attribute.ShotPowerMultiplier`, `Attribute.ProjectileCount`와 `TryGetCombatAttributeValueByTag()`를 사용한다. 같은 태그로 임시 버프, 디버그 조정, 스크립트 보정을 넣을 때는 `TryApplyCombatAttributeDeltaByTag()`를 사용한다. 한 줄 요약이 필요하면 `GetCombatStatsSummary()`를 사용한다.
 
 `WeaponReward`로 추가된 무기는 전투 중 1-5번 슬롯으로 선택할 수 있다.
 무기 목록 UI가 슬롯 번호 대신 데이터 태그를 기준으로 선택해야 한다면 `AFortRogueBattleCharacter::SelectWeaponByTag()` 또는 `AFortRoguePlayerController::SelectPlayerWeaponByTag()`를 사용한다.

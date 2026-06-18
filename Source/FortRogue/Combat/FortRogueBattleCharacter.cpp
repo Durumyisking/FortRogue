@@ -951,6 +951,59 @@ bool AFortRogueBattleCharacter::TryGetCombatAttributeValueByTag(FGameplayTag Att
 	return false;
 }
 
+bool AFortRogueBattleCharacter::TryApplyCombatAttributeDeltaByTag(FGameplayTag AttributeTag, float DeltaValue)
+{
+	if (!AttributeTag.IsValid())
+	{
+		return false;
+	}
+
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_Health))
+	{
+		if (DeltaValue >= 0.0f)
+		{
+			CombatSet->Heal(DeltaValue);
+		}
+		else
+		{
+			CombatSet->ApplyDamage(-DeltaValue);
+		}
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_MaxHealth))
+	{
+		CombatSet->AddMaxHealth(DeltaValue);
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_MoveBudget))
+	{
+		CombatSet->SetMoveBudget(FMath::Clamp(GetMoveBudget() + DeltaValue, 0.0f, GetMaxMoveBudget()));
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_MaxMoveBudget))
+	{
+		CombatSet->AddMaxMoveBudget(DeltaValue);
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_Damage))
+	{
+		CombatSet->AddDamage(DeltaValue);
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_ShotPowerMultiplier))
+	{
+		CombatSet->AddShotPowerMultiplier(DeltaValue);
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_ProjectileCount))
+	{
+		CombatSet->AddProjectileCount(DeltaValue);
+		return true;
+	}
+
+	return false;
+}
+
 FText AFortRogueBattleCharacter::GetCombatStatsSummary() const
 {
 	return FText::FromString(FString::Printf(

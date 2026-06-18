@@ -65,7 +65,7 @@ void UFortRogueCombatSet::Heal(float HealAmount)
 void UFortRogueCombatSet::AddMaxHealth(float BonusHealth)
 {
 	const float PreviousMaxHealth = GetMaxHealth();
-	SetMaxHealth(GetMaxHealth() + BonusHealth);
+	SetMaxHealth(FMath::Max(1.0f, GetMaxHealth() + BonusHealth));
 
 	const float AppliedBonus = GetMaxHealth() - PreviousMaxHealth;
 	if (AppliedBonus > 0.0f)
@@ -81,7 +81,7 @@ void UFortRogueCombatSet::AddMaxHealth(float BonusHealth)
 void UFortRogueCombatSet::AddMaxMoveBudget(float BonusMoveBudget)
 {
 	const float PreviousMaxMoveBudget = GetMaxMoveBudget();
-	SetMaxMoveBudget(GetMaxMoveBudget() + BonusMoveBudget);
+	SetMaxMoveBudget(FMath::Max(0.0f, GetMaxMoveBudget() + BonusMoveBudget));
 
 	const float AppliedBonus = GetMaxMoveBudget() - PreviousMaxMoveBudget;
 	SetMoveBudget(FMath::Clamp(GetMoveBudget() + AppliedBonus, 0.0f, GetMaxMoveBudget()));
@@ -89,15 +89,15 @@ void UFortRogueCombatSet::AddMaxMoveBudget(float BonusMoveBudget)
 
 void UFortRogueCombatSet::AddDamage(float BonusDamage)
 {
-	SetDamage(GetDamage() + BonusDamage);
+	SetDamage(FMath::Max(0.0f, GetDamage() + BonusDamage));
 }
 
 void UFortRogueCombatSet::AddShotPowerMultiplier(float BonusMultiplier)
 {
-	SetShotPowerMultiplier(GetShotPowerMultiplier() + BonusMultiplier);
+	SetShotPowerMultiplier(FMath::Max(0.0f, GetShotPowerMultiplier() + BonusMultiplier));
 }
 
 void UFortRogueCombatSet::AddProjectileCount(float BonusProjectiles)
 {
-	SetProjectileCount(GetProjectileCount() + BonusProjectiles);
+	SetProjectileCount(FMath::Max(1.0f, GetProjectileCount() + BonusProjectiles));
 }
