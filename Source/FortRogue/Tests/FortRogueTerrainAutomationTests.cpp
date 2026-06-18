@@ -581,6 +581,9 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 	GameMode->BuildRewardChoices();
 	TestTrue(TEXT("Reward choices include rewards after required reward tags are chosen"), HasRewardChoiceTag(GameMode->GetRewardChoices(), FortRogueGameplayTags::Trait_Projectiles));
 	TestFalse(TEXT("Reward choices hide rewards blocked by chosen reward tags"), HasRewardChoiceTag(GameMode->GetRewardChoices(), FortRogueGameplayTags::Trait_Health));
+	TestEqual(TEXT("Game mode reward choice count matches current choices"), GameMode->GetRewardChoiceCount(), GameMode->GetRewardChoices().Num());
+	TestTrue(TEXT("Game mode returns reward choices by index"), GameMode->GetRewardChoice(0).RewardTag.IsValid());
+	TestFalse(TEXT("Game mode returns default reward choices for invalid indexes"), GameMode->GetRewardChoice(GameMode->GetRewardChoiceCount()).RewardTag.IsValid());
 	TestFalse(TEXT("Game mode rejects reward choice outside reward state"), GameMode->CanApplyRewardChoice(0));
 	TestFalse(TEXT("Game mode reward choice summary is available for valid choices"), GameMode->GetRewardChoiceSummary(0).ToString().IsEmpty());
 	TestTrue(TEXT("Game mode reward choice summary is empty for invalid choices"), GameMode->GetRewardChoiceSummary(GameMode->GetRewardChoices().Num()).ToString().IsEmpty());

@@ -165,9 +165,19 @@ TArray<FFortRogueRewardChoice> AFortRogueGameMode::GetRewardChoices() const
 	return RewardChoices;
 }
 
+int32 AFortRogueGameMode::GetRewardChoiceCount() const
+{
+	return RewardChoices.Num();
+}
+
+FFortRogueRewardChoice AFortRogueGameMode::GetRewardChoice(int32 ChoiceIndex) const
+{
+	return RewardChoices.IsValidIndex(ChoiceIndex) ? RewardChoices[ChoiceIndex] : FFortRogueRewardChoice();
+}
+
 FText AFortRogueGameMode::GetRewardChoiceSummary(int32 ChoiceIndex) const
 {
-	return RewardChoices.IsValidIndex(ChoiceIndex) ? RewardChoices[ChoiceIndex].GetEffectSummary() : FText::GetEmpty();
+	return RewardChoices.IsValidIndex(ChoiceIndex) ? GetRewardChoice(ChoiceIndex).GetEffectSummary() : FText::GetEmpty();
 }
 
 FGameplayTagContainer AFortRogueGameMode::GetChosenRewardTags() const
