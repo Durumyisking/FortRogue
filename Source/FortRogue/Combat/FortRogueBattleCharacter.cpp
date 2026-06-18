@@ -637,6 +637,29 @@ int32 AFortRogueBattleCharacter::RemoveGrantedShotModifiersByTag(FGameplayTag Mo
 	return RemovedCount;
 }
 
+int32 AFortRogueBattleCharacter::RemovePendingShotModifiersByTag(FGameplayTag ModifierTag)
+{
+	if (!ModifierTag.IsValid())
+	{
+		return 0;
+	}
+
+	int32 RemovedCount = 0;
+	for (int32 Index = PendingShotModifiers.Num() - 1; Index >= 0; --Index)
+	{
+		const FFortRogueShotModifierSpec& Modifier = PendingShotModifiers[Index];
+		if (!DoesShotModifierMatchTag(Modifier, ModifierTag))
+		{
+			continue;
+		}
+
+		PendingShotModifiers.RemoveAt(Index);
+		++RemovedCount;
+	}
+
+	return RemovedCount;
+}
+
 void AFortRogueBattleCharacter::AddWeaponDefinition(UFortRogueWeaponDefinition* WeaponDefinition)
 {
 	if (WeaponDefinition)
@@ -799,6 +822,24 @@ int32 AFortRogueBattleCharacter::GetGrantedShotModifierCountByTag(FGameplayTag M
 
 	int32 TotalCount = 0;
 	for (const FFortRogueShotModifierSpec& Modifier : GrantedShotModifiers)
+	{
+		if (DoesShotModifierMatchTag(Modifier, ModifierTag))
+		{
+			++TotalCount;
+		}
+	}
+	return TotalCount;
+}
+
+int32 AFortRogueBattleCharacter::GetPendingShotModifierCountByTag(FGameplayTag ModifierTag) const
+{
+	if (!ModifierTag.IsValid())
+	{
+		return 0;
+	}
+
+	int32 TotalCount = 0;
+	for (const FFortRogueShotModifierSpec& Modifier : PendingShotModifiers)
 	{
 		if (DoesShotModifierMatchTag(Modifier, ModifierTag))
 		{

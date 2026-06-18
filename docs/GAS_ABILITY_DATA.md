@@ -163,6 +163,7 @@ Canvas HUD도 현재 `ItemLoadout`의 아이템 이름과 수량을 표시한다
 - `UseShotModifiers`에 다음 발에만 적용할 modifier를 넣는다.
 - 발사 전 HUD의 최종 ShotSpec 표시로 적용 결과를 확인한다.
 - 실제 발사 후 `PendingShotModifiers`는 자동으로 비워진다.
+- 다음 발 효과를 UI에서 확인하거나 취소해야 한다면 `GetPendingShotModifierCountByTag()`와 `RemovePendingShotModifiersByTag()`를 사용한다.
 
 ## 7. 주의할 점
 

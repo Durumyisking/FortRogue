@@ -139,6 +139,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
 	int32 RemoveGrantedShotModifiersByTag(FGameplayTag ModifierTag);
 
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
+	int32 RemovePendingShotModifiersByTag(FGameplayTag ModifierTag);
+
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Weapons")
 	void AddWeaponDefinition(UFortRogueWeaponDefinition* WeaponDefinition);
 
@@ -203,6 +206,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
 	int32 GetGrantedShotModifierCountByTag(FGameplayTag ModifierTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	int32 GetPendingShotModifierCountByTag(FGameplayTag ModifierTag) const;
 
 	const FFortRogueWeaponSpec& GetCurrentWeapon() const;
 

@@ -992,6 +992,19 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		TestEqual(TEXT("Shot spec clamps negative terrain carve radius"), UnsafeShotSpec.TerrainCarveRadius, 0.0f);
 		TestEqual(TEXT("Shot spec clamps negative launch speed"), UnsafeShotSpec.LaunchSpeed, 0.0f);
 		TestEqual(TEXT("Shot spec clamps negative gravity"), UnsafeShotSpec.Gravity, 0.0f);
+		UFortRogueItemDefinition* PendingModifierItem = NewObject<UFortRogueItemDefinition>(StatCharacter);
+		PendingModifierItem->ItemType = EFortRogueItemType::AbilitySet;
+		FFortRogueShotModifierSpec PendingModifier;
+		PendingModifier.ModifierTag = FortRogueGameplayTags::ShotEffect_Damage;
+		PendingModifier.DamageBonus = 5.0f;
+		PendingModifierItem->UseShotModifiers.Add(PendingModifier);
+		StatCharacter->AddItemDefinition(PendingModifierItem, 1);
+		const int32 PendingModifierItemIndex = StatCharacter->GetItemLoadout().Num() - 1;
+		StatCharacter->BeginTurn();
+		TestTrue(TEXT("Battle character uses item that grants pending shot modifier"), StatCharacter->UseItemByIndex(PendingModifierItemIndex));
+		TestEqual(TEXT("Battle character counts pending shot modifiers by tag"), StatCharacter->GetPendingShotModifierCountByTag(FortRogueGameplayTags::ShotEffect_Damage), 1);
+		TestEqual(TEXT("Battle character removes pending shot modifiers by tag"), StatCharacter->RemovePendingShotModifiersByTag(FortRogueGameplayTags::ShotEffect_Damage), 1);
+		TestEqual(TEXT("Battle character pending shot modifier count updates after removal"), StatCharacter->GetPendingShotModifierCountByTag(FortRogueGameplayTags::ShotEffect_Damage), 0);
 	}
 
 	AFortRogueBattleCharacter* ItemSlotCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(-15.0f, 0.0f, 55.0f), FRotator::ZeroRotator, SpawnParams);
