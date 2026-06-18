@@ -665,6 +665,26 @@ float AFortRogueBattleCharacter::GetMoveBudget() const
 	return CombatSet->GetMoveBudget();
 }
 
+float AFortRogueBattleCharacter::GetMaxMoveBudget() const
+{
+	return CombatSet->GetMaxMoveBudget();
+}
+
+float AFortRogueBattleCharacter::GetDamageBonus() const
+{
+	return CombatSet->GetDamage();
+}
+
+float AFortRogueBattleCharacter::GetShotPowerMultiplier() const
+{
+	return CombatSet->GetShotPowerMultiplier();
+}
+
+float AFortRogueBattleCharacter::GetProjectileCount() const
+{
+	return CombatSet->GetProjectileCount();
+}
+
 float AFortRogueBattleCharacter::GetAimAngle() const
 {
 	return AimAngle;

@@ -893,6 +893,7 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	{
 		UFortRogueCharacterDefinition* CharacterDefinition = NewObject<UFortRogueCharacterDefinition>();
 		CharacterDefinition->MaxHealth = 175.0f;
+		CharacterDefinition->BonusDamage = 12.0f;
 		CharacterDefinition->MaxMoveBudget = 25.0f;
 		CharacterDefinition->ShotPowerMultiplier = 1.8f;
 		StatCharacter->InitializeFromDefinition(CharacterDefinition);
@@ -902,6 +903,12 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 			TestEqual(TEXT("Character definition controls turn movement budget"), CombatSet->GetMaxMoveBudget(), 25.0f);
 			TestEqual(TEXT("Character definition controls shot power multiplier"), CombatSet->GetShotPowerMultiplier(), 1.8f);
 		}
+		TestEqual(TEXT("Battle character getter exposes max move budget"), StatCharacter->GetMaxMoveBudget(), 25.0f);
+		TestEqual(TEXT("Battle character getter exposes damage bonus"), StatCharacter->GetDamageBonus(), 12.0f);
+		TestEqual(TEXT("Battle character getter exposes shot power multiplier"), StatCharacter->GetShotPowerMultiplier(), 1.8f);
+		TestEqual(TEXT("Battle character getter exposes base projectile count"), StatCharacter->GetProjectileCount(), 1.0f);
+		StatCharacter->ApplyRewardProjectiles(2);
+		TestEqual(TEXT("Battle character getter exposes projectile count rewards"), StatCharacter->GetProjectileCount(), 3.0f);
 	}
 
 	AFortRogueBattleCharacter* ItemSlotCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(-15.0f, 0.0f, 55.0f), FRotator::ZeroRotator, SpawnParams);

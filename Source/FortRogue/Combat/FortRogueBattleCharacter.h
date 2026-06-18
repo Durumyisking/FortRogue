@@ -160,6 +160,18 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
 	float GetMoveBudget() const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
+	float GetMaxMoveBudget() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
+	float GetDamageBonus() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
+	float GetShotPowerMultiplier() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
+	float GetProjectileCount() const;
+
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
 	float GetAimAngle() const;
 
