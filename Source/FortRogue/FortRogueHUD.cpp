@@ -7,6 +7,7 @@
 #include "FortRogueGameMode.h"
 #include "Engine/Canvas.h"
 #include "Engine/Engine.h"
+#include "Items/FortRogueItemDefinition.h"
 
 namespace
 {
@@ -18,6 +19,42 @@ int32 CountImpactSpawnProjectiles(const TArray<FFortRogueImpactSpawnSpec>& Impac
 		TotalCount += FMath::Max(0, ImpactSpawn.ProjectileCount);
 	}
 	return TotalCount;
+}
+
+FString GetItemInputPrefix(EFortRogueItemType ItemType)
+{
+	if (ItemType == EFortRogueItemType::AttackMultiplier)
+	{
+		return TEXT("J ");
+	}
+	if (ItemType == EFortRogueItemType::Heal)
+	{
+		return TEXT("H ");
+	}
+	return FString();
+}
+
+FString BuildItemLoadoutText(const AFortRogueBattleCharacter& Player)
+{
+	TArray<FString> ItemParts;
+	for (const FFortRogueItemStack& ItemStack : Player.GetItemLoadout())
+	{
+		const UFortRogueItemDefinition* ItemDefinition = ItemStack.ItemDefinition;
+		if (!ItemDefinition)
+		{
+			continue;
+		}
+
+		const FString InputPrefix = GetItemInputPrefix(ItemDefinition->ItemType);
+		ItemParts.Add(FString::Printf(TEXT("%s%s x%d"),
+			*InputPrefix,
+			*ItemDefinition->DisplayName.ToString(),
+			FMath::Max(0, ItemStack.Charges)));
+	}
+
+	return ItemParts.Num() > 0
+		? FString::Printf(TEXT("Items: %s"), *FString::Join(ItemParts, TEXT(" | ")))
+		: TEXT("Items: none");
 }
 }
 
@@ -56,12 +93,13 @@ void AFortRogueHUD::DrawBattleHUD(AFortRogueGameMode* GameMode, float X, float& 
 		Y += 24.0f;
 		DrawPowerGauge(Player, X, Y);
 		const int32 MaxWeaponKey = FMath::Max(1, FMath::Min(Player->GetWeaponLoadout().Num(), 5));
-		DrawText(FString::Printf(TEXT("Weapon %d: %s | 1-%d Weapon | J Attack Amp x%d | H Repair x%d"),
+		DrawText(FString::Printf(TEXT("Weapon %d: %s | 1-%d Weapon"),
 			Player->GetSelectedWeaponIndex() + 1,
 			*Player->GetCurrentWeapon().DisplayName.ToString(),
-			MaxWeaponKey,
-			Player->GetItemCharges(EFortRogueItemType::AttackMultiplier),
-			Player->GetItemCharges(EFortRogueItemType::Heal)),
+			MaxWeaponKey),
+			FColor::Cyan, X, Y, GEngine->GetSmallFont(), Scale);
+		Y += 24.0f;
+		DrawText(BuildItemLoadoutText(*Player),
 			FColor::Cyan, X, Y, GEngine->GetSmallFont(), Scale);
 		Y += 24.0f;
 		const FFortRogueShotSpec ShotSpec = Player->GetCurrentShotSpec();
