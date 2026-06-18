@@ -103,6 +103,7 @@ void AFortRogueBattleCharacter::InitializeFromDefinition(UFortRogueCharacterDefi
 	CombatSet->SetShotPowerMultiplier(InCharacterDefinition->ShotPowerMultiplier);
 
 	GrantedShotModifiers.Reset();
+	PendingShotModifiers.Reset();
 	WeaponLoadout.Reset();
 	for (UFortRogueWeaponDefinition* WeaponDefinition : InCharacterDefinition->WeaponLoadout)
 	{
@@ -316,6 +317,7 @@ int32 AFortRogueBattleCharacter::FireSelectedWeapon()
 	const int32 ProjectileCount = ShotSpec.ProjectileCount;
 	int32 SpawnedProjectiles = 0;
 	PendingAttackMultiplier = 1.0f;
+	PendingShotModifiers.Reset();
 
 	for (int32 Index = 0; Index < ProjectileCount; ++Index)
 	{
@@ -464,6 +466,7 @@ bool AFortRogueBattleCharacter::UseItemStack(FFortRogueItemStack& ItemStack)
 		PendingAttackMultiplier = FMath::Max(PendingAttackMultiplier, ItemDefinition->AttackMultiplier);
 	}
 	GrantAbilitySet(ItemDefinition->UseAbilitySet);
+	PendingShotModifiers.Append(ItemDefinition->UseShotModifiers);
 	return true;
 }
 
@@ -991,6 +994,10 @@ FFortRogueShotSpec AFortRogueBattleCharacter::BuildShotSpec(const FFortRogueWeap
 		ApplyShotModifier(Modifier);
 	}
 	for (const FFortRogueShotModifierSpec& Modifier : GrantedShotModifiers)
+	{
+		ApplyShotModifier(Modifier);
+	}
+	for (const FFortRogueShotModifierSpec& Modifier : PendingShotModifiers)
 	{
 		ApplyShotModifier(Modifier);
 	}

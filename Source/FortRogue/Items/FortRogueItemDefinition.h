@@ -4,6 +4,7 @@
 
 #include "Engine/DataAsset.h"
 #include "GameplayTagContainer.h"
+#include "Weapons/FortRogueWeaponDefinition.h"
 #include "FortRogueItemDefinition.generated.h"
 
 class UFortRogueAbilitySet;
@@ -36,6 +37,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	TObjectPtr<UFortRogueAbilitySet> UseAbilitySet;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shot Modifier", meta = (TitleProperty = EffectTags))
+	TArray<FFortRogueShotModifierSpec> UseShotModifiers;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item", meta = (EditCondition = "ItemType == EFortRogueItemType::AttackMultiplier", ClampMin = "1.0"))
 	float AttackMultiplier = 1.5f;
