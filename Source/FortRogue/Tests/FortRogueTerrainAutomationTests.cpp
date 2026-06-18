@@ -22,6 +22,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "FortRogueGameMode.h"
+#include "FortRogueGameplayTags.h"
 #include "Items/FortRogueItemDefinition.h"
 #include "Kismet/GameplayStatics.h"
 #include "Perks/FortRoguePerkDefinition.h"
@@ -469,6 +470,48 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 	TestNotNull(TEXT("Game mode spawns the player character"), GameMode->GetPlayerCharacter());
 	TestNotNull(TEXT("Game mode spawns the enemy character"), GameMode->GetEnemyCharacter());
 	TestEqual(TEXT("Game mode turn wind can be fixed for deterministic projectile tests"), GameMode->GetWind(), 120.0f);
+
+	auto HasRewardChoiceTag = [](const TArray<FFortRogueRewardChoice>& RewardChoices, FGameplayTag RewardTag)
+	{
+		for (const FFortRogueRewardChoice& RewardChoice : RewardChoices)
+		{
+			if (RewardChoice.RewardTag.MatchesTagExact(RewardTag))
+			{
+				return true;
+			}
+		}
+		return false;
+	};
+
+	FFortRogueRewardChoice BaseReward;
+	BaseReward.DisplayName = FText::FromString(TEXT("Damage Seed"));
+	BaseReward.RewardTag = FortRogueGameplayTags::Trait_Damage;
+	FFortRogueRewardChoice RequiredReward;
+	RequiredReward.DisplayName = FText::FromString(TEXT("Projectile Branch"));
+	RequiredReward.RewardTag = FortRogueGameplayTags::Trait_Projectiles;
+	RequiredReward.RequiredRewardTags.AddTag(FortRogueGameplayTags::Trait_Damage);
+	FFortRogueRewardChoice BlockedReward;
+	BlockedReward.DisplayName = FText::FromString(TEXT("Health Branch"));
+	BlockedReward.RewardTag = FortRogueGameplayTags::Trait_Health;
+	BlockedReward.BlockedRewardTags.AddTag(FortRogueGameplayTags::Trait_Damage);
+	FFortRogueRewardChoice OpenReward;
+	OpenReward.DisplayName = FText::FromString(TEXT("Open Branch"));
+	OpenReward.RewardTag = FortRogueGameplayTags::Trait_ShotModifier;
+	TestStageRunDefinition->RewardChoiceCount = 5;
+	TestStageRunDefinition->RewardPool = { BaseReward, RequiredReward, BlockedReward, OpenReward };
+
+	GameMode->ChosenRewardTags.Reset();
+	GameMode->BuildRewardChoices();
+	TestFalse(TEXT("Reward choices hide rewards before required reward tags are chosen"), HasRewardChoiceTag(GameMode->GetRewardChoices(), FortRogueGameplayTags::Trait_Projectiles));
+	TestTrue(TEXT("Reward choices keep rewards whose blocked tags are absent"), HasRewardChoiceTag(GameMode->GetRewardChoices(), FortRogueGameplayTags::Trait_Health));
+
+	GameMode->ChosenRewardTags = { FortRogueGameplayTags::Trait_Damage };
+	GameMode->BuildRewardChoices();
+	TestTrue(TEXT("Reward choices include rewards after required reward tags are chosen"), HasRewardChoiceTag(GameMode->GetRewardChoices(), FortRogueGameplayTags::Trait_Projectiles));
+	TestFalse(TEXT("Reward choices hide rewards blocked by chosen reward tags"), HasRewardChoiceTag(GameMode->GetRewardChoices(), FortRogueGameplayTags::Trait_Health));
+	TestStageRunDefinition->RewardPool.Reset();
+	GameMode->RewardChoices.Reset();
+	GameMode->ChosenRewardTags.Reset();
 
 	AFortRogueProjectile* WindProjectile = World->SpawnActor<AFortRogueProjectile>(AFortRogueProjectile::StaticClass(), FVector(0.0f, 0.0f, 500.0f), FRotator::ZeroRotator);
 	TestNotNull(TEXT("Wind test projectile is spawned"), WindProjectile);

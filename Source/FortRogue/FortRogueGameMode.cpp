@@ -125,7 +125,7 @@ void AFortRogueGameMode::ApplyRewardChoice(int32 ChoiceIndex)
 
 	const FFortRogueRewardChoice Reward = RewardChoices[ChoiceIndex];
 	ApplyRewardToPlayer(Reward);
-	if (Reward.bOfferOncePerRun && Reward.RewardTag.IsValid())
+	if (Reward.RewardTag.IsValid())
 	{
 		ChosenRewardTags.AddUnique(Reward.RewardTag);
 	}
@@ -536,9 +536,29 @@ void AFortRogueGameMode::BuildRewardChoices()
 		return;
 	}
 
+	FGameplayTagContainer ChosenRewardTagContainer;
+	for (const FGameplayTag& ChosenRewardTag : ChosenRewardTags)
+	{
+		if (ChosenRewardTag.IsValid())
+		{
+			ChosenRewardTagContainer.AddTag(ChosenRewardTag);
+		}
+	}
+
+	TArray<FFortRogueRewardChoice> CompatibleRewards;
 	TArray<FFortRogueRewardChoice> CandidateRewards;
 	for (const FFortRogueRewardChoice& Reward : StageRunDefinition->RewardPool)
 	{
+		if (!Reward.RequiredRewardTags.IsEmpty() && !ChosenRewardTagContainer.HasAll(Reward.RequiredRewardTags))
+		{
+			continue;
+		}
+		if (!Reward.BlockedRewardTags.IsEmpty() && ChosenRewardTagContainer.HasAny(Reward.BlockedRewardTags))
+		{
+			continue;
+		}
+
+		CompatibleRewards.Add(Reward);
 		if (Reward.bOfferOncePerRun && Reward.RewardTag.IsValid() && ChosenRewardTags.Contains(Reward.RewardTag))
 		{
 			continue;
@@ -548,7 +568,11 @@ void AFortRogueGameMode::BuildRewardChoices()
 	}
 	if (CandidateRewards.Num() <= 0)
 	{
-		CandidateRewards = StageRunDefinition->RewardPool;
+		CandidateRewards = CompatibleRewards;
+	}
+	if (CandidateRewards.Num() <= 0)
+	{
+		return;
 	}
 
 	const int32 MaxAvailableChoices = FMath::Min(MaxRewardChoiceCount, CandidateRewards.Num());

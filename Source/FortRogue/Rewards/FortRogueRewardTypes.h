@@ -43,6 +43,12 @@ struct FFortRogueRewardChoice
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
 	bool bOfferOncePerRun = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward|Condition")
+	FGameplayTagContainer RequiredRewardTags;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward|Condition")
+	FGameplayTagContainer BlockedRewardTags;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
 	TObjectPtr<UFortRogueWeaponDefinition> WeaponReward;
 

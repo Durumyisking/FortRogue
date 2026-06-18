@@ -221,6 +221,14 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 	{
 		AddSummaryPart(Parts, TEXT("once per run"));
 	}
+	if (!RequiredRewardTags.IsEmpty())
+	{
+		AddSummaryPart(Parts, FString::Printf(TEXT("requires reward %s"), *RequiredRewardTags.ToStringSimple()));
+	}
+	if (!BlockedRewardTags.IsEmpty())
+	{
+		AddSummaryPart(Parts, FString::Printf(TEXT("blocks reward %s"), *BlockedRewardTags.ToStringSimple()));
+	}
 
 	if (Parts.Num() <= 0)
 	{

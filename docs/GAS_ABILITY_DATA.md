@@ -117,9 +117,12 @@ modifier 적용 순서:
 - `RewardChoiceCount`: 보상 화면에 보여줄 선택지 수, 현재 키보드/Canvas HUD 기준 1-5개
 - `RewardWeight`: 각 보상의 등장 가중치
 - `bOfferOncePerRun`: `RewardTag`가 있는 보상을 런당 한 번만 제시
+- `RequiredRewardTags`: 해당 태그 보상을 이미 선택했을 때만 등장
+- `BlockedRewardTags`: 해당 태그 보상을 이미 선택했다면 등장하지 않음
 
 보상 선택지는 같은 보상이 한 화면에 중복되지 않도록 뽑힌다.
 `bOfferOncePerRun` 보상이 모두 소진되면 진행이 막히지 않도록 다시 반복 제시를 허용한다.
+조건 태그는 fallback 때도 유지된다. 즉 선행 조건이 없는 보상이 다 소진되어도 `RequiredRewardTags`를 만족하지 않은 보상은 억지로 등장하지 않는다.
 
 최종 스테이지 전까지 적을 처치하면 `Reward` 상태로 들어가고, 플레이어가 보상을 선택한 뒤 다음 스테이지를 생성한다.
 
