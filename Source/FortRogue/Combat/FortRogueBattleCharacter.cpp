@@ -950,8 +950,18 @@ FFortRogueShotSpec AFortRogueBattleCharacter::BuildShotSpec(const FFortRogueWeap
 	ShotSpec.ProjectileCount = FMath::Max(1, Weapon.ProjectilesPerShot + FMath::RoundToInt(CombatSet->GetProjectileCount()) - 1);
 	ShotSpec.ProjectileClass = Weapon.ProjectileClass ? Weapon.ProjectileClass : TSubclassOf<AFortRogueProjectile>(AFortRogueProjectile::StaticClass());
 	ShotSpec.ImpactSpawns = Weapon.ImpactSpawns;
-	auto ApplyShotModifier = [&ShotSpec](const FFortRogueShotModifierSpec& Modifier)
+	auto ApplyShotModifier = [this, &ShotSpec](const FFortRogueShotModifierSpec& Modifier)
 	{
+		if (Modifier.bUseAimAngleRange)
+		{
+			const float MinAngle = FMath::Min(Modifier.MinAimAngle, Modifier.MaxAimAngle);
+			const float MaxAngle = FMath::Max(Modifier.MinAimAngle, Modifier.MaxAimAngle);
+			if (AimAngle < MinAngle || AimAngle > MaxAngle)
+			{
+				return;
+			}
+		}
+
 		ShotSpec.EffectTags.AppendTags(Modifier.EffectTags);
 		ShotSpec.Damage = (ShotSpec.Damage + Modifier.DamageBonus) * Modifier.DamageMultiplier;
 		ShotSpec.BlastRadius = FMath::Max(0.0f, (ShotSpec.BlastRadius + Modifier.BlastRadiusBonus) * Modifier.BlastRadiusMultiplier);

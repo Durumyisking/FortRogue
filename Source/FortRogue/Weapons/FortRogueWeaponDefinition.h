@@ -17,6 +17,15 @@ struct FFortRogueShotModifierSpec
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier")
 	FGameplayTagContainer EffectTags;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition")
+	bool bUseAimAngleRange = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition", meta = (EditCondition = "bUseAimAngleRange", ClampMin = "0.0", ClampMax = "90.0"))
+	float MinAimAngle = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition", meta = (EditCondition = "bUseAimAngleRange", ClampMin = "0.0", ClampMax = "90.0"))
+	float MaxAimAngle = 90.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier")
 	float DamageBonus = 0.0f;
 
