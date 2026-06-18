@@ -34,7 +34,9 @@ public:
 	void ApplyDamage(float DamageAmount);
 	void Heal(float HealAmount);
 	void AddMaxHealth(float BonusHealth);
+	void AddMaxMoveBudget(float BonusMoveBudget);
 	void AddDamage(float BonusDamage);
+	void AddShotPowerMultiplier(float BonusMultiplier);
 	void AddProjectileCount(float BonusProjectiles);
 
 	UPROPERTY(BlueprintReadOnly, Category = "FortRogue|Combat")

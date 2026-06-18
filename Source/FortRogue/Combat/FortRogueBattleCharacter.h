@@ -5,6 +5,7 @@
 #include "AbilitySystemInterface.h"
 #include "AbilitySystem/FortRogueAbilitySet.h"
 #include "Characters/FortRogueCharacterDefinition.h"
+#include "Combat/FortRogueShotSpec.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "Run/FortRogueStageRunDefinition.h"
@@ -20,6 +21,18 @@ class UStaticMeshComponent;
 class UFortRogueItemDefinition;
 class UFortRoguePerkDefinition;
 class AFortRogueDestructibleTerrain;
+
+USTRUCT()
+struct FFortRogueGrantedAbilitySetEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TObjectPtr<UFortRogueAbilitySet> AbilitySet;
+
+	UPROPERTY()
+	FFortRogueAbilitySet_GrantedHandles Handles;
+};
 
 UCLASS()
 class FORTROGUE_API AFortRogueBattleCharacter : public APawn, public IAbilitySystemInterface
@@ -57,6 +70,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
 	void BeginShotCharge();
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	bool CanBeginShotCharge() const;
+
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
 	void UpdateShotCharge(float DeltaSeconds);
 
@@ -66,8 +82,23 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
 	void SelectWeapon(int32 WeaponIndex);
 
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Weapons")
+	bool SelectWeaponByTag(FGameplayTag WeaponTag);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
+	bool CanSelectWeapon(int32 WeaponIndex) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
+	bool CanSelectWeaponByTag(FGameplayTag WeaponTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
+	int32 GetWeaponIndexByTag(FGameplayTag WeaponTag) const;
+
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
 	int32 FireSelectedWeapon();
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	bool CanFireSelectedWeapon() const;
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|AI")
 	void FireAtTarget(AFortRogueBattleCharacter* Target, const FFortRogueStageDifficultyData& DifficultyData);
@@ -83,6 +114,25 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Items")
 	bool UseItemByType(EFortRogueItemType ItemType);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Items")
+	bool UseItemByTag(FGameplayTag ItemTag);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Items")
+	bool UseItemByIndex(int32 ItemIndex);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
+	bool CanUseItemByType(EFortRogueItemType ItemType) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
+	bool CanUseItemByTag(FGameplayTag ItemTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
+	bool CanUseItemByIndex(int32 ItemIndex) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
+	int32 GetItemIndexByTag(FGameplayTag ItemTag) const;
+
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
 	void ApplyRewardDamage(float BonusDamage);
 
@@ -90,10 +140,43 @@ public:
 	void ApplyRewardHealth(float BonusHealth);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
+	void ApplyRewardMoveBudget(float BonusMoveBudget);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
 	void ApplyRewardProjectiles(int32 BonusProjectiles);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
+	void ApplyRewardShotPowerMultiplier(float BonusMultiplier);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
 	void ApplyPerkDefinition(UFortRoguePerkDefinition* PerkDefinition);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Abilities")
+	void GrantAbilitySet(UFortRogueAbilitySet* AbilitySet);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Abilities")
+	bool RemoveAbilitySet(UFortRogueAbilitySet* AbilitySet);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Abilities")
+	int32 RemoveAbilitySetsByTag(FGameplayTag AbilitySetTag);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Abilities")
+	int32 GetGrantedAbilitySetCount(UFortRogueAbilitySet* AbilitySet) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Abilities")
+	int32 GetGrantedAbilitySetCountByTag(FGameplayTag AbilitySetTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Abilities")
+	bool HasGrantedAbilitySetByTag(FGameplayTag AbilitySetTag) const;
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
+	void GrantShotModifiers(const TArray<FFortRogueShotModifierSpec>& ShotModifiers);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
+	int32 RemoveGrantedShotModifiersByTag(FGameplayTag ModifierTag);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
+	int32 RemovePendingShotModifiersByTag(FGameplayTag ModifierTag);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Weapons")
 	void AddWeaponDefinition(UFortRogueWeaponDefinition* WeaponDefinition);
@@ -122,6 +205,27 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
 	float GetMoveBudget() const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
+	float GetMaxMoveBudget() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
+	float GetDamageBonus() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
+	float GetShotPowerMultiplier() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
+	float GetProjectileCount() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
+	bool TryGetCombatAttributeValueByTag(FGameplayTag AttributeTag, float& OutValue) const;
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Stats")
+	bool TryApplyCombatAttributeDeltaByTag(FGameplayTag AttributeTag, float DeltaValue);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
+	FText GetCombatStatsSummary() const;
+
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
 	float GetAimAngle() const;
 
@@ -137,10 +241,36 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
 	int32 GetItemCharges(EFortRogueItemType ItemType) const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
+	int32 GetItemChargesByTag(FGameplayTag ItemTag) const;
+
+	const TArray<FFortRogueItemStack>& GetItemLoadout() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
+	TArray<FFortRogueItemStack> GetItemLoadoutForBlueprint() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	int32 GetGrantedShotModifierCountByTag(FGameplayTag ModifierTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	int32 GetPendingShotModifierCountByTag(FGameplayTag ModifierTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	bool HasGrantedShotModifierByTag(FGameplayTag ModifierTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	bool HasPendingShotModifierByTag(FGameplayTag ModifierTag) const;
+
 	const FFortRogueWeaponSpec& GetCurrentWeapon() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
 	FFortRogueWeaponSpec GetCurrentWeaponSpec() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	FFortRogueShotSpec GetCurrentShotSpec() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
+	FText GetCurrentShotSummary() const;
 
 	const TArray<FFortRogueWeaponSpec>& GetWeaponLoadout() const;
 
@@ -165,6 +295,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Items")
 	TArray<FFortRogueItemStack> ItemLoadout;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Perks")
+	TArray<FFortRogueShotModifierSpec> GrantedShotModifiers;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Items")
+	TArray<FFortRogueShotModifierSpec> PendingShotModifiers;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Loadout")
 	TObjectPtr<UFortRogueDefaultLoadoutDefinition> DefaultLoadoutDefinition;
 
@@ -179,6 +315,9 @@ public:
 
 private:
 	AFortRogueDestructibleTerrain* FindTerrain() const;
+	bool CanUseAnyItem() const;
+	bool CanUseItemStack(const FFortRogueItemStack& ItemStack) const;
+	bool UseItemStack(FFortRogueItemStack& ItemStack);
 	bool IsSupportedByTerrain() const;
 	bool FindFootprintSurfaceZ(const AFortRogueDestructibleTerrain& Terrain, float CenterWorldX, float StartWorldZ, float SearchDistance, float& OutSurfaceZ) const;
 	bool IsFootprintBlocked(const AFortRogueDestructibleTerrain& Terrain, const FVector& CenterLocation, float FootWorldZ) const;
@@ -192,6 +331,7 @@ private:
 	float GetBodyPitchDegrees() const;
 	FVector GetProjectileLaunchDirection(float SpreadDegrees) const;
 	FVector GetProjectileSpawnLocation(const FVector& LaunchDirection) const;
+	FFortRogueShotSpec BuildShotSpec(const FFortRogueWeaponSpec& Weapon) const;
 	void DrawProjectileTrajectory() const;
 	void GrantStartupAbilitySets();
 	void EnsureDefaultLoadout();
@@ -214,7 +354,9 @@ private:
 	UPROPERTY()
 	TObjectPtr<AFortRogueDestructibleTerrain> AssignedTerrain;
 
-	TArray<FFortRogueAbilitySet_GrantedHandles> StartupAbilitySetHandles;
+	UPROPERTY()
+	TArray<FFortRogueGrantedAbilitySetEntry> GrantedAbilitySetEntries;
+
 	FText CharacterDisplayName;
 	bool bEnemy = false;
 	bool bActiveTurn = false;

@@ -25,6 +25,7 @@ namespace
 constexpr float TerrainCameraPadding = 240.0f;
 constexpr float MinimumTerrainCameraOrthoWidth = 1200.0f;
 constexpr float ExpectedWideViewportAspectRatio = 16.0f / 9.0f;
+constexpr int32 MaxRewardChoiceCount = 5;
 const FRotator BattleCameraRotation(0.0f, -90.0f, 0.0f);
 }
 
@@ -51,6 +52,7 @@ void AFortRogueGameMode::BeginPlay()
 		StageRunDefinition->NormalizeStageData();
 	}
 	EncounteredEnemyDefinitions.Reset();
+	ChosenRewardTags.Reset();
 	SelectNextEnemyDefinition();
 	SpawnMVPBattle();
 	StartPlayerTurn();
@@ -69,6 +71,10 @@ void AFortRogueGameMode::NotifyProjectileSpawned(AFortRogueProjectile* Projectil
 	if (Projectile)
 	{
 		ActiveProjectiles.Add(Projectile);
+		if (BattleState == EFortRogueBattleState::ResolvingShot)
+		{
+			++PendingProjectiles;
+		}
 	}
 }
 
@@ -110,9 +116,40 @@ void AFortRogueGameMode::NotifyProjectileResolved(AFortRogueProjectile* Projecti
 	}
 }
 
+void AFortRogueGameMode::ApplyRewardChoice(int32 ChoiceIndex)
+{
+	if (!CanApplyRewardChoice(ChoiceIndex))
+	{
+		return;
+	}
+
+	const FFortRogueRewardChoice Reward = RewardChoices[ChoiceIndex];
+	ApplyRewardToPlayer(Reward);
+	if (Reward.RewardTag.IsValid())
+	{
+		ChosenRewardTags.AddUnique(Reward.RewardTag);
+	}
+
+	SetStatus(FString::Printf(TEXT("Reward chosen: %s"), *Reward.DisplayName.ToString()));
+	RewardChoices.Reset();
+	AdvanceToNextStage();
+}
+
+bool AFortRogueGameMode::CanApplyRewardChoice(int32 ChoiceIndex) const
+{
+	return BattleState == EFortRogueBattleState::Reward && PlayerCharacter && RewardChoices.IsValidIndex(ChoiceIndex);
+}
+
 float AFortRogueGameMode::GetWind() const
 {
 	return Wind;
+}
+
+FText AFortRogueGameMode::GetWindSummary() const
+{
+	return FText::FromString(FMath::IsNearlyZero(Wind)
+		? FString(TEXT("Wind 0"))
+		: FString::Printf(TEXT("Wind %+.0f"), Wind));
 }
 
 EFortRogueBattleState AFortRogueGameMode::GetBattleState() const
@@ -130,9 +167,51 @@ AFortRogueBattleCharacter* AFortRogueGameMode::GetEnemyCharacter() const
 	return EnemyCharacter;
 }
 
+TArray<FFortRogueRewardChoice> AFortRogueGameMode::GetRewardChoices() const
+{
+	return RewardChoices;
+}
+
+int32 AFortRogueGameMode::GetRewardChoiceCount() const
+{
+	return RewardChoices.Num();
+}
+
+FFortRogueRewardChoice AFortRogueGameMode::GetRewardChoice(int32 ChoiceIndex) const
+{
+	return RewardChoices.IsValidIndex(ChoiceIndex) ? RewardChoices[ChoiceIndex] : FFortRogueRewardChoice();
+}
+
+FText AFortRogueGameMode::GetRewardChoiceSummary(int32 ChoiceIndex) const
+{
+	return RewardChoices.IsValidIndex(ChoiceIndex) ? GetRewardChoice(ChoiceIndex).GetEffectSummary() : FText::GetEmpty();
+}
+
+FGameplayTagContainer AFortRogueGameMode::GetChosenRewardTags() const
+{
+	FGameplayTagContainer ChosenRewardTagContainer;
+	for (const FGameplayTag& ChosenRewardTag : ChosenRewardTags)
+	{
+		if (ChosenRewardTag.IsValid())
+		{
+			ChosenRewardTagContainer.AddTag(ChosenRewardTag);
+		}
+	}
+	return ChosenRewardTagContainer;
+}
+
 FText AFortRogueGameMode::GetStatusText() const
 {
 	return StatusText;
+}
+
+FText AFortRogueGameMode::GetRunProgressSummary() const
+{
+	return FText::FromString(FString::Printf(
+		TEXT("Stage %d/%d | %s"),
+		GetCurrentStage(),
+		GetMaxStages(),
+		*GetStatusText().ToString()));
 }
 
 int32 AFortRogueGameMode::GetCurrentStage() const
@@ -353,31 +432,20 @@ void AFortRogueGameMode::HandleEnemyDefeated()
 		return;
 	}
 
-	ApplyRandomRewardAndLog();
+	EnterRewardState();
+	if (RewardChoices.Num() <= 0)
+	{
+		UE_LOG(LogFortRogue, Log, TEXT("No reward choices configured after stage %d."), CurrentStage);
+		AdvanceToNextStage();
+	}
+}
+
+void AFortRogueGameMode::AdvanceToNextStage()
+{
 	++CurrentStage;
 	SelectNextEnemyDefinition();
 	SpawnMVPBattle();
 	StartPlayerTurn();
-}
-
-void AFortRogueGameMode::ApplyRandomRewardAndLog()
-{
-	if (!PlayerCharacter)
-	{
-		return;
-	}
-
-	const TArray<FFortRogueRewardChoice>* Rewards = StageRunDefinition ? &StageRunDefinition->RewardPool : nullptr;
-	if (!Rewards || Rewards->Num() == 0)
-	{
-		UE_LOG(LogFortRogue, Log, TEXT("No reward pool configured for stage %d."), CurrentStage);
-		return;
-	}
-
-	const int32 RewardIndex = FMath::RandRange(0, Rewards->Num() - 1);
-	const FFortRogueRewardChoice& Reward = (*Rewards)[RewardIndex];
-	ApplyRewardToPlayer(Reward);
-	UE_LOG(LogFortRogue, Log, TEXT("Random reward selected after stage %d: %s"), CurrentStage, *Reward.DisplayName.ToString());
 }
 
 void AFortRogueGameMode::ApplyRewardToPlayer(const FFortRogueRewardChoice& Reward)
@@ -391,17 +459,30 @@ void AFortRogueGameMode::ApplyRewardToPlayer(const FFortRogueRewardChoice& Rewar
 	{
 		PlayerCharacter->ApplyPerkDefinition(Reward.PerkReward);
 	}
-	if (Reward.DamageBonus > 0.0f)
+	if (Reward.GrantedAbilitySet)
+	{
+		PlayerCharacter->GrantAbilitySet(Reward.GrantedAbilitySet);
+	}
+	PlayerCharacter->GrantShotModifiers(Reward.ShotModifiers);
+	if (!FMath::IsNearlyZero(Reward.DamageBonus))
 	{
 		PlayerCharacter->ApplyRewardDamage(Reward.DamageBonus);
 	}
-	if (Reward.MaxHealthBonus > 0.0f)
+	if (!FMath::IsNearlyZero(Reward.MaxHealthBonus))
 	{
 		PlayerCharacter->ApplyRewardHealth(Reward.MaxHealthBonus);
 	}
-	if (Reward.ProjectileBonus > 0)
+	if (!FMath::IsNearlyZero(Reward.MaxMoveBudgetBonus))
+	{
+		PlayerCharacter->ApplyRewardMoveBudget(Reward.MaxMoveBudgetBonus);
+	}
+	if (Reward.ProjectileBonus != 0)
 	{
 		PlayerCharacter->ApplyRewardProjectiles(Reward.ProjectileBonus);
+	}
+	if (!FMath::IsNearlyZero(Reward.ShotPowerMultiplierBonus))
+	{
+		PlayerCharacter->ApplyRewardShotPowerMultiplier(Reward.ShotPowerMultiplierBonus);
 	}
 	if (Reward.RepairCharges > 0 && Reward.ItemReward)
 	{
@@ -485,6 +566,85 @@ void AFortRogueGameMode::FinishShotResolution()
 	else
 	{
 		StartEnemyTurn();
+	}
+}
+
+void AFortRogueGameMode::EnterRewardState()
+{
+	ResetShotCameraState();
+	BattleState = EFortRogueBattleState::Reward;
+	BuildRewardChoices();
+	SetStatus(TEXT("Victory - choose a reward"));
+}
+
+void AFortRogueGameMode::BuildRewardChoices()
+{
+	RewardChoices.Reset();
+	if (!StageRunDefinition || StageRunDefinition->RewardPool.Num() <= 0)
+	{
+		return;
+	}
+
+	const FGameplayTagContainer ChosenRewardTagContainer = GetChosenRewardTags();
+	TArray<FFortRogueRewardChoice> CompatibleRewards;
+	TArray<FFortRogueRewardChoice> CandidateRewards;
+	for (const FFortRogueRewardChoice& Reward : StageRunDefinition->RewardPool)
+	{
+		if (!Reward.MeetsRewardTagConditions(ChosenRewardTagContainer))
+		{
+			continue;
+		}
+
+		CompatibleRewards.Add(Reward);
+		if (Reward.bOfferOncePerRun && Reward.RewardTag.IsValid() && ChosenRewardTags.Contains(Reward.RewardTag))
+		{
+			continue;
+		}
+
+		CandidateRewards.Add(Reward);
+	}
+	if (CandidateRewards.Num() <= 0)
+	{
+		CandidateRewards = CompatibleRewards;
+	}
+	if (CandidateRewards.Num() <= 0)
+	{
+		return;
+	}
+
+	const int32 MaxAvailableChoices = FMath::Min(MaxRewardChoiceCount, CandidateRewards.Num());
+	const int32 ChoiceCount = FMath::Clamp(StageRunDefinition->RewardChoiceCount, 1, MaxAvailableChoices);
+	for (int32 ChoiceIndex = 0; ChoiceIndex < ChoiceCount; ++ChoiceIndex)
+	{
+		float TotalWeight = 0.0f;
+		for (const FFortRogueRewardChoice& CandidateReward : CandidateRewards)
+		{
+			TotalWeight += FMath::Max(0.0f, CandidateReward.RewardWeight);
+		}
+
+		int32 CandidateIndex = FMath::RandRange(0, CandidateRewards.Num() - 1);
+		if (TotalWeight > KINDA_SMALL_NUMBER)
+		{
+			float WeightRoll = FMath::FRandRange(0.0f, TotalWeight);
+			for (int32 Index = 0; Index < CandidateRewards.Num(); ++Index)
+			{
+				const float CandidateWeight = FMath::Max(0.0f, CandidateRewards[Index].RewardWeight);
+				if (CandidateWeight <= 0.0f)
+				{
+					continue;
+				}
+
+				WeightRoll -= CandidateWeight;
+				if (WeightRoll <= 0.0f)
+				{
+					CandidateIndex = Index;
+					break;
+				}
+			}
+		}
+
+		RewardChoices.Add(CandidateRewards[CandidateIndex]);
+		CandidateRewards.RemoveAtSwap(CandidateIndex, 1, EAllowShrinking::No);
 	}
 }
 

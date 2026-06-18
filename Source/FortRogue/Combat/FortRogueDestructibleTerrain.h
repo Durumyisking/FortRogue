@@ -32,6 +32,7 @@ public:
 	bool FindSurfaceZAtWorldX(float WorldX, float StartWorldZ, float SearchDistance, float& OutSurfaceZ) const;
 	bool FindFirstSolidAlongWorldSegment(const FVector& StartWorldLocation, const FVector& EndWorldLocation, FVector& OutImpactLocation) const;
 	bool CarveCircle(const FVector& WorldLocation, float Radius);
+	bool FillCircle(const FVector& WorldLocation, float Radius, uint8 TextureLayer = 0);
 	bool IsProjectileOutOfBounds(const FVector& WorldLocation) const;
 	float GetSurfaceZ() const;
 	FVector GetPlayerSpawnWorldLocation() const;

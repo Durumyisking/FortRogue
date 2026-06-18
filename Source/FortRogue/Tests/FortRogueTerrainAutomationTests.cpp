@@ -5,6 +5,7 @@
 #include "Misc/AutomationTest.h"
 
 #include "AbilitySystem/Attributes/FortRogueCombatSet.h"
+#include "AbilitySystem/FortRogueAbilitySet.h"
 #include "Characters/FortRogueCharacterDefinition.h"
 #include "Combat/FortRogueBattleCharacter.h"
 #include "Combat/FortRogueDestructibleTerrain.h"
@@ -21,7 +22,13 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "FortRogueGameMode.h"
+#include "FortRogueGameplayTags.h"
+#include "FortRoguePlayerController.h"
+#include "Items/FortRogueItemDefinition.h"
 #include "Kismet/GameplayStatics.h"
+#include "Perks/FortRoguePerkDefinition.h"
+#include "Rewards/FortRogueRewardBlueprintLibrary.h"
+#include "Rewards/FortRogueRewardTypes.h"
 #include "Run/FortRogueDefaultLoadoutDefinition.h"
 #include "Run/FortRogueStageRunDefinition.h"
 #include "Weapons/FortRogueWeaponDefinition.h"
@@ -70,9 +77,114 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 		StageRun->StageCount = 3;
 		StageRun->NormalizeStageData();
 		TestEqual(TEXT("Stage run difficulty rows follow the stage count"), StageRun->StageDifficultyData.Num(), 3);
+		StageRun->RewardChoiceCount = 9;
+		StageRun->NormalizeStageData();
+		TestEqual(TEXT("Stage run clamps reward choice count maximum"), StageRun->RewardChoiceCount, 5);
+		StageRun->RewardChoiceCount = 0;
+		StageRun->NormalizeStageData();
+		TestEqual(TEXT("Stage run clamps reward choice count minimum"), StageRun->RewardChoiceCount, 1);
 		StageRun->StageDifficultyData[2].EnemyTurnDelaySeconds = 0.25f;
 		TestEqual(TEXT("Stage difficulty lookup uses one-based stage numbers"), StageRun->GetStageDifficulty(3).EnemyTurnDelaySeconds, 0.25f);
 	}
+
+	UFortRogueAbilitySet* NamedAbilitySet = NewObject<UFortRogueAbilitySet>();
+	NamedAbilitySet->DisplayName = FText::FromString(TEXT("Wind Split"));
+	NamedAbilitySet->Description = FText::FromString(TEXT("Adds wind-aware split behavior."));
+	TestTrue(TEXT("Ability set summary includes display name"), NamedAbilitySet->GetEffectSummary().ToString().Contains(TEXT("Wind Split")));
+	TestTrue(TEXT("Ability set summary includes descriptions"), NamedAbilitySet->GetEffectSummary().ToString().Contains(TEXT("Adds wind-aware split behavior.")));
+	TestTrue(TEXT("Blueprint helper summarizes ability set assets"), UFortRogueRewardBlueprintLibrary::GetAbilitySetEffectSummary(NamedAbilitySet).ToString().Contains(TEXT("Wind Split")));
+	FFortRogueShotModifierSpec SummaryModifier;
+	SummaryModifier.DisplayName = FText::FromString(TEXT("Split Boost"));
+	SummaryModifier.Description = FText::FromString(TEXT("Adds child shots after impact."));
+	SummaryModifier.ModifierTag = FortRogueGameplayTags::ShotEffect_Projectiles;
+	SummaryModifier.EffectTags.AddTag(FortRogueGameplayTags::ShotEffect_SplitOnImpact);
+	SummaryModifier.ProjectileCountBonus = 2;
+	TArray<FFortRogueShotModifierSpec> SummaryModifiers = { SummaryModifier };
+	TestTrue(TEXT("Blueprint helper summarizes standalone shot modifiers"), UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(SummaryModifiers).ToString().Contains(TEXT("projectiles +2")));
+	TestTrue(TEXT("Blueprint helper summarizes shot modifier display names"), UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(SummaryModifiers).ToString().Contains(TEXT("modifier Split Boost")));
+	TestTrue(TEXT("Blueprint helper summarizes shot modifier descriptions"), UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(SummaryModifiers).ToString().Contains(TEXT("Adds child shots after impact.")));
+	TestTrue(TEXT("Blueprint helper summarizes shot modifier tags"), UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(SummaryModifiers).ToString().Contains(TEXT("modifier tag ShotEffect.Projectiles")));
+	TestTrue(TEXT("Blueprint helper summarizes shot effect tags"), UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(SummaryModifiers).ToString().Contains(TEXT("ShotEffect.SplitOnImpact")));
+	FFortRogueRewardChoice AbilitySetReward;
+	AbilitySetReward.GrantedAbilitySet = NamedAbilitySet;
+	TestTrue(TEXT("Reward summary names directly granted ability set"), AbilitySetReward.GetEffectSummary().ToString().Contains(TEXT("ability set Wind Split")));
+
+	UFortRogueWeaponDefinition* SummaryWeapon = NewObject<UFortRogueWeaponDefinition>();
+	SummaryWeapon->Weapon.DisplayName = FText::FromString(TEXT("Fork Shell"));
+	SummaryWeapon->Weapon.Description = FText::FromString(TEXT("Splits the battlefield."));
+	SummaryWeapon->Weapon.WeaponTag = FortRogueGameplayTags::Weapon_Shell;
+	TestTrue(TEXT("Blueprint helper summarizes weapon assets"), UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("weapon Fork Shell")));
+	TestTrue(TEXT("Blueprint helper summarizes weapon descriptions"), UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("Splits the battlefield.")));
+	TestTrue(TEXT("Blueprint helper summarizes weapon tags"), UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("tag Weapon.Shell")));
+	TestTrue(TEXT("Blueprint helper summarizes weapon base damage"), UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("damage 35")));
+	TestTrue(TEXT("Blueprint helper summarizes weapon blast radius"), UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("blast 150")));
+
+	UFortRogueItemDefinition* AbilityItem = NewObject<UFortRogueItemDefinition>();
+	AbilityItem->DisplayName = FText::FromString(TEXT("Storm Capsule"));
+	AbilityItem->Description = FText::FromString(TEXT("Empowers the next shot."));
+	AbilityItem->ItemTag = FortRogueGameplayTags::Item_NextShot;
+	AbilityItem->InitialCharges = 2;
+	AbilityItem->UseAbilitySet = NamedAbilitySet;
+	FFortRogueRewardChoice ItemAbilityReward;
+	ItemAbilityReward.ItemReward = AbilityItem;
+	TestTrue(TEXT("Reward summary names item ability set"), ItemAbilityReward.GetEffectSummary().ToString().Contains(TEXT("ability set Wind Split")));
+	TestTrue(TEXT("Reward summary includes item descriptions"), ItemAbilityReward.GetEffectSummary().ToString().Contains(TEXT("Empowers the next shot.")));
+	TestTrue(TEXT("Reward summary names item tags"), ItemAbilityReward.GetEffectSummary().ToString().Contains(TEXT("tag Item.NextShot")));
+	TestTrue(TEXT("Reward summary names item initial charges"), ItemAbilityReward.GetEffectSummary().ToString().Contains(TEXT("charges 2")));
+	ItemAbilityReward.RepairCharges = 3;
+	TestFalse(TEXT("Reward summary does not duplicate default charges when override charges exist"), ItemAbilityReward.GetEffectSummary().ToString().Contains(TEXT("charges 2")));
+	TestTrue(TEXT("Reward summary keeps override charges when present"), ItemAbilityReward.GetEffectSummary().ToString().Contains(TEXT("charges +3")));
+	ItemAbilityReward.RepairCharges = 0;
+	TestTrue(TEXT("Blueprint helper summarizes item assets"), UFortRogueRewardBlueprintLibrary::GetItemEffectSummary(AbilityItem).ToString().Contains(TEXT("ability set Wind Split")));
+	UFortRogueItemDefinition* HealSummaryItem = NewObject<UFortRogueItemDefinition>();
+	HealSummaryItem->ItemType = EFortRogueItemType::Heal;
+	HealSummaryItem->HealAmount = 42.0f;
+	TestTrue(TEXT("Reward summary names heal item amount"), UFortRogueRewardBlueprintLibrary::GetItemEffectSummary(HealSummaryItem).ToString().Contains(TEXT("heal +42")));
+	UFortRogueItemDefinition* AttackSummaryItem = NewObject<UFortRogueItemDefinition>();
+	AttackSummaryItem->ItemType = EFortRogueItemType::AttackMultiplier;
+	AttackSummaryItem->AttackMultiplier = 2.0f;
+	TestTrue(TEXT("Reward summary names attack multiplier item amount"), UFortRogueRewardBlueprintLibrary::GetItemEffectSummary(AttackSummaryItem).ToString().Contains(TEXT("next shot attack x2")));
+
+	UFortRoguePerkDefinition* AbilityPerk = NewObject<UFortRoguePerkDefinition>();
+	AbilityPerk->DisplayName = FText::FromString(TEXT("Storm Training"));
+	AbilityPerk->Description = FText::FromString(TEXT("Every run shot bends harder."));
+	AbilityPerk->PerkTag = FortRogueGameplayTags::Trait_ShotModifier;
+	AbilityPerk->GrantedAbilitySet = NamedAbilitySet;
+	AbilityPerk->DamageBonus = -2.0f;
+	AbilityPerk->MaxHealthBonus = -8.0f;
+	AbilityPerk->MaxMoveBudgetBonus = -1.0f;
+	AbilityPerk->ProjectileBonus = -1;
+	AbilityPerk->ShotPowerMultiplierBonus = -0.2f;
+	FFortRogueRewardChoice PerkAbilityReward;
+	PerkAbilityReward.PerkReward = AbilityPerk;
+	TestTrue(TEXT("Reward summary names perk ability set"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("ability set Wind Split")));
+	TestTrue(TEXT("Reward summary includes perk descriptions"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("Every run shot bends harder.")));
+	TestTrue(TEXT("Reward summary names perk tags"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("tag Trait.ShotModifier")));
+	TestTrue(TEXT("Reward summary names negative perk damage bonuses"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("damage -2")));
+	TestTrue(TEXT("Reward summary names negative perk max health bonuses"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("max HP -8")));
+	TestTrue(TEXT("Reward summary names negative perk move bonuses"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("move -1")));
+	TestTrue(TEXT("Reward summary names negative perk projectile bonuses"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("projectiles -1")));
+	TestTrue(TEXT("Reward summary names negative perk shot power bonuses"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("shot power -0.2")));
+	TestTrue(TEXT("Blueprint helper summarizes perk assets"), UFortRogueRewardBlueprintLibrary::GetPerkEffectSummary(AbilityPerk).ToString().Contains(TEXT("ability set Wind Split")));
+	FFortRogueRewardChoice RiskReward;
+	RiskReward.DisplayName = FText::FromString(TEXT("Glass Cannon"));
+	RiskReward.Description = FText::FromString(TEXT("Trades survivability for tempo."));
+	RiskReward.DamageBonus = -5.0f;
+	RiskReward.MaxHealthBonus = -20.0f;
+	RiskReward.MaxMoveBudgetBonus = -3.0f;
+	RiskReward.ProjectileBonus = -1;
+	RiskReward.ShotPowerMultiplierBonus = -0.25f;
+	const FString RiskRewardSummary = RiskReward.GetEffectSummary().ToString();
+	TestTrue(TEXT("Reward summary includes reward display names"), RiskRewardSummary.Contains(TEXT("reward Glass Cannon")));
+	TestTrue(TEXT("Reward summary includes reward descriptions"), RiskRewardSummary.Contains(TEXT("Trades survivability for tempo.")));
+	TestTrue(TEXT("Reward summary names negative damage bonuses"), RiskRewardSummary.Contains(TEXT("damage -5")));
+	TestTrue(TEXT("Reward summary names negative max health bonuses"), RiskRewardSummary.Contains(TEXT("max HP -20")));
+	TestTrue(TEXT("Reward summary names negative move bonuses"), RiskRewardSummary.Contains(TEXT("move -3")));
+	TestTrue(TEXT("Reward summary names negative projectile bonuses"), RiskRewardSummary.Contains(TEXT("projectiles -1")));
+	TestTrue(TEXT("Reward summary names negative shot power bonuses"), RiskRewardSummary.Contains(TEXT("shot power -0.25")));
+	FFortRogueRewardChoice TaggedReward;
+	TaggedReward.RewardTag = FortRogueGameplayTags::Trait_Damage;
+	TestTrue(TEXT("Reward summary names reward tags"), TaggedReward.GetEffectSummary().ToString().Contains(TEXT("reward tag Trait.Damage")));
 
 	UFortRogueTerrainMapDefinition* CorruptMap = NewObject<UFortRogueTerrainMapDefinition>();
 	TestNotNull(TEXT("Corrupt map asset object is created"), CorruptMap);
@@ -432,6 +544,113 @@ bool FFortRogueTerrainGameModeMapDefinitionTest::RunTest(const FString& Paramete
 	TestNotNull(TEXT("Game mode spawns the player character"), GameMode->GetPlayerCharacter());
 	TestNotNull(TEXT("Game mode spawns the enemy character"), GameMode->GetEnemyCharacter());
 	TestEqual(TEXT("Game mode turn wind can be fixed for deterministic projectile tests"), GameMode->GetWind(), 120.0f);
+	TestTrue(TEXT("Game mode wind summary includes signed wind"), GameMode->GetWindSummary().ToString().Contains(TEXT("Wind +120")));
+	TestTrue(TEXT("Game mode run progress summary includes stage progress"), GameMode->GetRunProgressSummary().ToString().Contains(TEXT("Stage 1/2")));
+	TestTrue(TEXT("Game mode run progress summary includes status text"), GameMode->GetRunProgressSummary().ToString().Contains(GameMode->GetStatusText().ToString()));
+	AFortRoguePlayerController* TestPlayerController = World->SpawnActor<AFortRoguePlayerController>(AFortRoguePlayerController::StaticClass());
+	TestNotNull(TEXT("FortRogue player controller is spawnable for UI helper tests"), TestPlayerController);
+	if (TestPlayerController && GameMode->GetPlayerCharacter())
+	{
+		float PlayerAttributeValue = -1.0f;
+		TestTrue(TEXT("Player controller reads player attributes by tag"), TestPlayerController->TryGetPlayerCombatAttributeValueByTag(FortRogueGameplayTags::Attribute_Health, PlayerAttributeValue));
+		TestEqual(TEXT("Player controller attribute value matches player character"), PlayerAttributeValue, GameMode->GetPlayerCharacter()->GetHealth());
+		const float PlayerBaseDamage = GameMode->GetPlayerCharacter()->GetDamageBonus();
+		TestTrue(TEXT("Player controller applies player attribute deltas by tag"), TestPlayerController->TryApplyPlayerCombatAttributeDeltaByTag(FortRogueGameplayTags::Attribute_Damage, 3.0f));
+		TestEqual(TEXT("Player controller attribute delta updates player character"), GameMode->GetPlayerCharacter()->GetDamageBonus(), PlayerBaseDamage + 3.0f);
+		TestFalse(TEXT("Player controller rejects invalid attribute value tags"), TestPlayerController->TryGetPlayerCombatAttributeValueByTag(FGameplayTag(), PlayerAttributeValue));
+		TestEqual(TEXT("Rejected player controller attribute value resets output"), PlayerAttributeValue, 0.0f);
+		TestFalse(TEXT("Player controller rejects invalid attribute delta tags"), TestPlayerController->TryApplyPlayerCombatAttributeDeltaByTag(FGameplayTag(), 1.0f));
+		FFortRogueShotModifierSpec ControllerModifier;
+		ControllerModifier.ModifierTag = FortRogueGameplayTags::ShotEffect_Damage;
+		TArray<FFortRogueShotModifierSpec> ControllerModifiers = { ControllerModifier };
+		GameMode->GetPlayerCharacter()->GrantShotModifiers(ControllerModifiers);
+		TestEqual(TEXT("Player controller counts granted shot modifiers by tag"), TestPlayerController->GetPlayerGrantedShotModifierCountByTag(FortRogueGameplayTags::ShotEffect_Damage), 1);
+		TestTrue(TEXT("Player controller reports granted shot modifiers by tag"), TestPlayerController->HasPlayerGrantedShotModifierByTag(FortRogueGameplayTags::ShotEffect_Damage));
+		TestEqual(TEXT("Player controller removes granted shot modifiers by tag"), TestPlayerController->RemovePlayerGrantedShotModifiersByTag(FortRogueGameplayTags::ShotEffect_Damage), 1);
+		TestFalse(TEXT("Player controller reports missing granted shot modifiers by tag"), TestPlayerController->HasPlayerGrantedShotModifierByTag(FortRogueGameplayTags::ShotEffect_Damage));
+		UFortRogueItemDefinition* ControllerPendingItem = NewObject<UFortRogueItemDefinition>(TestPlayerController);
+		ControllerPendingItem->ItemType = EFortRogueItemType::AbilitySet;
+		ControllerPendingItem->ItemTag = FortRogueGameplayTags::Item_NextShot;
+		ControllerPendingItem->UseShotModifiers.Add(ControllerModifier);
+		GameMode->GetPlayerCharacter()->AddItemDefinition(ControllerPendingItem, 1);
+		const int32 ControllerPendingItemIndex = GameMode->GetPlayerCharacter()->GetItemLoadout().Num() - 1;
+		TestPlayerController->UsePlayerItemByIndex(ControllerPendingItemIndex);
+		TestEqual(TEXT("Player controller counts pending shot modifiers by tag"), TestPlayerController->GetPlayerPendingShotModifierCountByTag(FortRogueGameplayTags::ShotEffect_Damage), 1);
+		TestTrue(TEXT("Player controller reports pending shot modifiers by tag"), TestPlayerController->HasPlayerPendingShotModifierByTag(FortRogueGameplayTags::ShotEffect_Damage));
+		TestEqual(TEXT("Player controller removes pending shot modifiers by tag"), TestPlayerController->RemovePlayerPendingShotModifiersByTag(FortRogueGameplayTags::ShotEffect_Damage), 1);
+		TestFalse(TEXT("Player controller reports missing pending shot modifiers by tag"), TestPlayerController->HasPlayerPendingShotModifierByTag(FortRogueGameplayTags::ShotEffect_Damage));
+	}
+	if (AFortRogueBattleCharacter* PlayerCharacter = GameMode->GetPlayerCharacter())
+	{
+		const float BaseDamageBonus = PlayerCharacter->GetDamageBonus();
+		PlayerCharacter->ApplyRewardDamage(10.0f);
+		FFortRogueRewardChoice NegativeDamageReward;
+		NegativeDamageReward.DamageBonus = -4.0f;
+		GameMode->ApplyRewardToPlayer(NegativeDamageReward);
+		TestEqual(TEXT("Game mode applies negative direct reward deltas"), PlayerCharacter->GetDamageBonus(), BaseDamageBonus + 6.0f);
+	}
+
+	auto HasRewardChoiceTag = [](const TArray<FFortRogueRewardChoice>& RewardChoices, FGameplayTag RewardTag)
+	{
+		for (const FFortRogueRewardChoice& RewardChoice : RewardChoices)
+		{
+			if (RewardChoice.RewardTag.MatchesTagExact(RewardTag))
+			{
+				return true;
+			}
+		}
+		return false;
+	};
+
+	FFortRogueRewardChoice BaseReward;
+	BaseReward.DisplayName = FText::FromString(TEXT("Damage Seed"));
+	BaseReward.RewardTag = FortRogueGameplayTags::Trait_Damage;
+	FFortRogueRewardChoice RequiredReward;
+	RequiredReward.DisplayName = FText::FromString(TEXT("Projectile Branch"));
+	RequiredReward.RewardTag = FortRogueGameplayTags::Trait_Projectiles;
+	RequiredReward.RequiredRewardTags.AddTag(FortRogueGameplayTags::Trait_Damage);
+	FFortRogueRewardChoice BlockedReward;
+	BlockedReward.DisplayName = FText::FromString(TEXT("Health Branch"));
+	BlockedReward.RewardTag = FortRogueGameplayTags::Trait_Health;
+	BlockedReward.BlockedRewardTags.AddTag(FortRogueGameplayTags::Trait_Damage);
+	FFortRogueRewardChoice OpenReward;
+	OpenReward.DisplayName = FText::FromString(TEXT("Open Branch"));
+	OpenReward.RewardTag = FortRogueGameplayTags::Trait_ShotModifier;
+	TestStageRunDefinition->RewardChoiceCount = 5;
+	TestStageRunDefinition->RewardPool = { BaseReward, RequiredReward, BlockedReward, OpenReward };
+
+	GameMode->ChosenRewardTags.Reset();
+	GameMode->BuildRewardChoices();
+	FGameplayTagContainer EmptyChosenRewardTags;
+	TestFalse(TEXT("Reward condition helper rejects missing required tags"), RequiredReward.MeetsRewardTagConditions(EmptyChosenRewardTags));
+	TestFalse(TEXT("Blueprint reward condition helper rejects missing required tags"), UFortRogueRewardBlueprintLibrary::DoesRewardMeetTagConditions(RequiredReward, EmptyChosenRewardTags));
+	TestTrue(TEXT("Reward condition failure summary names missing required tags"), RequiredReward.GetRewardTagConditionFailureSummary(EmptyChosenRewardTags).ToString().Contains(TEXT("requires reward")));
+	TestFalse(TEXT("Reward choices hide rewards before required reward tags are chosen"), HasRewardChoiceTag(GameMode->GetRewardChoices(), FortRogueGameplayTags::Trait_Projectiles));
+	TestTrue(TEXT("Reward choices keep rewards whose blocked tags are absent"), HasRewardChoiceTag(GameMode->GetRewardChoices(), FortRogueGameplayTags::Trait_Health));
+
+	GameMode->ChosenRewardTags = { FortRogueGameplayTags::Trait_Damage };
+	TestTrue(TEXT("Game mode exposes chosen reward tags for UI"), GameMode->GetChosenRewardTags().HasTagExact(FortRogueGameplayTags::Trait_Damage));
+	TestTrue(TEXT("Reward condition helper accepts satisfied required tags"), RequiredReward.MeetsRewardTagConditions(GameMode->GetChosenRewardTags()));
+	TestFalse(TEXT("Reward condition helper rejects blocked chosen tags"), BlockedReward.MeetsRewardTagConditions(GameMode->GetChosenRewardTags()));
+	TestTrue(TEXT("Blueprint reward condition failure summary names blocked tags"), UFortRogueRewardBlueprintLibrary::GetRewardTagConditionFailureSummary(BlockedReward, GameMode->GetChosenRewardTags()).ToString().Contains(TEXT("blocked by reward")));
+	TestTrue(TEXT("Reward condition failure summary is empty when conditions pass"), RequiredReward.GetRewardTagConditionFailureSummary(GameMode->GetChosenRewardTags()).ToString().IsEmpty());
+	GameMode->BuildRewardChoices();
+	TestTrue(TEXT("Reward choices include rewards after required reward tags are chosen"), HasRewardChoiceTag(GameMode->GetRewardChoices(), FortRogueGameplayTags::Trait_Projectiles));
+	TestFalse(TEXT("Reward choices hide rewards blocked by chosen reward tags"), HasRewardChoiceTag(GameMode->GetRewardChoices(), FortRogueGameplayTags::Trait_Health));
+	TestEqual(TEXT("Game mode reward choice count matches current choices"), GameMode->GetRewardChoiceCount(), GameMode->GetRewardChoices().Num());
+	TestTrue(TEXT("Game mode returns reward choices by index"), GameMode->GetRewardChoice(0).RewardTag.IsValid());
+	TestFalse(TEXT("Game mode returns default reward choices for invalid indexes"), GameMode->GetRewardChoice(GameMode->GetRewardChoiceCount()).RewardTag.IsValid());
+	TestFalse(TEXT("Game mode rejects reward choice outside reward state"), GameMode->CanApplyRewardChoice(0));
+	TestFalse(TEXT("Game mode reward choice summary is available for valid choices"), GameMode->GetRewardChoiceSummary(0).ToString().IsEmpty());
+	TestTrue(TEXT("Game mode reward choice summary is empty for invalid choices"), GameMode->GetRewardChoiceSummary(GameMode->GetRewardChoices().Num()).ToString().IsEmpty());
+	GameMode->BattleState = EFortRogueBattleState::Reward;
+	TestTrue(TEXT("Game mode reports valid reward choices selectable"), GameMode->CanApplyRewardChoice(0));
+	TestFalse(TEXT("Game mode rejects negative reward choice indexes"), GameMode->CanApplyRewardChoice(-1));
+	TestFalse(TEXT("Game mode rejects reward choice indexes past the end"), GameMode->CanApplyRewardChoice(GameMode->GetRewardChoices().Num()));
+	GameMode->BattleState = EFortRogueBattleState::PlayerTurn;
+	TestStageRunDefinition->RewardPool.Reset();
+	GameMode->RewardChoices.Reset();
+	GameMode->ChosenRewardTags.Reset();
 
 	AFortRogueProjectile* WindProjectile = World->SpawnActor<AFortRogueProjectile>(AFortRogueProjectile::StaticClass(), FVector(0.0f, 0.0f, 500.0f), FRotator::ZeroRotator);
 	TestNotNull(TEXT("Wind test projectile is spawned"), WindProjectile);
@@ -746,6 +965,21 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	World->InitializeActorsForPlay(URL);
 	World->BeginPlay();
 
+	UFortRogueTerrainMapDefinition* FillRuntimeMap = NewObject<UFortRogueTerrainMapDefinition>();
+	FillRuntimeMap->Resize(4, 3);
+	FillRuntimeMap->CellSize = 10.0f;
+	FillRuntimeMap->Clear(false);
+	AFortRogueDestructibleTerrain* FillRuntimeTerrain = World->SpawnActorDeferred<AFortRogueDestructibleTerrain>(AFortRogueDestructibleTerrain::StaticClass(), FTransform(FRotator::ZeroRotator, FVector(1200.0f, 0.0f, 0.0f)));
+	TestNotNull(TEXT("Runtime fill terrain actor is spawned deferred"), FillRuntimeTerrain);
+	if (FillRuntimeTerrain)
+	{
+		FillRuntimeTerrain->MapDefinition = FillRuntimeMap;
+		UGameplayStatics::FinishSpawningActor(FillRuntimeTerrain, FTransform(FRotator::ZeroRotator, FVector(1200.0f, 0.0f, 0.0f)));
+		TestFalse(TEXT("Runtime fill target starts empty"), FillRuntimeTerrain->IsSolidAtWorldLocation(FVector(1200.0f, 0.0f, 15.0f)));
+		TestTrue(TEXT("Runtime fill circle reports changed terrain"), FillRuntimeTerrain->FillCircle(FVector(1200.0f, 0.0f, 15.0f), 8.0f));
+		TestTrue(TEXT("Runtime fill circle creates solid terrain"), FillRuntimeTerrain->IsSolidAtWorldLocation(FVector(1200.0f, 0.0f, 15.0f)));
+	}
+
 	UTexture2D* RuntimeTexture = Terrain->GetRuntimeTerrainTexture();
 	TestNotNull(TEXT("Runtime terrain texture is created"), RuntimeTexture);
 	if (RuntimeTexture)
@@ -850,6 +1084,7 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	{
 		UFortRogueCharacterDefinition* CharacterDefinition = NewObject<UFortRogueCharacterDefinition>();
 		CharacterDefinition->MaxHealth = 175.0f;
+		CharacterDefinition->BonusDamage = 12.0f;
 		CharacterDefinition->MaxMoveBudget = 25.0f;
 		CharacterDefinition->ShotPowerMultiplier = 1.8f;
 		StatCharacter->InitializeFromDefinition(CharacterDefinition);
@@ -859,6 +1094,184 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 			TestEqual(TEXT("Character definition controls turn movement budget"), CombatSet->GetMaxMoveBudget(), 25.0f);
 			TestEqual(TEXT("Character definition controls shot power multiplier"), CombatSet->GetShotPowerMultiplier(), 1.8f);
 		}
+		TestEqual(TEXT("Battle character getter exposes max move budget"), StatCharacter->GetMaxMoveBudget(), 25.0f);
+		TestEqual(TEXT("Battle character getter exposes damage bonus"), StatCharacter->GetDamageBonus(), 12.0f);
+		TestEqual(TEXT("Battle character getter exposes shot power multiplier"), StatCharacter->GetShotPowerMultiplier(), 1.8f);
+		TestEqual(TEXT("Battle character getter exposes base projectile count"), StatCharacter->GetProjectileCount(), 1.0f);
+		float TaggedAttributeValue = -1.0f;
+		TestTrue(TEXT("Battle character reads health by attribute tag"), StatCharacter->TryGetCombatAttributeValueByTag(FortRogueGameplayTags::Attribute_Health, TaggedAttributeValue));
+		TestEqual(TEXT("Tagged health value matches getter"), TaggedAttributeValue, 175.0f);
+		TestTrue(TEXT("Battle character reads max health by attribute tag"), StatCharacter->TryGetCombatAttributeValueByTag(FortRogueGameplayTags::Attribute_MaxHealth, TaggedAttributeValue));
+		TestEqual(TEXT("Tagged max health value matches getter"), TaggedAttributeValue, 175.0f);
+		TestTrue(TEXT("Battle character reads move budget by attribute tag"), StatCharacter->TryGetCombatAttributeValueByTag(FortRogueGameplayTags::Attribute_MoveBudget, TaggedAttributeValue));
+		TestEqual(TEXT("Tagged move budget value matches getter"), TaggedAttributeValue, 25.0f);
+		TestTrue(TEXT("Battle character reads max move budget by attribute tag"), StatCharacter->TryGetCombatAttributeValueByTag(FortRogueGameplayTags::Attribute_MaxMoveBudget, TaggedAttributeValue));
+		TestEqual(TEXT("Tagged max move budget value matches getter"), TaggedAttributeValue, 25.0f);
+		TestTrue(TEXT("Battle character reads damage by attribute tag"), StatCharacter->TryGetCombatAttributeValueByTag(FortRogueGameplayTags::Attribute_Damage, TaggedAttributeValue));
+		TestEqual(TEXT("Tagged damage value matches getter"), TaggedAttributeValue, 12.0f);
+		TestTrue(TEXT("Battle character reads shot power multiplier by attribute tag"), StatCharacter->TryGetCombatAttributeValueByTag(FortRogueGameplayTags::Attribute_ShotPowerMultiplier, TaggedAttributeValue));
+		TestEqual(TEXT("Tagged shot power multiplier value matches getter"), TaggedAttributeValue, 1.8f);
+		TestTrue(TEXT("Battle character reads projectile count by attribute tag"), StatCharacter->TryGetCombatAttributeValueByTag(FortRogueGameplayTags::Attribute_ProjectileCount, TaggedAttributeValue));
+		TestEqual(TEXT("Tagged projectile count value matches getter"), TaggedAttributeValue, 1.0f);
+		TestFalse(TEXT("Battle character rejects invalid attribute tags"), StatCharacter->TryGetCombatAttributeValueByTag(FGameplayTag(), TaggedAttributeValue));
+		TestEqual(TEXT("Rejected attribute tag resets the out value"), TaggedAttributeValue, 0.0f);
+		StatCharacter->ApplyRewardProjectiles(2);
+		TestEqual(TEXT("Battle character getter exposes projectile count rewards"), StatCharacter->GetProjectileCount(), 3.0f);
+		const FString CombatStatsSummary = StatCharacter->GetCombatStatsSummary().ToString();
+		TestTrue(TEXT("Battle character stats summary includes health"), CombatStatsSummary.Contains(TEXT("HP 175/175")));
+		TestTrue(TEXT("Battle character stats summary includes move budget"), CombatStatsSummary.Contains(TEXT("move 25/25")));
+		TestTrue(TEXT("Battle character stats summary includes damage bonus"), CombatStatsSummary.Contains(TEXT("damage +12")));
+		TestTrue(TEXT("Battle character stats summary includes shot power multiplier"), CombatStatsSummary.Contains(TEXT("shot power x1.8")));
+		TestTrue(TEXT("Battle character stats summary includes projectile count"), CombatStatsSummary.Contains(TEXT("projectiles 3")));
+		TestTrue(TEXT("Battle character applies health deltas by attribute tag"), StatCharacter->TryApplyCombatAttributeDeltaByTag(FortRogueGameplayTags::Attribute_Health, -25.0f));
+		TestEqual(TEXT("Tagged health delta damages current health"), StatCharacter->GetHealth(), 150.0f);
+		TestTrue(TEXT("Battle character applies healing deltas by attribute tag"), StatCharacter->TryApplyCombatAttributeDeltaByTag(FortRogueGameplayTags::Attribute_Health, 1000.0f));
+		TestEqual(TEXT("Tagged healing delta clamps to max health"), StatCharacter->GetHealth(), 175.0f);
+		TestTrue(TEXT("Battle character applies max health deltas by attribute tag"), StatCharacter->TryApplyCombatAttributeDeltaByTag(FortRogueGameplayTags::Attribute_MaxHealth, -1000.0f));
+		TestEqual(TEXT("Tagged max health delta clamps to its minimum"), StatCharacter->GetMaxHealth(), 1.0f);
+		TestTrue(TEXT("Battle character restores max health by attribute tag"), StatCharacter->TryApplyCombatAttributeDeltaByTag(FortRogueGameplayTags::Attribute_MaxHealth, 174.0f));
+		TestEqual(TEXT("Tagged max health restore updates max health"), StatCharacter->GetMaxHealth(), 175.0f);
+		TestTrue(TEXT("Battle character applies move budget deltas by attribute tag"), StatCharacter->TryApplyCombatAttributeDeltaByTag(FortRogueGameplayTags::Attribute_MoveBudget, -500.0f));
+		TestEqual(TEXT("Tagged move budget delta clamps to zero"), StatCharacter->GetMoveBudget(), 0.0f);
+		TestTrue(TEXT("Battle character restores move budget by attribute tag"), StatCharacter->TryApplyCombatAttributeDeltaByTag(FortRogueGameplayTags::Attribute_MoveBudget, 500.0f));
+		TestEqual(TEXT("Tagged move budget restore clamps to max move"), StatCharacter->GetMoveBudget(), 25.0f);
+		TestTrue(TEXT("Battle character applies max move deltas by attribute tag"), StatCharacter->TryApplyCombatAttributeDeltaByTag(FortRogueGameplayTags::Attribute_MaxMoveBudget, -500.0f));
+		TestEqual(TEXT("Tagged max move delta clamps to zero"), StatCharacter->GetMaxMoveBudget(), 0.0f);
+		TestTrue(TEXT("Battle character restores max move by attribute tag"), StatCharacter->TryApplyCombatAttributeDeltaByTag(FortRogueGameplayTags::Attribute_MaxMoveBudget, 25.0f));
+		TestEqual(TEXT("Tagged max move restore updates move budget"), StatCharacter->GetMoveBudget(), 25.0f);
+		TestTrue(TEXT("Battle character applies damage deltas by attribute tag"), StatCharacter->TryApplyCombatAttributeDeltaByTag(FortRogueGameplayTags::Attribute_Damage, -1000.0f));
+		TestEqual(TEXT("Tagged damage delta clamps to zero"), StatCharacter->GetDamageBonus(), 0.0f);
+		TestTrue(TEXT("Battle character restores damage by attribute tag"), StatCharacter->TryApplyCombatAttributeDeltaByTag(FortRogueGameplayTags::Attribute_Damage, 12.0f));
+		TestEqual(TEXT("Tagged damage restore updates damage"), StatCharacter->GetDamageBonus(), 12.0f);
+		TestTrue(TEXT("Battle character applies shot power deltas by attribute tag"), StatCharacter->TryApplyCombatAttributeDeltaByTag(FortRogueGameplayTags::Attribute_ShotPowerMultiplier, -1000.0f));
+		TestEqual(TEXT("Tagged shot power delta clamps to zero"), StatCharacter->GetShotPowerMultiplier(), 0.0f);
+		TestTrue(TEXT("Battle character restores shot power by attribute tag"), StatCharacter->TryApplyCombatAttributeDeltaByTag(FortRogueGameplayTags::Attribute_ShotPowerMultiplier, 1.8f));
+		TestEqual(TEXT("Tagged shot power restore updates multiplier"), StatCharacter->GetShotPowerMultiplier(), 1.8f);
+		TestTrue(TEXT("Battle character applies projectile deltas by attribute tag"), StatCharacter->TryApplyCombatAttributeDeltaByTag(FortRogueGameplayTags::Attribute_ProjectileCount, -1000.0f));
+		TestEqual(TEXT("Tagged projectile delta clamps to one"), StatCharacter->GetProjectileCount(), 1.0f);
+		TestTrue(TEXT("Battle character restores projectile count by attribute tag"), StatCharacter->TryApplyCombatAttributeDeltaByTag(FortRogueGameplayTags::Attribute_ProjectileCount, 2.0f));
+		TestEqual(TEXT("Tagged projectile restore updates count"), StatCharacter->GetProjectileCount(), 3.0f);
+		TestFalse(TEXT("Battle character rejects invalid attribute delta tags"), StatCharacter->TryApplyCombatAttributeDeltaByTag(FGameplayTag(), 1.0f));
+		StatCharacter->ApplyRewardDamage(8.0f);
+		StatCharacter->ApplyRewardDamage(-5.0f);
+		TestEqual(TEXT("Battle character applies negative damage reward deltas"), StatCharacter->GetDamageBonus(), 15.0f);
+		StatCharacter->ApplyRewardHealth(25.0f);
+		StatCharacter->ApplyDamage(10.0f);
+		StatCharacter->ApplyRewardHealth(-50.0f);
+		TestEqual(TEXT("Battle character applies negative max health reward deltas"), StatCharacter->GetMaxHealth(), 150.0f);
+		TestEqual(TEXT("Battle character clamps health after max health loss"), StatCharacter->GetHealth(), 150.0f);
+		StatCharacter->ApplyRewardMoveBudget(10.0f);
+		StatCharacter->ApplyRewardMoveBudget(-15.0f);
+		TestEqual(TEXT("Battle character applies negative move budget reward deltas"), StatCharacter->GetMaxMoveBudget(), 20.0f);
+		TestEqual(TEXT("Battle character clamps move budget after max move loss"), StatCharacter->GetMoveBudget(), 20.0f);
+		StatCharacter->ApplyRewardShotPowerMultiplier(0.4f);
+		StatCharacter->ApplyRewardShotPowerMultiplier(-0.7f);
+		TestTrue(TEXT("Battle character applies negative shot power reward deltas"), FMath::IsNearlyEqual(StatCharacter->GetShotPowerMultiplier(), 1.5f));
+		StatCharacter->ApplyRewardProjectiles(-1);
+		TestEqual(TEXT("Battle character applies negative projectile reward deltas"), StatCharacter->GetProjectileCount(), 2.0f);
+		UFortRogueAbilitySet* EmptyAbilitySet = NewObject<UFortRogueAbilitySet>(StatCharacter);
+		TestEqual(TEXT("Battle character ability set count starts empty"), StatCharacter->GetGrantedAbilitySetCount(EmptyAbilitySet), 0);
+		StatCharacter->GrantAbilitySet(EmptyAbilitySet);
+		StatCharacter->GrantAbilitySet(EmptyAbilitySet);
+		TestEqual(TEXT("Battle character ability set count tracks repeated grants"), StatCharacter->GetGrantedAbilitySetCount(EmptyAbilitySet), 2);
+		TestTrue(TEXT("Battle character removes one granted ability set entry"), StatCharacter->RemoveAbilitySet(EmptyAbilitySet));
+		TestEqual(TEXT("Battle character ability set count updates after removal"), StatCharacter->GetGrantedAbilitySetCount(EmptyAbilitySet), 1);
+		UFortRogueAbilitySet* TaggedAbilitySet = NewObject<UFortRogueAbilitySet>(StatCharacter);
+		TaggedAbilitySet->AbilitySetTag = FortRogueGameplayTags::Trait_ShotModifier;
+		StatCharacter->GrantAbilitySet(TaggedAbilitySet);
+		StatCharacter->GrantAbilitySet(TaggedAbilitySet);
+		TestEqual(TEXT("Battle character ability set tag count tracks repeated grants"), StatCharacter->GetGrantedAbilitySetCountByTag(FortRogueGameplayTags::Trait_ShotModifier), 2);
+		TestTrue(TEXT("Battle character reports granted ability sets by tag"), StatCharacter->HasGrantedAbilitySetByTag(FortRogueGameplayTags::Trait_ShotModifier));
+		TestEqual(TEXT("Battle character removes granted ability sets by tag"), StatCharacter->RemoveAbilitySetsByTag(FortRogueGameplayTags::Trait_ShotModifier), 2);
+		TestEqual(TEXT("Battle character ability set tag count updates after removal"), StatCharacter->GetGrantedAbilitySetCountByTag(FortRogueGameplayTags::Trait_ShotModifier), 0);
+		TestFalse(TEXT("Battle character reports missing ability sets by tag"), StatCharacter->HasGrantedAbilitySetByTag(FortRogueGameplayTags::Trait_ShotModifier));
+		UFortRogueWeaponDefinition* ShellWeapon = CreateTestWeaponDefinition(StatCharacter);
+		ShellWeapon->Weapon.WeaponTag = FortRogueGameplayTags::Weapon_Shell;
+		UFortRogueWeaponDefinition* ClusterWeapon = CreateTestWeaponDefinition(StatCharacter);
+		ClusterWeapon->Weapon.WeaponTag = FortRogueGameplayTags::Weapon_Cluster;
+		StatCharacter->AddWeaponDefinition(ShellWeapon);
+		StatCharacter->AddWeaponDefinition(ClusterWeapon);
+		TestEqual(TEXT("Battle character finds weapon index by tag"), StatCharacter->GetWeaponIndexByTag(FortRogueGameplayTags::Weapon_Cluster), 1);
+		TestEqual(TEXT("Battle character returns INDEX_NONE for invalid weapon tags"), StatCharacter->GetWeaponIndexByTag(FGameplayTag()), INDEX_NONE);
+		TestTrue(TEXT("Battle character reports valid weapon index selectable"), StatCharacter->CanSelectWeapon(1));
+		TestFalse(TEXT("Battle character rejects invalid weapon index selection queries"), StatCharacter->CanSelectWeapon(-1));
+		TestTrue(TEXT("Battle character reports valid weapon tag selectable"), StatCharacter->CanSelectWeaponByTag(FortRogueGameplayTags::Weapon_Cluster));
+		TestFalse(TEXT("Battle character rejects invalid weapon tag selection queries"), StatCharacter->CanSelectWeaponByTag(FGameplayTag()));
+		TestFalse(TEXT("Battle character rejects invalid weapon selection tags"), StatCharacter->SelectWeaponByTag(FGameplayTag()));
+		TestTrue(TEXT("Battle character selects a weapon by tag"), StatCharacter->SelectWeaponByTag(FortRogueGameplayTags::Weapon_Cluster));
+		TestEqual(TEXT("Battle character selection by tag updates the current weapon"), StatCharacter->GetCurrentWeapon().WeaponTag, FortRogueGameplayTags::Weapon_Cluster);
+		UFortRogueWeaponDefinition* UnsafeWeapon = CreateTestWeaponDefinition(StatCharacter);
+		UnsafeWeapon->Weapon.Damage = -100.0f;
+		UnsafeWeapon->Weapon.BlastRadius = -20.0f;
+		UnsafeWeapon->Weapon.ProjectileSpeed = -500.0f;
+		UnsafeWeapon->Weapon.Gravity = -980.0f;
+		FFortRogueShotModifierSpec UnsafeModifier;
+		UnsafeModifier.DamageBonus = -1000.0f;
+		UnsafeWeapon->Weapon.ShotModifiers.Add(UnsafeModifier);
+		StatCharacter->AddWeaponDefinition(UnsafeWeapon);
+		StatCharacter->SelectWeapon(StatCharacter->GetWeaponLoadout().Num() - 1);
+		const FFortRogueShotSpec UnsafeShotSpec = StatCharacter->GetCurrentShotSpec();
+		TestEqual(TEXT("Shot spec clamps negative damage after modifiers"), UnsafeShotSpec.Damage, 0.0f);
+		TestEqual(TEXT("Shot spec clamps negative blast radius"), UnsafeShotSpec.BlastRadius, 0.0f);
+		TestEqual(TEXT("Shot spec clamps negative terrain carve radius"), UnsafeShotSpec.TerrainCarveRadius, 0.0f);
+		TestEqual(TEXT("Shot spec clamps negative launch speed"), UnsafeShotSpec.LaunchSpeed, 0.0f);
+		TestEqual(TEXT("Shot spec clamps negative gravity"), UnsafeShotSpec.Gravity, 0.0f);
+		const FString CurrentShotSummary = StatCharacter->GetCurrentShotSummary().ToString();
+		TestTrue(TEXT("Battle character shot summary includes damage"), CurrentShotSummary.Contains(TEXT("Shot Dmg 0")));
+		TestTrue(TEXT("Battle character shot summary includes blast radius"), CurrentShotSummary.Contains(TEXT("Blast 0")));
+		TestTrue(TEXT("Battle character shot summary includes projectile count"), CurrentShotSummary.Contains(TEXT("Projectiles 2")));
+		UFortRogueItemDefinition* PendingModifierItem = NewObject<UFortRogueItemDefinition>(StatCharacter);
+		PendingModifierItem->ItemType = EFortRogueItemType::AbilitySet;
+		FFortRogueShotModifierSpec PendingModifier;
+		PendingModifier.ModifierTag = FortRogueGameplayTags::ShotEffect_Damage;
+		PendingModifier.DamageBonus = 5.0f;
+		TArray<FFortRogueShotModifierSpec> GrantedModifierTest = { PendingModifier };
+		StatCharacter->GrantShotModifiers(GrantedModifierTest);
+		TestTrue(TEXT("Battle character reports granted shot modifiers by tag"), StatCharacter->HasGrantedShotModifierByTag(FortRogueGameplayTags::ShotEffect_Damage));
+		TestEqual(TEXT("Battle character removes granted shot modifiers by tag"), StatCharacter->RemoveGrantedShotModifiersByTag(FortRogueGameplayTags::ShotEffect_Damage), 1);
+		TestFalse(TEXT("Battle character reports missing granted shot modifiers by tag"), StatCharacter->HasGrantedShotModifierByTag(FortRogueGameplayTags::ShotEffect_Damage));
+		PendingModifierItem->UseShotModifiers.Add(PendingModifier);
+		StatCharacter->AddItemDefinition(PendingModifierItem, 1);
+		const int32 PendingModifierItemIndex = StatCharacter->GetItemLoadout().Num() - 1;
+		StatCharacter->BeginTurn();
+		TestTrue(TEXT("Battle character uses item that grants pending shot modifier"), StatCharacter->UseItemByIndex(PendingModifierItemIndex));
+		TestEqual(TEXT("Battle character counts pending shot modifiers by tag"), StatCharacter->GetPendingShotModifierCountByTag(FortRogueGameplayTags::ShotEffect_Damage), 1);
+		TestTrue(TEXT("Battle character reports pending shot modifiers by tag"), StatCharacter->HasPendingShotModifierByTag(FortRogueGameplayTags::ShotEffect_Damage));
+		TestEqual(TEXT("Battle character removes pending shot modifiers by tag"), StatCharacter->RemovePendingShotModifiersByTag(FortRogueGameplayTags::ShotEffect_Damage), 1);
+		TestEqual(TEXT("Battle character pending shot modifier count updates after removal"), StatCharacter->GetPendingShotModifierCountByTag(FortRogueGameplayTags::ShotEffect_Damage), 0);
+		TestFalse(TEXT("Battle character reports missing pending shot modifiers by tag"), StatCharacter->HasPendingShotModifierByTag(FortRogueGameplayTags::ShotEffect_Damage));
+	}
+
+	AFortRogueBattleCharacter* ItemSlotCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(-15.0f, 0.0f, 55.0f), FRotator::ZeroRotator, SpawnParams);
+	TestNotNull(TEXT("Item slot battle character is spawned"), ItemSlotCharacter);
+	if (ItemSlotCharacter)
+	{
+		UFortRogueItemDefinition* HealItem = NewObject<UFortRogueItemDefinition>(ItemSlotCharacter);
+		HealItem->DisplayName = FText::FromString(TEXT("Test Repair"));
+		HealItem->ItemType = EFortRogueItemType::Heal;
+		HealItem->ItemTag = FortRogueGameplayTags::Item_Repair;
+		HealItem->InitialCharges = 2;
+		HealItem->HealAmount = 25.0f;
+		ItemSlotCharacter->SetTerrain(Terrain);
+		ItemSlotCharacter->AddItemDefinition(HealItem, 2);
+		ItemSlotCharacter->BeginTurn();
+		ItemSlotCharacter->ApplyDamage(40.0f);
+		const float HealthBeforeItem = ItemSlotCharacter->GetHealth();
+		TestTrue(TEXT("Battle character can report usable item by loadout index"), ItemSlotCharacter->CanUseItemByIndex(0));
+		TestTrue(TEXT("Battle character can report usable item by type"), ItemSlotCharacter->CanUseItemByType(EFortRogueItemType::Heal));
+		TestTrue(TEXT("Battle character can report usable item by tag"), ItemSlotCharacter->CanUseItemByTag(FortRogueGameplayTags::Item_Repair));
+		TestEqual(TEXT("Battle character finds item index by tag"), ItemSlotCharacter->GetItemIndexByTag(FortRogueGameplayTags::Item_Repair), 0);
+		TestEqual(TEXT("Battle character returns INDEX_NONE for invalid item tags"), ItemSlotCharacter->GetItemIndexByTag(FGameplayTag()), INDEX_NONE);
+		TestFalse(TEXT("Battle character rejects negative item loadout index"), ItemSlotCharacter->UseItemByIndex(-1));
+		TestFalse(TEXT("Battle character cannot use negative item loadout index"), ItemSlotCharacter->CanUseItemByIndex(-1));
+		TestFalse(TEXT("Battle character rejects item loadout index past the end"), ItemSlotCharacter->UseItemByIndex(1));
+		TestEqual(TEXT("Rejected item slot use keeps item charges"), ItemSlotCharacter->GetItemCharges(EFortRogueItemType::Heal), 2);
+		TestTrue(TEXT("Battle character uses an item by loadout index"), ItemSlotCharacter->UseItemByIndex(0));
+		TestEqual(TEXT("Item slot use consumes one charge"), ItemSlotCharacter->GetItemCharges(EFortRogueItemType::Heal), 1);
+		TestTrue(TEXT("Item slot use applies the item effect"), ItemSlotCharacter->GetHealth() > HealthBeforeItem);
+		TestTrue(TEXT("Battle character still reports usable item with remaining charges"), ItemSlotCharacter->CanUseItemByIndex(0));
+		TestTrue(TEXT("Battle character consumes final item charge"), ItemSlotCharacter->UseItemByIndex(0));
+		TestFalse(TEXT("Battle character reports unusable item after charges are spent"), ItemSlotCharacter->CanUseItemByIndex(0));
 	}
 
 	AFortRogueBattleCharacter* ExhaustedTurnCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(45.0f, 0.0f, 55.0f), FRotator::ZeroRotator, SpawnParams);
@@ -877,7 +1290,10 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		ExhaustedTurnCharacter->MoveHorizontal(-1.0f, 0.1f);
 		TestEqual(TEXT("Exhausted movement budget does not move the character"), static_cast<float>(ExhaustedTurnCharacter->GetActorLocation().X), ExhaustedCharacterX);
 		TestEqual(TEXT("Exhausted movement budget still leaves the budget at zero"), ExhaustedTurnCharacter->GetMoveBudget(), 0.0f);
+		TestTrue(TEXT("Battle character reports selected weapon fireable before firing"), ExhaustedTurnCharacter->CanFireSelectedWeapon());
+		TestTrue(TEXT("Battle character reports shot charge can begin before firing"), ExhaustedTurnCharacter->CanBeginShotCharge());
 		TestEqual(TEXT("Facing change with exhausted movement budget fires to the requested side"), ExhaustedTurnCharacter->FireSelectedWeapon(), 1);
+		TestFalse(TEXT("Battle character reports selected weapon not fireable after firing"), ExhaustedTurnCharacter->CanFireSelectedWeapon());
 		AFortRogueProjectile* ExhaustedTurnProjectile = nullptr;
 		for (TActorIterator<AFortRogueProjectile> It(World); It; ++It)
 		{
@@ -1051,8 +1467,10 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	TestNotNull(TEXT("Falling battle character is spawned"), FallingCharacter);
 	if (FallingCharacter)
 	{
+		FallingCharacter->AddWeaponDefinition(CreateTestWeaponDefinition(FallingCharacter));
 		FallingCharacter->SetTerrain(Terrain);
 		FallingCharacter->BeginTurn();
+		TestTrue(TEXT("Supported battle character reports shot charge can begin"), FallingCharacter->CanBeginShotCharge());
 		FallingCharacter->BeginShotCharge();
 		FallingCharacter->UpdateShotCharge(0.5f);
 		TestTrue(TEXT("Supported battle character can start charging before support is destroyed"), FallingCharacter->IsChargingShot());
@@ -1065,7 +1483,10 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		FallingCharacter->BeginTurn();
 		FallingCharacter->MoveHorizontal(1.0f, 0.25f);
 		TestEqual(TEXT("Falling battle character cannot move horizontally while unsupported"), static_cast<float>(FallingCharacter->GetActorLocation().X), FallingCharacterX);
+		TestFalse(TEXT("Falling battle character reports selected weapon not fireable while unsupported"), FallingCharacter->CanFireSelectedWeapon());
+		TestFalse(TEXT("Falling battle character reports shot charge cannot begin while unsupported"), FallingCharacter->CanBeginShotCharge());
 		const int32 AttackItemCharges = FallingCharacter->GetItemCharges(EFortRogueItemType::AttackMultiplier);
+		TestFalse(TEXT("Falling battle character reports combat items unusable while unsupported"), FallingCharacter->CanUseItemByType(EFortRogueItemType::AttackMultiplier));
 		TestFalse(TEXT("Falling battle character cannot use combat items while unsupported"), FallingCharacter->UseItemByType(EFortRogueItemType::AttackMultiplier));
 		TestEqual(TEXT("Falling battle character keeps item charges when unsupported item use is rejected"), FallingCharacter->GetItemCharges(EFortRogueItemType::AttackMultiplier), AttackItemCharges);
 		FallingCharacter->BeginShotCharge();

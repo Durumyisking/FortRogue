@@ -21,9 +21,25 @@ void UFortRogueCombatSet::PreAttributeChange(const FGameplayAttribute& Attribute
 	{
 		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxHealth());
 	}
+	else if (Attribute == GetMaxHealthAttribute())
+	{
+		NewValue = FMath::Max(1.0f, NewValue);
+	}
 	else if (Attribute == GetMoveBudgetAttribute())
 	{
 		NewValue = FMath::Clamp(NewValue, 0.0f, GetMaxMoveBudget());
+	}
+	else if (Attribute == GetMaxMoveBudgetAttribute())
+	{
+		NewValue = FMath::Max(0.0f, NewValue);
+	}
+	else if (Attribute == GetDamageAttribute())
+	{
+		NewValue = FMath::Max(0.0f, NewValue);
+	}
+	else if (Attribute == GetShotPowerMultiplierAttribute())
+	{
+		NewValue = FMath::Max(0.0f, NewValue);
 	}
 	else if (Attribute == GetProjectileCountAttribute())
 	{
@@ -48,17 +64,40 @@ void UFortRogueCombatSet::Heal(float HealAmount)
 
 void UFortRogueCombatSet::AddMaxHealth(float BonusHealth)
 {
-	const float ClampedBonus = FMath::Max(0.0f, BonusHealth);
-	SetMaxHealth(GetMaxHealth() + ClampedBonus);
-	Heal(ClampedBonus);
+	const float PreviousMaxHealth = GetMaxHealth();
+	SetMaxHealth(FMath::Max(1.0f, GetMaxHealth() + BonusHealth));
+
+	const float AppliedBonus = GetMaxHealth() - PreviousMaxHealth;
+	if (AppliedBonus > 0.0f)
+	{
+		Heal(AppliedBonus);
+	}
+	else
+	{
+		SetHealth(FMath::Min(GetHealth(), GetMaxHealth()));
+	}
+}
+
+void UFortRogueCombatSet::AddMaxMoveBudget(float BonusMoveBudget)
+{
+	const float PreviousMaxMoveBudget = GetMaxMoveBudget();
+	SetMaxMoveBudget(FMath::Max(0.0f, GetMaxMoveBudget() + BonusMoveBudget));
+
+	const float AppliedBonus = GetMaxMoveBudget() - PreviousMaxMoveBudget;
+	SetMoveBudget(FMath::Clamp(GetMoveBudget() + AppliedBonus, 0.0f, GetMaxMoveBudget()));
 }
 
 void UFortRogueCombatSet::AddDamage(float BonusDamage)
 {
-	SetDamage(GetDamage() + FMath::Max(0.0f, BonusDamage));
+	SetDamage(FMath::Max(0.0f, GetDamage() + BonusDamage));
+}
+
+void UFortRogueCombatSet::AddShotPowerMultiplier(float BonusMultiplier)
+{
+	SetShotPowerMultiplier(FMath::Max(0.0f, GetShotPowerMultiplier() + BonusMultiplier));
 }
 
 void UFortRogueCombatSet::AddProjectileCount(float BonusProjectiles)
 {
-	SetProjectileCount(GetProjectileCount() + FMath::Max(0.0f, BonusProjectiles));
+	SetProjectileCount(FMath::Max(1.0f, GetProjectileCount() + BonusProjectiles));
 }

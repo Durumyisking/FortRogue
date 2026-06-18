@@ -2,8 +2,11 @@
 
 #pragma once
 
+#include "Combat/FortRogueImpactSpawnSpec.h"
+#include "Combat/FortRogueShotSpec.h"
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "GameplayTagContainer.h"
 #include "FortRogueProjectile.generated.h"
 
 class AFortRogueBattleCharacter;
@@ -21,10 +24,12 @@ public:
 
 	virtual void Tick(float DeltaSeconds) override;
 
-	void InitializeProjectile(AFortRogueBattleCharacter* InOwnerCharacter, AFortRogueDestructibleTerrain* InTerrain, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity);
+	void InitializeProjectile(AFortRogueBattleCharacter* InOwnerCharacter, AFortRogueDestructibleTerrain* InTerrain, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity, float InTerrainCarveRadius = -1.0f, float InTerrainFillRadius = 0.0f, FGameplayTag InWeaponTag = FGameplayTag(), FGameplayTagContainer InEffectTags = FGameplayTagContainer(), TArray<FFortRogueImpactSpawnSpec> InImpactSpawns = TArray<FFortRogueImpactSpawnSpec>());
+	void InitializeProjectileFromShotSpec(AFortRogueBattleCharacter* InOwnerCharacter, AFortRogueDestructibleTerrain* InTerrain, const FVector& InVelocity, const FFortRogueShotSpec& ShotSpec);
 
 private:
 	void ResolveImpact(const FVector& ImpactLocation);
+	void SpawnImpactProjectiles(const FVector& ImpactLocation);
 
 	UPROPERTY(VisibleAnywhere, Category = "Projectile")
 	TObjectPtr<USphereComponent> Collision;
@@ -42,8 +47,13 @@ private:
 	float MaxLifeSeconds = 8.0f;
 
 	FVector Velocity = FVector::ZeroVector;
+	FGameplayTag WeaponTag;
+	FGameplayTagContainer EffectTags;
+	TArray<FFortRogueImpactSpawnSpec> ImpactSpawns;
 	float Damage = 35.0f;
 	float BlastRadius = 150.0f;
+	float TerrainCarveRadius = 150.0f;
+	float TerrainFillRadius = 0.0f;
 	float Gravity = 980.0f;
 	float LifeSeconds = 0.0f;
 	bool bResolved = false;

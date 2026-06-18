@@ -24,6 +24,7 @@ enum class EFortRogueBattleState : uint8
 	PlayerTurn,
 	EnemyTurn,
 	ResolvingShot,
+	Reward,
 	Won,
 	Lost
 };
@@ -52,8 +53,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Battle")
 	void NotifyProjectileResolved(AFortRogueProjectile* Projectile);
 
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
+	void ApplyRewardChoice(int32 ChoiceIndex);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	bool CanApplyRewardChoice(int32 ChoiceIndex) const;
+
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")
 	float GetWind() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")
+	FText GetWindSummary() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")
 	EFortRogueBattleState GetBattleState() const;
@@ -64,8 +74,26 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")
 	AFortRogueBattleCharacter* GetEnemyCharacter() const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	TArray<FFortRogueRewardChoice> GetRewardChoices() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	int32 GetRewardChoiceCount() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	FFortRogueRewardChoice GetRewardChoice(int32 ChoiceIndex) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	FText GetRewardChoiceSummary(int32 ChoiceIndex) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	FGameplayTagContainer GetChosenRewardTags() const;
+
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")
 	FText GetStatusText() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Run")
+	FText GetRunProgressSummary() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Run")
 	int32 GetCurrentStage() const;
@@ -82,12 +110,14 @@ private:
 	const FFortRogueStageDifficultyData& GetCurrentStageDifficulty() const;
 	int32 GetConfiguredStageCount() const;
 	void HandleEnemyDefeated();
-	void ApplyRandomRewardAndLog();
+	void AdvanceToNextStage();
 	void ApplyRewardToPlayer(const FFortRogueRewardChoice& Reward);
 	void StartPlayerTurn();
 	void StartEnemyTurn();
 	void RunEnemyTurn();
 	void FinishShotResolution();
+	void EnterRewardState();
+	void BuildRewardChoices();
 	void CheckTurnDefeatState();
 	void SetStatus(const FString& NewStatus);
 	void UpdateBattleCamera(float DeltaSeconds);
@@ -111,6 +141,9 @@ private:
 	TObjectPtr<ACameraActor> BattleCamera;
 
 	UPROPERTY()
+	TArray<FFortRogueRewardChoice> RewardChoices;
+
+	UPROPERTY()
 	TArray<TWeakObjectPtr<AFortRogueProjectile>> ActiveProjectiles;
 
 	UPROPERTY()
@@ -118,6 +151,9 @@ private:
 
 	UPROPERTY()
 	TArray<TObjectPtr<UFortRogueCharacterDefinition>> EncounteredEnemyDefinitions;
+
+	UPROPERTY()
+	TArray<FGameplayTag> ChosenRewardTags;
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup")
 	TSubclassOf<AFortRogueBattleCharacter> PlayerCharacterClass;

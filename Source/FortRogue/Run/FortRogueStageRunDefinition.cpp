@@ -36,5 +36,6 @@ const FFortRogueStageDifficultyData& UFortRogueStageRunDefinition::GetStageDiffi
 void UFortRogueStageRunDefinition::NormalizeStageData()
 {
 	StageCount = FMath::Max(1, StageCount);
+	RewardChoiceCount = FMath::Clamp(RewardChoiceCount, 1, 5);
 	StageDifficultyData.SetNum(StageCount);
 }

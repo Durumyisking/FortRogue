@@ -6,6 +6,17 @@
 #include "AbilitySystem/Abilities/FortRogueGameplayAbility.h"
 #include "GameplayEffect.h"
 
+namespace
+{
+void AddSummaryPart(TArray<FString>& Parts, const FString& Part)
+{
+	if (!Part.IsEmpty())
+	{
+		Parts.Add(Part);
+	}
+}
+}
+
 void FFortRogueAbilitySet_GrantedHandles::AddAbilitySpecHandle(const FGameplayAbilitySpecHandle& Handle)
 {
 	if (Handle.IsValid())
@@ -63,6 +74,69 @@ void FFortRogueAbilitySet_GrantedHandles::TakeFromAbilitySystem(UFortRogueAbilit
 UFortRogueAbilitySet::UFortRogueAbilitySet(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+}
+
+FText UFortRogueAbilitySet::GetEffectSummary() const
+{
+	TArray<FString> Parts;
+	const FString DisplayNameString = DisplayName.ToString();
+	const FString AbilitySetName = DisplayNameString.IsEmpty() ? GetName() : DisplayNameString;
+	AddSummaryPart(Parts, AbilitySetName);
+	const FString DescriptionString = Description.ToString();
+	if (!DescriptionString.IsEmpty())
+	{
+		AddSummaryPart(Parts, DescriptionString);
+	}
+	if (AbilitySetTag.IsValid())
+	{
+		AddSummaryPart(Parts, AbilitySetTag.ToString());
+	}
+
+	int32 AbilityCount = 0;
+	for (const FFortRogueAbilitySet_GameplayAbility& AbilityToGrant : GrantedGameplayAbilities)
+	{
+		if (AbilityToGrant.Ability)
+		{
+			++AbilityCount;
+		}
+	}
+	if (AbilityCount > 0)
+	{
+		AddSummaryPart(Parts, FString::Printf(TEXT("abilities %d"), AbilityCount));
+	}
+
+	int32 EffectCount = 0;
+	for (const FFortRogueAbilitySet_GameplayEffect& EffectToGrant : GrantedGameplayEffects)
+	{
+		if (EffectToGrant.GameplayEffect)
+		{
+			++EffectCount;
+		}
+	}
+	if (EffectCount > 0)
+	{
+		AddSummaryPart(Parts, FString::Printf(TEXT("effects %d"), EffectCount));
+	}
+
+	int32 AttributeSetCount = 0;
+	for (const FFortRogueAbilitySet_AttributeSet& SetToGrant : GrantedAttributes)
+	{
+		if (SetToGrant.AttributeSet)
+		{
+			++AttributeSetCount;
+		}
+	}
+	if (AttributeSetCount > 0)
+	{
+		AddSummaryPart(Parts, FString::Printf(TEXT("attribute sets %d"), AttributeSetCount));
+	}
+
+	if (Parts.Num() <= 0)
+	{
+		return Description;
+	}
+
+	return FText::FromString(FString::Join(Parts, TEXT(" | ")));
 }
 
 void UFortRogueAbilitySet::GiveToAbilitySystem(UFortRogueAbilitySystemComponent* AbilitySystemComponent, FFortRogueAbilitySet_GrantedHandles* OutGrantedHandles, UObject* SourceObject) const

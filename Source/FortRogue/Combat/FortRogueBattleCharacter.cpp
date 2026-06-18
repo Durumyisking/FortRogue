@@ -8,6 +8,7 @@
 #include "Combat/FortRogueDestructibleTerrain.h"
 #include "Combat/FortRogueProjectile.h"
 #include "FortRogueGameMode.h"
+#include "FortRogueGameplayTags.h"
 #include "Items/FortRogueItemDefinition.h"
 #include "Perks/FortRoguePerkDefinition.h"
 #include "Run/FortRogueDefaultLoadoutDefinition.h"
@@ -19,6 +20,30 @@
 #include "PaperFlipbook.h"
 #include "PaperFlipbookComponent.h"
 #include "UObject/ConstructorHelpers.h"
+
+namespace
+{
+bool DoesShotModifierMatchTag(const FFortRogueShotModifierSpec& Modifier, FGameplayTag ModifierTag)
+{
+	return (Modifier.ModifierTag.IsValid() && Modifier.ModifierTag.MatchesTagExact(ModifierTag))
+		|| Modifier.EffectTags.HasTagExact(ModifierTag);
+}
+
+bool DoesAbilitySetMatchTag(const UFortRogueAbilitySet* AbilitySet, FGameplayTag AbilitySetTag)
+{
+	return AbilitySet && AbilitySetTag.IsValid() && AbilitySet->AbilitySetTag.MatchesTagExact(AbilitySetTag);
+}
+
+int32 CountImpactSpawnProjectiles(const TArray<FFortRogueImpactSpawnSpec>& ImpactSpawns)
+{
+	int32 TotalCount = 0;
+	for (const FFortRogueImpactSpawnSpec& ImpactSpawn : ImpactSpawns)
+	{
+		TotalCount += FMath::Max(0, ImpactSpawn.ProjectileCount);
+	}
+	return TotalCount;
+}
+}
 
 AFortRogueBattleCharacter::AFortRogueBattleCharacter()
 {
@@ -102,6 +127,8 @@ void AFortRogueBattleCharacter::InitializeFromDefinition(UFortRogueCharacterDefi
 	CombatSet->SetMoveBudget(InCharacterDefinition->MaxMoveBudget);
 	CombatSet->SetShotPowerMultiplier(InCharacterDefinition->ShotPowerMultiplier);
 
+	GrantedShotModifiers.Reset();
+	PendingShotModifiers.Reset();
 	WeaponLoadout.Reset();
 	for (UFortRogueWeaponDefinition* WeaponDefinition : InCharacterDefinition->WeaponLoadout)
 	{
@@ -254,7 +281,7 @@ void AFortRogueBattleCharacter::AdjustPower(float Axis, float DeltaSeconds)
 
 void AFortRogueBattleCharacter::BeginShotCharge()
 {
-	if (!bActiveTurn || bFiredThisTurn || IsDefeated() || !IsSupportedByTerrain())
+	if (!CanBeginShotCharge())
 	{
 		return;
 	}
@@ -262,6 +289,11 @@ void AFortRogueBattleCharacter::BeginShotCharge()
 	bChargingShot = true;
 	ShotChargeElapsed = 0.0f;
 	ShotPower = FMath::Min(MinShotPower, MaxShotPower);
+}
+
+bool AFortRogueBattleCharacter::CanBeginShotCharge() const
+{
+	return CanFireSelectedWeapon();
 }
 
 void AFortRogueBattleCharacter::UpdateShotCharge(float DeltaSeconds)
@@ -290,19 +322,55 @@ int32 AFortRogueBattleCharacter::ReleaseShotCharge()
 
 void AFortRogueBattleCharacter::SelectWeapon(int32 WeaponIndex)
 {
-	if (WeaponLoadout.IsValidIndex(WeaponIndex))
+	if (CanSelectWeapon(WeaponIndex))
 	{
 		SelectedWeaponIndex = WeaponIndex;
 	}
 }
 
+bool AFortRogueBattleCharacter::SelectWeaponByTag(FGameplayTag WeaponTag)
+{
+	const int32 WeaponIndex = GetWeaponIndexByTag(WeaponTag);
+	if (!CanSelectWeapon(WeaponIndex))
+	{
+		return false;
+	}
+
+	SelectedWeaponIndex = WeaponIndex;
+	return true;
+}
+
+bool AFortRogueBattleCharacter::CanSelectWeapon(int32 WeaponIndex) const
+{
+	return WeaponLoadout.IsValidIndex(WeaponIndex);
+}
+
+bool AFortRogueBattleCharacter::CanSelectWeaponByTag(FGameplayTag WeaponTag) const
+{
+	return CanSelectWeapon(GetWeaponIndexByTag(WeaponTag));
+}
+
+int32 AFortRogueBattleCharacter::GetWeaponIndexByTag(FGameplayTag WeaponTag) const
+{
+	if (!WeaponTag.IsValid())
+	{
+		return INDEX_NONE;
+	}
+
+	for (int32 WeaponIndex = 0; WeaponIndex < WeaponLoadout.Num(); ++WeaponIndex)
+	{
+		if (WeaponLoadout[WeaponIndex].WeaponTag.MatchesTagExact(WeaponTag))
+		{
+			return WeaponIndex;
+		}
+	}
+
+	return INDEX_NONE;
+}
+
 int32 AFortRogueBattleCharacter::FireSelectedWeapon()
 {
-	if (!bActiveTurn || bFiredThisTurn || IsDefeated() || !IsSupportedByTerrain())
-	{
-		return 0;
-	}
-	if (!WeaponLoadout.IsValidIndex(SelectedWeaponIndex))
+	if (!CanFireSelectedWeapon())
 	{
 		return 0;
 	}
@@ -311,11 +379,11 @@ int32 AFortRogueBattleCharacter::FireSelectedWeapon()
 	bFiredThisTurn = true;
 
 	const FFortRogueWeaponSpec& Weapon = GetCurrentWeapon();
-	const int32 ProjectileCount = FMath::Max(1, Weapon.ProjectilesPerShot + FMath::RoundToInt(CombatSet->GetProjectileCount()) - 1);
-	const float Damage = (Weapon.Damage + CombatSet->GetDamage()) * PendingAttackMultiplier;
-	const float Speed = Weapon.ProjectileSpeed * ShotPower * CombatSet->GetShotPowerMultiplier();
+	const FFortRogueShotSpec ShotSpec = BuildShotSpec(Weapon);
+	const int32 ProjectileCount = ShotSpec.ProjectileCount;
 	int32 SpawnedProjectiles = 0;
 	PendingAttackMultiplier = 1.0f;
+	PendingShotModifiers.Reset();
 
 	for (int32 Index = 0; Index < ProjectileCount; ++Index)
 	{
@@ -326,11 +394,10 @@ int32 AFortRogueBattleCharacter::FireSelectedWeapon()
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = this;
 		SpawnParams.Instigator = this;
-		const TSubclassOf<AFortRogueProjectile> ProjectileClass = Weapon.ProjectileClass ? Weapon.ProjectileClass : TSubclassOf<AFortRogueProjectile>(AFortRogueProjectile::StaticClass());
-		AFortRogueProjectile* Projectile = GetWorld()->SpawnActor<AFortRogueProjectile>(ProjectileClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
+		AFortRogueProjectile* Projectile = GetWorld()->SpawnActor<AFortRogueProjectile>(ShotSpec.ProjectileClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
 		if (Projectile)
 		{
-			Projectile->InitializeProjectile(this, FindTerrain(), Direction * Speed, Damage, Weapon.BlastRadius, Weapon.Gravity);
+			Projectile->InitializeProjectileFromShotSpec(this, FindTerrain(), Direction * ShotSpec.LaunchSpeed, ShotSpec);
 			if (AFortRogueGameMode* GameMode = GetWorld()->GetAuthGameMode<AFortRogueGameMode>())
 			{
 				GameMode->NotifyProjectileSpawned(Projectile);
@@ -340,6 +407,11 @@ int32 AFortRogueBattleCharacter::FireSelectedWeapon()
 	}
 
 	return SpawnedProjectiles;
+}
+
+bool AFortRogueBattleCharacter::CanFireSelectedWeapon() const
+{
+	return bActiveTurn && !bFiredThisTurn && !IsDefeated() && IsSupportedByTerrain() && WeaponLoadout.IsValidIndex(SelectedWeaponIndex);
 }
 
 void AFortRogueBattleCharacter::FireAtTarget(AFortRogueBattleCharacter* Target, const FFortRogueStageDifficultyData& DifficultyData)
@@ -407,7 +479,7 @@ void AFortRogueBattleCharacter::SetTerrain(AFortRogueDestructibleTerrain* InTerr
 
 bool AFortRogueBattleCharacter::UseItemByType(EFortRogueItemType ItemType)
 {
-	if (!bActiveTurn || IsDefeated() || !IsSupportedByTerrain())
+	if (!CanUseAnyItem())
 	{
 		return false;
 	}
@@ -415,24 +487,138 @@ bool AFortRogueBattleCharacter::UseItemByType(EFortRogueItemType ItemType)
 	for (FFortRogueItemStack& ItemStack : ItemLoadout)
 	{
 		const UFortRogueItemDefinition* ItemDefinition = ItemStack.ItemDefinition;
-		if (!ItemDefinition || ItemDefinition->ItemType != ItemType || ItemStack.Charges <= 0)
+		if (!ItemDefinition || ItemDefinition->ItemType != ItemType || !CanUseItemStack(ItemStack))
 		{
 			continue;
 		}
 
-		--ItemStack.Charges;
-		if (ItemType == EFortRogueItemType::Heal)
-		{
-			CombatSet->Heal(ItemDefinition->HealAmount);
-		}
-		else if (ItemType == EFortRogueItemType::AttackMultiplier)
-		{
-			PendingAttackMultiplier = FMath::Max(PendingAttackMultiplier, ItemDefinition->AttackMultiplier);
-		}
-		return true;
+		return UseItemStack(ItemStack);
 	}
 
 	return false;
+}
+
+bool AFortRogueBattleCharacter::UseItemByTag(FGameplayTag ItemTag)
+{
+	if (!ItemTag.IsValid() || !CanUseAnyItem())
+	{
+		return false;
+	}
+
+	for (FFortRogueItemStack& ItemStack : ItemLoadout)
+	{
+		const UFortRogueItemDefinition* ItemDefinition = ItemStack.ItemDefinition;
+		if (!ItemDefinition || !ItemDefinition->ItemTag.MatchesTagExact(ItemTag) || !CanUseItemStack(ItemStack))
+		{
+			continue;
+		}
+
+		return UseItemStack(ItemStack);
+	}
+
+	return false;
+}
+
+bool AFortRogueBattleCharacter::UseItemByIndex(int32 ItemIndex)
+{
+	if (!CanUseItemByIndex(ItemIndex))
+	{
+		return false;
+	}
+
+	return UseItemStack(ItemLoadout[ItemIndex]);
+}
+
+bool AFortRogueBattleCharacter::CanUseItemByType(EFortRogueItemType ItemType) const
+{
+	if (!CanUseAnyItem())
+	{
+		return false;
+	}
+
+	for (const FFortRogueItemStack& ItemStack : ItemLoadout)
+	{
+		const UFortRogueItemDefinition* ItemDefinition = ItemStack.ItemDefinition;
+		if (ItemDefinition && ItemDefinition->ItemType == ItemType && CanUseItemStack(ItemStack))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool AFortRogueBattleCharacter::CanUseItemByTag(FGameplayTag ItemTag) const
+{
+	if (!ItemTag.IsValid() || !CanUseAnyItem())
+	{
+		return false;
+	}
+
+	for (const FFortRogueItemStack& ItemStack : ItemLoadout)
+	{
+		const UFortRogueItemDefinition* ItemDefinition = ItemStack.ItemDefinition;
+		if (ItemDefinition && ItemDefinition->ItemTag.MatchesTagExact(ItemTag) && CanUseItemStack(ItemStack))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool AFortRogueBattleCharacter::CanUseItemByIndex(int32 ItemIndex) const
+{
+	return CanUseAnyItem() && ItemLoadout.IsValidIndex(ItemIndex) && CanUseItemStack(ItemLoadout[ItemIndex]);
+}
+
+int32 AFortRogueBattleCharacter::GetItemIndexByTag(FGameplayTag ItemTag) const
+{
+	if (!ItemTag.IsValid())
+	{
+		return INDEX_NONE;
+	}
+
+	for (int32 ItemIndex = 0; ItemIndex < ItemLoadout.Num(); ++ItemIndex)
+	{
+		const UFortRogueItemDefinition* ItemDefinition = ItemLoadout[ItemIndex].ItemDefinition;
+		if (ItemDefinition && ItemDefinition->ItemTag.MatchesTagExact(ItemTag))
+		{
+			return ItemIndex;
+		}
+	}
+
+	return INDEX_NONE;
+}
+
+bool AFortRogueBattleCharacter::CanUseAnyItem() const
+{
+	return bActiveTurn && !IsDefeated() && IsSupportedByTerrain();
+}
+
+bool AFortRogueBattleCharacter::CanUseItemStack(const FFortRogueItemStack& ItemStack) const
+{
+	return ItemStack.ItemDefinition && ItemStack.Charges > 0;
+}
+
+bool AFortRogueBattleCharacter::UseItemStack(FFortRogueItemStack& ItemStack)
+{
+	const UFortRogueItemDefinition* ItemDefinition = ItemStack.ItemDefinition;
+	if (!ItemDefinition || ItemStack.Charges <= 0)
+	{
+		return false;
+	}
+
+	--ItemStack.Charges;
+	if (ItemDefinition->ItemType == EFortRogueItemType::Heal)
+	{
+		CombatSet->Heal(ItemDefinition->HealAmount);
+	}
+	else if (ItemDefinition->ItemType == EFortRogueItemType::AttackMultiplier)
+	{
+		PendingAttackMultiplier = FMath::Max(PendingAttackMultiplier, ItemDefinition->AttackMultiplier);
+	}
+	GrantAbilitySet(ItemDefinition->UseAbilitySet);
+	PendingShotModifiers.Append(ItemDefinition->UseShotModifiers);
+	return true;
 }
 
 void AFortRogueBattleCharacter::ApplyRewardDamage(float BonusDamage)
@@ -445,9 +631,19 @@ void AFortRogueBattleCharacter::ApplyRewardHealth(float BonusHealth)
 	CombatSet->AddMaxHealth(BonusHealth);
 }
 
+void AFortRogueBattleCharacter::ApplyRewardMoveBudget(float BonusMoveBudget)
+{
+	CombatSet->AddMaxMoveBudget(BonusMoveBudget);
+}
+
 void AFortRogueBattleCharacter::ApplyRewardProjectiles(int32 BonusProjectiles)
 {
 	CombatSet->AddProjectileCount(BonusProjectiles);
+}
+
+void AFortRogueBattleCharacter::ApplyRewardShotPowerMultiplier(float BonusMultiplier)
+{
+	CombatSet->AddShotPowerMultiplier(BonusMultiplier);
 }
 
 void AFortRogueBattleCharacter::ApplyPerkDefinition(UFortRoguePerkDefinition* PerkDefinition)
@@ -459,14 +655,168 @@ void AFortRogueBattleCharacter::ApplyPerkDefinition(UFortRoguePerkDefinition* Pe
 
 	ApplyRewardDamage(PerkDefinition->DamageBonus);
 	ApplyRewardHealth(PerkDefinition->MaxHealthBonus);
+	ApplyRewardMoveBudget(PerkDefinition->MaxMoveBudgetBonus);
 	ApplyRewardProjectiles(PerkDefinition->ProjectileBonus);
+	ApplyRewardShotPowerMultiplier(PerkDefinition->ShotPowerMultiplierBonus);
+	GrantShotModifiers(PerkDefinition->ShotModifiers);
 
-	if (PerkDefinition->GrantedAbilitySet)
+	GrantAbilitySet(PerkDefinition->GrantedAbilitySet);
+}
+
+void AFortRogueBattleCharacter::GrantAbilitySet(UFortRogueAbilitySet* AbilitySet)
+{
+	if (!AbilitySet || !AbilitySystemComponent)
 	{
-		FFortRogueAbilitySet_GrantedHandles Handles;
-		PerkDefinition->GrantedAbilitySet->GiveToAbilitySystem(AbilitySystemComponent, &Handles, this);
-		StartupAbilitySetHandles.Add(Handles);
+		return;
 	}
+
+	FFortRogueGrantedAbilitySetEntry Entry;
+	Entry.AbilitySet = AbilitySet;
+	AbilitySet->GiveToAbilitySystem(AbilitySystemComponent, &Entry.Handles, this);
+	GrantedAbilitySetEntries.Add(MoveTemp(Entry));
+}
+
+bool AFortRogueBattleCharacter::RemoveAbilitySet(UFortRogueAbilitySet* AbilitySet)
+{
+	if (!AbilitySet || !AbilitySystemComponent)
+	{
+		return false;
+	}
+
+	for (int32 Index = GrantedAbilitySetEntries.Num() - 1; Index >= 0; --Index)
+	{
+		FFortRogueGrantedAbilitySetEntry& Entry = GrantedAbilitySetEntries[Index];
+		if (Entry.AbilitySet != AbilitySet)
+		{
+			continue;
+		}
+
+		Entry.Handles.TakeFromAbilitySystem(AbilitySystemComponent);
+		GrantedAbilitySetEntries.RemoveAt(Index);
+		return true;
+	}
+
+	return false;
+}
+
+int32 AFortRogueBattleCharacter::RemoveAbilitySetsByTag(FGameplayTag AbilitySetTag)
+{
+	if (!AbilitySetTag.IsValid() || !AbilitySystemComponent)
+	{
+		return 0;
+	}
+
+	int32 RemovedCount = 0;
+	for (int32 Index = GrantedAbilitySetEntries.Num() - 1; Index >= 0; --Index)
+	{
+		FFortRogueGrantedAbilitySetEntry& Entry = GrantedAbilitySetEntries[Index];
+		if (!DoesAbilitySetMatchTag(Entry.AbilitySet, AbilitySetTag))
+		{
+			continue;
+		}
+
+		Entry.Handles.TakeFromAbilitySystem(AbilitySystemComponent);
+		GrantedAbilitySetEntries.RemoveAt(Index);
+		++RemovedCount;
+	}
+	return RemovedCount;
+}
+
+int32 AFortRogueBattleCharacter::GetGrantedAbilitySetCount(UFortRogueAbilitySet* AbilitySet) const
+{
+	if (!AbilitySet)
+	{
+		return 0;
+	}
+
+	int32 GrantedCount = 0;
+	for (const FFortRogueGrantedAbilitySetEntry& Entry : GrantedAbilitySetEntries)
+	{
+		if (Entry.AbilitySet == AbilitySet)
+		{
+			++GrantedCount;
+		}
+	}
+	return GrantedCount;
+}
+
+int32 AFortRogueBattleCharacter::GetGrantedAbilitySetCountByTag(FGameplayTag AbilitySetTag) const
+{
+	if (!AbilitySetTag.IsValid())
+	{
+		return 0;
+	}
+
+	int32 GrantedCount = 0;
+	for (const FFortRogueGrantedAbilitySetEntry& Entry : GrantedAbilitySetEntries)
+	{
+		if (DoesAbilitySetMatchTag(Entry.AbilitySet, AbilitySetTag))
+		{
+			++GrantedCount;
+		}
+	}
+	return GrantedCount;
+}
+
+bool AFortRogueBattleCharacter::HasGrantedAbilitySetByTag(FGameplayTag AbilitySetTag) const
+{
+	return GetGrantedAbilitySetCountByTag(AbilitySetTag) > 0;
+}
+
+void AFortRogueBattleCharacter::GrantShotModifiers(const TArray<FFortRogueShotModifierSpec>& ShotModifiers)
+{
+	if (ShotModifiers.Num() <= 0)
+	{
+		return;
+	}
+
+	GrantedShotModifiers.Append(ShotModifiers);
+}
+
+int32 AFortRogueBattleCharacter::RemoveGrantedShotModifiersByTag(FGameplayTag ModifierTag)
+{
+	if (!ModifierTag.IsValid())
+	{
+		return 0;
+	}
+
+	int32 RemovedCount = 0;
+	for (int32 Index = GrantedShotModifiers.Num() - 1; Index >= 0; --Index)
+	{
+		const FFortRogueShotModifierSpec& Modifier = GrantedShotModifiers[Index];
+		if (!DoesShotModifierMatchTag(Modifier, ModifierTag))
+		{
+			continue;
+		}
+
+		GrantedShotModifiers.RemoveAt(Index);
+		++RemovedCount;
+	}
+
+	return RemovedCount;
+}
+
+int32 AFortRogueBattleCharacter::RemovePendingShotModifiersByTag(FGameplayTag ModifierTag)
+{
+	if (!ModifierTag.IsValid())
+	{
+		return 0;
+	}
+
+	int32 RemovedCount = 0;
+	for (int32 Index = PendingShotModifiers.Num() - 1; Index >= 0; --Index)
+	{
+		const FFortRogueShotModifierSpec& Modifier = PendingShotModifiers[Index];
+		if (!DoesShotModifierMatchTag(Modifier, ModifierTag))
+		{
+			continue;
+		}
+
+		PendingShotModifiers.RemoveAt(Index);
+		++RemovedCount;
+	}
+
+	return RemovedCount;
 }
 
 void AFortRogueBattleCharacter::AddWeaponDefinition(UFortRogueWeaponDefinition* WeaponDefinition)
@@ -534,6 +884,139 @@ float AFortRogueBattleCharacter::GetMoveBudget() const
 	return CombatSet->GetMoveBudget();
 }
 
+float AFortRogueBattleCharacter::GetMaxMoveBudget() const
+{
+	return CombatSet->GetMaxMoveBudget();
+}
+
+float AFortRogueBattleCharacter::GetDamageBonus() const
+{
+	return CombatSet->GetDamage();
+}
+
+float AFortRogueBattleCharacter::GetShotPowerMultiplier() const
+{
+	return CombatSet->GetShotPowerMultiplier();
+}
+
+float AFortRogueBattleCharacter::GetProjectileCount() const
+{
+	return CombatSet->GetProjectileCount();
+}
+
+bool AFortRogueBattleCharacter::TryGetCombatAttributeValueByTag(FGameplayTag AttributeTag, float& OutValue) const
+{
+	OutValue = 0.0f;
+	if (!AttributeTag.IsValid())
+	{
+		return false;
+	}
+
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_Health))
+	{
+		OutValue = GetHealth();
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_MaxHealth))
+	{
+		OutValue = GetMaxHealth();
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_MoveBudget))
+	{
+		OutValue = GetMoveBudget();
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_MaxMoveBudget))
+	{
+		OutValue = GetMaxMoveBudget();
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_Damage))
+	{
+		OutValue = GetDamageBonus();
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_ShotPowerMultiplier))
+	{
+		OutValue = GetShotPowerMultiplier();
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_ProjectileCount))
+	{
+		OutValue = GetProjectileCount();
+		return true;
+	}
+
+	return false;
+}
+
+bool AFortRogueBattleCharacter::TryApplyCombatAttributeDeltaByTag(FGameplayTag AttributeTag, float DeltaValue)
+{
+	if (!AttributeTag.IsValid())
+	{
+		return false;
+	}
+
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_Health))
+	{
+		if (DeltaValue >= 0.0f)
+		{
+			CombatSet->Heal(DeltaValue);
+		}
+		else
+		{
+			CombatSet->ApplyDamage(-DeltaValue);
+		}
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_MaxHealth))
+	{
+		CombatSet->AddMaxHealth(DeltaValue);
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_MoveBudget))
+	{
+		CombatSet->SetMoveBudget(FMath::Clamp(GetMoveBudget() + DeltaValue, 0.0f, GetMaxMoveBudget()));
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_MaxMoveBudget))
+	{
+		CombatSet->AddMaxMoveBudget(DeltaValue);
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_Damage))
+	{
+		CombatSet->AddDamage(DeltaValue);
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_ShotPowerMultiplier))
+	{
+		CombatSet->AddShotPowerMultiplier(DeltaValue);
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FortRogueGameplayTags::Attribute_ProjectileCount))
+	{
+		CombatSet->AddProjectileCount(DeltaValue);
+		return true;
+	}
+
+	return false;
+}
+
+FText AFortRogueBattleCharacter::GetCombatStatsSummary() const
+{
+	return FText::FromString(FString::Printf(
+		TEXT("HP %.0f/%.0f | move %.0f/%.0f | damage +%.0f | shot power x%.2g | projectiles %.0f"),
+		GetHealth(),
+		GetMaxHealth(),
+		GetMoveBudget(),
+		GetMaxMoveBudget(),
+		GetDamageBonus(),
+		GetShotPowerMultiplier(),
+		GetProjectileCount()));
+}
+
 float AFortRogueBattleCharacter::GetAimAngle() const
 {
 	return AimAngle;
@@ -574,6 +1057,80 @@ int32 AFortRogueBattleCharacter::GetItemCharges(EFortRogueItemType ItemType) con
 	return TotalCharges;
 }
 
+int32 AFortRogueBattleCharacter::GetItemChargesByTag(FGameplayTag ItemTag) const
+{
+	if (!ItemTag.IsValid())
+	{
+		return 0;
+	}
+
+	int32 TotalCharges = 0;
+	for (const FFortRogueItemStack& ItemStack : ItemLoadout)
+	{
+		if (ItemStack.ItemDefinition && ItemStack.ItemDefinition->ItemTag.MatchesTagExact(ItemTag))
+		{
+			TotalCharges += ItemStack.Charges;
+		}
+	}
+	return TotalCharges;
+}
+
+const TArray<FFortRogueItemStack>& AFortRogueBattleCharacter::GetItemLoadout() const
+{
+	return ItemLoadout;
+}
+
+TArray<FFortRogueItemStack> AFortRogueBattleCharacter::GetItemLoadoutForBlueprint() const
+{
+	return ItemLoadout;
+}
+
+int32 AFortRogueBattleCharacter::GetGrantedShotModifierCountByTag(FGameplayTag ModifierTag) const
+{
+	if (!ModifierTag.IsValid())
+	{
+		return 0;
+	}
+
+	int32 TotalCount = 0;
+	for (const FFortRogueShotModifierSpec& Modifier : GrantedShotModifiers)
+	{
+		if (DoesShotModifierMatchTag(Modifier, ModifierTag))
+		{
+			++TotalCount;
+		}
+	}
+	return TotalCount;
+}
+
+int32 AFortRogueBattleCharacter::GetPendingShotModifierCountByTag(FGameplayTag ModifierTag) const
+{
+	if (!ModifierTag.IsValid())
+	{
+		return 0;
+	}
+
+	int32 TotalCount = 0;
+	for (const FFortRogueShotModifierSpec& Modifier : PendingShotModifiers)
+	{
+		if (DoesShotModifierMatchTag(Modifier, ModifierTag))
+		{
+			++TotalCount;
+		}
+	}
+	return TotalCount;
+}
+
+bool AFortRogueBattleCharacter::HasGrantedShotModifierByTag(FGameplayTag ModifierTag) const
+{
+	return GetGrantedShotModifierCountByTag(ModifierTag) > 0;
+}
+
+bool AFortRogueBattleCharacter::HasPendingShotModifierByTag(FGameplayTag ModifierTag) const
+{
+	return GetPendingShotModifierCountByTag(ModifierTag) > 0;
+}
+
 const FFortRogueWeaponSpec& AFortRogueBattleCharacter::GetCurrentWeapon() const
 {
 	if (WeaponLoadout.IsValidIndex(SelectedWeaponIndex))
@@ -599,6 +1156,29 @@ const FFortRogueWeaponSpec& AFortRogueBattleCharacter::GetCurrentWeapon() const
 FFortRogueWeaponSpec AFortRogueBattleCharacter::GetCurrentWeaponSpec() const
 {
 	return GetCurrentWeapon();
+}
+
+FFortRogueShotSpec AFortRogueBattleCharacter::GetCurrentShotSpec() const
+{
+	return BuildShotSpec(GetCurrentWeapon());
+}
+
+FText AFortRogueBattleCharacter::GetCurrentShotSummary() const
+{
+	const FFortRogueShotSpec ShotSpec = GetCurrentShotSpec();
+	const bool bFillsTerrain = ShotSpec.TerrainFillRadius > 0.0f;
+	const int32 ImpactProjectileCount = CountImpactSpawnProjectiles(ShotSpec.ImpactSpawns);
+	const FString ImpactText = ImpactProjectileCount > 0
+		? FString::Printf(TEXT(" | Impact +%d"), ImpactProjectileCount)
+		: FString();
+
+	return FText::FromString(FString::Printf(TEXT("Shot Dmg %.0f | Blast %.0f | %s %.0f | Projectiles %d%s"),
+		ShotSpec.Damage,
+		ShotSpec.BlastRadius,
+		bFillsTerrain ? TEXT("Fill") : TEXT("Carve"),
+		bFillsTerrain ? ShotSpec.TerrainFillRadius : ShotSpec.TerrainCarveRadius,
+		ShotSpec.ProjectileCount,
+		*ImpactText));
 }
 
 const TArray<FFortRogueWeaponSpec>& AFortRogueBattleCharacter::GetWeaponLoadout() const
@@ -858,6 +1438,79 @@ FVector AFortRogueBattleCharacter::GetProjectileSpawnLocation(const FVector& Lau
 	return GetActorLocation() + LaunchDirection * 70.0f + FVector(0.0f, 0.0f, 35.0f);
 }
 
+FFortRogueShotSpec AFortRogueBattleCharacter::BuildShotSpec(const FFortRogueWeaponSpec& Weapon) const
+{
+	FFortRogueShotSpec ShotSpec;
+	ShotSpec.WeaponTag = Weapon.WeaponTag;
+	ShotSpec.EffectTags = Weapon.ShotEffectTags;
+	if (Weapon.WeaponTag.IsValid())
+	{
+		ShotSpec.EffectTags.AddTag(Weapon.WeaponTag);
+	}
+	ShotSpec.Damage = FMath::Max(0.0f, (Weapon.Damage + CombatSet->GetDamage()) * PendingAttackMultiplier);
+	ShotSpec.BlastRadius = FMath::Max(0.0f, Weapon.BlastRadius);
+	ShotSpec.TerrainCarveRadius = ShotSpec.BlastRadius;
+	ShotSpec.TerrainFillRadius = 0.0f;
+	ShotSpec.LaunchSpeed = FMath::Max(0.0f, Weapon.ProjectileSpeed * ShotPower * CombatSet->GetShotPowerMultiplier());
+	ShotSpec.Gravity = FMath::Max(0.0f, Weapon.Gravity);
+	ShotSpec.ProjectileCount = FMath::Max(1, Weapon.ProjectilesPerShot + FMath::RoundToInt(CombatSet->GetProjectileCount()) - 1);
+	ShotSpec.ProjectileClass = Weapon.ProjectileClass ? Weapon.ProjectileClass : TSubclassOf<AFortRogueProjectile>(AFortRogueProjectile::StaticClass());
+	ShotSpec.ImpactSpawns = Weapon.ImpactSpawns;
+	auto ApplyShotModifier = [this, &ShotSpec](const FFortRogueShotModifierSpec& Modifier)
+	{
+		if (Modifier.bUseAimAngleRange)
+		{
+			const float MinAngle = FMath::Min(Modifier.MinAimAngle, Modifier.MaxAimAngle);
+			const float MaxAngle = FMath::Max(Modifier.MinAimAngle, Modifier.MaxAimAngle);
+			if (AimAngle < MinAngle || AimAngle > MaxAngle)
+			{
+				return;
+			}
+		}
+		if (Modifier.bRequireWindAligned)
+		{
+			const AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+			const float Wind = GameMode ? GameMode->GetWind() : 0.0f;
+			const float ShotDirection = bFacingRight ? 1.0f : -1.0f;
+			if (FMath::Abs(Wind) < Modifier.MinWindMagnitude || Wind * ShotDirection <= 0.0f)
+			{
+				return;
+			}
+		}
+		if (!Modifier.RequiredShotTags.IsEmpty() && !ShotSpec.EffectTags.HasAny(Modifier.RequiredShotTags))
+		{
+			return;
+		}
+		if (!Modifier.BlockedShotTags.IsEmpty() && ShotSpec.EffectTags.HasAny(Modifier.BlockedShotTags))
+		{
+			return;
+		}
+
+		ShotSpec.EffectTags.AppendTags(Modifier.EffectTags);
+		ShotSpec.Damage = FMath::Max(0.0f, (ShotSpec.Damage + Modifier.DamageBonus) * Modifier.DamageMultiplier);
+		ShotSpec.BlastRadius = FMath::Max(0.0f, (ShotSpec.BlastRadius + Modifier.BlastRadiusBonus) * Modifier.BlastRadiusMultiplier);
+		ShotSpec.TerrainCarveRadius = FMath::Max(0.0f, (ShotSpec.TerrainCarveRadius + Modifier.TerrainCarveRadiusBonus) * Modifier.TerrainCarveRadiusMultiplier);
+		ShotSpec.TerrainFillRadius = FMath::Max(0.0f, (ShotSpec.TerrainFillRadius + Modifier.TerrainFillRadiusBonus) * Modifier.TerrainFillRadiusMultiplier);
+		ShotSpec.LaunchSpeed = FMath::Max(0.0f, ShotSpec.LaunchSpeed * Modifier.LaunchSpeedMultiplier);
+		ShotSpec.Gravity = FMath::Max(0.0f, ShotSpec.Gravity * Modifier.GravityMultiplier);
+		ShotSpec.ProjectileCount = FMath::Max(1, ShotSpec.ProjectileCount + Modifier.ProjectileCountBonus);
+		ShotSpec.ImpactSpawns.Append(Modifier.ImpactSpawns);
+	};
+	for (const FFortRogueShotModifierSpec& Modifier : Weapon.ShotModifiers)
+	{
+		ApplyShotModifier(Modifier);
+	}
+	for (const FFortRogueShotModifierSpec& Modifier : GrantedShotModifiers)
+	{
+		ApplyShotModifier(Modifier);
+	}
+	for (const FFortRogueShotModifierSpec& Modifier : PendingShotModifiers)
+	{
+		ApplyShotModifier(Modifier);
+	}
+	return ShotSpec;
+}
+
 void AFortRogueBattleCharacter::DrawProjectileTrajectory() const
 {
 	if (!bDrawProjectileTrajectory || !bActiveTurn || bFiredThisTurn || IsDefeated() || !IsSupportedByTerrain() || !GetWorld())
@@ -870,8 +1523,8 @@ void AFortRogueBattleCharacter::DrawProjectileTrajectory() const
 	}
 
 	const FFortRogueWeaponSpec& Weapon = GetCurrentWeapon();
-	const float Speed = Weapon.ProjectileSpeed * ShotPower * CombatSet->GetShotPowerMultiplier();
-	FVector Velocity = GetProjectileLaunchDirection(0.0f) * Speed;
+	const FFortRogueShotSpec ShotSpec = BuildShotSpec(Weapon);
+	FVector Velocity = GetProjectileLaunchDirection(0.0f) * ShotSpec.LaunchSpeed;
 	FVector Location = GetProjectileSpawnLocation(Velocity.GetSafeNormal());
 	const float StepSeconds = FMath::Max(TrajectoryDebugTimeStep, KINDA_SMALL_NUMBER);
 	const int32 StepCount = FMath::Max(1, TrajectoryDebugSteps);
@@ -882,7 +1535,7 @@ void AFortRogueBattleCharacter::DrawProjectileTrajectory() const
 	for (int32 Step = 0; Step < StepCount; ++Step)
 	{
 		const FVector PreviousLocation = Location;
-		Velocity += FVector(Wind, 0.0f, -Weapon.Gravity) * StepSeconds;
+		Velocity += FVector(Wind, 0.0f, -ShotSpec.Gravity) * StepSeconds;
 		Location += Velocity * StepSeconds;
 		DrawDebugLine(GetWorld(), PreviousLocation, Location, FColor::Yellow, false, 0.0f, 0, 2.0f);
 
@@ -896,16 +1549,9 @@ void AFortRogueBattleCharacter::DrawProjectileTrajectory() const
 
 void AFortRogueBattleCharacter::GrantStartupAbilitySets()
 {
-	for (const UFortRogueAbilitySet* AbilitySet : StartupAbilitySets)
+	for (UFortRogueAbilitySet* AbilitySet : StartupAbilitySets)
 	{
-		if (!AbilitySet)
-		{
-			continue;
-		}
-
-		FFortRogueAbilitySet_GrantedHandles Handles;
-		AbilitySet->GiveToAbilitySystem(AbilitySystemComponent, &Handles, this);
-		StartupAbilitySetHandles.Add(Handles);
+		GrantAbilitySet(AbilitySet);
 	}
 }
 
