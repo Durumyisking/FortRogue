@@ -84,6 +84,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Abilities")
 	bool HasPlayerGrantedAbilitySetByTag(FGameplayTag AbilitySetTag) const;
 
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
+	void GrantPlayerShotModifiers(const TArray<FFortRogueShotModifierSpec>& ShotModifiers);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
+	void GrantPlayerPendingShotModifiers(const TArray<FFortRogueShotModifierSpec>& ShotModifiers);
+
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
 	int32 GetPlayerGrantedShotModifierCountByTag(FGameplayTag ModifierTag) const;
 

@@ -155,7 +155,7 @@ ShotModifier 배열만 따로 표시해야 하는 디버그/편집 UI에서는 `
 
 임시 버프나 해제 가능한 효과는 `AFortRogueBattleCharacter::RemoveGrantedShotModifiersByTag()`로 제거할 수 있다.
 이 함수는 먼저 `ModifierTag`를 보고, 기존 데이터 호환을 위해 `EffectTags`에 같은 태그가 있는 modifier도 제거한다.
-UI나 블루프린트에서 현재 적용 여부를 확인할 때는 `GetGrantedShotModifierCountByTag()` 또는 `HasGrantedShotModifierByTag()`를 사용한다. PlayerController 경유 UI에서는 `GetPlayerGrantedShotModifierCountByTag()`, `HasPlayerGrantedShotModifierByTag()`, `RemovePlayerGrantedShotModifiersByTag()`를 사용한다.
+UI나 블루프린트에서 현재 적용 여부를 확인할 때는 `GetGrantedShotModifierCountByTag()` 또는 `HasGrantedShotModifierByTag()`를 사용한다. PlayerController 경유 UI에서는 `GrantPlayerShotModifiers()`, `GetPlayerGrantedShotModifierCountByTag()`, `HasPlayerGrantedShotModifierByTag()`, `RemovePlayerGrantedShotModifiersByTag()`를 사용한다.
 
 ## 6. 아이템과 AbilitySet
 
@@ -187,7 +187,7 @@ Canvas HUD도 현재 `ItemLoadout`의 아이템 이름과 수량을 표시한다
 - `UseShotModifiers`에 다음 발에만 적용할 modifier를 넣는다.
 - 발사 전 HUD의 최종 ShotSpec 표시로 적용 결과를 확인한다.
 - 실제 발사 후 `PendingShotModifiers`는 자동으로 비워진다.
-- 다음 발 효과를 UI에서 확인하거나 취소해야 한다면 `GetPendingShotModifierCountByTag()`, `HasPendingShotModifierByTag()`, `RemovePendingShotModifiersByTag()`를 사용한다. PlayerController 경유 UI에서는 `GetPlayerPendingShotModifierCountByTag()`, `HasPlayerPendingShotModifierByTag()`, `RemovePlayerPendingShotModifiersByTag()`를 사용한다.
+- 다음 발 효과를 UI에서 직접 붙이거나 확인하거나 취소해야 한다면 `GrantPendingShotModifiers()`, `GetPendingShotModifierCountByTag()`, `HasPendingShotModifierByTag()`, `RemovePendingShotModifiersByTag()`를 사용한다. PlayerController 경유 UI에서는 `GrantPlayerPendingShotModifiers()`, `GetPlayerPendingShotModifierCountByTag()`, `HasPlayerPendingShotModifierByTag()`, `RemovePlayerPendingShotModifiersByTag()`를 사용한다.
 
 ## 7. 주의할 점
 

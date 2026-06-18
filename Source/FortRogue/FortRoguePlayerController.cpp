@@ -625,6 +625,24 @@ bool AFortRoguePlayerController::HasPlayerGrantedAbilitySetByTag(FGameplayTag Ab
 	return GetPlayerGrantedAbilitySetCountByTag(AbilitySetTag) > 0;
 }
 
+void AFortRoguePlayerController::GrantPlayerShotModifiers(const TArray<FFortRogueShotModifierSpec>& ShotModifiers)
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		GameMode->GetPlayerCharacter()->GrantShotModifiers(ShotModifiers);
+	}
+}
+
+void AFortRoguePlayerController::GrantPlayerPendingShotModifiers(const TArray<FFortRogueShotModifierSpec>& ShotModifiers)
+{
+	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
+	if (GameMode && GameMode->GetPlayerCharacter())
+	{
+		GameMode->GetPlayerCharacter()->GrantPendingShotModifiers(ShotModifiers);
+	}
+}
+
 int32 AFortRoguePlayerController::GetPlayerGrantedShotModifierCountByTag(FGameplayTag ModifierTag) const
 {
 	AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;

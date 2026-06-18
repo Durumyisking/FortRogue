@@ -773,6 +773,16 @@ void AFortRogueBattleCharacter::GrantShotModifiers(const TArray<FFortRogueShotMo
 	GrantedShotModifiers.Append(ShotModifiers);
 }
 
+void AFortRogueBattleCharacter::GrantPendingShotModifiers(const TArray<FFortRogueShotModifierSpec>& ShotModifiers)
+{
+	if (ShotModifiers.Num() <= 0)
+	{
+		return;
+	}
+
+	PendingShotModifiers.Append(ShotModifiers);
+}
+
 int32 AFortRogueBattleCharacter::RemoveGrantedShotModifiersByTag(FGameplayTag ModifierTag)
 {
 	if (!ModifierTag.IsValid())
