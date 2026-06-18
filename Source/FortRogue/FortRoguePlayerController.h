@@ -42,6 +42,9 @@ private:
 	void HandleFireReleased();
 	void HandleWeapon1();
 	void HandleWeapon2();
+	void HandleWeapon3();
+	void HandleWeapon4();
+	void HandleWeapon5();
 	void HandleAttackItem();
 	void HandleHealItem();
 	void HandleReward1();
@@ -76,6 +79,15 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Input")
 	TObjectPtr<UInputAction> Weapon2Action;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Input")
+	TObjectPtr<UInputAction> Weapon3Action;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Input")
+	TObjectPtr<UInputAction> Weapon4Action;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Input")
+	TObjectPtr<UInputAction> Weapon5Action;
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Input")
 	TObjectPtr<UInputAction> AttackItemAction;

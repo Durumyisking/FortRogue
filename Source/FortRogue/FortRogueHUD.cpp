@@ -41,9 +41,11 @@ void AFortRogueHUD::DrawBattleHUD(AFortRogueGameMode* GameMode, float X, float& 
 			FColor::Green, X, Y, GEngine->GetSmallFont(), Scale);
 		Y += 24.0f;
 		DrawPowerGauge(Player, X, Y);
-		DrawText(FString::Printf(TEXT("Weapon %d: %s | 1/2 Weapon | J Attack Amp x%d | H Repair x%d"),
+		const int32 MaxWeaponKey = FMath::Max(1, FMath::Min(Player->GetWeaponLoadout().Num(), 5));
+		DrawText(FString::Printf(TEXT("Weapon %d: %s | 1-%d Weapon | J Attack Amp x%d | H Repair x%d"),
 			Player->GetSelectedWeaponIndex() + 1,
 			*Player->GetCurrentWeapon().DisplayName.ToString(),
+			MaxWeaponKey,
 			Player->GetItemCharges(EFortRogueItemType::AttackMultiplier),
 			Player->GetItemCharges(EFortRogueItemType::Heal)),
 			FColor::Cyan, X, Y, GEngine->GetSmallFont(), Scale);

@@ -88,6 +88,18 @@ void AFortRoguePlayerController::SetupInputComponent()
 	{
 		EnhancedInput->BindAction(Weapon2Action, ETriggerEvent::Started, this, &AFortRoguePlayerController::HandleWeapon2);
 	}
+	if (Weapon3Action)
+	{
+		EnhancedInput->BindAction(Weapon3Action, ETriggerEvent::Started, this, &AFortRoguePlayerController::HandleWeapon3);
+	}
+	if (Weapon4Action)
+	{
+		EnhancedInput->BindAction(Weapon4Action, ETriggerEvent::Started, this, &AFortRoguePlayerController::HandleWeapon4);
+	}
+	if (Weapon5Action)
+	{
+		EnhancedInput->BindAction(Weapon5Action, ETriggerEvent::Started, this, &AFortRoguePlayerController::HandleWeapon5);
+	}
 	if (AttackItemAction)
 	{
 		EnhancedInput->BindAction(AttackItemAction, ETriggerEvent::Started, this, &AFortRoguePlayerController::HandleAttackItem);
@@ -153,6 +165,18 @@ void AFortRoguePlayerController::TickBattleInput(float DeltaSeconds)
 	if (WasInputKeyJustPressed(EKeys::Two))
 	{
 		SelectPlayerWeapon(1);
+	}
+	if (WasInputKeyJustPressed(EKeys::Three))
+	{
+		SelectPlayerWeapon(2);
+	}
+	if (WasInputKeyJustPressed(EKeys::Four))
+	{
+		SelectPlayerWeapon(3);
+	}
+	if (WasInputKeyJustPressed(EKeys::Five))
+	{
+		SelectPlayerWeapon(4);
 	}
 	if (WasInputKeyJustPressed(EKeys::J))
 	{
@@ -239,7 +263,10 @@ void AFortRoguePlayerController::UpdateOptionalWidgets()
 
 bool AFortRoguePlayerController::HasEnhancedInputBindings() const
 {
-	return MoveAction || AimAction || FireAction || Weapon1Action || Weapon2Action || AttackItemAction || HealItemAction || Reward1Action || Reward2Action || Reward3Action;
+	return MoveAction || AimAction || FireAction
+		|| Weapon1Action || Weapon2Action || Weapon3Action || Weapon4Action || Weapon5Action
+		|| AttackItemAction || HealItemAction
+		|| Reward1Action || Reward2Action || Reward3Action;
 }
 
 void AFortRoguePlayerController::HandleMove(const FInputActionValue& Value)
@@ -270,6 +297,21 @@ void AFortRoguePlayerController::HandleWeapon1()
 void AFortRoguePlayerController::HandleWeapon2()
 {
 	SelectPlayerWeapon(1);
+}
+
+void AFortRoguePlayerController::HandleWeapon3()
+{
+	SelectPlayerWeapon(2);
+}
+
+void AFortRoguePlayerController::HandleWeapon4()
+{
+	SelectPlayerWeapon(3);
+}
+
+void AFortRoguePlayerController::HandleWeapon5()
+{
+	SelectPlayerWeapon(4);
 }
 
 void AFortRoguePlayerController::HandleAttackItem()

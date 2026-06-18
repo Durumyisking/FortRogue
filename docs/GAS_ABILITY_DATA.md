@@ -108,6 +108,8 @@ modifier 적용 순서:
 
 직접 스탯 보상은 `DamageBonus`, `MaxHealthBonus`, `MaxMoveBudgetBonus`, `ProjectileBonus`, `ShotPowerMultiplierBonus`를 사용한다.
 
+`WeaponReward`로 추가된 무기는 전투 중 1-5번 슬롯으로 선택할 수 있다.
+
 런 보상 풀은 `UFortRogueStageRunDefinition`에서 설정한다.
 
 - `RewardPool`: 등장 가능한 보상 전체 목록
