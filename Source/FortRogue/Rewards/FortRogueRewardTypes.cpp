@@ -202,6 +202,10 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("charges +%d"), RepairCharges));
 	}
+	if (bOfferOncePerRun && RewardTag.IsValid())
+	{
+		AddSummaryPart(Parts, TEXT("once per run"));
+	}
 
 	if (Parts.Num() <= 0)
 	{
