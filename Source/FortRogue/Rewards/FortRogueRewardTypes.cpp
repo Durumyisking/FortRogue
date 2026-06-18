@@ -24,10 +24,16 @@ void AddShotModifierSummary(TArray<FString>& Parts, const TArray<FFortRogueShotM
 	}
 
 	int32 ProjectileBonus = 0;
+	float DamageBonus = 0.0f;
 	float DamageMultiplier = 1.0f;
+	float BlastRadiusBonus = 0.0f;
 	float BlastRadiusMultiplier = 1.0f;
 	float TerrainCarveBonus = 0.0f;
+	float TerrainCarveMultiplier = 1.0f;
 	float TerrainFillBonus = 0.0f;
+	float TerrainFillMultiplier = 1.0f;
+	float LaunchSpeedMultiplier = 1.0f;
+	float GravityMultiplier = 1.0f;
 	for (const FFortRogueShotModifierSpec& Modifier : Modifiers)
 	{
 		if (Modifier.bUseAimAngleRange)
@@ -48,15 +54,29 @@ void AddShotModifierSummary(TArray<FString>& Parts, const TArray<FFortRogueShotM
 		}
 
 		ProjectileBonus += Modifier.ProjectileCountBonus;
+		DamageBonus += Modifier.DamageBonus;
 		DamageMultiplier *= Modifier.DamageMultiplier;
+		BlastRadiusBonus += Modifier.BlastRadiusBonus;
 		BlastRadiusMultiplier *= Modifier.BlastRadiusMultiplier;
 		TerrainCarveBonus += Modifier.TerrainCarveRadiusBonus;
+		TerrainCarveMultiplier *= Modifier.TerrainCarveRadiusMultiplier;
 		TerrainFillBonus += Modifier.TerrainFillRadiusBonus;
+		TerrainFillMultiplier *= Modifier.TerrainFillRadiusMultiplier;
+		LaunchSpeedMultiplier *= Modifier.LaunchSpeedMultiplier;
+		GravityMultiplier *= Modifier.GravityMultiplier;
 	}
 
+	if (!FMath::IsNearlyZero(DamageBonus))
+	{
+		AddSummaryPart(Parts, FString::Printf(TEXT("shot damage %+.0f"), DamageBonus));
+	}
 	if (!FMath::IsNearlyEqual(DamageMultiplier, 1.0f))
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("shot damage x%.2g"), DamageMultiplier));
+	}
+	if (!FMath::IsNearlyZero(BlastRadiusBonus))
+	{
+		AddSummaryPart(Parts, FString::Printf(TEXT("blast %+.0f"), BlastRadiusBonus));
 	}
 	if (!FMath::IsNearlyEqual(BlastRadiusMultiplier, 1.0f))
 	{
@@ -66,13 +86,29 @@ void AddShotModifierSummary(TArray<FString>& Parts, const TArray<FFortRogueShotM
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("projectiles %+d"), ProjectileBonus));
 	}
-	if (TerrainCarveBonus > 0.0f)
+	if (!FMath::IsNearlyZero(TerrainCarveBonus))
 	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("carve +%.0f"), TerrainCarveBonus));
+		AddSummaryPart(Parts, FString::Printf(TEXT("carve %+.0f"), TerrainCarveBonus));
 	}
-	if (TerrainFillBonus > 0.0f)
+	if (!FMath::IsNearlyEqual(TerrainCarveMultiplier, 1.0f))
 	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("fill +%.0f"), TerrainFillBonus));
+		AddSummaryPart(Parts, FString::Printf(TEXT("carve x%.2g"), TerrainCarveMultiplier));
+	}
+	if (!FMath::IsNearlyZero(TerrainFillBonus))
+	{
+		AddSummaryPart(Parts, FString::Printf(TEXT("fill %+.0f"), TerrainFillBonus));
+	}
+	if (!FMath::IsNearlyEqual(TerrainFillMultiplier, 1.0f))
+	{
+		AddSummaryPart(Parts, FString::Printf(TEXT("fill x%.2g"), TerrainFillMultiplier));
+	}
+	if (!FMath::IsNearlyEqual(LaunchSpeedMultiplier, 1.0f))
+	{
+		AddSummaryPart(Parts, FString::Printf(TEXT("speed x%.2g"), LaunchSpeedMultiplier));
+	}
+	if (!FMath::IsNearlyEqual(GravityMultiplier, 1.0f))
+	{
+		AddSummaryPart(Parts, FString::Printf(TEXT("gravity x%.2g"), GravityMultiplier));
 	}
 }
 }
