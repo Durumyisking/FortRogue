@@ -163,6 +163,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
 	int32 GetItemCharges(EFortRogueItemType ItemType) const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
+	int32 GetItemChargesByTag(FGameplayTag ItemTag) const;
+
 	const FFortRogueWeaponSpec& GetCurrentWeapon() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")

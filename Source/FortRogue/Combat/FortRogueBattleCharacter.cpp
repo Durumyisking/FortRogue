@@ -651,6 +651,24 @@ int32 AFortRogueBattleCharacter::GetItemCharges(EFortRogueItemType ItemType) con
 	return TotalCharges;
 }
 
+int32 AFortRogueBattleCharacter::GetItemChargesByTag(FGameplayTag ItemTag) const
+{
+	if (!ItemTag.IsValid())
+	{
+		return 0;
+	}
+
+	int32 TotalCharges = 0;
+	for (const FFortRogueItemStack& ItemStack : ItemLoadout)
+	{
+		if (ItemStack.ItemDefinition && ItemStack.ItemDefinition->ItemTag.MatchesTagExact(ItemTag))
+		{
+			TotalCharges += ItemStack.Charges;
+		}
+	}
+	return TotalCharges;
+}
+
 const FFortRogueWeaponSpec& AFortRogueBattleCharacter::GetCurrentWeapon() const
 {
 	if (WeaponLoadout.IsValidIndex(SelectedWeaponIndex))
