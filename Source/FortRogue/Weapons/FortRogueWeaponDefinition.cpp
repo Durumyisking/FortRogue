@@ -142,6 +142,24 @@ FText FFortRogueShotModifierSpec::GetShotConditionFailureSummary(const FFortRogu
 	return FText::GetEmpty();
 }
 
+void FFortRogueShotModifierSpec::ApplyToShotSpec(FFortRogueShotSpec& ShotSpec) const
+{
+	ShotSpec.EffectTags.AppendTags(EffectTags);
+	ShotSpec.Damage = FMath::Max(0.0f, (ShotSpec.Damage + DamageBonus) * DamageMultiplier);
+	ShotSpec.BlastRadius = FMath::Max(0.0f, (ShotSpec.BlastRadius + BlastRadiusBonus) * BlastRadiusMultiplier);
+	ShotSpec.TerrainCarveRadius = FMath::Max(0.0f, (ShotSpec.TerrainCarveRadius + TerrainCarveRadiusBonus) * TerrainCarveRadiusMultiplier);
+	ShotSpec.TerrainFillRadius = FMath::Max(0.0f, (ShotSpec.TerrainFillRadius + TerrainFillRadiusBonus) * TerrainFillRadiusMultiplier);
+	ShotSpec.LaunchSpeed = FMath::Max(0.0f, ShotSpec.LaunchSpeed * LaunchSpeedMultiplier);
+	ShotSpec.Gravity = FMath::Max(0.0f, ShotSpec.Gravity * GravityMultiplier);
+	ShotSpec.ProjectileCount = FMath::Max(1, ShotSpec.ProjectileCount + ProjectileCountBonus);
+	for (const FFRProjectileEffectSpec& ProjectileEffect : ProjectileEffects)
+	{
+		ProjectileEffect.ApplyToShotSpec(ShotSpec);
+		ShotSpec.ProjectileEffects.Add(ProjectileEffect);
+	}
+	ShotSpec.ImpactSpawns.Append(ImpactSpawns);
+}
+
 FText FFortRogueShotModifierSpec::GetDataValidationSummary() const
 {
 	TArray<FString> Issues;

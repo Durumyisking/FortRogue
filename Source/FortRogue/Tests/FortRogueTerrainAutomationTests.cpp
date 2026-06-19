@@ -29,6 +29,7 @@
 #include "PaperFlipbookComponent.h"
 #include "Perks/FortRoguePerkDefinition.h"
 #include "ProjectileEffects/FRProjectileEffect.h"
+#include "ProjectileEffects/FRProjectileSplitEffect.h"
 #include "Rewards/FortRogueRewardBlueprintLibrary.h"
 #include "Rewards/FortRogueRewardTypes.h"
 #include "Run/FortRogueDefaultLoadoutDefinition.h"
@@ -197,9 +198,18 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	EffectModifierData.DisplayName = FText::FromString(TEXT("Valid Projectile Effects"));
 	EffectModifierData.ProjectileEffects.Add(DrillEffect);
 	EffectModifierData.ProjectileEffects.Add(TerrainCreateEffect);
+	FFRProjectileEffectSplitParams SplitParams;
+	SplitParams.ProjectileCount = 2;
+	SplitParams.ChildShotModifiers.Add(EffectModifierData);
+	FFRProjectileEffectSpec SplitEffect;
+	SplitEffect.EffectClass = UFRProjectileEffectSplit::StaticClass();
+	SplitEffect.Parameters = FInstancedStruct::Make(SplitParams);
+	SplitEffect.ApplyToShotSpec(EffectShotSpec);
+	TestTrue(TEXT("Projectile split effect CDO adds split tags"), EffectShotSpec.EffectTags.HasTagExact(FortRogueGameplayTags::ShotEffect_SplitOnImpact));
+	EffectModifierData.ProjectileEffects.Add(SplitEffect);
 	TestTrue(TEXT("Shot modifier data validation accepts projectile effects"), EffectModifierData.GetDataValidationSummary().ToString().IsEmpty());
 	TArray<FFortRogueShotModifierSpec> EffectModifierSummaryData = { EffectModifierData };
-	TestTrue(TEXT("Shot modifier summary counts projectile effects"), UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(EffectModifierSummaryData).ToString().Contains(TEXT("projectile effects 2")));
+	TestTrue(TEXT("Shot modifier summary counts projectile effects"), UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(EffectModifierSummaryData).ToString().Contains(TEXT("projectile effects 3")));
 	FFortRogueShotModifierSpec InvalidShotModifierData;
 	InvalidShotModifierData.bUseAimAngleRange = true;
 	InvalidShotModifierData.MinAimAngle = 80.0f;

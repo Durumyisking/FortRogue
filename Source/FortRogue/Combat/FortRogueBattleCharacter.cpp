@@ -1539,20 +1539,7 @@ FFortRogueShotSpec AFortRogueBattleCharacter::BuildShotSpec(const FFortRogueWeap
 			return;
 		}
 
-		ShotSpec.EffectTags.AppendTags(Modifier.EffectTags);
-		ShotSpec.Damage = FMath::Max(0.0f, (ShotSpec.Damage + Modifier.DamageBonus) * Modifier.DamageMultiplier);
-		ShotSpec.BlastRadius = FMath::Max(0.0f, (ShotSpec.BlastRadius + Modifier.BlastRadiusBonus) * Modifier.BlastRadiusMultiplier);
-		ShotSpec.TerrainCarveRadius = FMath::Max(0.0f, (ShotSpec.TerrainCarveRadius + Modifier.TerrainCarveRadiusBonus) * Modifier.TerrainCarveRadiusMultiplier);
-		ShotSpec.TerrainFillRadius = FMath::Max(0.0f, (ShotSpec.TerrainFillRadius + Modifier.TerrainFillRadiusBonus) * Modifier.TerrainFillRadiusMultiplier);
-		ShotSpec.LaunchSpeed = FMath::Max(0.0f, ShotSpec.LaunchSpeed * Modifier.LaunchSpeedMultiplier);
-		ShotSpec.Gravity = FMath::Max(0.0f, ShotSpec.Gravity * Modifier.GravityMultiplier);
-		ShotSpec.ProjectileCount = FMath::Max(1, ShotSpec.ProjectileCount + Modifier.ProjectileCountBonus);
-		for (const FFRProjectileEffectSpec& ProjectileEffect : Modifier.ProjectileEffects)
-		{
-			ProjectileEffect.ApplyToShotSpec(ShotSpec);
-			ShotSpec.ProjectileEffects.Add(ProjectileEffect);
-		}
-		ShotSpec.ImpactSpawns.Append(Modifier.ImpactSpawns);
+		Modifier.ApplyToShotSpec(ShotSpec);
 	};
 	for (const FFortRogueShotModifierSpec& Modifier : Weapon.ShotModifiers)
 	{

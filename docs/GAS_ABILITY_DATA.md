@@ -56,7 +56,7 @@ modifier 적용 순서:
 `ShotModifier`에는 `DisplayName`과 `Description`을 적어 어떤 조건/효과를 의도했는지 남긴다. `DisplayName`은 데이터 에셋 배열 행 제목으로 쓰이고, 두 값은 보상/디버그 요약에 표시된다.
 `ShotModifier`를 나중에 제거해야 하는 효과라면 `ModifierTag`에 고유 태그를 넣는다.
 `ShotModifier::ProjectileEffects`는 새 조립식 능력 경로다. `EffectClass`에 `UFRProjectileEffectBase` 상속 클래스를 고르고, `Parameters`에는 해당 effect가 요구하는 `FFRProjectileEffectParameters` 파생 구조체를 넣는다. DetailCustomization은 `EffectClass`와 `Parameters` 구조체가 맞도록 보정하는 것이 목표다.
-`ShotModifier::ImpactSpawns`를 쓰면 무기 자체가 아니라 보상, 퍽, 아이템으로 충돌 후 자식 탄 생성을 추가할 수 있다. 장기적으로 분열탄도 `ProjectileEffects` 기반 Split effect로 옮긴다.
+`ShotModifier::ImpactSpawns`를 쓰면 무기 자체가 아니라 보상, 퍽, 아이템으로 충돌 후 자식 탄 생성을 추가할 수 있다. 새 데이터는 가능하면 `ProjectileEffects`의 Split effect를 우선 사용한다.
 
 ## 3. ShotModifier 사용 예
 
@@ -103,7 +103,16 @@ modifier 적용 순서:
 
 ## 4. ImpactSpawns 사용 예
 
-충돌 후 분열탄:
+권장 분열탄:
+
+- `ProjectileEffects`에 `UFRProjectileEffectSplit` 항목을 추가한다.
+- `Parameters`는 `FFRProjectileEffectSplitParams`를 사용한다.
+- `ProjectileCount`, `SpreadDegrees`, `LaunchSpeed`로 child 탄 수와 퍼짐을 정한다.
+- `ChildShotModifiers`에 child 탄에 적용할 modifier를 넣는다.
+- 예를 들어 child 탄이 지형을 만들게 하려면 `ChildShotModifiers` 안에 `UFRProjectileEffectTerrainCreate`를 가진 modifier를 넣는다.
+- `UFRProjectileEffectSplit`은 ShotSpec에 `ShotEffect.SplitOnImpact` 태그를 자동 추가한다.
+
+기존 호환 분열탄:
 
 - `ImpactSpawns`에 항목을 추가한다.
 - `ProjectileCount = 3`

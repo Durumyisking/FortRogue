@@ -90,6 +90,7 @@ struct FFortRogueShotModifierSpec
 
 	bool MeetsShotConditions(const FFortRogueShotSpec& CurrentShotSpec, float CurrentAimAngle, float Wind, bool bShotFacingRight) const;
 	FText GetShotConditionFailureSummary(const FFortRogueShotSpec& CurrentShotSpec, float CurrentAimAngle, float Wind, bool bShotFacingRight) const;
+	void ApplyToShotSpec(FFortRogueShotSpec& ShotSpec) const;
 	FText GetDataValidationSummary() const;
 };
 
