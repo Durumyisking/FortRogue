@@ -98,6 +98,11 @@ void AFortRogueProjectile::InitializeProjectileFromShotSpec(AFortRogueBattleChar
 		ShotSpec.ProjectileEffects);
 }
 
+int32 AFortRogueProjectile::GetProjectileEffectCount() const
+{
+	return ProjectileEffects.Num();
+}
+
 void AFortRogueProjectile::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);

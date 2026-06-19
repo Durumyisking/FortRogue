@@ -1447,6 +1447,63 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		TestTrue(TEXT("Battle character does not tunnel into the steep terrain wall"), Character->GetActorLocation().X < 0.0f);
 	}
 
+	auto CountProjectiles = [&World]()
+	{
+		int32 Count = 0;
+		for (TActorIterator<AFortRogueProjectile> It(World); It; ++It)
+		{
+			++Count;
+		}
+		return Count;
+	};
+
+	FFRProjectileEffectDrillParams RuntimeSplitChildDrillParams;
+	RuntimeSplitChildDrillParams.RadiusBonus = 16.0f;
+	FFRProjectileEffectSpec RuntimeSplitChildDrillEffect;
+	RuntimeSplitChildDrillEffect.EffectClass = UFRProjectileEffectDrill::StaticClass();
+	RuntimeSplitChildDrillEffect.Parameters = FInstancedStruct::Make(RuntimeSplitChildDrillParams);
+	FFRProjectileEffectTerrainCreateParams RuntimeSplitChildTerrainParams;
+	RuntimeSplitChildTerrainParams.RadiusBonus = 12.0f;
+	FFRProjectileEffectSpec RuntimeSplitChildTerrainEffect;
+	RuntimeSplitChildTerrainEffect.EffectClass = UFRProjectileEffectTerrainCreate::StaticClass();
+	RuntimeSplitChildTerrainEffect.Parameters = FInstancedStruct::Make(RuntimeSplitChildTerrainParams);
+	FFortRogueShotModifierSpec RuntimeSplitChildModifier;
+	RuntimeSplitChildModifier.DisplayName = FText::FromString(TEXT("Runtime Split Child"));
+	RuntimeSplitChildModifier.ProjectileEffects.Add(RuntimeSplitChildDrillEffect);
+	RuntimeSplitChildModifier.ProjectileEffects.Add(RuntimeSplitChildTerrainEffect);
+	FFRProjectileEffectSplitParams RuntimeSplitParams;
+	RuntimeSplitParams.ProjectileCount = 1;
+	RuntimeSplitParams.SpreadDegrees = 0.0f;
+	RuntimeSplitParams.LaunchSpeed = 220.0f;
+	RuntimeSplitParams.ChildShotModifiers.Add(RuntimeSplitChildModifier);
+	FFRProjectileEffectSpec RuntimeSplitEffect;
+	RuntimeSplitEffect.EffectClass = UFRProjectileEffectSplit::StaticClass();
+	RuntimeSplitEffect.Parameters = FInstancedStruct::Make(RuntimeSplitParams);
+	FFRProjectileEffectImpactContext RuntimeSplitContext;
+	RuntimeSplitContext.World = World;
+	RuntimeSplitContext.OwnerCharacter = Character;
+	RuntimeSplitContext.AssignedTerrain = Terrain;
+	RuntimeSplitContext.ImpactLocation = FVector(-70.0f, 0.0f, 70.0f);
+	RuntimeSplitContext.Velocity = FVector(1.0f, 0.0f, 0.0f);
+	const int32 ProjectileCountBeforeSplit = CountProjectiles();
+	RuntimeSplitEffect.HandleImpact(RuntimeSplitContext);
+	TestEqual(TEXT("Runtime split effect spawns one child projectile"), CountProjectiles(), ProjectileCountBeforeSplit + 1);
+	AFortRogueProjectile* RuntimeSplitChildProjectile = nullptr;
+	for (TActorIterator<AFortRogueProjectile> It(World); It; ++It)
+	{
+		if (It->GetActorLocation().Equals(FVector(-52.0f, 0.0f, 70.0f), 0.1))
+		{
+			RuntimeSplitChildProjectile = *It;
+			break;
+		}
+	}
+	TestNotNull(TEXT("Runtime split child projectile can be found at its spawn location"), RuntimeSplitChildProjectile);
+	if (RuntimeSplitChildProjectile)
+	{
+		TestEqual(TEXT("Runtime split child projectile keeps child modifier effects"), RuntimeSplitChildProjectile->GetProjectileEffectCount(), 2);
+		RuntimeSplitChildProjectile->Destroy();
+	}
+
 	auto SetFloatProperty = [](UObject* Object, const FName PropertyName, float Value)
 	{
 		if (FFloatProperty* Property = FindFProperty<FFloatProperty>(Object->GetClass(), PropertyName))
