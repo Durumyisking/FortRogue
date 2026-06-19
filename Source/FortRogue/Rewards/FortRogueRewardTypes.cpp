@@ -17,6 +17,21 @@ void AddSummaryPart(TArray<FString>& Parts, const FString& Part)
 	}
 }
 
+bool HasRewardGameplayEffect(const FFortRogueRewardChoice& Reward)
+{
+	return Reward.WeaponReward
+		|| Reward.ItemReward
+		|| Reward.PerkReward
+		|| Reward.GrantedAbilitySet
+		|| Reward.ShotModifiers.Num() > 0
+		|| !FMath::IsNearlyZero(Reward.DamageBonus)
+		|| !FMath::IsNearlyZero(Reward.MaxHealthBonus)
+		|| !FMath::IsNearlyZero(Reward.MaxMoveBudgetBonus)
+		|| Reward.ProjectileBonus != 0
+		|| !FMath::IsNearlyZero(Reward.ShotPowerMultiplierBonus)
+		|| (Reward.RepairCharges > 0 && Reward.ItemReward);
+}
+
 void AddAbilitySetSummary(TArray<FString>& Parts, const UFortRogueAbilitySet* AbilitySet)
 {
 	if (!AbilitySet)
@@ -319,6 +334,33 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 	}
 
 	return FText::FromString(FString::Join(Parts, TEXT(" | ")));
+}
+
+FText FFortRogueRewardChoice::GetDataValidationSummary() const
+{
+	TArray<FString> Issues;
+	if (DisplayName.IsEmpty())
+	{
+		AddSummaryPart(Issues, TEXT("missing display name"));
+	}
+	if (RewardWeight <= 0.0f)
+	{
+		AddSummaryPart(Issues, TEXT("reward weight must be greater than 0"));
+	}
+	if (bOfferOncePerRun && !RewardTag.IsValid())
+	{
+		AddSummaryPart(Issues, TEXT("once per run rewards need a RewardTag"));
+	}
+	if (!HasRewardGameplayEffect(*this))
+	{
+		AddSummaryPart(Issues, TEXT("missing gameplay effect"));
+	}
+	if (!RequiredRewardTags.IsEmpty() && !BlockedRewardTags.IsEmpty() && RequiredRewardTags.HasAny(BlockedRewardTags))
+	{
+		AddSummaryPart(Issues, TEXT("required and blocked reward tags overlap"));
+	}
+
+	return Issues.Num() > 0 ? FText::FromString(FString::Join(Issues, TEXT(" | "))) : FText::GetEmpty();
 }
 
 bool FFortRogueRewardChoice::MeetsRewardTagConditions(const FGameplayTagContainer& ChosenRewardTags) const

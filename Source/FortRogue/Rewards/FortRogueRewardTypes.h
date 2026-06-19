@@ -83,6 +83,7 @@ struct FFortRogueRewardChoice
 	int32 RepairCharges = 0;
 
 	FText GetEffectSummary() const;
+	FText GetDataValidationSummary() const;
 	bool MeetsRewardTagConditions(const FGameplayTagContainer& ChosenRewardTags) const;
 	FText GetRewardTagConditionFailureSummary(const FGameplayTagContainer& ChosenRewardTags) const;
 };

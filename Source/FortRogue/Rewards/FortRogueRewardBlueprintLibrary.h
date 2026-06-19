@@ -23,6 +23,9 @@ public:
 	static FText GetRewardEffectSummary(const FFortRogueRewardChoice& RewardChoice);
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	static FText GetRewardDataValidationSummary(const FFortRogueRewardChoice& RewardChoice);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
 	static FText GetWeaponEffectSummary(UFortRogueWeaponDefinition* WeaponDefinition);
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")

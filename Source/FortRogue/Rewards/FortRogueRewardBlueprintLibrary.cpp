@@ -12,6 +12,11 @@ FText UFortRogueRewardBlueprintLibrary::GetRewardEffectSummary(const FFortRogueR
 	return RewardChoice.GetEffectSummary();
 }
 
+FText UFortRogueRewardBlueprintLibrary::GetRewardDataValidationSummary(const FFortRogueRewardChoice& RewardChoice)
+{
+	return RewardChoice.GetDataValidationSummary();
+}
+
 FText UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(UFortRogueWeaponDefinition* WeaponDefinition)
 {
 	FFortRogueRewardChoice RewardChoice;
