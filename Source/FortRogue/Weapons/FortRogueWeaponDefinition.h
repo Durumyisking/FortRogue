@@ -148,6 +148,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapon")
 	FText GetDataValidationSummary() const;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon", meta = (ToolTip = "이 데이터 에셋이 정의하는 무기 스펙입니다. 기본 능력치와 조립식 ShotModifier를 여기서 설정합니다."))
 	FFortRogueWeaponSpec Weapon;
 };
