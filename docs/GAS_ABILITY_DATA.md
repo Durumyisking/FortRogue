@@ -199,7 +199,7 @@ modifier 적용 순서:
 
 희귀도는 강함의 절대 등급이 아니다. Common이 어떤 런에서는 Legendary보다 수치적으로 강할 수 있고, Legendary는 숫자가 아니라 조합 축과 룰 변경 때문에 Legendary다.
 
-현재 코드에 별도 rarity enum이 없다면 먼저 `DisplayName`, `Description`, `RewardTag`, `PerkTag`와 문서 기준으로 구분한다. 나중에 `EPerkRarity` 같은 명시적 필드를 추가한다면 이 기준을 그대로 따른다.
+`UFortRoguePerkDefinition::Rarity`는 `EFortRoguePerkRarity`로 편집한다. 이 값은 보상 요약에 함께 표시되며, 수치 강함이 아니라 이해 난이도, 시너지, 룰 변경 정도를 기록하는 필드다.
 
 `WeaponReward`로 추가된 무기는 전투 중 1-5번 슬롯으로 선택할 수 있다.
 무기 목록 UI가 슬롯 번호로 선택한다면 `AFortRoguePlayerController::SelectPlayerWeaponByIndex()`를 사용한다.

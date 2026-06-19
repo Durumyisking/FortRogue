@@ -54,6 +54,23 @@ void AddAbilitySetSummary(TArray<FString>& Parts, const UFortRogueAbilitySet* Ab
 	AddSummaryPart(Parts, FString::Printf(TEXT("ability set %s"), *SummaryText));
 }
 
+FString GetPerkRarityName(EFortRoguePerkRarity Rarity)
+{
+	switch (Rarity)
+	{
+	case EFortRoguePerkRarity::Common:
+		return TEXT("Common");
+	case EFortRoguePerkRarity::Rare:
+		return TEXT("Rare");
+	case EFortRoguePerkRarity::Epic:
+		return TEXT("Epic");
+	case EFortRoguePerkRarity::Legendary:
+		return TEXT("Legendary");
+	default:
+		return TEXT("Common");
+	}
+}
+
 int32 CountRewardImpactSpawnProjectiles(const TArray<FFortRogueImpactSpawnSpec>& ImpactSpawns)
 {
 	int32 TotalCount = 0;
@@ -295,6 +312,7 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 		{
 			AddSummaryPart(Parts, FString::Printf(TEXT("tag %s"), *PerkReward->PerkTag.ToString()));
 		}
+		AddSummaryPart(Parts, FString::Printf(TEXT("rarity %s"), *GetPerkRarityName(PerkReward->Rarity)));
 		AddShotModifierSummary(Parts, PerkReward->ShotModifiers);
 		AddAbilitySetSummary(Parts, PerkReward->GrantedAbilitySet);
 		if (!FMath::IsNearlyZero(PerkReward->DamageBonus))

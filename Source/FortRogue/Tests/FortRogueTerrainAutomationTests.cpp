@@ -540,6 +540,7 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	AbilityPerk->DisplayName = FText::FromString(TEXT("Storm Training"));
 	AbilityPerk->Description = FText::FromString(TEXT("Every run shot bends harder."));
 	AbilityPerk->PerkTag = FortRogueGameplayTags::Trait_ShotModifier;
+	AbilityPerk->Rarity = EFortRoguePerkRarity::Epic;
 	AbilityPerk->GrantedAbilitySet = NamedAbilitySet;
 	AbilityPerk->DamageBonus = -2.0f;
 	AbilityPerk->MaxHealthBonus = -8.0f;
@@ -551,12 +552,14 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Reward summary names perk ability set"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("ability set Wind Split")));
 	TestTrue(TEXT("Reward summary includes perk descriptions"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("Every run shot bends harder.")));
 	TestTrue(TEXT("Reward summary names perk tags"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("tag Trait.ShotModifier")));
+	TestTrue(TEXT("Reward summary names perk rarity"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("rarity Epic")));
 	TestTrue(TEXT("Reward summary names negative perk damage bonuses"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("damage -2")));
 	TestTrue(TEXT("Reward summary names negative perk max health bonuses"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("max HP -8")));
 	TestTrue(TEXT("Reward summary names negative perk move bonuses"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("move -1")));
 	TestTrue(TEXT("Reward summary names negative perk projectile bonuses"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("projectiles -1")));
 	TestTrue(TEXT("Reward summary names negative perk shot power bonuses"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("shot power -0.2")));
 	TestTrue(TEXT("Blueprint helper summarizes perk assets"), UFortRogueRewardBlueprintLibrary::GetPerkEffectSummary(AbilityPerk).ToString().Contains(TEXT("ability set Wind Split")));
+	TestTrue(TEXT("Blueprint helper summarizes perk rarity"), UFortRogueRewardBlueprintLibrary::GetPerkEffectSummary(AbilityPerk).ToString().Contains(TEXT("rarity Epic")));
 	UFortRoguePerkDefinition* InvalidPerkData = NewObject<UFortRoguePerkDefinition>();
 	InvalidPerkData->DisplayName = FText::GetEmpty();
 	const FString InvalidPerkDataSummary = InvalidPerkData->GetDataValidationSummary().ToString();

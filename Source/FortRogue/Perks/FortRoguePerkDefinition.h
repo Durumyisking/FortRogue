@@ -9,6 +9,15 @@
 
 class UFortRogueAbilitySet;
 
+UENUM(BlueprintType)
+enum class EFortRoguePerkRarity : uint8
+{
+	Common UMETA(DisplayName = "Common", ToolTip = "직관적이고 바로 이해되는 기본형 퍽입니다."),
+	Rare UMETA(DisplayName = "Rare", ToolTip = "기본형과 시너지형 사이의 퍽입니다."),
+	Epic UMETA(DisplayName = "Epic", ToolTip = "새 기믹이나 트레이드오프를 추가하는 퍽입니다."),
+	Legendary UMETA(DisplayName = "Legendary", ToolTip = "특이한 룰 변경이나 강한 시너지 축을 여는 퍽입니다.")
+};
+
 UCLASS(BlueprintType)
 class FORTROGUE_API UFortRoguePerkDefinition : public UPrimaryDataAsset
 {
@@ -26,6 +35,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Perk", meta = (Categories = "Trait", ToolTip = "퍽을 식별하는 태그입니다. Trait.* 태그만 사용하세요."))
 	FGameplayTag PerkTag;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Perk", meta = (ToolTip = "퍽 희귀도입니다. 강함의 절대 등급이 아니라 이해 난이도, 시너지, 룰 변경 정도를 뜻합니다."))
+	EFortRoguePerkRarity Rarity = EFortRoguePerkRarity::Common;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Perk", meta = (ToolTip = "퍽 획득 시 부여할 AbilitySet입니다."))
 	TObjectPtr<UFortRogueAbilitySet> GrantedAbilitySet;
