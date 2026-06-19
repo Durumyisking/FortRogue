@@ -94,6 +94,7 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	InvalidStageRunData->StageCount = 0;
 	InvalidStageRunData->RewardChoiceCount = 0;
 	InvalidStageRunData->StageDifficultyData.Reset();
+	InvalidStageRunData->StageDifficultyData.AddDefaulted();
 	FFortRogueRewardChoice InvalidStageReward;
 	InvalidStageRunData->RewardPool.Add(InvalidStageReward);
 	const FString InvalidStageRunDataSummary = InvalidStageRunData->GetDataValidationSummary().ToString();
