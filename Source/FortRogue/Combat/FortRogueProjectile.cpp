@@ -133,6 +133,7 @@ void AFortRogueProjectile::Tick(float DeltaSeconds)
 
 	AFortRogueGameMode* GameMode = GetWorld()->GetAuthGameMode<AFortRogueGameMode>();
 	const float Wind = GameMode ? GameMode->GetWind() : 0.0f;
+	ApplyHoming(DeltaSeconds);
 	Velocity += FVector(Wind, 0.0f, -Gravity) * DeltaSeconds;
 
 	const FVector OldLocation = GetActorLocation();
@@ -213,6 +214,59 @@ void AFortRogueProjectile::Tick(float DeltaSeconds)
 	{
 		ResolveImpact(NewLocation);
 	}
+}
+
+AFortRogueBattleCharacter* AFortRogueProjectile::FindHomingTarget() const
+{
+	if (!GetWorld() || !OwnerCharacter)
+	{
+		return nullptr;
+	}
+
+	AFortRogueBattleCharacter* BestTarget = nullptr;
+	float BestDistanceSq = FMath::Square(HomingRange);
+	for (TActorIterator<AFortRogueBattleCharacter> It(GetWorld()); It; ++It)
+	{
+		AFortRogueBattleCharacter* Candidate = *It;
+		if (!Candidate || Candidate == OwnerCharacter || Candidate->IsDefeated() || Candidate->IsEnemy() == OwnerCharacter->IsEnemy())
+		{
+			continue;
+		}
+
+		const float DistanceSq = FVector::DistSquared2D(Candidate->GetActorLocation(), GetActorLocation())
+			+ FMath::Square(Candidate->GetActorLocation().Z - GetActorLocation().Z);
+		if (DistanceSq < BestDistanceSq)
+		{
+			BestDistanceSq = DistanceSq;
+			BestTarget = Candidate;
+		}
+	}
+	return BestTarget;
+}
+
+void AFortRogueProjectile::ApplyHoming(float DeltaSeconds)
+{
+	if (!bHoming || Velocity.IsNearlyZero())
+	{
+		return;
+	}
+
+	AFortRogueBattleCharacter* Target = FindHomingTarget();
+	if (!Target)
+	{
+		return;
+	}
+
+	const float Speed = Velocity.Size();
+	const FVector DesiredDirection = (Target->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+	if (DesiredDirection.IsNearlyZero())
+	{
+		return;
+	}
+
+	const FVector CurrentDirection = Velocity.GetSafeNormal();
+	const float Alpha = FMath::Clamp(HomingTurnRate * DeltaSeconds, 0.0f, 1.0f);
+	Velocity = FMath::Lerp(CurrentDirection, DesiredDirection, Alpha).GetSafeNormal() * Speed;
 }
 
 void AFortRogueProjectile::ResolveImpact(const FVector& ImpactLocation)

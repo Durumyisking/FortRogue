@@ -266,7 +266,19 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 		{
 			AddSummaryPart(Parts, FString::Printf(TEXT("projectiles %d"), WeaponReward->Weapon.ProjectilesPerShot));
 		}
-		AddShotModifierSummary(Parts, WeaponReward->Weapon.ShotModifiers);
+		for (const FFRProjectileEffectSpec& ProjectileEffect : WeaponReward->Weapon.ProjectileEffects)
+		{
+			const FString ProjectileEffectName = ProjectileEffect.GetEffectDisplayName().ToString();
+			if (!ProjectileEffectName.IsEmpty())
+			{
+				AddSummaryPart(Parts, FString::Printf(TEXT("projectile effect %s"), *ProjectileEffectName));
+			}
+		}
+		const int32 ProjectileEffectCount = CountRewardProjectileEffects(WeaponReward->Weapon.ProjectileEffects);
+		if (ProjectileEffectCount > 0)
+		{
+			AddSummaryPart(Parts, FString::Printf(TEXT("projectile effects %d"), ProjectileEffectCount));
+		}
 		const int32 ImpactSpawnCount = CountRewardImpactSpawnProjectiles(WeaponReward->Weapon.ImpactSpawns);
 		if (ImpactSpawnCount > 0)
 		{

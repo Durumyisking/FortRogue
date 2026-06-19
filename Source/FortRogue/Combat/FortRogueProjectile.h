@@ -30,6 +30,8 @@ public:
 	bool HasProjectileEffectClass(TSubclassOf<UFRProjectileEffectBase> EffectClass) const;
 
 private:
+	AFortRogueBattleCharacter* FindHomingTarget() const;
+	void ApplyHoming(float DeltaSeconds);
 	void ResolveImpact(const FVector& ImpactLocation);
 	void ApplyDefaultTerrainImpact(const FVector& ImpactLocation);
 	void ApplyProjectileEffects(const FVector& ImpactLocation);
@@ -51,6 +53,17 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Projectile|Lifetime", meta = (ClampMin = "0.1", ToolTip = "충돌하지 않은 투사체가 자동으로 사라지기까지의 최대 시간입니다. 너무 길면 턴 종료가 늦어질 수 있습니다."))
 	float MaxLifeSeconds = 8.0f;
 
+protected:
+	UPROPERTY(EditDefaultsOnly, Category = "Projectile|Homing", meta = (ToolTip = "켜면 가장 가까운 적 캐릭터를 향해 투사체 속도 방향을 조금씩 보정합니다."))
+	bool bHoming = false;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Projectile|Homing", meta = (ClampMin = "0.0", ToolTip = "유도탄이 초당 방향을 보정하는 정도입니다. 값이 클수록 목표를 빠르게 따라갑니다."))
+	float HomingTurnRate = 2.8f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Projectile|Homing", meta = (ClampMin = "0.0", ToolTip = "유도 대상을 찾는 최대 거리입니다."))
+	float HomingRange = 2400.0f;
+
+private:
 	FVector Velocity = FVector::ZeroVector;
 	FGameplayTag WeaponTag;
 	FGameplayTagContainer EffectTags;

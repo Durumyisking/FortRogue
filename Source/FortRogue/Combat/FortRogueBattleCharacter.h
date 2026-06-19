@@ -361,6 +361,7 @@ private:
 	FVector GetProjectileLaunchDirection(float SpreadDegrees) const;
 	FVector GetProjectileSpawnLocation(const FVector& LaunchDirection) const;
 	FFortRogueShotSpec BuildShotSpec(const FFortRogueWeaponSpec& Weapon) const;
+	int32 SpawnShotSpecProjectiles(const FFortRogueShotSpec& ShotSpec, bool bIncreasePendingProjectileCount);
 	void DrawProjectileTrajectory() const;
 	void GrantStartupAbilitySets();
 	void EnsureDefaultLoadout();

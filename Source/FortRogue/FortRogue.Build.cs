@@ -18,6 +18,7 @@ public class FortRogue : ModuleRules
 			"Engine",
 			"InputCore",
 			"EnhancedInput",
+			"AssetRegistry",
 			"GameplayAbilities",
 			"GameplayTags",
 			"GameplayTasks",

@@ -112,10 +112,10 @@ struct FFortRogueWeaponSpec
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (Categories = "ShotEffect", ToolTip = "이 무기가 기본으로 가진 샷 효과 태그입니다. ShotEffect.* 태그만 사용하세요."))
 	FGameplayTagContainer ShotEffectTags;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (TitleProperty = DisplayName, ToolTip = "이 무기에 항상 적용되는 modifier 목록입니다. 조건을 만족한 항목만 최종 ShotSpec에 반영됩니다."))
-	TArray<FFortRogueShotModifierSpec> ShotModifiers;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Projectile Effect", meta = (TitleProperty = EffectClass, ToolTip = "이 무기의 기본 투사체 효과입니다. 굴착탄, 지형생성탄, 분열탄처럼 탄 자체의 정체성을 만드는 효과만 설정하고 런 성장용 수치 보정은 Reward, Perk, Character 쪽 ShotModifiers에 설정하세요."))
+	TArray<FFRProjectileEffectSpec> ProjectileEffects;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Weapon", meta = (DisplayName = "Legacy Impact Spawns", TitleProperty = ProjectileCount, ToolTip = "무기 자체가 충돌 후 추가 투사체를 만들 때 사용하는 기존 호환 설정입니다. 새 무기 데이터에서는 ShotModifiers의 ProjectileEffects에 FR Projectile Effect Split을 추가하세요."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Weapon", meta = (DisplayName = "Legacy Impact Spawns", TitleProperty = ProjectileCount, ToolTip = "무기 자체가 충돌 후 추가 투사체를 만들 때 사용하는 기존 호환 설정입니다. 런 성장용 modifier는 Reward, Perk, Character 쪽 ShotModifiers에 설정하세요."))
 	TArray<FFortRogueImpactSpawnSpec> ImpactSpawns;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (ToolTip = "기본 피해량입니다. 캐릭터 피해 보너스와 modifier가 이후 반영됩니다."))
@@ -133,6 +133,12 @@ struct FFortRogueWeaponSpec
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (ToolTip = "한 번 발사할 때 생성되는 기본 투사체 수입니다. 최소 1개여야 합니다."))
 	int32 ProjectilesPerShot = 1;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (ClampMin = "1", ToolTip = "한 번의 발사 입력으로 반복 발사할 횟수입니다. 1이면 즉시 한 번만 발사합니다."))
+	int32 SalvoCount = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (ClampMin = "0.0", EditCondition = "SalvoCount > 1", ToolTip = "반복 발사 사이의 간격입니다. 초 단위입니다."))
+	float SalvoInterval = 0.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (ToolTip = "스폰할 투사체 클래스입니다. 비워두면 기본 AFortRogueProjectile을 사용합니다."))
 	TSubclassOf<AFortRogueProjectile> ProjectileClass;
 
@@ -148,6 +154,6 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapon")
 	FText GetDataValidationSummary() const;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon", meta = (ToolTip = "이 데이터 에셋이 정의하는 무기 스펙입니다. 기본 능력치와 조립식 ShotModifier를 여기서 설정합니다."))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon", meta = (ToolTip = "이 데이터 에셋이 정의하는 무기 기본 스펙입니다. 런 성장용 modifier는 Reward, Perk, Character 쪽에 설정합니다."))
 	FFortRogueWeaponSpec Weapon;
 };

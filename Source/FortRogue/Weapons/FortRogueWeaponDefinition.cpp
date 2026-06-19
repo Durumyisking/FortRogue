@@ -60,19 +60,10 @@ bool HasWeaponImpactSpawnEffect(const TArray<FFortRogueImpactSpawnSpec>& ImpactS
 
 bool HasWeaponGameplayEffect(const FFortRogueWeaponSpec& Weapon)
 {
-	if (Weapon.Damage > 0.0f || Weapon.BlastRadius > 0.0f || HasWeaponImpactSpawnEffect(Weapon.ImpactSpawns))
-	{
-		return true;
-	}
-
-	for (const FFortRogueShotModifierSpec& ShotModifier : Weapon.ShotModifiers)
-	{
-		if (ShotModifier.HasGameplayEffect())
-		{
-			return true;
-		}
-	}
-	return false;
+	return Weapon.Damage > 0.0f
+		|| Weapon.BlastRadius > 0.0f
+		|| HasShotModifierProjectileEffect(Weapon.ProjectileEffects)
+		|| HasWeaponImpactSpawnEffect(Weapon.ImpactSpawns);
 }
 
 FGameplayTagContainer BuildShotConditionTags(const FFortRogueShotSpec& ShotSpec)
@@ -258,6 +249,14 @@ FText FFortRogueWeaponSpec::GetDataValidationSummary() const
 	{
 		AddWeaponValidationIssue(Issues, TEXT("projectiles per shot must be greater than 0"));
 	}
+	if (SalvoCount <= 0)
+	{
+		AddWeaponValidationIssue(Issues, TEXT("salvo count must be greater than 0"));
+	}
+	if (SalvoCount > 1 && SalvoInterval <= 0.0f)
+	{
+		AddWeaponValidationIssue(Issues, TEXT("salvo interval must be greater than 0"));
+	}
 
 	bool bHasEmptyImpactSpawn = false;
 	for (const FFortRogueImpactSpawnSpec& ImpactSpawn : ImpactSpawns)
@@ -273,13 +272,18 @@ FText FFortRogueWeaponSpec::GetDataValidationSummary() const
 		AddWeaponValidationIssue(Issues, TEXT("impact spawn projectile count must be greater than 0"));
 	}
 
-	for (const FFortRogueShotModifierSpec& ShotModifier : ShotModifiers)
+	bool bHasInvalidProjectileEffect = false;
+	for (const FFRProjectileEffectSpec& ProjectileEffect : ProjectileEffects)
 	{
-		if (!ShotModifier.GetDataValidationSummary().IsEmpty())
+		if (!ProjectileEffect.GetDataValidationSummary().IsEmpty())
 		{
-			AddWeaponValidationIssue(Issues, TEXT("shot modifier data has warnings"));
+			bHasInvalidProjectileEffect = true;
 			break;
 		}
+	}
+	if (bHasInvalidProjectileEffect)
+	{
+		AddWeaponValidationIssue(Issues, TEXT("projectile effect data has warnings"));
 	}
 
 	return Issues.Num() > 0 ? FText::FromString(FString::Join(Issues, TEXT(" | "))) : FText::GetEmpty();

@@ -45,7 +45,7 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Battle")
-	void NotifyProjectileSpawned(AFortRogueProjectile* Projectile);
+	void NotifyProjectileSpawned(AFortRogueProjectile* Projectile, bool bIncreasePendingProjectileCount = true);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Battle")
 	void NotifyShotFired(AFortRogueBattleCharacter* Shooter, int32 ProjectileCount);

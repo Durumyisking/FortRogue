@@ -384,32 +384,24 @@ int32 AFortRogueBattleCharacter::FireSelectedWeapon()
 	const FFortRogueWeaponSpec& Weapon = GetCurrentWeapon();
 	const FFortRogueShotSpec ShotSpec = BuildShotSpec(Weapon);
 	const int32 ProjectileCount = ShotSpec.ProjectileCount;
-	int32 SpawnedProjectiles = 0;
+	const int32 SalvoCount = FMath::Max(1, Weapon.SalvoCount);
+	const float SalvoInterval = FMath::Max(0.0f, Weapon.SalvoInterval);
 	PendingAttackMultiplier = 1.0f;
 	PendingShotModifiers.Reset();
 
-	for (int32 Index = 0; Index < ProjectileCount; ++Index)
+	SpawnShotSpecProjectiles(ShotSpec, false);
+	for (int32 SalvoIndex = 1; SalvoIndex < SalvoCount; ++SalvoIndex)
 	{
-		const float Spread = (ProjectileCount > 1) ? (Index - (ProjectileCount - 1) * 0.5f) * 5.0f : 0.0f;
-		const FVector Direction = GetProjectileLaunchDirection(Spread);
-		const FVector SpawnLocation = GetProjectileSpawnLocation(Direction);
-
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = this;
-		SpawnParams.Instigator = this;
-		AFortRogueProjectile* Projectile = GetWorld()->SpawnActor<AFortRogueProjectile>(ShotSpec.ProjectileClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
-		if (Projectile)
+		FTimerHandle SalvoTimerHandle;
+		FTimerDelegate SalvoDelegate;
+		SalvoDelegate.BindWeakLambda(this, [this, ShotSpec]()
 		{
-			Projectile->InitializeProjectileFromShotSpec(this, FindTerrain(), Direction * ShotSpec.LaunchSpeed, ShotSpec);
-			if (AFortRogueGameMode* GameMode = GetWorld()->GetAuthGameMode<AFortRogueGameMode>())
-			{
-				GameMode->NotifyProjectileSpawned(Projectile);
-			}
-			++SpawnedProjectiles;
-		}
+			SpawnShotSpecProjectiles(ShotSpec, false);
+		});
+		GetWorldTimerManager().SetTimer(SalvoTimerHandle, SalvoDelegate, SalvoInterval * SalvoIndex, false);
 	}
 
-	return SpawnedProjectiles;
+	return ProjectileCount * SalvoCount;
 }
 
 bool AFortRogueBattleCharacter::CanFireSelectedWeapon() const
@@ -1535,6 +1527,39 @@ FVector AFortRogueBattleCharacter::GetProjectileSpawnLocation(const FVector& Lau
 	return GetActorLocation() + LaunchDirection * 70.0f + FVector(0.0f, 0.0f, 35.0f);
 }
 
+int32 AFortRogueBattleCharacter::SpawnShotSpecProjectiles(const FFortRogueShotSpec& ShotSpec, bool bIncreasePendingProjectileCount)
+{
+	if (!GetWorld())
+	{
+		return 0;
+	}
+
+	int32 SpawnedProjectiles = 0;
+	for (int32 Index = 0; Index < ShotSpec.ProjectileCount; ++Index)
+	{
+		const float Spread = (ShotSpec.ProjectileCount > 1) ? (Index - (ShotSpec.ProjectileCount - 1) * 0.5f) * 5.0f : 0.0f;
+		const FVector Direction = GetProjectileLaunchDirection(Spread);
+		const FVector SpawnLocation = GetProjectileSpawnLocation(Direction);
+
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.Instigator = this;
+		AFortRogueProjectile* Projectile = GetWorld()->SpawnActor<AFortRogueProjectile>(ShotSpec.ProjectileClass, SpawnLocation, FRotator::ZeroRotator, SpawnParams);
+		if (!Projectile)
+		{
+			continue;
+		}
+
+		Projectile->InitializeProjectileFromShotSpec(this, FindTerrain(), Direction * ShotSpec.LaunchSpeed, ShotSpec);
+		if (AFortRogueGameMode* GameMode = GetWorld()->GetAuthGameMode<AFortRogueGameMode>())
+		{
+			GameMode->NotifyProjectileSpawned(Projectile, bIncreasePendingProjectileCount);
+		}
+		++SpawnedProjectiles;
+	}
+	return SpawnedProjectiles;
+}
+
 FFortRogueShotSpec AFortRogueBattleCharacter::BuildShotSpec(const FFortRogueWeaponSpec& Weapon) const
 {
 	FFortRogueShotSpec ShotSpec;
@@ -1553,6 +1578,11 @@ FFortRogueShotSpec AFortRogueBattleCharacter::BuildShotSpec(const FFortRogueWeap
 	ShotSpec.ProjectileCount = FMath::Max(1, Weapon.ProjectilesPerShot + FMath::RoundToInt(CombatSet->GetProjectileCount()) - 1);
 	ShotSpec.ProjectileClass = Weapon.ProjectileClass ? Weapon.ProjectileClass : TSubclassOf<AFortRogueProjectile>(AFortRogueProjectile::StaticClass());
 	ShotSpec.ImpactSpawns = Weapon.ImpactSpawns;
+	for (const FFRProjectileEffectSpec& ProjectileEffect : Weapon.ProjectileEffects)
+	{
+		ProjectileEffect.ApplyToShotSpec(ShotSpec);
+		ShotSpec.ProjectileEffects.Add(ProjectileEffect);
+	}
 	const AFortRogueGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFortRogueGameMode>() : nullptr;
 	const float Wind = GameMode ? GameMode->GetWind() : 0.0f;
 	auto ApplyShotModifier = [this, &ShotSpec, Wind](const FFortRogueShotModifierSpec& Modifier)
@@ -1564,10 +1594,6 @@ FFortRogueShotSpec AFortRogueBattleCharacter::BuildShotSpec(const FFortRogueWeap
 
 		Modifier.ApplyToShotSpec(ShotSpec);
 	};
-	for (const FFortRogueShotModifierSpec& Modifier : Weapon.ShotModifiers)
-	{
-		ApplyShotModifier(Modifier);
-	}
 	for (const FFortRogueShotModifierSpec& Modifier : GrantedShotModifiers)
 	{
 		ApplyShotModifier(Modifier);

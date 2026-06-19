@@ -66,12 +66,12 @@ void AFortRogueGameMode::Tick(float DeltaSeconds)
 	CheckTurnDefeatState();
 }
 
-void AFortRogueGameMode::NotifyProjectileSpawned(AFortRogueProjectile* Projectile)
+void AFortRogueGameMode::NotifyProjectileSpawned(AFortRogueProjectile* Projectile, bool bIncreasePendingProjectileCount)
 {
 	if (Projectile)
 	{
 		ActiveProjectiles.Add(Projectile);
-		if (BattleState == EFortRogueBattleState::ResolvingShot)
+		if (bIncreasePendingProjectileCount && BattleState == EFortRogueBattleState::ResolvingShot)
 		{
 			++PendingProjectiles;
 		}

@@ -33,7 +33,7 @@ PlayerController 경유 UI에서는 `GetPlayerCurrentShotSpec()`과 `GetPlayerCu
 
 modifier 적용 순서:
 
-1. 무기 `ShotModifiers`
+1. 무기 `ProjectileEffects`
 2. 보상/퍽으로 누적된 `GrantedShotModifiers`
 3. 아이템으로 받은 다음 발 전용 `PendingShotModifiers`
 
@@ -46,7 +46,7 @@ modifier 적용 순서:
 - `DisplayName`, `Description`: 보상/카탈로그 요약에 표시되는 이름과 설명
 - `WeaponTag`: 기본 무기 식별 태그
 - `ShotEffectTags`: 탄에 붙는 효과 태그
-- `ShotModifiers`: 피해, 폭발 반경, 탄 수, 조립식 투사체 효과 등을 바꾸는 보정 목록
+- `ProjectileEffects`: 굴착탄, 지형생성탄, 분열탄처럼 탄 자체의 정체성을 만드는 기본 투사체 효과
 - `ImpactSpawns`: 충돌 시 자식 탄을 생성하는 기존 호환 데이터
 
 역할 분리:
@@ -56,9 +56,11 @@ modifier 적용 순서:
 - 무기 데이터에 런 성장용 데미지 배율을 넣지 않는다. 무기는 "이 탄이 무엇인가"를 말하고, 캐릭터/보상/퍽은 "이번 런에서 얼마나 어떻게 강화됐는가"를 말한다.
 - 캐릭터의 무기 로드아웃은 Weapon 1, Weapon 2 같은 슬롯으로 취급한다. 첫 번째 무기가 1번탄, 두 번째 무기가 2번탄이 되며, 각 슬롯의 `UFortRogueWeaponDefinition`에 ProjectileEffects를 붙여 탄을 조립한다.
 
-기존 무기는 `ShotModifiers`와 `ImpactSpawns`를 비워두면 이전처럼 동작한다.
+기존 무기는 `ProjectileEffects`와 `ImpactSpawns`를 비워두면 이전처럼 동작한다.
 
-무기 데이터를 검수할 때는 `UFortRogueWeaponDefinition::GetDataValidationSummary()` 또는 `UFortRogueRewardBlueprintLibrary::GetWeaponDataValidationSummary()`를 사용한다. 표시 이름/`WeaponTag` 누락, 실제 weapon effect 없음, 0 이하 발사 속도, 0 이하 기본 발사 탄 수, 비어 있는 `ImpactSpawns`, 내부 `ShotModifier` 경고를 한 줄로 보여준다.
+무기 데이터를 검수할 때는 `UFortRogueWeaponDefinition::GetDataValidationSummary()` 또는 `UFortRogueRewardBlueprintLibrary::GetWeaponDataValidationSummary()`를 사용한다. 표시 이름/`WeaponTag` 누락, 실제 weapon effect 없음, 0 이하 발사 속도, 0 이하 기본 발사 탄 수, 비어 있는 `ImpactSpawns`, 내부 `ProjectileEffects` 경고를 한 줄로 보여준다.
+
+무기 `ProjectileEffects`는 발사 직전 기본 ShotSpec에 먼저 적용된다. 이후 보상/퍽의 `GrantedShotModifiers`와 아이템의 `PendingShotModifiers`가 같은 ShotSpec 위에 추가로 적용된다.
 
 `ShotModifier`에는 `DisplayName`과 `Description`을 적어 어떤 조건/효과를 의도했는지 남긴다. `DisplayName`은 데이터 에셋 배열 행 제목으로 쓰이고, 두 값은 보상/디버그 요약에 표시된다.
 `ShotModifier`를 나중에 제거해야 하는 효과라면 `ModifierTag`에 고유 태그를 넣는다.
@@ -101,7 +103,7 @@ modifier 적용 순서:
 - 굴착탄: `ProjectileEffects`에 `UFRProjectileEffectDrill`을 붙인다.
 - 지형생성탄: `ProjectileEffects`에 `UFRProjectileEffectTerrainCreate`를 붙인다.
 - 분열탄: `ProjectileEffects`에 `UFRProjectileEffectSplit`을 붙이고 child 탄 수, 퍼짐, 속도를 params에서 조정한다.
-- 복합탄: 한 ShotModifier에 Drill + TerrainCreate를 함께 넣거나, Split의 `ChildShotModifiers` 안에 Drill을 넣어 child 탄이 굴착하게 만든다.
+- 복합탄: 무기 `ProjectileEffects` 배열에 Drill + TerrainCreate를 함께 넣거나, Split의 `ChildShotModifiers` 안에 Drill을 넣어 child 탄이 굴착하게 만든다.
 
 ## 4. ShotModifier 사용 예
 
