@@ -24,6 +24,11 @@ FText UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(UFortRogueWeaponD
 	return RewardChoice.GetEffectSummary();
 }
 
+FText UFortRogueRewardBlueprintLibrary::GetWeaponDataValidationSummary(UFortRogueWeaponDefinition* WeaponDefinition)
+{
+	return WeaponDefinition ? WeaponDefinition->GetDataValidationSummary() : FText::FromString(TEXT("missing weapon"));
+}
+
 FText UFortRogueRewardBlueprintLibrary::GetItemEffectSummary(UFortRogueItemDefinition* ItemDefinition)
 {
 	FFortRogueRewardChoice RewardChoice;

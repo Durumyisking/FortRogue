@@ -42,6 +42,43 @@ bool HasShotModifierGameplayEffect(const FFortRogueShotModifierSpec& ShotModifie
 		|| ShotModifier.ProjectileCountBonus != 0
 		|| HasShotModifierImpactSpawnEffect(ShotModifier.ImpactSpawns);
 }
+
+void AddWeaponValidationIssue(TArray<FString>& Issues, const FString& Issue)
+{
+	if (!Issue.IsEmpty())
+	{
+		Issues.Add(Issue);
+	}
+}
+
+bool HasWeaponImpactSpawnEffect(const TArray<FFortRogueImpactSpawnSpec>& ImpactSpawns)
+{
+	for (const FFortRogueImpactSpawnSpec& ImpactSpawn : ImpactSpawns)
+	{
+		if (ImpactSpawn.ProjectileCount > 0)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool HasWeaponGameplayEffect(const FFortRogueWeaponSpec& Weapon)
+{
+	if (Weapon.Damage > 0.0f || Weapon.BlastRadius > 0.0f || HasWeaponImpactSpawnEffect(Weapon.ImpactSpawns))
+	{
+		return true;
+	}
+
+	for (const FFortRogueShotModifierSpec& ShotModifier : Weapon.ShotModifiers)
+	{
+		if (HasShotModifierGameplayEffect(ShotModifier))
+		{
+			return true;
+		}
+	}
+	return false;
+}
 }
 
 bool FFortRogueShotModifierSpec::MeetsShotConditions(const FFortRogueShotSpec& CurrentShotSpec, float CurrentAimAngle, float Wind, bool bShotFacingRight) const
@@ -139,4 +176,59 @@ FText FFortRogueShotModifierSpec::GetDataValidationSummary() const
 	}
 
 	return Issues.Num() > 0 ? FText::FromString(FString::Join(Issues, TEXT(" | "))) : FText::GetEmpty();
+}
+
+FText FFortRogueWeaponSpec::GetDataValidationSummary() const
+{
+	TArray<FString> Issues;
+	if (DisplayName.ToString().IsEmpty())
+	{
+		AddWeaponValidationIssue(Issues, TEXT("missing display name"));
+	}
+	if (!WeaponTag.IsValid())
+	{
+		AddWeaponValidationIssue(Issues, TEXT("missing WeaponTag"));
+	}
+	if (!HasWeaponGameplayEffect(*this))
+	{
+		AddWeaponValidationIssue(Issues, TEXT("missing weapon effect"));
+	}
+	if (ProjectileSpeed <= 0.0f)
+	{
+		AddWeaponValidationIssue(Issues, TEXT("projectile speed must be greater than 0"));
+	}
+	if (ProjectilesPerShot <= 0)
+	{
+		AddWeaponValidationIssue(Issues, TEXT("projectiles per shot must be greater than 0"));
+	}
+
+	bool bHasEmptyImpactSpawn = false;
+	for (const FFortRogueImpactSpawnSpec& ImpactSpawn : ImpactSpawns)
+	{
+		if (ImpactSpawn.ProjectileCount <= 0)
+		{
+			bHasEmptyImpactSpawn = true;
+			break;
+		}
+	}
+	if (bHasEmptyImpactSpawn)
+	{
+		AddWeaponValidationIssue(Issues, TEXT("impact spawn projectile count must be greater than 0"));
+	}
+
+	for (const FFortRogueShotModifierSpec& ShotModifier : ShotModifiers)
+	{
+		if (!ShotModifier.GetDataValidationSummary().IsEmpty())
+		{
+			AddWeaponValidationIssue(Issues, TEXT("shot modifier data has warnings"));
+			break;
+		}
+	}
+
+	return Issues.Num() > 0 ? FText::FromString(FString::Join(Issues, TEXT(" | "))) : FText::GetEmpty();
+}
+
+FText UFortRogueWeaponDefinition::GetDataValidationSummary() const
+{
+	return Weapon.GetDataValidationSummary();
 }

@@ -129,6 +129,8 @@ struct FFortRogueWeaponSpec
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	TSubclassOf<AFortRogueProjectile> ProjectileClass;
+
+	FText GetDataValidationSummary() const;
 };
 
 UCLASS(BlueprintType)
@@ -137,6 +139,9 @@ class FORTROGUE_API UFortRogueWeaponDefinition : public UPrimaryDataAsset
 	GENERATED_BODY()
 
 public:
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapon")
+	FText GetDataValidationSummary() const;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	FFortRogueWeaponSpec Weapon;
 };

@@ -187,6 +187,25 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Blueprint helper summarizes weapon tags"), UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("tag Weapon.Shell")));
 	TestTrue(TEXT("Blueprint helper summarizes weapon base damage"), UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("damage 35")));
 	TestTrue(TEXT("Blueprint helper summarizes weapon blast radius"), UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("blast 150")));
+	UFortRogueWeaponDefinition* InvalidWeaponData = NewObject<UFortRogueWeaponDefinition>();
+	InvalidWeaponData->Weapon.DisplayName = FText::GetEmpty();
+	InvalidWeaponData->Weapon.Damage = 0.0f;
+	InvalidWeaponData->Weapon.BlastRadius = 0.0f;
+	InvalidWeaponData->Weapon.ProjectileSpeed = 0.0f;
+	InvalidWeaponData->Weapon.ProjectilesPerShot = 0;
+	InvalidWeaponData->Weapon.ImpactSpawns.AddDefaulted();
+	InvalidWeaponData->Weapon.ShotModifiers.Add(InvalidShotModifierData);
+	const FString InvalidWeaponDataSummary = InvalidWeaponData->GetDataValidationSummary().ToString();
+	TestTrue(TEXT("Weapon data validation reports missing display names"), InvalidWeaponDataSummary.Contains(TEXT("missing display name")));
+	TestTrue(TEXT("Weapon data validation reports missing tags"), InvalidWeaponDataSummary.Contains(TEXT("WeaponTag")));
+	TestTrue(TEXT("Weapon data validation reports missing effects"), InvalidWeaponDataSummary.Contains(TEXT("missing weapon effect")));
+	TestTrue(TEXT("Weapon data validation reports invalid projectile speed"), InvalidWeaponDataSummary.Contains(TEXT("projectile speed")));
+	TestTrue(TEXT("Weapon data validation reports invalid projectile counts"), InvalidWeaponDataSummary.Contains(TEXT("projectiles per shot")));
+	TestTrue(TEXT("Weapon data validation reports empty impact spawns"), InvalidWeaponDataSummary.Contains(TEXT("impact spawn projectile count")));
+	TestTrue(TEXT("Weapon data validation reports nested shot modifier warnings"), InvalidWeaponDataSummary.Contains(TEXT("shot modifier data")));
+	TestTrue(TEXT("Blueprint helper reports weapon data validation"), UFortRogueRewardBlueprintLibrary::GetWeaponDataValidationSummary(InvalidWeaponData).ToString().Contains(TEXT("missing display name")));
+	TestTrue(TEXT("Blueprint helper reports missing weapon assets"), UFortRogueRewardBlueprintLibrary::GetWeaponDataValidationSummary(nullptr).ToString().Contains(TEXT("missing weapon")));
+	TestTrue(TEXT("Weapon data validation is empty for valid weapon data"), SummaryWeapon->GetDataValidationSummary().ToString().IsEmpty());
 
 	UFortRogueItemDefinition* AbilityItem = NewObject<UFortRogueItemDefinition>();
 	AbilityItem->DisplayName = FText::FromString(TEXT("Storm Capsule"));

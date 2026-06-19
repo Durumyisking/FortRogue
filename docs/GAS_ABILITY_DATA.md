@@ -50,6 +50,8 @@ modifier 적용 순서:
 
 기존 무기는 `ShotModifiers`와 `ImpactSpawns`를 비워두면 이전처럼 동작한다.
 
+무기 데이터를 검수할 때는 `UFortRogueWeaponDefinition::GetDataValidationSummary()` 또는 `UFortRogueRewardBlueprintLibrary::GetWeaponDataValidationSummary()`를 사용한다. 표시 이름/`WeaponTag` 누락, 실제 weapon effect 없음, 0 이하 발사 속도, 0 이하 기본 발사 탄 수, 비어 있는 `ImpactSpawns`, 내부 `ShotModifier` 경고를 한 줄로 보여준다.
+
 `ShotModifier`에는 `DisplayName`과 `Description`을 적어 어떤 조건/효과를 의도했는지 남긴다. `DisplayName`은 데이터 에셋 배열 행 제목으로 쓰이고, 두 값은 보상/디버그 요약에 표시된다.
 `ShotModifier`를 나중에 제거해야 하는 효과라면 `ModifierTag`에 고유 태그를 넣는다.
 `ShotModifier::ImpactSpawns`를 쓰면 무기 자체가 아니라 보상, 퍽, 아이템으로 충돌 후 자식 탄 생성을 추가할 수 있다.

@@ -29,6 +29,9 @@ public:
 	static FText GetWeaponEffectSummary(UFortRogueWeaponDefinition* WeaponDefinition);
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	static FText GetWeaponDataValidationSummary(UFortRogueWeaponDefinition* WeaponDefinition);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
 	static FText GetItemEffectSummary(UFortRogueItemDefinition* ItemDefinition);
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
