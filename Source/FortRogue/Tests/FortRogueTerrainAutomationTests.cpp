@@ -87,6 +87,35 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 		TestEqual(TEXT("Stage difficulty lookup uses one-based stage numbers"), StageRun->GetStageDifficulty(3).EnemyTurnDelaySeconds, 0.25f);
 	}
 
+	UFortRogueStageRunDefinition* InvalidStageRunData = NewObject<UFortRogueStageRunDefinition>();
+	InvalidStageRunData->StageCount = 0;
+	InvalidStageRunData->RewardChoiceCount = 0;
+	InvalidStageRunData->StageDifficultyData.Reset();
+	FFortRogueRewardChoice InvalidStageReward;
+	InvalidStageRunData->RewardPool.Add(InvalidStageReward);
+	const FString InvalidStageRunDataSummary = InvalidStageRunData->GetDataValidationSummary().ToString();
+	TestTrue(TEXT("Stage run data validation reports invalid stage counts"), InvalidStageRunDataSummary.Contains(TEXT("stage count")));
+	TestTrue(TEXT("Stage run data validation reports invalid reward choice counts"), InvalidStageRunDataSummary.Contains(TEXT("reward choice count")));
+	TestTrue(TEXT("Stage run data validation reports difficulty row mismatches"), InvalidStageRunDataSummary.Contains(TEXT("stage difficulty rows")));
+	TestTrue(TEXT("Stage run data validation reports nested reward warnings"), InvalidStageRunDataSummary.Contains(TEXT("reward pool data")));
+	UFortRogueStageRunDefinition* LockedStageRunData = NewObject<UFortRogueStageRunDefinition>();
+	FFortRogueRewardChoice LockedReward;
+	LockedReward.DisplayName = FText::FromString(TEXT("Locked Reward"));
+	LockedReward.DamageBonus = 1.0f;
+	LockedReward.RequiredRewardTags.AddTag(FortRogueGameplayTags::Trait_Damage);
+	LockedStageRunData->RewardPool.Add(LockedReward);
+	LockedStageRunData->RewardChoiceCount = 1;
+	TestTrue(TEXT("Stage run data validation reports missing starting rewards"), LockedStageRunData->GetDataValidationSummary().ToString().Contains(TEXT("run start")));
+	TestTrue(TEXT("Blueprint helper reports stage run data validation"), UFortRogueRewardBlueprintLibrary::GetStageRunDataValidationSummary(InvalidStageRunData).ToString().Contains(TEXT("stage count")));
+	TestTrue(TEXT("Blueprint helper reports missing stage run assets"), UFortRogueRewardBlueprintLibrary::GetStageRunDataValidationSummary(nullptr).ToString().Contains(TEXT("missing stage run")));
+	UFortRogueStageRunDefinition* ValidStageRunData = NewObject<UFortRogueStageRunDefinition>();
+	FFortRogueRewardChoice ValidStageReward;
+	ValidStageReward.DisplayName = FText::FromString(TEXT("Valid Stage Reward"));
+	ValidStageReward.DamageBonus = 1.0f;
+	ValidStageRunData->RewardPool.Add(ValidStageReward);
+	ValidStageRunData->RewardChoiceCount = 1;
+	TestTrue(TEXT("Stage run data validation is empty for valid run data"), ValidStageRunData->GetDataValidationSummary().ToString().IsEmpty());
+
 	UFortRogueAbilitySet* NamedAbilitySet = NewObject<UFortRogueAbilitySet>();
 	NamedAbilitySet->DisplayName = FText::FromString(TEXT("Wind Split"));
 	NamedAbilitySet->Description = FText::FromString(TEXT("Adds wind-aware split behavior."));

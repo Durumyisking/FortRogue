@@ -5,6 +5,7 @@
 #include "AbilitySystem/FortRogueAbilitySet.h"
 #include "Items/FortRogueItemDefinition.h"
 #include "Perks/FortRoguePerkDefinition.h"
+#include "Run/FortRogueStageRunDefinition.h"
 #include "Weapons/FortRogueWeaponDefinition.h"
 
 FText UFortRogueRewardBlueprintLibrary::GetRewardEffectSummary(const FFortRogueRewardChoice& RewardChoice)
@@ -15,6 +16,11 @@ FText UFortRogueRewardBlueprintLibrary::GetRewardEffectSummary(const FFortRogueR
 FText UFortRogueRewardBlueprintLibrary::GetRewardDataValidationSummary(const FFortRogueRewardChoice& RewardChoice)
 {
 	return RewardChoice.GetDataValidationSummary();
+}
+
+FText UFortRogueRewardBlueprintLibrary::GetStageRunDataValidationSummary(UFortRogueStageRunDefinition* StageRunDefinition)
+{
+	return StageRunDefinition ? StageRunDefinition->GetDataValidationSummary() : FText::FromString(TEXT("missing stage run"));
 }
 
 FText UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(UFortRogueWeaponDefinition* WeaponDefinition)

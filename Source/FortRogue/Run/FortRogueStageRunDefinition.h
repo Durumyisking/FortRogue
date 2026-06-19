@@ -64,6 +64,9 @@ public:
 	const FFortRogueStageDifficultyData& GetStageDifficulty(int32 StageNumber) const;
 	void NormalizeStageData();
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Run")
+	FText GetDataValidationSummary() const;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Run", meta = (ClampMin = "1"))
 	int32 StageCount = 7;
 

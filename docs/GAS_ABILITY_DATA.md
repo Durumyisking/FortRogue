@@ -139,6 +139,8 @@ UMG 전투 HUD에서는 `UFortRogueBattleHUDWidget::GetPlayerWeaponLoadout()`, `
 - `RequiredRewardTags`: 해당 태그 보상을 이미 선택했을 때만 등장
 - `BlockedRewardTags`: 해당 태그 보상을 이미 선택했다면 등장하지 않음
 
+런 정의 전체를 검수할 때는 `UFortRogueStageRunDefinition::GetDataValidationSummary()` 또는 `UFortRogueRewardBlueprintLibrary::GetStageRunDataValidationSummary()`를 사용한다. 스테이지 수, 보상 선택 수, 난이도 행 수, 빈 보상 풀, 보상 풀 내부 경고, 첫 보상 화면에 등장 가능한 보상이 없는 경우, 난이도 min/max 뒤집힘을 한 줄로 보여준다.
+
 보상 선택지는 같은 보상이 한 화면에 중복되지 않도록 뽑힌다.
 `bOfferOncePerRun` 보상이 모두 소진되면 진행이 막히지 않도록 다시 반복 제시를 허용한다.
 조건 태그는 fallback 때도 유지된다. 즉 선행 조건이 없는 보상이 다 소진되어도 `RequiredRewardTags`를 만족하지 않은 보상은 억지로 등장하지 않는다.

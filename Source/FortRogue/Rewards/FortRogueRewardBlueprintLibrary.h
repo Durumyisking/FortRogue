@@ -11,6 +11,7 @@
 class UFortRogueAbilitySet;
 class UFortRogueItemDefinition;
 class UFortRoguePerkDefinition;
+class UFortRogueStageRunDefinition;
 class UFortRogueWeaponDefinition;
 
 UCLASS()
@@ -24,6 +25,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
 	static FText GetRewardDataValidationSummary(const FFortRogueRewardChoice& RewardChoice);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	static FText GetStageRunDataValidationSummary(UFortRogueStageRunDefinition* StageRunDefinition);
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
 	static FText GetWeaponEffectSummary(UFortRogueWeaponDefinition* WeaponDefinition);
