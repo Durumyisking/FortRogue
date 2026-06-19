@@ -13,6 +13,7 @@
 #include "Framework/Docking/TabManager.h"
 #include "HAL/FileManager.h"
 #include "IAssetTools.h"
+#include "Materials/MaterialInterface.h"
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
@@ -46,7 +47,7 @@ constexpr int32 GeneratedSpriteSheetColumns = 4;
 constexpr int32 GeneratedSpriteSheetRows = 3;
 constexpr int32 GeneratedSpriteFrameRun = 1;
 constexpr float GeneratedSpriteFramesPerSecond = 8.0f;
-constexpr uint8 GeneratedSpriteMagentaTolerance = 4;
+constexpr uint8 GeneratedSpriteMagentaTolerance = 32;
 static const TCHAR* GeneratedSpriteSourcePath = TEXT("/Game/GeneratedSprites");
 static const TCHAR* GeneratedSpriteSourceRelativePath = TEXT("GeneratedSprites");
 static const TCHAR* GeneratedSpriteOutputPath = TEXT("/Game/FortRogue/Character/GeneratedSprites");
@@ -106,6 +107,11 @@ static bool IsGeneratedSpriteKeyColor(const uint8 Red, const uint8 Green, const 
 	return Red >= 255 - GeneratedSpriteMagentaTolerance
 		&& Green <= GeneratedSpriteMagentaTolerance
 		&& Blue >= 255 - GeneratedSpriteMagentaTolerance;
+}
+
+static UMaterialInterface* LoadGeneratedSpriteMaterial(const TCHAR* MaterialPath)
+{
+	return LoadObject<UMaterialInterface>(nullptr, MaterialPath);
 }
 
 static void ApplyGeneratedSpriteTextureAlphaKey(UTexture2D* Texture, TArray<UPackage*>& OutPackagesToSave)
@@ -208,9 +214,16 @@ static void UpdateGeneratedSpriteSource(UPaperSprite* Sprite, UTexture2D* Textur
 
 	const FVector2D ExpectedSourceUV(static_cast<double>(SourceUV.X), static_cast<double>(SourceUV.Y));
 	const FVector2D ExpectedSourceDimension(static_cast<double>(SourceDimension.X), static_cast<double>(SourceDimension.Y));
-	if (Sprite->GetSourceTexture() == Texture
+	FVector2D CurrentCustomPivot;
+	const bool bSourceMatches = Sprite->GetSourceTexture() == Texture
 		&& Sprite->GetSourceUV() == ExpectedSourceUV
-		&& Sprite->GetSourceSize() == ExpectedSourceDimension)
+		&& Sprite->GetSourceSize() == ExpectedSourceDimension;
+	const bool bPivotMatches = Sprite->GetPivotMode(CurrentCustomPivot) == ESpritePivotMode::Bottom_Center;
+	UMaterialInterface* MaskedMaterial = LoadGeneratedSpriteMaterial(TEXT("/Paper2D/MaskedUnlitSpriteMaterial.MaskedUnlitSpriteMaterial"));
+	UMaterialInterface* OpaqueMaterial = LoadGeneratedSpriteMaterial(TEXT("/Paper2D/OpaqueUnlitSpriteMaterial.OpaqueUnlitSpriteMaterial"));
+	const bool bDefaultMaterialMatches = !MaskedMaterial || Sprite->GetDefaultMaterial() == MaskedMaterial;
+	const bool bAlternateMaterialMatches = !OpaqueMaterial || Sprite->GetAlternateMaterial() == OpaqueMaterial;
+	if (bSourceMatches && bPivotMatches && bDefaultMaterialMatches && bAlternateMaterialMatches)
 	{
 		return;
 	}
@@ -219,9 +232,12 @@ static void UpdateGeneratedSpriteSource(UPaperSprite* Sprite, UTexture2D* Textur
 	InitParams.Texture = Texture;
 	InitParams.Offset = SourceUV;
 	InitParams.Dimension = SourceDimension;
+	InitParams.DefaultMaterialOverride = MaskedMaterial;
+	InitParams.AlternateMaterialOverride = OpaqueMaterial;
 
 	Sprite->Modify();
-	Sprite->InitializeSprite(InitParams);
+	Sprite->InitializeSprite(InitParams, false);
+	Sprite->SetPivotMode(ESpritePivotMode::Bottom_Center, FVector2D::ZeroVector);
 	Sprite->PostEditChange();
 	Sprite->MarkPackageDirty();
 	OutPackagesToSave.AddUnique(Sprite->GetPackage());
@@ -282,6 +298,29 @@ static UPaperFlipbook* GetOrCreateGeneratedFlipbook(const FString& AssetName, co
 	}
 
 	return Flipbook;
+}
+
+static void NormalizeExistingGeneratedSprites(FAssetRegistryModule& AssetRegistryModule, TArray<UPackage*>& OutPackagesToSave)
+{
+	TArray<FAssetData> GeneratedSpriteAssets;
+	AssetRegistryModule.Get().GetAssetsByPath(FName(GeneratedSpriteOutputPath), GeneratedSpriteAssets, false);
+	for (const FAssetData& GeneratedSpriteAsset : GeneratedSpriteAssets)
+	{
+		UPaperSprite* Sprite = Cast<UPaperSprite>(GeneratedSpriteAsset.GetAsset());
+		if (!Sprite || !Sprite->GetSourceTexture())
+		{
+			continue;
+		}
+
+		const FVector2D SourceUV = Sprite->GetSourceUV();
+		const FVector2D SourceSize = Sprite->GetSourceSize();
+		UpdateGeneratedSpriteSource(
+			Sprite,
+			Sprite->GetSourceTexture(),
+			FIntPoint(FMath::RoundToInt(SourceUV.X), FMath::RoundToInt(SourceUV.Y)),
+			FIntPoint(FMath::RoundToInt(SourceSize.X), FMath::RoundToInt(SourceSize.Y)),
+			OutPackagesToSave);
+	}
 }
 
 int32 GenerateSpriteFlipbooks()
@@ -357,6 +396,8 @@ int32 GenerateSpriteFlipbooks()
 			}
 		}
 	}
+
+	FortRogueEditor::NormalizeExistingGeneratedSprites(AssetRegistryModule, PackagesToSave);
 
 	if (PackagesToSave.Num() > 0)
 	{
