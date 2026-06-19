@@ -64,16 +64,16 @@ struct FFortRogueShotModifierSpec
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (ClampMin = "0.0", ToolTip = "폭발 반경 보너스 적용 후 곱할 배율입니다. 1.0은 변화 없음입니다."))
 	float BlastRadiusMultiplier = 1.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (ToolTip = "지형을 파내는 반경에 더할 고정값입니다. 월드 단위 기준입니다."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Shot Modifier|Legacy Direct Terrain", meta = (ToolTip = "기존 호환용 직접 지형 파괴 보너스입니다. 새 굴착탄은 ProjectileEffects에 FR Projectile Effect Drill을 추가하세요."))
 	float TerrainCarveRadiusBonus = 0.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (ClampMin = "0.0", ToolTip = "지형 파괴 반경 보너스 적용 후 곱할 배율입니다. 1.0은 변화 없음입니다."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Shot Modifier|Legacy Direct Terrain", meta = (ClampMin = "0.0", ToolTip = "기존 호환용 직접 지형 파괴 배율입니다. 새 굴착탄은 ProjectileEffects에 FR Projectile Effect Drill을 추가하세요."))
 	float TerrainCarveRadiusMultiplier = 1.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (ToolTip = "지형을 생성하는 반경에 더할 고정값입니다. 0보다 크면 충돌 지점에 지형을 채웁니다."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Shot Modifier|Legacy Direct Terrain", meta = (ToolTip = "기존 호환용 직접 지형 생성 보너스입니다. 새 지형 생성탄은 ProjectileEffects에 FR Projectile Effect Terrain Create를 추가하세요."))
 	float TerrainFillRadiusBonus = 0.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (ClampMin = "0.0", ToolTip = "지형 생성 반경 보너스 적용 후 곱할 배율입니다. 1.0은 변화 없음입니다."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Shot Modifier|Legacy Direct Terrain", meta = (ClampMin = "0.0", ToolTip = "기존 호환용 직접 지형 생성 배율입니다. 새 지형 생성탄은 ProjectileEffects에 FR Projectile Effect Terrain Create를 추가하세요."))
 	float TerrainFillRadiusMultiplier = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (ClampMin = "0.0", ToolTip = "발사 속도에 곱할 배율입니다. 1.0은 변화 없음, 0이면 발사 속도가 0이 됩니다."))

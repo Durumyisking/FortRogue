@@ -18,6 +18,7 @@ public:
 private:
 	void SyncParametersToEffectClass() const;
 	FText GetHeaderText() const;
+	FText GetParameterStatusText() const;
 
 	TSharedPtr<IPropertyHandle> StructHandle;
 	TSharedPtr<IPropertyHandle> EffectClassHandle;

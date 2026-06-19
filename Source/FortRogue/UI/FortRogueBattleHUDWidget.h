@@ -43,7 +43,7 @@ public:
 	FText GetPlayerCombatStatsSummary() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
-	bool TryGetPlayerCombatAttributeValueByTag(FGameplayTag AttributeTag, float& OutValue) const;
+	bool TryGetPlayerCombatAttributeValueByTag(UPARAM(meta = (Categories = "Attribute")) FGameplayTag AttributeTag, float& OutValue) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	FText GetPlayerShotSummary() const;
@@ -70,10 +70,10 @@ public:
 	bool CanSelectPlayerWeapon(int32 WeaponIndex) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
-	bool CanSelectPlayerWeaponByTag(FGameplayTag WeaponTag) const;
+	bool CanSelectPlayerWeaponByTag(UPARAM(meta = (Categories = "Weapon")) FGameplayTag WeaponTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
-	int32 GetPlayerWeaponIndexByTag(FGameplayTag WeaponTag) const;
+	int32 GetPlayerWeaponIndexByTag(UPARAM(meta = (Categories = "Weapon")) FGameplayTag WeaponTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	TArray<FFortRogueItemStack> GetPlayerItemLoadout() const;
@@ -82,19 +82,19 @@ public:
 	int32 GetPlayerItemCharges(EFortRogueItemType ItemType) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
-	int32 GetPlayerItemChargesByTag(FGameplayTag ItemTag) const;
+	int32 GetPlayerItemChargesByTag(UPARAM(meta = (Categories = "Item")) FGameplayTag ItemTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	bool CanUsePlayerItemByType(EFortRogueItemType ItemType) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
-	bool CanUsePlayerItemByTag(FGameplayTag ItemTag) const;
+	bool CanUsePlayerItemByTag(UPARAM(meta = (Categories = "Item")) FGameplayTag ItemTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	bool CanUsePlayerItemByIndex(int32 ItemIndex) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
-	int32 GetPlayerItemIndexByTag(FGameplayTag ItemTag) const;
+	int32 GetPlayerItemIndexByTag(UPARAM(meta = (Categories = "Item")) FGameplayTag ItemTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	TArray<FFortRogueShotModifierSpec> GetPlayerGrantedShotModifiers() const;
@@ -109,16 +109,16 @@ public:
 	FText GetPlayerPendingShotModifiersSummary() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
-	int32 GetPlayerGrantedShotModifierCountByTag(FGameplayTag ModifierTag) const;
+	int32 GetPlayerGrantedShotModifierCountByTag(UPARAM(meta = (Categories = "ShotEffect")) FGameplayTag ModifierTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
-	int32 GetPlayerPendingShotModifierCountByTag(FGameplayTag ModifierTag) const;
+	int32 GetPlayerPendingShotModifierCountByTag(UPARAM(meta = (Categories = "ShotEffect")) FGameplayTag ModifierTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
-	bool HasPlayerGrantedShotModifierByTag(FGameplayTag ModifierTag) const;
+	bool HasPlayerGrantedShotModifierByTag(UPARAM(meta = (Categories = "ShotEffect")) FGameplayTag ModifierTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
-	bool HasPlayerPendingShotModifierByTag(FGameplayTag ModifierTag) const;
+	bool HasPlayerPendingShotModifierByTag(UPARAM(meta = (Categories = "ShotEffect")) FGameplayTag ModifierTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	TArray<UFortRogueAbilitySet*> GetPlayerGrantedAbilitySets() const;
@@ -130,10 +130,10 @@ public:
 	int32 GetPlayerGrantedAbilitySetCount(UFortRogueAbilitySet* AbilitySet) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
-	int32 GetPlayerGrantedAbilitySetCountByTag(FGameplayTag AbilitySetTag) const;
+	int32 GetPlayerGrantedAbilitySetCountByTag(UPARAM(meta = (Categories = "Trait")) FGameplayTag AbilitySetTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
-	bool HasPlayerGrantedAbilitySetByTag(FGameplayTag AbilitySetTag) const;
+	bool HasPlayerGrantedAbilitySetByTag(UPARAM(meta = (Categories = "Trait")) FGameplayTag AbilitySetTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	float GetPlayerAimAngle() const;

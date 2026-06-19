@@ -55,7 +55,7 @@ struct FORTROGUE_API FFRProjectileEffectSpec
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile Effect", meta = (ToolTip = "실행할 투사체 효과 클래스입니다. Drill, TerrainCreate 같은 UFRProjectileEffectBase 상속 클래스를 선택하세요."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile Effect", meta = (AllowAbstract = "false", ToolTip = "실행할 투사체 효과 클래스입니다. Drill, TerrainCreate 같은 UFRProjectileEffectBase 상속 클래스를 선택하세요."))
 	TSubclassOf<UFRProjectileEffectBase> EffectClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Projectile Effect", meta = (BaseStruct = "/Script/FortRogue.FRProjectileEffectParameters", ToolTip = "EffectClass가 요구하는 파라미터 구조체입니다. DetailCustomization이 EffectClass에 맞는 구조체로 자동 보정합니다."))

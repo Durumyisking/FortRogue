@@ -55,6 +55,14 @@ void FFRProjectileEffectSpecCustomization::CustomizeChildren(TSharedRef<IPropert
 	{
 		ChildBuilder.AddProperty(ParametersHandle.ToSharedRef());
 	}
+
+	ChildBuilder.AddCustomRow(LOCTEXT("ProjectileEffectStatusSearch", "Projectile Effect Parameter Status"))
+		.WholeRowContent()
+		[
+			SNew(STextBlock)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
+			.Text(this, &FFRProjectileEffectSpecCustomization::GetParameterStatusText)
+		];
 }
 
 void FFRProjectileEffectSpecCustomization::SyncParametersToEffectClass() const
@@ -130,12 +138,62 @@ FText FFRProjectileEffectSpecCustomization::GetHeaderText() const
 			const FText DisplayName = EffectSpec->GetEffectDisplayName();
 			if (!DisplayName.IsEmpty())
 			{
+				const UScriptStruct* ExpectedStruct = EffectSpec->GetExpectedParameterStruct();
+				if (ExpectedStruct)
+				{
+					return FText::Format(
+						LOCTEXT("EffectWithParams", "{0} - {1}"),
+						DisplayName,
+						ExpectedStruct->GetDisplayNameText());
+				}
+
 				return DisplayName;
 			}
 		}
 	}
 
 	return LOCTEXT("NoEffectClass", "None");
+}
+
+FText FFRProjectileEffectSpecCustomization::GetParameterStatusText() const
+{
+	if (!StructHandle.IsValid())
+	{
+		return LOCTEXT("NoEffectSpecStatus", "Projectile effect 데이터를 읽을 수 없습니다.");
+	}
+
+	TArray<void*> RawData;
+	StructHandle->AccessRawData(RawData);
+	for (void* RawEntry : RawData)
+	{
+		const FFRProjectileEffectSpec* EffectSpec = static_cast<const FFRProjectileEffectSpec*>(RawEntry);
+		if (!EffectSpec)
+		{
+			continue;
+		}
+
+		const UScriptStruct* ExpectedStruct = EffectSpec->GetExpectedParameterStruct();
+		if (!EffectSpec->EffectClass)
+		{
+			return LOCTEXT("NoEffectClassStatus", "EffectClass를 선택하면 Parameters가 해당 효과의 ParamStruct로 자동 설정됩니다.");
+		}
+		if (!ExpectedStruct)
+		{
+			return LOCTEXT("NoExpectedParamsStatus", "이 효과는 전용 Parameters 구조체를 요구하지 않습니다.");
+		}
+		if (!EffectSpec->HasValidParameters())
+		{
+			return FText::Format(
+				LOCTEXT("InvalidParamsStatus", "Parameters가 {0}와 맞지 않습니다. EffectClass를 다시 선택하거나 Details를 새로고침하세요."),
+				ExpectedStruct->GetDisplayNameText());
+		}
+
+		return FText::Format(
+			LOCTEXT("ValidParamsStatus", "Parameters: {0}"),
+			ExpectedStruct->GetDisplayNameText());
+	}
+
+	return LOCTEXT("MultipleEffectStatus", "여러 Projectile Effect를 동시에 편집 중입니다.");
 }
 
 #undef LOCTEXT_NAMESPACE

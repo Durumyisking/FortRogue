@@ -35,6 +35,7 @@
 #include "Rewards/FortRogueRewardTypes.h"
 #include "Run/FortRogueDefaultLoadoutDefinition.h"
 #include "Run/FortRogueStageRunDefinition.h"
+#include "UI/FortRogueBattleHUDWidget.h"
 #include "Weapons/FortRogueWeaponDefinition.h"
 #include "UObject/UnrealType.h"
 
@@ -71,6 +72,60 @@ bool TestGameplayTagCategories(FAutomationTestBase& Test, const UStruct* Struct,
 	return Test.TestEqual(
 		FString::Printf(TEXT("%s.%s gameplay tag categories"), *StructName, *PropertyName.ToString()),
 		Property->GetMetaData(TEXT("Categories")),
+		FString(ExpectedCategories));
+}
+
+bool TestPropertyMetaData(FAutomationTestBase& Test, const UStruct* Struct, FName PropertyName, const TCHAR* MetaDataKey, const TCHAR* ExpectedValue)
+{
+	const FString StructName = Struct ? Struct->GetName() : TEXT("<null>");
+	const FProperty* Property = Struct ? Struct->FindPropertyByName(PropertyName) : nullptr;
+	Test.TestNotNull(FString::Printf(TEXT("%s.%s exists"), *StructName, *PropertyName.ToString()), Property);
+	if (!Property)
+	{
+		return false;
+	}
+
+	return Test.TestEqual(
+		FString::Printf(TEXT("%s.%s %s metadata"), *StructName, *PropertyName.ToString(), MetaDataKey),
+		Property->GetMetaData(MetaDataKey),
+		FString(ExpectedValue));
+}
+
+bool TestPropertyAdvancedDisplay(FAutomationTestBase& Test, const UStruct* Struct, FName PropertyName)
+{
+	const FString StructName = Struct ? Struct->GetName() : TEXT("<null>");
+	const FProperty* Property = Struct ? Struct->FindPropertyByName(PropertyName) : nullptr;
+	Test.TestNotNull(FString::Printf(TEXT("%s.%s exists"), *StructName, *PropertyName.ToString()), Property);
+	if (!Property)
+	{
+		return false;
+	}
+
+	return Test.TestTrue(
+		FString::Printf(TEXT("%s.%s is advanced display"), *StructName, *PropertyName.ToString()),
+		Property->HasAnyPropertyFlags(CPF_AdvancedDisplay));
+}
+
+bool TestFunctionParamGameplayTagCategories(FAutomationTestBase& Test, const UClass* Class, FName FunctionName, FName ParamName, const TCHAR* ExpectedCategories)
+{
+	const FString ClassName = Class ? Class->GetName() : TEXT("<null>");
+	const UFunction* Function = Class ? Class->FindFunctionByName(FunctionName) : nullptr;
+	Test.TestNotNull(FString::Printf(TEXT("%s.%s function exists"), *ClassName, *FunctionName.ToString()), Function);
+	if (!Function)
+	{
+		return false;
+	}
+
+	const FProperty* ParamProperty = Function->FindPropertyByName(ParamName);
+	Test.TestNotNull(FString::Printf(TEXT("%s.%s.%s param exists"), *ClassName, *FunctionName.ToString(), *ParamName.ToString()), ParamProperty);
+	if (!ParamProperty)
+	{
+		return false;
+	}
+
+	return Test.TestEqual(
+		FString::Printf(TEXT("%s.%s.%s gameplay tag categories"), *ClassName, *FunctionName.ToString(), *ParamName.ToString()),
+		ParamProperty->GetMetaData(TEXT("Categories")),
 		FString(ExpectedCategories));
 }
 }
@@ -186,6 +241,15 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	TestGameplayTagCategories(*this, FFRProjectileEffectSplitParams::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFRProjectileEffectSplitParams, ChildEffectTags), TEXT("ShotEffect"));
 	TestGameplayTagCategories(*this, FFortRogueAbilitySet_GameplayAbility::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFortRogueAbilitySet_GameplayAbility, InputTag), TEXT("InputTag"));
 	TestGameplayTagCategories(*this, UFortRogueAbilitySet::StaticClass(), GET_MEMBER_NAME_CHECKED(UFortRogueAbilitySet, AbilitySetTag), TEXT("Trait"));
+	TestPropertyMetaData(*this, FFRProjectileEffectSpec::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFRProjectileEffectSpec, EffectClass), TEXT("AllowAbstract"), TEXT("false"));
+	TestPropertyAdvancedDisplay(*this, FFortRogueShotModifierSpec::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFortRogueShotModifierSpec, TerrainCarveRadiusBonus));
+	TestPropertyAdvancedDisplay(*this, FFortRogueShotModifierSpec::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFortRogueShotModifierSpec, TerrainCarveRadiusMultiplier));
+	TestPropertyAdvancedDisplay(*this, FFortRogueShotModifierSpec::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFortRogueShotModifierSpec, TerrainFillRadiusBonus));
+	TestPropertyAdvancedDisplay(*this, FFortRogueShotModifierSpec::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFortRogueShotModifierSpec, TerrainFillRadiusMultiplier));
+	TestFunctionParamGameplayTagCategories(*this, AFortRogueBattleCharacter::StaticClass(), GET_FUNCTION_NAME_CHECKED(AFortRogueBattleCharacter, TryGetCombatAttributeValueByTag), TEXT("AttributeTag"), TEXT("Attribute"));
+	TestFunctionParamGameplayTagCategories(*this, AFortRogueBattleCharacter::StaticClass(), GET_FUNCTION_NAME_CHECKED(AFortRogueBattleCharacter, SelectWeaponByTag), TEXT("WeaponTag"), TEXT("Weapon"));
+	TestFunctionParamGameplayTagCategories(*this, AFortRoguePlayerController::StaticClass(), GET_FUNCTION_NAME_CHECKED(AFortRoguePlayerController, RemovePlayerGrantedShotModifiersByTag), TEXT("ModifierTag"), TEXT("ShotEffect"));
+	TestFunctionParamGameplayTagCategories(*this, UFortRogueBattleHUDWidget::StaticClass(), GET_FUNCTION_NAME_CHECKED(UFortRogueBattleHUDWidget, GetPlayerItemIndexByTag), TEXT("ItemTag"), TEXT("Item"));
 
 	UFortRogueAbilitySet* NamedAbilitySet = NewObject<UFortRogueAbilitySet>();
 	NamedAbilitySet->DisplayName = FText::FromString(TEXT("Wind Split"));

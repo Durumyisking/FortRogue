@@ -61,7 +61,7 @@ public:
 	bool ChooseRewardByIndex(int32 ChoiceIndex);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Items")
-	void UsePlayerItemByTag(FGameplayTag ItemTag);
+	void UsePlayerItemByTag(UPARAM(meta = (Categories = "Item")) FGameplayTag ItemTag);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Items")
 	void UsePlayerItemByIndex(int32 ItemIndex);
@@ -73,34 +73,34 @@ public:
 	int32 GetPlayerItemCharges(EFortRogueItemType ItemType) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
-	int32 GetPlayerItemChargesByTag(FGameplayTag ItemTag) const;
+	int32 GetPlayerItemChargesByTag(UPARAM(meta = (Categories = "Item")) FGameplayTag ItemTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
 	bool CanUsePlayerItemByType(EFortRogueItemType ItemType) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
-	bool CanUsePlayerItemByTag(FGameplayTag ItemTag) const;
+	bool CanUsePlayerItemByTag(UPARAM(meta = (Categories = "Item")) FGameplayTag ItemTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
 	bool CanUsePlayerItemByIndex(int32 ItemIndex) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
-	int32 GetPlayerItemIndexByTag(FGameplayTag ItemTag) const;
+	int32 GetPlayerItemIndexByTag(UPARAM(meta = (Categories = "Item")) FGameplayTag ItemTag) const;
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Weapons")
 	bool SelectPlayerWeaponByIndex(int32 WeaponIndex);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Weapons")
-	bool SelectPlayerWeaponByTag(FGameplayTag WeaponTag);
+	bool SelectPlayerWeaponByTag(UPARAM(meta = (Categories = "Weapon")) FGameplayTag WeaponTag);
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
 	bool CanSelectPlayerWeapon(int32 WeaponIndex) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
-	bool CanSelectPlayerWeaponByTag(FGameplayTag WeaponTag) const;
+	bool CanSelectPlayerWeaponByTag(UPARAM(meta = (Categories = "Weapon")) FGameplayTag WeaponTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
-	int32 GetPlayerWeaponIndexByTag(FGameplayTag WeaponTag) const;
+	int32 GetPlayerWeaponIndexByTag(UPARAM(meta = (Categories = "Weapon")) FGameplayTag WeaponTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
 	TArray<FFortRogueWeaponSpec> GetPlayerWeaponLoadout() const;
@@ -142,10 +142,10 @@ public:
 	FText GetPlayerShotModifierCurrentConditionFailureSummary(const FFortRogueShotModifierSpec& ShotModifier) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
-	bool TryGetPlayerCombatAttributeValueByTag(FGameplayTag AttributeTag, float& OutValue) const;
+	bool TryGetPlayerCombatAttributeValueByTag(UPARAM(meta = (Categories = "Attribute")) FGameplayTag AttributeTag, float& OutValue) const;
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Stats")
-	bool TryApplyPlayerCombatAttributeDeltaByTag(FGameplayTag AttributeTag, float DeltaValue);
+	bool TryApplyPlayerCombatAttributeDeltaByTag(UPARAM(meta = (Categories = "Attribute")) FGameplayTag AttributeTag, float DeltaValue);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Abilities")
 	void GrantPlayerAbilitySet(UFortRogueAbilitySet* AbilitySet);
@@ -154,16 +154,16 @@ public:
 	bool RemovePlayerAbilitySet(UFortRogueAbilitySet* AbilitySet);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Abilities")
-	int32 RemovePlayerAbilitySetsByTag(FGameplayTag AbilitySetTag);
+	int32 RemovePlayerAbilitySetsByTag(UPARAM(meta = (Categories = "Trait")) FGameplayTag AbilitySetTag);
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Abilities")
 	int32 GetPlayerGrantedAbilitySetCount(UFortRogueAbilitySet* AbilitySet) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Abilities")
-	int32 GetPlayerGrantedAbilitySetCountByTag(FGameplayTag AbilitySetTag) const;
+	int32 GetPlayerGrantedAbilitySetCountByTag(UPARAM(meta = (Categories = "Trait")) FGameplayTag AbilitySetTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Abilities")
-	bool HasPlayerGrantedAbilitySetByTag(FGameplayTag AbilitySetTag) const;
+	bool HasPlayerGrantedAbilitySetByTag(UPARAM(meta = (Categories = "Trait")) FGameplayTag AbilitySetTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Abilities")
 	TArray<UFortRogueAbilitySet*> GetPlayerGrantedAbilitySets() const;
@@ -178,16 +178,16 @@ public:
 	void GrantPlayerPendingShotModifiers(const TArray<FFortRogueShotModifierSpec>& ShotModifiers);
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
-	int32 GetPlayerGrantedShotModifierCountByTag(FGameplayTag ModifierTag) const;
+	int32 GetPlayerGrantedShotModifierCountByTag(UPARAM(meta = (Categories = "ShotEffect")) FGameplayTag ModifierTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
-	int32 GetPlayerPendingShotModifierCountByTag(FGameplayTag ModifierTag) const;
+	int32 GetPlayerPendingShotModifierCountByTag(UPARAM(meta = (Categories = "ShotEffect")) FGameplayTag ModifierTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
-	bool HasPlayerGrantedShotModifierByTag(FGameplayTag ModifierTag) const;
+	bool HasPlayerGrantedShotModifierByTag(UPARAM(meta = (Categories = "ShotEffect")) FGameplayTag ModifierTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
-	bool HasPlayerPendingShotModifierByTag(FGameplayTag ModifierTag) const;
+	bool HasPlayerPendingShotModifierByTag(UPARAM(meta = (Categories = "ShotEffect")) FGameplayTag ModifierTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
 	TArray<FFortRogueShotModifierSpec> GetPlayerGrantedShotModifiers() const;
@@ -202,10 +202,10 @@ public:
 	FText GetPlayerPendingShotModifiersSummary() const;
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
-	int32 RemovePlayerGrantedShotModifiersByTag(FGameplayTag ModifierTag);
+	int32 RemovePlayerGrantedShotModifiersByTag(UPARAM(meta = (Categories = "ShotEffect")) FGameplayTag ModifierTag);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
-	int32 RemovePlayerPendingShotModifiersByTag(FGameplayTag ModifierTag);
+	int32 RemovePlayerPendingShotModifiersByTag(UPARAM(meta = (Categories = "ShotEffect")) FGameplayTag ModifierTag);
 
 private:
 	void TickBattleInput(float DeltaSeconds);

@@ -83,16 +83,16 @@ public:
 	void SelectWeapon(int32 WeaponIndex);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Weapons")
-	bool SelectWeaponByTag(FGameplayTag WeaponTag);
+	bool SelectWeaponByTag(UPARAM(meta = (Categories = "Weapon")) FGameplayTag WeaponTag);
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
 	bool CanSelectWeapon(int32 WeaponIndex) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
-	bool CanSelectWeaponByTag(FGameplayTag WeaponTag) const;
+	bool CanSelectWeaponByTag(UPARAM(meta = (Categories = "Weapon")) FGameplayTag WeaponTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
-	int32 GetWeaponIndexByTag(FGameplayTag WeaponTag) const;
+	int32 GetWeaponIndexByTag(UPARAM(meta = (Categories = "Weapon")) FGameplayTag WeaponTag) const;
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
 	int32 FireSelectedWeapon();
@@ -116,7 +116,7 @@ public:
 	bool UseItemByType(EFortRogueItemType ItemType);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Items")
-	bool UseItemByTag(FGameplayTag ItemTag);
+	bool UseItemByTag(UPARAM(meta = (Categories = "Item")) FGameplayTag ItemTag);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Items")
 	bool UseItemByIndex(int32 ItemIndex);
@@ -125,13 +125,13 @@ public:
 	bool CanUseItemByType(EFortRogueItemType ItemType) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
-	bool CanUseItemByTag(FGameplayTag ItemTag) const;
+	bool CanUseItemByTag(UPARAM(meta = (Categories = "Item")) FGameplayTag ItemTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
 	bool CanUseItemByIndex(int32 ItemIndex) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
-	int32 GetItemIndexByTag(FGameplayTag ItemTag) const;
+	int32 GetItemIndexByTag(UPARAM(meta = (Categories = "Item")) FGameplayTag ItemTag) const;
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
 	void ApplyRewardDamage(float BonusDamage);
@@ -158,16 +158,16 @@ public:
 	bool RemoveAbilitySet(UFortRogueAbilitySet* AbilitySet);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Abilities")
-	int32 RemoveAbilitySetsByTag(FGameplayTag AbilitySetTag);
+	int32 RemoveAbilitySetsByTag(UPARAM(meta = (Categories = "Trait")) FGameplayTag AbilitySetTag);
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Abilities")
 	int32 GetGrantedAbilitySetCount(UFortRogueAbilitySet* AbilitySet) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Abilities")
-	int32 GetGrantedAbilitySetCountByTag(FGameplayTag AbilitySetTag) const;
+	int32 GetGrantedAbilitySetCountByTag(UPARAM(meta = (Categories = "Trait")) FGameplayTag AbilitySetTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Abilities")
-	bool HasGrantedAbilitySetByTag(FGameplayTag AbilitySetTag) const;
+	bool HasGrantedAbilitySetByTag(UPARAM(meta = (Categories = "Trait")) FGameplayTag AbilitySetTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Abilities")
 	TArray<UFortRogueAbilitySet*> GetGrantedAbilitySetsForBlueprint() const;
@@ -182,10 +182,10 @@ public:
 	void GrantPendingShotModifiers(const TArray<FFortRogueShotModifierSpec>& ShotModifiers);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
-	int32 RemoveGrantedShotModifiersByTag(FGameplayTag ModifierTag);
+	int32 RemoveGrantedShotModifiersByTag(UPARAM(meta = (Categories = "ShotEffect")) FGameplayTag ModifierTag);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
-	int32 RemovePendingShotModifiersByTag(FGameplayTag ModifierTag);
+	int32 RemovePendingShotModifiersByTag(UPARAM(meta = (Categories = "ShotEffect")) FGameplayTag ModifierTag);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Weapons")
 	void AddWeaponDefinition(UFortRogueWeaponDefinition* WeaponDefinition);
@@ -227,10 +227,10 @@ public:
 	float GetProjectileCount() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
-	bool TryGetCombatAttributeValueByTag(FGameplayTag AttributeTag, float& OutValue) const;
+	bool TryGetCombatAttributeValueByTag(UPARAM(meta = (Categories = "Attribute")) FGameplayTag AttributeTag, float& OutValue) const;
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Stats")
-	bool TryApplyCombatAttributeDeltaByTag(FGameplayTag AttributeTag, float DeltaValue);
+	bool TryApplyCombatAttributeDeltaByTag(UPARAM(meta = (Categories = "Attribute")) FGameplayTag AttributeTag, float DeltaValue);
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
 	FText GetCombatStatsSummary() const;
@@ -251,7 +251,7 @@ public:
 	int32 GetItemCharges(EFortRogueItemType ItemType) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Items")
-	int32 GetItemChargesByTag(FGameplayTag ItemTag) const;
+	int32 GetItemChargesByTag(UPARAM(meta = (Categories = "Item")) FGameplayTag ItemTag) const;
 
 	const TArray<FFortRogueItemStack>& GetItemLoadout() const;
 
@@ -271,16 +271,16 @@ public:
 	FText GetPendingShotModifiersSummary() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
-	int32 GetGrantedShotModifierCountByTag(FGameplayTag ModifierTag) const;
+	int32 GetGrantedShotModifierCountByTag(UPARAM(meta = (Categories = "ShotEffect")) FGameplayTag ModifierTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
-	int32 GetPendingShotModifierCountByTag(FGameplayTag ModifierTag) const;
+	int32 GetPendingShotModifierCountByTag(UPARAM(meta = (Categories = "ShotEffect")) FGameplayTag ModifierTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
-	bool HasGrantedShotModifierByTag(FGameplayTag ModifierTag) const;
+	bool HasGrantedShotModifierByTag(UPARAM(meta = (Categories = "ShotEffect")) FGameplayTag ModifierTag) const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
-	bool HasPendingShotModifierByTag(FGameplayTag ModifierTag) const;
+	bool HasPendingShotModifierByTag(UPARAM(meta = (Categories = "ShotEffect")) FGameplayTag ModifierTag) const;
 
 	const FFortRogueWeaponSpec& GetCurrentWeapon() const;
 
