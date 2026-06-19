@@ -12,13 +12,13 @@ struct FORTROGUE_API FFRProjectileEffectSplitParams : public FFRProjectileEffect
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Split", meta = (ClampMin = "0", ToolTip = "충돌 후 생성할 child 투사체 수입니다. 0이면 분열하지 않습니다."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Split", meta = (ClampMin = "1", ToolTip = "충돌 후 생성할 child 투사체 수입니다. Split 효과는 1 이상이어야 하며 0 이하는 데이터 검수 경고가 발생합니다."))
 	int32 ProjectileCount = 3;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Split", meta = (ClampMin = "0.0", ToolTip = "child 투사체들이 퍼지는 전체 각도입니다. 0이면 모두 같은 방향으로 나갑니다."))
 	float SpreadDegrees = 45.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Split", meta = (ClampMin = "0.0", ToolTip = "child 투사체의 기본 발사 속도입니다. child ShotModifier가 LaunchSpeedMultiplier로 추가 조정할 수 있습니다."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Split", meta = (ClampMin = "0.001", ToolTip = "child 투사체의 기본 발사 속도입니다. 0보다 커야 하며, child ShotModifier가 LaunchSpeedMultiplier로 추가 조정할 수 있습니다."))
 	float LaunchSpeed = 750.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Split", meta = (ClampMin = "0.0", ToolTip = "부모 투사체 피해량에 곱할 child 피해 배율입니다."))
