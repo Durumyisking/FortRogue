@@ -9,6 +9,7 @@
 #include "Characters/FortRogueCharacterDefinition.h"
 #include "Combat/FortRogueBattleCharacter.h"
 #include "Combat/FortRogueDestructibleTerrain.h"
+#include "Combat/FortRogueImpactSpawnSpec.h"
 #include "Combat/FortRogueProjectile.h"
 #include "Combat/FortRogueTerrainMapDefinition.h"
 #include "Camera/CameraActor.h"
@@ -55,6 +56,22 @@ UFortRogueDefaultLoadoutDefinition* CreateTestDefaultLoadout(UObject* Outer)
 	UFortRogueDefaultLoadoutDefinition* LoadoutDefinition = NewObject<UFortRogueDefaultLoadoutDefinition>(Outer);
 	LoadoutDefinition->WeaponDefinitions.Add(CreateTestWeaponDefinition(LoadoutDefinition));
 	return LoadoutDefinition;
+}
+
+bool TestGameplayTagCategories(FAutomationTestBase& Test, const UStruct* Struct, FName PropertyName, const TCHAR* ExpectedCategories)
+{
+	const FString StructName = Struct ? Struct->GetName() : TEXT("<null>");
+	const FProperty* Property = Struct ? Struct->FindPropertyByName(PropertyName) : nullptr;
+	Test.TestNotNull(FString::Printf(TEXT("%s.%s exists"), *StructName, *PropertyName.ToString()), Property);
+	if (!Property)
+	{
+		return false;
+	}
+
+	return Test.TestEqual(
+		FString::Printf(TEXT("%s.%s gameplay tag categories"), *StructName, *PropertyName.ToString()),
+		Property->GetMetaData(TEXT("Categories")),
+		FString(ExpectedCategories));
 }
 }
 
@@ -151,6 +168,24 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	ValidLoadoutWeapon->Weapon.ProjectilesPerShot = 1;
 	ValidLoadoutData->WeaponDefinitions.Add(ValidLoadoutWeapon);
 	TestTrue(TEXT("Default loadout data validation is empty for valid loadout data"), ValidLoadoutData->GetDataValidationSummary().ToString().IsEmpty());
+
+	TestGameplayTagCategories(*this, FFortRogueShotModifierSpec::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFortRogueShotModifierSpec, EffectTags), TEXT("ShotEffect"));
+	TestGameplayTagCategories(*this, FFortRogueShotModifierSpec::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFortRogueShotModifierSpec, ModifierTag), TEXT("ShotEffect"));
+	TestGameplayTagCategories(*this, FFortRogueShotModifierSpec::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFortRogueShotModifierSpec, RequiredShotTags), TEXT("Weapon,ShotEffect"));
+	TestGameplayTagCategories(*this, FFortRogueShotModifierSpec::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFortRogueShotModifierSpec, BlockedShotTags), TEXT("Weapon,ShotEffect"));
+	TestGameplayTagCategories(*this, FFortRogueWeaponSpec::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFortRogueWeaponSpec, WeaponTag), TEXT("Weapon"));
+	TestGameplayTagCategories(*this, FFortRogueWeaponSpec::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFortRogueWeaponSpec, ShotEffectTags), TEXT("ShotEffect"));
+	TestGameplayTagCategories(*this, UFortRogueItemDefinition::StaticClass(), GET_MEMBER_NAME_CHECKED(UFortRogueItemDefinition, ItemTag), TEXT("Item"));
+	TestGameplayTagCategories(*this, FFortRogueRewardChoice::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFortRogueRewardChoice, RewardTag), TEXT("Weapon,Item,Trait"));
+	TestGameplayTagCategories(*this, FFortRogueRewardChoice::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFortRogueRewardChoice, RequiredRewardTags), TEXT("Weapon,Item,Trait"));
+	TestGameplayTagCategories(*this, FFortRogueRewardChoice::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFortRogueRewardChoice, BlockedRewardTags), TEXT("Weapon,Item,Trait"));
+	TestGameplayTagCategories(*this, FFortRogueImpactSpawnSpec::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFortRogueImpactSpawnSpec, ChildEffectTags), TEXT("ShotEffect"));
+	TestGameplayTagCategories(*this, FFortRogueShotSpec::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFortRogueShotSpec, WeaponTag), TEXT("Weapon"));
+	TestGameplayTagCategories(*this, FFortRogueShotSpec::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFortRogueShotSpec, EffectTags), TEXT("Weapon,ShotEffect"));
+	TestGameplayTagCategories(*this, UFortRoguePerkDefinition::StaticClass(), GET_MEMBER_NAME_CHECKED(UFortRoguePerkDefinition, PerkTag), TEXT("Trait"));
+	TestGameplayTagCategories(*this, FFRProjectileEffectSplitParams::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFRProjectileEffectSplitParams, ChildEffectTags), TEXT("ShotEffect"));
+	TestGameplayTagCategories(*this, FFortRogueAbilitySet_GameplayAbility::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFortRogueAbilitySet_GameplayAbility, InputTag), TEXT("InputTag"));
+	TestGameplayTagCategories(*this, UFortRogueAbilitySet::StaticClass(), GET_MEMBER_NAME_CHECKED(UFortRogueAbilitySet, AbilitySetTag), TEXT("Trait"));
 
 	UFortRogueAbilitySet* NamedAbilitySet = NewObject<UFortRogueAbilitySet>();
 	NamedAbilitySet->DisplayName = FText::FromString(TEXT("Wind Split"));
