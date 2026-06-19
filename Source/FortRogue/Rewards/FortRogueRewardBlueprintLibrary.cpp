@@ -5,6 +5,7 @@
 #include "AbilitySystem/FortRogueAbilitySet.h"
 #include "Items/FortRogueItemDefinition.h"
 #include "Perks/FortRoguePerkDefinition.h"
+#include "Run/FortRogueDefaultLoadoutDefinition.h"
 #include "Run/FortRogueStageRunDefinition.h"
 #include "Weapons/FortRogueWeaponDefinition.h"
 
@@ -21,6 +22,11 @@ FText UFortRogueRewardBlueprintLibrary::GetRewardDataValidationSummary(const FFo
 FText UFortRogueRewardBlueprintLibrary::GetStageRunDataValidationSummary(UFortRogueStageRunDefinition* StageRunDefinition)
 {
 	return StageRunDefinition ? StageRunDefinition->GetDataValidationSummary() : FText::FromString(TEXT("missing stage run"));
+}
+
+FText UFortRogueRewardBlueprintLibrary::GetDefaultLoadoutDataValidationSummary(UFortRogueDefaultLoadoutDefinition* LoadoutDefinition)
+{
+	return LoadoutDefinition ? LoadoutDefinition->GetDataValidationSummary() : FText::FromString(TEXT("missing loadout"));
 }
 
 FText UFortRogueRewardBlueprintLibrary::GetWeaponEffectSummary(UFortRogueWeaponDefinition* WeaponDefinition)

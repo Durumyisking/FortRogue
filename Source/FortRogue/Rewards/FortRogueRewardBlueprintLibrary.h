@@ -9,6 +9,7 @@
 #include "FortRogueRewardBlueprintLibrary.generated.h"
 
 class UFortRogueAbilitySet;
+class UFortRogueDefaultLoadoutDefinition;
 class UFortRogueItemDefinition;
 class UFortRoguePerkDefinition;
 class UFortRogueStageRunDefinition;
@@ -28,6 +29,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
 	static FText GetStageRunDataValidationSummary(UFortRogueStageRunDefinition* StageRunDefinition);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	static FText GetDefaultLoadoutDataValidationSummary(UFortRogueDefaultLoadoutDefinition* LoadoutDefinition);
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
 	static FText GetWeaponEffectSummary(UFortRogueWeaponDefinition* WeaponDefinition);

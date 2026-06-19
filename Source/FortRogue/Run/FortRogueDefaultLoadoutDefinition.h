@@ -27,6 +27,9 @@ class FORTROGUE_API UFortRogueDefaultLoadoutDefinition : public UPrimaryDataAsse
 	GENERATED_BODY()
 
 public:
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Loadout")
+	FText GetDataValidationSummary() const;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapons")
 	TArray<TObjectPtr<UFortRogueWeaponDefinition>> WeaponDefinitions;
 

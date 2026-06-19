@@ -26,6 +26,7 @@
 #include "FortRoguePlayerController.h"
 #include "Items/FortRogueItemDefinition.h"
 #include "Kismet/GameplayStatics.h"
+#include "PaperFlipbookComponent.h"
 #include "Perks/FortRoguePerkDefinition.h"
 #include "Rewards/FortRogueRewardBlueprintLibrary.h"
 #include "Rewards/FortRogueRewardTypes.h"
@@ -115,6 +116,38 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	ValidStageRunData->RewardPool.Add(ValidStageReward);
 	ValidStageRunData->RewardChoiceCount = 1;
 	TestTrue(TEXT("Stage run data validation is empty for valid run data"), ValidStageRunData->GetDataValidationSummary().ToString().IsEmpty());
+
+	UFortRogueDefaultLoadoutDefinition* InvalidLoadoutData = NewObject<UFortRogueDefaultLoadoutDefinition>();
+	InvalidLoadoutData->WeaponDefinitions.Add(nullptr);
+	FFortRogueDefaultItemStack InvalidItemStack;
+	InvalidItemStack.Charges = 0;
+	InvalidLoadoutData->ItemDefinitions.Add(InvalidItemStack);
+	const FString InvalidLoadoutDataSummary = InvalidLoadoutData->GetDataValidationSummary().ToString();
+	TestTrue(TEXT("Default loadout data validation reports missing weapon entries"), InvalidLoadoutDataSummary.Contains(TEXT("missing weapon entry")));
+	TestTrue(TEXT("Default loadout data validation reports missing item entries"), InvalidLoadoutDataSummary.Contains(TEXT("missing item entry")));
+	TestTrue(TEXT("Default loadout data validation reports invalid item charges"), InvalidLoadoutDataSummary.Contains(TEXT("item charges")));
+	UFortRogueDefaultLoadoutDefinition* EmptyLoadoutData = NewObject<UFortRogueDefaultLoadoutDefinition>();
+	TestTrue(TEXT("Default loadout data validation reports empty weapon lists"), EmptyLoadoutData->GetDataValidationSummary().ToString().Contains(TEXT("weapon definitions are empty")));
+	UFortRogueDefaultLoadoutDefinition* NestedInvalidLoadoutData = NewObject<UFortRogueDefaultLoadoutDefinition>();
+	NestedInvalidLoadoutData->WeaponDefinitions.Add(NewObject<UFortRogueWeaponDefinition>(NestedInvalidLoadoutData));
+	FFortRogueDefaultItemStack NestedInvalidItemStack;
+	NestedInvalidItemStack.ItemDefinition = NewObject<UFortRogueItemDefinition>(NestedInvalidLoadoutData);
+	NestedInvalidLoadoutData->ItemDefinitions.Add(NestedInvalidItemStack);
+	const FString NestedInvalidLoadoutDataSummary = NestedInvalidLoadoutData->GetDataValidationSummary().ToString();
+	TestTrue(TEXT("Default loadout data validation reports nested weapon warnings"), NestedInvalidLoadoutDataSummary.Contains(TEXT("weapon data")));
+	TestTrue(TEXT("Default loadout data validation reports nested item warnings"), NestedInvalidLoadoutDataSummary.Contains(TEXT("item data")));
+	TestTrue(TEXT("Blueprint helper reports default loadout data validation"), UFortRogueRewardBlueprintLibrary::GetDefaultLoadoutDataValidationSummary(InvalidLoadoutData).ToString().Contains(TEXT("missing weapon entry")));
+	TestTrue(TEXT("Blueprint helper reports missing default loadout assets"), UFortRogueRewardBlueprintLibrary::GetDefaultLoadoutDataValidationSummary(nullptr).ToString().Contains(TEXT("missing loadout")));
+	UFortRogueDefaultLoadoutDefinition* ValidLoadoutData = NewObject<UFortRogueDefaultLoadoutDefinition>();
+	UFortRogueWeaponDefinition* ValidLoadoutWeapon = NewObject<UFortRogueWeaponDefinition>(ValidLoadoutData);
+	ValidLoadoutWeapon->Weapon.DisplayName = FText::FromString(TEXT("Valid Loadout Shell"));
+	ValidLoadoutWeapon->Weapon.WeaponTag = FortRogueGameplayTags::Weapon_Shell;
+	ValidLoadoutWeapon->Weapon.Damage = 10.0f;
+	ValidLoadoutWeapon->Weapon.BlastRadius = 100.0f;
+	ValidLoadoutWeapon->Weapon.ProjectileSpeed = 1000.0f;
+	ValidLoadoutWeapon->Weapon.ProjectilesPerShot = 1;
+	ValidLoadoutData->WeaponDefinitions.Add(ValidLoadoutWeapon);
+	TestTrue(TEXT("Default loadout data validation is empty for valid loadout data"), ValidLoadoutData->GetDataValidationSummary().ToString().IsEmpty());
 
 	UFortRogueAbilitySet* NamedAbilitySet = NewObject<UFortRogueAbilitySet>();
 	NamedAbilitySet->DisplayName = FText::FromString(TEXT("Wind Split"));
@@ -1312,6 +1345,14 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		{
 			TestEqual(TEXT("Battle character body does not use Unreal collision"), Body->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
 		}
+		UPaperFlipbookComponent* BodySprite = Cast<UPaperFlipbookComponent>(Character->GetDefaultSubobjectByName(TEXT("BodySprite")));
+		TestNotNull(TEXT("Battle character sprite component exists"), BodySprite);
+		if (BodySprite)
+		{
+			TestEqual(TEXT("Battle character sprite does not use Unreal collision"), BodySprite->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
+			TestEqual(TEXT("Battle character sprite starts facing right in the camera plane"), BodySprite->GetRelativeRotation(), FRotator(0.0f, -90.0f, 0.0f));
+			TestEqual(TEXT("Battle character sprite bottom is aligned to the character foot offset"), static_cast<float>(BodySprite->GetRelativeLocation().Z), -45.0f);
+		}
 		Character->SetTerrain(Terrain);
 		Character->BeginTurn();
 		Character->MoveHorizontal(1.0f, 0.05f);
@@ -1569,6 +1610,10 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		}
 		const float ExhaustedCharacterX = ExhaustedTurnCharacter->GetActorLocation().X;
 		ExhaustedTurnCharacter->MoveHorizontal(-1.0f, 0.1f);
+		if (UPaperFlipbookComponent* ExhaustedTurnSprite = Cast<UPaperFlipbookComponent>(ExhaustedTurnCharacter->GetDefaultSubobjectByName(TEXT("BodySprite"))))
+		{
+			TestEqual(TEXT("Battle character sprite turns left when facing changes without movement"), ExhaustedTurnSprite->GetRelativeRotation(), FRotator(0.0f, 180.0f, 0.0f));
+		}
 		TestEqual(TEXT("Exhausted movement budget does not move the character"), static_cast<float>(ExhaustedTurnCharacter->GetActorLocation().X), ExhaustedCharacterX);
 		TestEqual(TEXT("Exhausted movement budget still leaves the budget at zero"), ExhaustedTurnCharacter->GetMoveBudget(), 0.0f);
 		TestTrue(TEXT("Battle character reports selected weapon fireable before firing"), ExhaustedTurnCharacter->CanFireSelectedWeapon());
