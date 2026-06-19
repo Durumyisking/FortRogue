@@ -16,9 +16,16 @@ void AddItemValidationIssue(TArray<FString>& Issues, const FString& Issue)
 
 bool HasItemGameplayEffect(const UFortRogueItemDefinition& ItemDefinition)
 {
-	if (ItemDefinition.UseAbilitySet || ItemDefinition.UseShotModifiers.Num() > 0)
+	if (ItemDefinition.UseAbilitySet)
 	{
 		return true;
+	}
+	for (const FFortRogueShotModifierSpec& ShotModifier : ItemDefinition.UseShotModifiers)
+	{
+		if (ShotModifier.HasGameplayEffect())
+		{
+			return true;
+		}
 	}
 	if (ItemDefinition.ItemType == EFortRogueItemType::Heal)
 	{

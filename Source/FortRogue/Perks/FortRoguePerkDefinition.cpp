@@ -16,13 +16,24 @@ void AddPerkValidationIssue(TArray<FString>& Issues, const FString& Issue)
 
 bool HasPerkGameplayEffect(const UFortRoguePerkDefinition& PerkDefinition)
 {
-	return PerkDefinition.GrantedAbilitySet
-		|| PerkDefinition.ShotModifiers.Num() > 0
+	if (PerkDefinition.GrantedAbilitySet
 		|| !FMath::IsNearlyZero(PerkDefinition.DamageBonus)
 		|| !FMath::IsNearlyZero(PerkDefinition.MaxHealthBonus)
 		|| !FMath::IsNearlyZero(PerkDefinition.MaxMoveBudgetBonus)
 		|| PerkDefinition.ProjectileBonus != 0
-		|| !FMath::IsNearlyZero(PerkDefinition.ShotPowerMultiplierBonus);
+		|| !FMath::IsNearlyZero(PerkDefinition.ShotPowerMultiplierBonus))
+	{
+		return true;
+	}
+
+	for (const FFortRogueShotModifierSpec& ShotModifier : PerkDefinition.ShotModifiers)
+	{
+		if (ShotModifier.HasGameplayEffect())
+		{
+			return true;
+		}
+	}
+	return false;
 }
 }
 

@@ -19,11 +19,21 @@ void AddSummaryPart(TArray<FString>& Parts, const FString& Part)
 
 bool HasRewardGameplayEffect(const FFortRogueRewardChoice& Reward)
 {
+	bool bHasShotModifierEffect = false;
+	for (const FFortRogueShotModifierSpec& ShotModifier : Reward.ShotModifiers)
+	{
+		if (ShotModifier.HasGameplayEffect())
+		{
+			bHasShotModifierEffect = true;
+			break;
+		}
+	}
+
 	return Reward.WeaponReward
 		|| Reward.ItemReward
 		|| Reward.PerkReward
 		|| Reward.GrantedAbilitySet
-		|| Reward.ShotModifiers.Num() > 0
+		|| bHasShotModifierEffect
 		|| !FMath::IsNearlyZero(Reward.DamageBonus)
 		|| !FMath::IsNearlyZero(Reward.MaxHealthBonus)
 		|| !FMath::IsNearlyZero(Reward.MaxMoveBudgetBonus)
@@ -50,6 +60,19 @@ int32 CountRewardImpactSpawnProjectiles(const TArray<FFortRogueImpactSpawnSpec>&
 	for (const FFortRogueImpactSpawnSpec& ImpactSpawn : ImpactSpawns)
 	{
 		TotalCount += FMath::Max(0, ImpactSpawn.ProjectileCount);
+	}
+	return TotalCount;
+}
+
+int32 CountRewardProjectileEffects(const TArray<FFRProjectileEffectSpec>& ProjectileEffects)
+{
+	int32 TotalCount = 0;
+	for (const FFRProjectileEffectSpec& ProjectileEffect : ProjectileEffects)
+	{
+		if (ProjectileEffect.EffectClass)
+		{
+			++TotalCount;
+		}
 	}
 	return TotalCount;
 }
@@ -123,7 +146,7 @@ void AddShotModifierSummary(TArray<FString>& Parts, const TArray<FFortRogueShotM
 		LaunchSpeedMultiplier *= Modifier.LaunchSpeedMultiplier;
 		GravityMultiplier *= Modifier.GravityMultiplier;
 		ImpactSpawnCount += CountRewardImpactSpawnProjectiles(Modifier.ImpactSpawns);
-		ProjectileEffectCount += Modifier.ProjectileEffects.Num();
+		ProjectileEffectCount += CountRewardProjectileEffects(Modifier.ProjectileEffects);
 	}
 
 	if (!FMath::IsNearlyZero(DamageBonus))
@@ -364,6 +387,14 @@ FText FFortRogueRewardChoice::GetDataValidationSummary() const
 	if (!RequiredRewardTags.IsEmpty() && !BlockedRewardTags.IsEmpty() && RequiredRewardTags.HasAny(BlockedRewardTags))
 	{
 		AddSummaryPart(Issues, TEXT("required and blocked reward tags overlap"));
+	}
+	for (const FFortRogueShotModifierSpec& ShotModifier : ShotModifiers)
+	{
+		if (!ShotModifier.GetDataValidationSummary().IsEmpty())
+		{
+			AddSummaryPart(Issues, TEXT("shot modifier data has warnings"));
+			break;
+		}
 	}
 
 	return Issues.Num() > 0 ? FText::FromString(FString::Join(Issues, TEXT(" | "))) : FText::GetEmpty();

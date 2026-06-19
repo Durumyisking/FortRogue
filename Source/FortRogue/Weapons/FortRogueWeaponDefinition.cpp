@@ -38,24 +38,6 @@ bool HasShotModifierProjectileEffect(const TArray<FFRProjectileEffectSpec>& Proj
 	return false;
 }
 
-bool HasShotModifierGameplayEffect(const FFortRogueShotModifierSpec& ShotModifier)
-{
-	return !ShotModifier.EffectTags.IsEmpty()
-		|| HasShotModifierProjectileEffect(ShotModifier.ProjectileEffects)
-		|| !FMath::IsNearlyZero(ShotModifier.DamageBonus)
-		|| !FMath::IsNearlyEqual(ShotModifier.DamageMultiplier, 1.0f)
-		|| !FMath::IsNearlyZero(ShotModifier.BlastRadiusBonus)
-		|| !FMath::IsNearlyEqual(ShotModifier.BlastRadiusMultiplier, 1.0f)
-		|| !FMath::IsNearlyZero(ShotModifier.TerrainCarveRadiusBonus)
-		|| !FMath::IsNearlyEqual(ShotModifier.TerrainCarveRadiusMultiplier, 1.0f)
-		|| !FMath::IsNearlyZero(ShotModifier.TerrainFillRadiusBonus)
-		|| !FMath::IsNearlyEqual(ShotModifier.TerrainFillRadiusMultiplier, 1.0f)
-		|| !FMath::IsNearlyEqual(ShotModifier.LaunchSpeedMultiplier, 1.0f)
-		|| !FMath::IsNearlyEqual(ShotModifier.GravityMultiplier, 1.0f)
-		|| ShotModifier.ProjectileCountBonus != 0
-		|| HasShotModifierImpactSpawnEffect(ShotModifier.ImpactSpawns);
-}
-
 void AddWeaponValidationIssue(TArray<FString>& Issues, const FString& Issue)
 {
 	if (!Issue.IsEmpty())
@@ -85,7 +67,7 @@ bool HasWeaponGameplayEffect(const FFortRogueWeaponSpec& Weapon)
 
 	for (const FFortRogueShotModifierSpec& ShotModifier : Weapon.ShotModifiers)
 	{
-		if (HasShotModifierGameplayEffect(ShotModifier))
+		if (ShotModifier.HasGameplayEffect())
 		{
 			return true;
 		}
@@ -172,6 +154,24 @@ void FFortRogueShotModifierSpec::ApplyToShotSpec(FFortRogueShotSpec& ShotSpec) c
 	ShotSpec.ImpactSpawns.Append(ImpactSpawns);
 }
 
+bool FFortRogueShotModifierSpec::HasGameplayEffect() const
+{
+	return !EffectTags.IsEmpty()
+		|| HasShotModifierProjectileEffect(ProjectileEffects)
+		|| !FMath::IsNearlyZero(DamageBonus)
+		|| !FMath::IsNearlyEqual(DamageMultiplier, 1.0f)
+		|| !FMath::IsNearlyZero(BlastRadiusBonus)
+		|| !FMath::IsNearlyEqual(BlastRadiusMultiplier, 1.0f)
+		|| !FMath::IsNearlyZero(TerrainCarveRadiusBonus)
+		|| !FMath::IsNearlyEqual(TerrainCarveRadiusMultiplier, 1.0f)
+		|| !FMath::IsNearlyZero(TerrainFillRadiusBonus)
+		|| !FMath::IsNearlyEqual(TerrainFillRadiusMultiplier, 1.0f)
+		|| !FMath::IsNearlyEqual(LaunchSpeedMultiplier, 1.0f)
+		|| !FMath::IsNearlyEqual(GravityMultiplier, 1.0f)
+		|| ProjectileCountBonus != 0
+		|| HasShotModifierImpactSpawnEffect(ImpactSpawns);
+}
+
 FText FFortRogueShotModifierSpec::GetDataValidationSummary() const
 {
 	TArray<FString> Issues;
@@ -179,7 +179,7 @@ FText FFortRogueShotModifierSpec::GetDataValidationSummary() const
 	{
 		AddShotModifierValidationIssue(Issues, TEXT("missing display name"));
 	}
-	if (!HasShotModifierGameplayEffect(*this))
+	if (!HasGameplayEffect())
 	{
 		AddShotModifierValidationIssue(Issues, TEXT("missing shot effect"));
 	}
