@@ -185,6 +185,7 @@ UMG 전투 HUD에서는 `UFortRogueBattleHUDWidget::GetPlayerGrantedShotModifier
 AbilitySet 에셋에는 `DisplayName`과 `Description`을 적어둔다. 보상 카드 요약은 아이템, 퍽, 직접 보상의 AbilitySet 이름을 표시하므로 데이터 편집자가 어떤 특수효과가 붙는지 바로 확인할 수 있다.
 중첩/제거 가능한 AbilitySet이라면 `AbilitySetTag`에 고유 태그를 지정한다.
 AbilitySet 자체를 UI에 표시할 때는 `UFortRogueAbilitySet::GetEffectSummary()` 또는 `UFortRogueRewardBlueprintLibrary::GetAbilitySetEffectSummary()`를 사용한다. 요약은 표시 이름, 설명, 유효한 Ability/Effect/AttributeSet 개수를 포함한다.
+AbilitySet 데이터를 검수할 때는 `UFortRogueAbilitySet::GetDataValidationSummary()` 또는 `UFortRogueRewardBlueprintLibrary::GetAbilitySetDataValidationSummary()`를 사용한다. 표시 이름 누락, 아무 grant가 없는 에셋, 비어 있는 Ability/Effect/AttributeSet 항목, 0 이하 레벨을 한 줄 경고로 보여준다.
 임시 효과나 중첩 효과를 확인할 때는 `AFortRogueBattleCharacter::GetGrantedAbilitySetCount()`로 특정 AbilitySet이 현재 몇 번 부여됐는지 읽을 수 있다. 제거는 기존 `RemoveAbilitySet()`으로 한 항목씩 처리한다.
 태그 기반으로 관리하려면 `GetGrantedAbilitySetCountByTag()`, `HasGrantedAbilitySetByTag()`, `RemoveAbilitySetsByTag()`를 사용한다.
 현재 부여된 AbilitySet 목록과 요약을 표시하려면 `GetGrantedAbilitySetsForBlueprint()`, `GetGrantedAbilitySetsSummary()`를 사용한다.

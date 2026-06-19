@@ -44,7 +44,7 @@ void AddAbilitySetSummary(TArray<FString>& Parts, const UFortRogueAbilitySet* Ab
 	AddSummaryPart(Parts, FString::Printf(TEXT("ability set %s"), *SummaryText));
 }
 
-int32 CountImpactSpawnProjectiles(const TArray<FFortRogueImpactSpawnSpec>& ImpactSpawns)
+int32 CountRewardImpactSpawnProjectiles(const TArray<FFortRogueImpactSpawnSpec>& ImpactSpawns)
 {
 	int32 TotalCount = 0;
 	for (const FFortRogueImpactSpawnSpec& ImpactSpawn : ImpactSpawns)
@@ -121,7 +121,7 @@ void AddShotModifierSummary(TArray<FString>& Parts, const TArray<FFortRogueShotM
 		TerrainFillMultiplier *= Modifier.TerrainFillRadiusMultiplier;
 		LaunchSpeedMultiplier *= Modifier.LaunchSpeedMultiplier;
 		GravityMultiplier *= Modifier.GravityMultiplier;
-		ImpactSpawnCount += CountImpactSpawnProjectiles(Modifier.ImpactSpawns);
+		ImpactSpawnCount += CountRewardImpactSpawnProjectiles(Modifier.ImpactSpawns);
 	}
 
 	if (!FMath::IsNearlyZero(DamageBonus))
@@ -213,7 +213,7 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 			AddSummaryPart(Parts, FString::Printf(TEXT("projectiles %d"), WeaponReward->Weapon.ProjectilesPerShot));
 		}
 		AddShotModifierSummary(Parts, WeaponReward->Weapon.ShotModifiers);
-		const int32 ImpactSpawnCount = CountImpactSpawnProjectiles(WeaponReward->Weapon.ImpactSpawns);
+		const int32 ImpactSpawnCount = CountRewardImpactSpawnProjectiles(WeaponReward->Weapon.ImpactSpawns);
 		if (ImpactSpawnCount > 0)
 		{
 			AddSummaryPart(Parts, FString::Printf(TEXT("impact projectiles %d"), ImpactSpawnCount));

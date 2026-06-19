@@ -43,6 +43,11 @@ FText UFortRogueRewardBlueprintLibrary::GetAbilitySetEffectSummary(UFortRogueAbi
 	return AbilitySet ? AbilitySet->GetEffectSummary() : FText::GetEmpty();
 }
 
+FText UFortRogueRewardBlueprintLibrary::GetAbilitySetDataValidationSummary(UFortRogueAbilitySet* AbilitySet)
+{
+	return AbilitySet ? AbilitySet->GetDataValidationSummary() : FText::FromString(TEXT("missing ability set"));
+}
+
 FText UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(const TArray<FFortRogueShotModifierSpec>& ShotModifiers)
 {
 	FFortRogueRewardChoice RewardChoice;

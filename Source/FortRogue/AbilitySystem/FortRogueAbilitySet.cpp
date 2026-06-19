@@ -139,6 +139,89 @@ FText UFortRogueAbilitySet::GetEffectSummary() const
 	return FText::FromString(FString::Join(Parts, TEXT(" | ")));
 }
 
+FText UFortRogueAbilitySet::GetDataValidationSummary() const
+{
+	TArray<FString> Issues;
+	if (DisplayName.ToString().IsEmpty())
+	{
+		AddSummaryPart(Issues, TEXT("missing display name"));
+	}
+
+	bool bHasGrant = false;
+	bool bHasEmptyAbilityEntry = false;
+	bool bHasInvalidAbilityLevel = false;
+	for (const FFortRogueAbilitySet_GameplayAbility& AbilityToGrant : GrantedGameplayAbilities)
+	{
+		if (!AbilityToGrant.Ability)
+		{
+			bHasEmptyAbilityEntry = true;
+			continue;
+		}
+
+		bHasGrant = true;
+		if (AbilityToGrant.AbilityLevel <= 0)
+		{
+			bHasInvalidAbilityLevel = true;
+		}
+	}
+
+	bool bHasEmptyEffectEntry = false;
+	bool bHasInvalidEffectLevel = false;
+	for (const FFortRogueAbilitySet_GameplayEffect& EffectToGrant : GrantedGameplayEffects)
+	{
+		if (!EffectToGrant.GameplayEffect)
+		{
+			bHasEmptyEffectEntry = true;
+			continue;
+		}
+
+		bHasGrant = true;
+		if (EffectToGrant.EffectLevel <= 0.0f)
+		{
+			bHasInvalidEffectLevel = true;
+		}
+	}
+
+	bool bHasEmptyAttributeEntry = false;
+	for (const FFortRogueAbilitySet_AttributeSet& SetToGrant : GrantedAttributes)
+	{
+		if (!SetToGrant.AttributeSet)
+		{
+			bHasEmptyAttributeEntry = true;
+			continue;
+		}
+
+		bHasGrant = true;
+	}
+
+	if (!bHasGrant)
+	{
+		AddSummaryPart(Issues, TEXT("missing granted ability/effect/attribute"));
+	}
+	if (bHasEmptyAbilityEntry)
+	{
+		AddSummaryPart(Issues, TEXT("empty ability entry"));
+	}
+	if (bHasInvalidAbilityLevel)
+	{
+		AddSummaryPart(Issues, TEXT("ability level must be greater than 0"));
+	}
+	if (bHasEmptyEffectEntry)
+	{
+		AddSummaryPart(Issues, TEXT("empty gameplay effect entry"));
+	}
+	if (bHasInvalidEffectLevel)
+	{
+		AddSummaryPart(Issues, TEXT("effect level must be greater than 0"));
+	}
+	if (bHasEmptyAttributeEntry)
+	{
+		AddSummaryPart(Issues, TEXT("empty attribute set entry"));
+	}
+
+	return Issues.Num() > 0 ? FText::FromString(FString::Join(Issues, TEXT(" | "))) : FText::GetEmpty();
+}
+
 void UFortRogueAbilitySet::GiveToAbilitySystem(UFortRogueAbilitySystemComponent* AbilitySystemComponent, FFortRogueAbilitySet_GrantedHandles* OutGrantedHandles, UObject* SourceObject) const
 {
 	check(AbilitySystemComponent);

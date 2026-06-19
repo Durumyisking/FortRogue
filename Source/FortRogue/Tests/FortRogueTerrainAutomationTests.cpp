@@ -93,6 +93,13 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Ability set summary includes display name"), NamedAbilitySet->GetEffectSummary().ToString().Contains(TEXT("Wind Split")));
 	TestTrue(TEXT("Ability set summary includes descriptions"), NamedAbilitySet->GetEffectSummary().ToString().Contains(TEXT("Adds wind-aware split behavior.")));
 	TestTrue(TEXT("Blueprint helper summarizes ability set assets"), UFortRogueRewardBlueprintLibrary::GetAbilitySetEffectSummary(NamedAbilitySet).ToString().Contains(TEXT("Wind Split")));
+	UFortRogueAbilitySet* InvalidAbilitySetData = NewObject<UFortRogueAbilitySet>();
+	InvalidAbilitySetData->DisplayName = FText::GetEmpty();
+	const FString InvalidAbilitySetDataSummary = InvalidAbilitySetData->GetDataValidationSummary().ToString();
+	TestTrue(TEXT("Ability set data validation reports missing display names"), InvalidAbilitySetDataSummary.Contains(TEXT("missing display name")));
+	TestTrue(TEXT("Ability set data validation reports missing grants"), InvalidAbilitySetDataSummary.Contains(TEXT("missing granted ability")));
+	TestTrue(TEXT("Blueprint helper reports ability set data validation"), UFortRogueRewardBlueprintLibrary::GetAbilitySetDataValidationSummary(InvalidAbilitySetData).ToString().Contains(TEXT("missing display name")));
+	TestTrue(TEXT("Blueprint helper reports missing ability set assets"), UFortRogueRewardBlueprintLibrary::GetAbilitySetDataValidationSummary(nullptr).ToString().Contains(TEXT("missing ability set")));
 	FFortRogueShotModifierSpec SummaryModifier;
 	SummaryModifier.DisplayName = FText::FromString(TEXT("Split Boost"));
 	SummaryModifier.Description = FText::FromString(TEXT("Adds child shots after impact."));

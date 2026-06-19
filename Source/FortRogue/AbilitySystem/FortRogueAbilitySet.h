@@ -83,6 +83,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Ability Set")
 	FText GetEffectSummary() const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Ability Set")
+	FText GetDataValidationSummary() const;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability Set")
 	FText DisplayName = FText::FromString(TEXT("Ability Set"));
 
