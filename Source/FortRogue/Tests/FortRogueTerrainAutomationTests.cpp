@@ -1471,11 +1471,22 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	RuntimeSplitChildModifier.DisplayName = FText::FromString(TEXT("Runtime Split Child"));
 	RuntimeSplitChildModifier.ProjectileEffects.Add(RuntimeSplitChildDrillEffect);
 	RuntimeSplitChildModifier.ProjectileEffects.Add(RuntimeSplitChildTerrainEffect);
+	FFRProjectileEffectSplitParams RuntimeBlockedNestedSplitParams;
+	RuntimeBlockedNestedSplitParams.ProjectileCount = 1;
+	RuntimeBlockedNestedSplitParams.LaunchSpeed = 180.0f;
+	FFRProjectileEffectSpec RuntimeBlockedNestedSplitEffect;
+	RuntimeBlockedNestedSplitEffect.EffectClass = UFRProjectileEffectSplit::StaticClass();
+	RuntimeBlockedNestedSplitEffect.Parameters = FInstancedStruct::Make(RuntimeBlockedNestedSplitParams);
+	FFortRogueShotModifierSpec RuntimeBlockedSplitChildModifier;
+	RuntimeBlockedSplitChildModifier.DisplayName = FText::FromString(TEXT("Runtime Blocked Split Child"));
+	RuntimeBlockedSplitChildModifier.BlockedShotTags.AddTag(FortRogueGameplayTags::ShotEffect_Drill);
+	RuntimeBlockedSplitChildModifier.ProjectileEffects.Add(RuntimeBlockedNestedSplitEffect);
 	FFRProjectileEffectSplitParams RuntimeSplitParams;
 	RuntimeSplitParams.ProjectileCount = 1;
 	RuntimeSplitParams.SpreadDegrees = 0.0f;
 	RuntimeSplitParams.LaunchSpeed = 220.0f;
 	RuntimeSplitParams.ChildShotModifiers.Add(RuntimeSplitChildModifier);
+	RuntimeSplitParams.ChildShotModifiers.Add(RuntimeBlockedSplitChildModifier);
 	FFRProjectileEffectSpec RuntimeSplitEffect;
 	RuntimeSplitEffect.EffectClass = UFRProjectileEffectSplit::StaticClass();
 	RuntimeSplitEffect.Parameters = FInstancedStruct::Make(RuntimeSplitParams);
@@ -1503,6 +1514,7 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		TestEqual(TEXT("Runtime split child projectile keeps child modifier effects"), RuntimeSplitChildProjectile->GetProjectileEffectCount(), 2);
 		TestTrue(TEXT("Runtime split child projectile keeps drill effect class"), RuntimeSplitChildProjectile->HasProjectileEffectClass(UFRProjectileEffectDrill::StaticClass()));
 		TestTrue(TEXT("Runtime split child projectile keeps terrain create effect class"), RuntimeSplitChildProjectile->HasProjectileEffectClass(UFRProjectileEffectTerrainCreate::StaticClass()));
+		TestFalse(TEXT("Runtime split child projectile skips blocked child modifiers"), RuntimeSplitChildProjectile->HasProjectileEffectClass(UFRProjectileEffectSplit::StaticClass()));
 		RuntimeSplitChildProjectile->Destroy();
 	}
 
