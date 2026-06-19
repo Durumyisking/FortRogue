@@ -26,10 +26,22 @@ bool HasShotModifierImpactSpawnEffect(const TArray<FFortRogueImpactSpawnSpec>& I
 	return false;
 }
 
+bool HasShotModifierProjectileEffect(const TArray<FFRProjectileEffectSpec>& ProjectileEffects)
+{
+	for (const FFRProjectileEffectSpec& ProjectileEffect : ProjectileEffects)
+	{
+		if (ProjectileEffect.EffectClass)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 bool HasShotModifierGameplayEffect(const FFortRogueShotModifierSpec& ShotModifier)
 {
 	return !ShotModifier.EffectTags.IsEmpty()
-		|| ShotModifier.ProjectileEffects.Num() > 0
+		|| HasShotModifierProjectileEffect(ShotModifier.ProjectileEffects)
 		|| !FMath::IsNearlyZero(ShotModifier.DamageBonus)
 		|| !FMath::IsNearlyEqual(ShotModifier.DamageMultiplier, 1.0f)
 		|| !FMath::IsNearlyZero(ShotModifier.BlastRadiusBonus)

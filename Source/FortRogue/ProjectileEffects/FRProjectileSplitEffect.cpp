@@ -82,3 +82,49 @@ void UFRProjectileEffectSplit::HandleImpact(const FFRProjectileEffectSpec& Effec
 		}
 	}
 }
+
+void UFRProjectileEffectSplit::AddDataValidationIssues(const FFRProjectileEffectSpec& EffectSpec, TArray<FString>& Issues) const
+{
+	const FFRProjectileEffectSplitParams& Params = EffectSpec.GetParametersOrDefault<FFRProjectileEffectSplitParams>();
+	if (Params.ProjectileCount <= 0)
+	{
+		Issues.Add(TEXT("split projectile count must be greater than 0"));
+	}
+	if (Params.SpreadDegrees < 0.0f)
+	{
+		Issues.Add(TEXT("split spread degrees must be non-negative"));
+	}
+	if (Params.LaunchSpeed <= 0.0f)
+	{
+		Issues.Add(TEXT("split launch speed must be greater than 0"));
+	}
+	if (Params.DamageMultiplier < 0.0f)
+	{
+		Issues.Add(TEXT("split damage multiplier must be non-negative"));
+	}
+	if (Params.BlastRadiusMultiplier < 0.0f)
+	{
+		Issues.Add(TEXT("split blast radius multiplier must be non-negative"));
+	}
+	if (Params.TerrainCarveRadiusMultiplier < 0.0f)
+	{
+		Issues.Add(TEXT("split terrain carve radius multiplier must be non-negative"));
+	}
+	if (Params.TerrainFillRadius < 0.0f)
+	{
+		Issues.Add(TEXT("split terrain fill radius must be non-negative"));
+	}
+	if (Params.GravityMultiplier < 0.0f)
+	{
+		Issues.Add(TEXT("split gravity multiplier must be non-negative"));
+	}
+
+	for (const FFortRogueShotModifierSpec& ChildModifier : Params.ChildShotModifiers)
+	{
+		if (!ChildModifier.GetDataValidationSummary().IsEmpty())
+		{
+			Issues.Add(TEXT("split child shot modifier data has warnings"));
+			break;
+		}
+	}
+}

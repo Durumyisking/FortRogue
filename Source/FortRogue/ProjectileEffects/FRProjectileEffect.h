@@ -47,6 +47,7 @@ public:
 	virtual void ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFortRogueShotSpec& ShotSpec) const;
 	virtual void HandleImpact(const FFRProjectileEffectSpec& EffectSpec, const FFRProjectileEffectImpactContext& Context) const;
 	virtual bool UsesCustomTerrainImpact(const FFRProjectileEffectSpec& EffectSpec) const;
+	virtual void AddDataValidationIssues(const FFRProjectileEffectSpec& EffectSpec, TArray<FString>& Issues) const;
 };
 
 USTRUCT(BlueprintType)
@@ -103,6 +104,7 @@ public:
 	virtual void ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFortRogueShotSpec& ShotSpec) const override;
 	virtual void HandleImpact(const FFRProjectileEffectSpec& EffectSpec, const FFRProjectileEffectImpactContext& Context) const override;
 	virtual bool UsesCustomTerrainImpact(const FFRProjectileEffectSpec& EffectSpec) const override;
+	virtual void AddDataValidationIssues(const FFRProjectileEffectSpec& EffectSpec, TArray<FString>& Issues) const override;
 };
 
 USTRUCT(BlueprintType)
@@ -127,4 +129,5 @@ public:
 	virtual void ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFortRogueShotSpec& ShotSpec) const override;
 	virtual void HandleImpact(const FFRProjectileEffectSpec& EffectSpec, const FFRProjectileEffectImpactContext& Context) const override;
 	virtual bool UsesCustomTerrainImpact(const FFRProjectileEffectSpec& EffectSpec) const override;
+	virtual void AddDataValidationIssues(const FFRProjectileEffectSpec& EffectSpec, TArray<FString>& Issues) const override;
 };

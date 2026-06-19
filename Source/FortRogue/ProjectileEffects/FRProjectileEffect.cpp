@@ -55,6 +55,10 @@ bool UFRProjectileEffectBase::UsesCustomTerrainImpact(const FFRProjectileEffectS
 	return false;
 }
 
+void UFRProjectileEffectBase::AddDataValidationIssues(const FFRProjectileEffectSpec& EffectSpec, TArray<FString>& Issues) const
+{
+}
+
 const UFRProjectileEffectBase* FFRProjectileEffectSpec::GetEffectCDO() const
 {
 	return EffectClass ? EffectClass->GetDefaultObject<UFRProjectileEffectBase>() : nullptr;
@@ -110,6 +114,10 @@ FText FFRProjectileEffectSpec::GetDataValidationSummary() const
 	{
 		AddProjectileEffectValidationIssue(Issues, TEXT("projectile effect parameters do not match effect class"));
 	}
+	else if (const UFRProjectileEffectBase* EffectCDO = GetEffectCDO())
+	{
+		EffectCDO->AddDataValidationIssues(*this, Issues);
+	}
 
 	return Issues.Num() > 0 ? FText::FromString(FString::Join(Issues, TEXT(" | "))) : FText::GetEmpty();
 }
@@ -144,6 +152,19 @@ bool UFRProjectileEffectDrill::UsesCustomTerrainImpact(const FFRProjectileEffect
 	return true;
 }
 
+void UFRProjectileEffectDrill::AddDataValidationIssues(const FFRProjectileEffectSpec& EffectSpec, TArray<FString>& Issues) const
+{
+	const FFRProjectileEffectDrillParams& Params = EffectSpec.GetParametersOrDefault<FFRProjectileEffectDrillParams>();
+	if (Params.RadiusBonus < 0.0f)
+	{
+		AddProjectileEffectValidationIssue(Issues, TEXT("drill radius bonus must be non-negative"));
+	}
+	if (Params.RadiusMultiplier < 0.0f)
+	{
+		AddProjectileEffectValidationIssue(Issues, TEXT("drill radius multiplier must be non-negative"));
+	}
+}
+
 const UScriptStruct* UFRProjectileEffectTerrainCreate::GetParameterStruct() const
 {
 	return FFRProjectileEffectTerrainCreateParams::StaticStruct();
@@ -172,4 +193,17 @@ void UFRProjectileEffectTerrainCreate::HandleImpact(const FFRProjectileEffectSpe
 bool UFRProjectileEffectTerrainCreate::UsesCustomTerrainImpact(const FFRProjectileEffectSpec& EffectSpec) const
 {
 	return true;
+}
+
+void UFRProjectileEffectTerrainCreate::AddDataValidationIssues(const FFRProjectileEffectSpec& EffectSpec, TArray<FString>& Issues) const
+{
+	const FFRProjectileEffectTerrainCreateParams& Params = EffectSpec.GetParametersOrDefault<FFRProjectileEffectTerrainCreateParams>();
+	if (Params.RadiusBonus < 0.0f)
+	{
+		AddProjectileEffectValidationIssue(Issues, TEXT("terrain create radius bonus must be non-negative"));
+	}
+	if (Params.RadiusMultiplier < 0.0f)
+	{
+		AddProjectileEffectValidationIssue(Issues, TEXT("terrain create radius multiplier must be non-negative"));
+	}
 }
