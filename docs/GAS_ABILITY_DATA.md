@@ -46,8 +46,8 @@ modifier 적용 순서:
 - `DisplayName`, `Description`: 보상/카탈로그 요약에 표시되는 이름과 설명
 - `WeaponTag`: 기본 무기 식별 태그
 - `ShotEffectTags`: 탄에 붙는 효과 태그
-- `ShotModifiers`: 피해, 폭발 반경, 탄 수, 지형 반경 등을 바꾸는 보정 목록
-- `ImpactSpawns`: 충돌 시 자식 탄을 생성하는 데이터
+- `ShotModifiers`: 피해, 폭발 반경, 탄 수, 조립식 투사체 효과 등을 바꾸는 보정 목록
+- `ImpactSpawns`: 충돌 시 자식 탄을 생성하는 기존 호환 데이터
 
 기존 무기는 `ShotModifiers`와 `ImpactSpawns`를 비워두면 이전처럼 동작한다.
 
@@ -55,8 +55,9 @@ modifier 적용 순서:
 
 `ShotModifier`에는 `DisplayName`과 `Description`을 적어 어떤 조건/효과를 의도했는지 남긴다. `DisplayName`은 데이터 에셋 배열 행 제목으로 쓰이고, 두 값은 보상/디버그 요약에 표시된다.
 `ShotModifier`를 나중에 제거해야 하는 효과라면 `ModifierTag`에 고유 태그를 넣는다.
-`ShotModifier::ProjectileEffects`는 새 조립식 능력 경로다. `EffectClass`에 `UFRProjectileEffectBase` 상속 클래스를 고르고, `Parameters`에는 해당 effect가 요구하는 `FFRProjectileEffectParameters` 파생 구조체를 넣는다. DetailCustomization은 `EffectClass`와 `Parameters` 구조체가 맞도록 보정하는 것이 목표다.
-`ShotModifier::ImpactSpawns`를 쓰면 무기 자체가 아니라 보상, 퍽, 아이템으로 충돌 후 자식 탄 생성을 추가할 수 있다. 새 데이터는 가능하면 `ProjectileEffects`의 Split effect를 우선 사용한다.
+`ShotModifier::ProjectileEffects`는 새 조립식 능력 경로다. `EffectClass`에 `UFRProjectileEffectBase` 상속 클래스를 고르면 DetailCustomization이 `Parameters`를 해당 effect가 요구하는 `FFRProjectileEffectParameters` 파생 구조체로 자동 보정한다.
+각 `UFRProjectileEffectBase` 상속 클래스는 실행 로직과 자기 파라미터 검수를 함께 가진다. 새 효과를 추가할 때는 ShotModifier 필드를 늘리기보다 effect class와 params struct를 추가한다.
+`ShotModifier::ImpactSpawns`는 기존 호환 경로다. 새 데이터에서 분열탄을 만들 때는 `ProjectileEffects`의 Split effect를 우선 사용한다.
 
 ## 3. ShotModifier 사용 예
 
@@ -99,9 +100,9 @@ modifier 적용 순서:
 - 여러 조건을 같이 켜면 모두 만족해야 적용된다.
 - 태그 조건은 modifier 자신의 `EffectTags`를 붙이기 전에 검사한다.
 - 데이터 편집 UI에서 modifier 적용 가능 여부와 실패 이유를 미리 보여주려면 `DoesShotModifierMeetShotConditions()`와 `GetShotModifierConditionFailureSummary()`를 사용한다.
-- modifier 데이터 자체를 검수하려면 `ShotModifier.GetDataValidationSummary()` 또는 `UFortRogueRewardBlueprintLibrary::GetShotModifierDataValidationSummary()`를 사용한다. 표시 이름 누락, 실제 shot effect 없음, 뒤집힌 조준 범위, Required/Blocked shot tag 겹침, projectile count가 0 이하인 impact spawn을 한 줄 경고로 보여준다.
+- modifier 데이터 자체를 검수하려면 `ShotModifier.GetDataValidationSummary()` 또는 `UFortRogueRewardBlueprintLibrary::GetShotModifierDataValidationSummary()`를 사용한다. 표시 이름 누락, 실제 shot effect 없음, 뒤집힌 조준 범위, Required/Blocked shot tag 겹침, projectile effect class/params 불일치, effect별 파라미터 오류, projectile count가 0 이하인 impact spawn을 한 줄 경고로 보여준다.
 
-## 4. ImpactSpawns 사용 예
+## 4. 분열탄과 ImpactSpawns 사용 예
 
 권장 분열탄:
 
@@ -127,7 +128,7 @@ modifier 적용 순서:
 
 자식 탄은 기본적으로 다시 분열하지 않는다. 무한 분열을 막기 위해 `ImpactSpawns`를 자식에게 전달하지 않는다.
 
-런 보상이나 다음 발 아이템으로 분열 효과를 주고 싶다면 무기 `ImpactSpawns` 대신 `ShotModifier::ImpactSpawns`에 같은 데이터를 넣는다.
+런 보상이나 다음 발 아이템으로 분열 효과를 주고 싶다면 `ShotModifier::ProjectileEffects`의 Split effect를 우선 사용한다. `ShotModifier::ImpactSpawns`는 기존 데이터 호환이 필요할 때만 사용한다.
 
 ## 5. 보상과 퍽
 
@@ -236,7 +237,7 @@ Canvas HUD도 현재 `ItemLoadout`의 아이템 이름과 수량을 표시한다
 
 ## 7. 주의할 점
 
-- 단순 스탯 보상만 늘리지 말고, 가능하면 `ShotModifiers`, `ImpactSpawns`, `AbilitySet`으로 플레이 방식이 바뀌게 만든다.
+- 단순 스탯 보상만 늘리지 말고, 가능하면 `ShotModifiers`, `ProjectileEffects`, `AbilitySet`으로 플레이 방식이 바뀌게 만든다.
 - 포탄 물리, 충돌, 지형 마스크 수정은 아직 C++ 경로가 기준이다.
 - `ShotEffect.*` 태그는 효과를 식별하는 공통 어휘다. 실제 동작은 `ShotSpec`, `Projectile`, `Terrain` 코드가 처리한다.
 - 새 modifier를 추가하면 HUD의 최종 ShotSpec 표시로 값이 바뀌는지 먼저 확인한다.
