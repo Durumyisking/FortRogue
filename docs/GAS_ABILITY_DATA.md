@@ -49,6 +49,13 @@ modifier 적용 순서:
 - `ShotModifiers`: 피해, 폭발 반경, 탄 수, 조립식 투사체 효과 등을 바꾸는 보정 목록
 - `ImpactSpawns`: 충돌 시 자식 탄을 생성하는 기존 호환 데이터
 
+역할 분리:
+
+- 무기 데이터는 탄의 원형이다. 기본 피해, 기본 폭발 반경, 탄속, 중력, 기본 투사체 수, 기본 ProjectileEffects를 정의한다.
+- 캐릭터, 보상, 퍽은 성장과 전역 보정이다. 피해 +20%, 폭발 반경 +100%, 이동력 +10%, 체력 +10%, 조건부 보정, 모든 탄에 붙는 특수효과를 여기에 둔다.
+- 무기 데이터에 런 성장용 데미지 배율을 넣지 않는다. 무기는 "이 탄이 무엇인가"를 말하고, 캐릭터/보상/퍽은 "이번 런에서 얼마나 어떻게 강화됐는가"를 말한다.
+- 캐릭터의 무기 로드아웃은 Weapon 1, Weapon 2 같은 슬롯으로 취급한다. 첫 번째 무기가 1번탄, 두 번째 무기가 2번탄이 되며, 각 슬롯의 `UFortRogueWeaponDefinition`에 ProjectileEffects를 붙여 탄을 조립한다.
+
 기존 무기는 `ShotModifiers`와 `ImpactSpawns`를 비워두면 이전처럼 동작한다.
 
 무기 데이터를 검수할 때는 `UFortRogueWeaponDefinition::GetDataValidationSummary()` 또는 `UFortRogueRewardBlueprintLibrary::GetWeaponDataValidationSummary()`를 사용한다. 표시 이름/`WeaponTag` 누락, 실제 weapon effect 없음, 0 이하 발사 속도, 0 이하 기본 발사 탄 수, 비어 있는 `ImpactSpawns`, 내부 `ShotModifier` 경고를 한 줄로 보여준다.
@@ -87,6 +94,14 @@ modifier 적용 순서:
 - effect class와 params struct가 맞지 않는 상태를 정상 데이터로 취급하지 않는다.
 - 새 `FGameplayTag` 편집 프로퍼티를 만들 때 `Categories` 없이 전체 태그 picker를 열지 않는다.
 - 단순 스탯 변화만 있는 효과는 먼저 기존 `DamageMultiplier`, `BlastRadiusMultiplier`, `LaunchSpeedMultiplier`, `GravityMultiplier`로 충분한지 확인한다.
+
+대표 탄 데이터 작성 기준:
+
+- 기본탄: ProjectileEffects를 비워 안정적인 기준 피해와 폭발 반경을 제공한다.
+- 굴착탄: `ProjectileEffects`에 `UFRProjectileEffectDrill`을 붙인다.
+- 지형생성탄: `ProjectileEffects`에 `UFRProjectileEffectTerrainCreate`를 붙인다.
+- 분열탄: `ProjectileEffects`에 `UFRProjectileEffectSplit`을 붙이고 child 탄 수, 퍼짐, 속도를 params에서 조정한다.
+- 복합탄: 한 ShotModifier에 Drill + TerrainCreate를 함께 넣거나, Split의 `ChildShotModifiers` 안에 Drill을 넣어 child 탄이 굴착하게 만든다.
 
 ## 4. ShotModifier 사용 예
 
@@ -174,6 +189,17 @@ modifier 적용 순서:
 
 직접 스탯 보상은 `DamageBonus`, `MaxHealthBonus`, `MaxMoveBudgetBonus`, `ProjectileBonus`, `ShotPowerMultiplierBonus`를 사용한다. 리스크/보상 카드처럼 음수 값을 넣으면 실제 어트리뷰트도 낮아지고, 요약에도 손해가 부호와 함께 표시된다. 최종 값은 MaxHealth 1, MaxMoveBudget 0, Damage 0, ShotPowerMultiplier 0, ProjectileCount 1 하한에서 멈춘다.
 현재 누적된 전투 스탯은 캐릭터 Blueprint getter인 `GetDamageBonus()`, `GetMaxMoveBudget()`, `GetShotPowerMultiplier()`, `GetProjectileCount()`로 UI나 디버그 화면에서 확인할 수 있다. 태그 기반 UI에서는 `Attribute.Health`, `Attribute.MaxHealth`, `Attribute.MoveBudget`, `Attribute.MaxMoveBudget`, `Attribute.Damage`, `Attribute.ShotPowerMultiplier`, `Attribute.ProjectileCount`와 `TryGetCombatAttributeValueByTag()`를 사용한다. PlayerController 경유 UI와 UMG 전투 HUD에서는 `TryGetPlayerCombatAttributeValueByTag()`를 사용한다. 같은 태그로 임시 버프, 디버그 조정, 스크립트 보정을 넣을 때는 `TryApplyCombatAttributeDeltaByTag()` 또는 PlayerController의 `TryApplyPlayerCombatAttributeDeltaByTag()`를 사용한다. 한 줄 요약이 필요하면 `GetCombatStatsSummary()`를 사용한다.
+
+퍽 희귀도 작성 기준:
+
+- Common: 피해 +20%, 이동력 +10%, 체력 +10%처럼 바로 이해되는 기본형이다. 약한 보상이 아니라 읽기 쉬운 보상이다.
+- Rare: 산탄도 10% 감소, 폭발 반경 50% 증가처럼 기본형과 시너지형 사이에 둔다.
+- Epic: 투사체 +1과 피해 10% 감소, 폭발에 넉백 추가처럼 새 기믹이나 트레이드오프를 연다.
+- Legendary: 모든 투사체에 Drill 추가, 투사체가 바람의 영향을 받지 않음, 폭발 후 기존 투사체를 한 번 복사 생성처럼 특이한 룰 변경과 파괴적인 시너지를 만든다.
+
+희귀도는 강함의 절대 등급이 아니다. Common이 어떤 런에서는 Legendary보다 수치적으로 강할 수 있고, Legendary는 숫자가 아니라 조합 축과 룰 변경 때문에 Legendary다.
+
+현재 코드에 별도 rarity enum이 없다면 먼저 `DisplayName`, `Description`, `RewardTag`, `PerkTag`와 문서 기준으로 구분한다. 나중에 `EPerkRarity` 같은 명시적 필드를 추가한다면 이 기준을 그대로 따른다.
 
 `WeaponReward`로 추가된 무기는 전투 중 1-5번 슬롯으로 선택할 수 있다.
 무기 목록 UI가 슬롯 번호로 선택한다면 `AFortRoguePlayerController::SelectPlayerWeaponByIndex()`를 사용한다.
