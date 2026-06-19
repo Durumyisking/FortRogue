@@ -35,6 +35,9 @@ public:
 	static FText GetItemEffectSummary(UFortRogueItemDefinition* ItemDefinition);
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
+	static FText GetItemDataValidationSummary(UFortRogueItemDefinition* ItemDefinition);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
 	static FText GetPerkEffectSummary(UFortRoguePerkDefinition* PerkDefinition);
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")

@@ -36,6 +36,11 @@ FText UFortRogueRewardBlueprintLibrary::GetItemEffectSummary(UFortRogueItemDefin
 	return RewardChoice.GetEffectSummary();
 }
 
+FText UFortRogueRewardBlueprintLibrary::GetItemDataValidationSummary(UFortRogueItemDefinition* ItemDefinition)
+{
+	return ItemDefinition ? ItemDefinition->GetDataValidationSummary() : FText::FromString(TEXT("missing item"));
+}
+
 FText UFortRogueRewardBlueprintLibrary::GetPerkEffectSummary(UFortRoguePerkDefinition* PerkDefinition)
 {
 	FFortRogueRewardChoice RewardChoice;

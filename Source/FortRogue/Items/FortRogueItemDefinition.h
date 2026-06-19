@@ -23,6 +23,9 @@ class FORTROGUE_API UFortRogueItemDefinition : public UPrimaryDataAsset
 	GENERATED_BODY()
 
 public:
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Item")
+	FText GetDataValidationSummary() const;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item")
 	FText DisplayName = FText::FromString(TEXT("Item"));
 

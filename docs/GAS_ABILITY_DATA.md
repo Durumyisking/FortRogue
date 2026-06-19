@@ -185,6 +185,7 @@ UMG 전투 HUD에서는 `UFortRogueBattleHUDWidget::GetPlayerGrantedShotModifier
 
 새 데이터 기반 아이템은 `ItemType = AbilitySet`으로 두고 `UseAbilitySet`을 지정한다.
 아이템과 퍽 에셋에는 `DisplayName`과 `Description`을 적어둔다. 설명은 보상/카탈로그 요약에 포함되어 데이터 편집 중 의도를 바로 확인할 수 있다.
+아이템 데이터를 검수할 때는 `UFortRogueItemDefinition::GetDataValidationSummary()` 또는 `UFortRogueRewardBlueprintLibrary::GetItemDataValidationSummary()`를 사용한다. 표시 이름/`ItemTag` 누락, 0 이하 초기 충전 수, 실제 item effect 없음, 타입별 무효 수치, 내부 AbilitySet/ShotModifier 경고를 한 줄로 보여준다.
 AbilitySet 에셋에는 `DisplayName`과 `Description`을 적어둔다. 보상 카드 요약은 아이템, 퍽, 직접 보상의 AbilitySet 이름을 표시하므로 데이터 편집자가 어떤 특수효과가 붙는지 바로 확인할 수 있다.
 중첩/제거 가능한 AbilitySet이라면 `AbilitySetTag`에 고유 태그를 지정한다.
 AbilitySet 자체를 UI에 표시할 때는 `UFortRogueAbilitySet::GetEffectSummary()` 또는 `UFortRogueRewardBlueprintLibrary::GetAbilitySetEffectSummary()`를 사용한다. 요약은 표시 이름, 설명, 유효한 Ability/Effect/AttributeSet 개수를 포함한다.
