@@ -1520,7 +1520,7 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	};
 
 	FFRProjectileEffectDrillParams RuntimeSplitChildDrillParams;
-	RuntimeSplitChildDrillParams.RadiusBonus = 16.0f;
+	RuntimeSplitChildDrillParams.RadiusBonus = 28.0f;
 	FFRProjectileEffectSpec RuntimeSplitChildDrillEffect;
 	RuntimeSplitChildDrillEffect.EffectClass = UFRProjectileEffectDrill::StaticClass();
 	RuntimeSplitChildDrillEffect.Parameters = FInstancedStruct::Make(RuntimeSplitChildDrillParams);
@@ -1556,15 +1556,15 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	RuntimeSplitContext.World = World;
 	RuntimeSplitContext.OwnerCharacter = Character;
 	RuntimeSplitContext.AssignedTerrain = Terrain;
-	RuntimeSplitContext.ImpactLocation = FVector(-70.0f, 0.0f, 70.0f);
-	RuntimeSplitContext.Velocity = FVector(1.0f, 0.0f, 0.0f);
+	RuntimeSplitContext.ImpactLocation = FVector(75.0f, 0.0f, 30.0f);
+	RuntimeSplitContext.Velocity = FVector(0.0f, 0.0f, -1.0f);
 	const int32 ProjectileCountBeforeSplit = CountProjectiles();
 	RuntimeSplitEffect.HandleImpact(RuntimeSplitContext);
 	TestEqual(TEXT("Runtime split effect spawns one child projectile"), CountProjectiles(), ProjectileCountBeforeSplit + 1);
 	AFortRogueProjectile* RuntimeSplitChildProjectile = nullptr;
 	for (TActorIterator<AFortRogueProjectile> It(World); It; ++It)
 	{
-		if (It->GetActorLocation().Equals(FVector(-52.0f, 0.0f, 70.0f), 0.1))
+		if (It->GetActorLocation().Equals(FVector(75.0f, 0.0f, 12.0f), 0.1))
 		{
 			RuntimeSplitChildProjectile = *It;
 			break;
@@ -1577,7 +1577,11 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		TestTrue(TEXT("Runtime split child projectile keeps drill effect class"), RuntimeSplitChildProjectile->HasProjectileEffectClass(UFRProjectileEffectDrill::StaticClass()));
 		TestTrue(TEXT("Runtime split child projectile keeps terrain create effect class"), RuntimeSplitChildProjectile->HasProjectileEffectClass(UFRProjectileEffectTerrainCreate::StaticClass()));
 		TestFalse(TEXT("Runtime split child projectile skips blocked child modifiers"), RuntimeSplitChildProjectile->HasProjectileEffectClass(UFRProjectileEffectSplit::StaticClass()));
-		RuntimeSplitChildProjectile->Destroy();
+		TestFalse(TEXT("Runtime split child terrain create target starts empty"), Terrain->IsSolidAtWorldLocation(FVector(75.0f, 0.0f, 15.0f)));
+		TestTrue(TEXT("Runtime split child drill target starts solid"), Terrain->IsSolidAtWorldLocation(FVector(95.0f, 0.0f, 5.0f)));
+		RuntimeSplitChildProjectile->Tick(0.1f);
+		TestTrue(TEXT("Runtime split child terrain create effect fills terrain"), Terrain->IsSolidAtWorldLocation(FVector(75.0f, 0.0f, 15.0f)));
+		TestFalse(TEXT("Runtime split child drill effect carves terrain outside fill radius"), Terrain->IsSolidAtWorldLocation(FVector(95.0f, 0.0f, 5.0f)));
 	}
 
 	auto SetFloatProperty = [](UObject* Object, const FName PropertyName, float Value)
