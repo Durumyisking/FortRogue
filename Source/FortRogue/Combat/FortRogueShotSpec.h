@@ -5,6 +5,7 @@
 #include "Combat/FortRogueImpactSpawnSpec.h"
 #include "CoreMinimal.h"
 #include "GameplayTagContainer.h"
+#include "ProjectileEffects/FRProjectileEffect.h"
 #include "FortRogueShotSpec.generated.h"
 
 class AFortRogueProjectile;
@@ -46,4 +47,7 @@ struct FFortRogueShotSpec
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot", meta = (ToolTip = "충돌 후 생성할 추가 투사체 설정입니다. 새 구조에서는 Split effect로 이전하는 것이 목표입니다."))
 	TArray<FFortRogueImpactSpawnSpec> ImpactSpawns;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot", meta = (TitleProperty = EffectClass, ToolTip = "이번 샷의 충돌/비행 단계에서 실행할 조립식 투사체 효과 목록입니다. 배열 순서대로 실행됩니다."))
+	TArray<FFRProjectileEffectSpec> ProjectileEffects;
 };

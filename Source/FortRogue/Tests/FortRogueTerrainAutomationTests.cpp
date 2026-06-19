@@ -28,6 +28,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "PaperFlipbookComponent.h"
 #include "Perks/FortRoguePerkDefinition.h"
+#include "ProjectileEffects/FRProjectileEffect.h"
 #include "Rewards/FortRogueRewardBlueprintLibrary.h"
 #include "Rewards/FortRogueRewardTypes.h"
 #include "Run/FortRogueDefaultLoadoutDefinition.h"
@@ -174,18 +175,45 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Blueprint helper summarizes shot modifier descriptions"), UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(SummaryModifiers).ToString().Contains(TEXT("Adds child shots after impact.")));
 	TestTrue(TEXT("Blueprint helper summarizes shot modifier tags"), UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(SummaryModifiers).ToString().Contains(TEXT("modifier tag ShotEffect.Projectiles")));
 	TestTrue(TEXT("Blueprint helper summarizes shot effect tags"), UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(SummaryModifiers).ToString().Contains(TEXT("ShotEffect.SplitOnImpact")));
+	FFRProjectileEffectDrillParams DrillParams;
+	DrillParams.RadiusBonus = 25.0f;
+	FFRProjectileEffectSpec DrillEffect;
+	DrillEffect.EffectClass = UFRProjectileEffectDrill::StaticClass();
+	DrillEffect.Parameters = FInstancedStruct::Make(DrillParams);
+	FFRProjectileEffectTerrainCreateParams TerrainCreateParams;
+	TerrainCreateParams.RadiusBonus = 60.0f;
+	FFRProjectileEffectSpec TerrainCreateEffect;
+	TerrainCreateEffect.EffectClass = UFRProjectileEffectTerrainCreate::StaticClass();
+	TerrainCreateEffect.Parameters = FInstancedStruct::Make(TerrainCreateParams);
+	FFortRogueShotSpec EffectShotSpec;
+	EffectShotSpec.TerrainCarveRadius = 100.0f;
+	DrillEffect.ApplyToShotSpec(EffectShotSpec);
+	TerrainCreateEffect.ApplyToShotSpec(EffectShotSpec);
+	TestTrue(TEXT("Projectile effect CDO adds drill tags"), EffectShotSpec.EffectTags.HasTagExact(FortRogueGameplayTags::ShotEffect_Drill));
+	TestTrue(TEXT("Projectile effect CDO adds terrain create tags"), EffectShotSpec.EffectTags.HasTagExact(FortRogueGameplayTags::ShotEffect_TerrainCreate));
+	TestEqual(TEXT("Projectile drill effect updates terrain carve radius"), EffectShotSpec.TerrainCarveRadius, 125.0f);
+	TestEqual(TEXT("Projectile terrain create effect updates terrain fill radius"), EffectShotSpec.TerrainFillRadius, 60.0f);
+	FFortRogueShotModifierSpec EffectModifierData;
+	EffectModifierData.DisplayName = FText::FromString(TEXT("Valid Projectile Effects"));
+	EffectModifierData.ProjectileEffects.Add(DrillEffect);
+	EffectModifierData.ProjectileEffects.Add(TerrainCreateEffect);
+	TestTrue(TEXT("Shot modifier data validation accepts projectile effects"), EffectModifierData.GetDataValidationSummary().ToString().IsEmpty());
+	TArray<FFortRogueShotModifierSpec> EffectModifierSummaryData = { EffectModifierData };
+	TestTrue(TEXT("Shot modifier summary counts projectile effects"), UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(EffectModifierSummaryData).ToString().Contains(TEXT("projectile effects 2")));
 	FFortRogueShotModifierSpec InvalidShotModifierData;
 	InvalidShotModifierData.bUseAimAngleRange = true;
 	InvalidShotModifierData.MinAimAngle = 80.0f;
 	InvalidShotModifierData.MaxAimAngle = 20.0f;
 	InvalidShotModifierData.RequiredShotTags.AddTag(FortRogueGameplayTags::Weapon_Shell);
 	InvalidShotModifierData.BlockedShotTags.AddTag(FortRogueGameplayTags::Weapon_Shell);
+	InvalidShotModifierData.ProjectileEffects.AddDefaulted();
 	InvalidShotModifierData.ImpactSpawns.AddDefaulted();
 	const FString InvalidShotModifierDataSummary = InvalidShotModifierData.GetDataValidationSummary().ToString();
 	TestTrue(TEXT("Shot modifier data validation reports missing display names"), InvalidShotModifierDataSummary.Contains(TEXT("missing display name")));
 	TestTrue(TEXT("Shot modifier data validation reports missing effects"), InvalidShotModifierDataSummary.Contains(TEXT("missing shot effect")));
 	TestTrue(TEXT("Shot modifier data validation reports inverted aim ranges"), InvalidShotModifierDataSummary.Contains(TEXT("aim range")));
 	TestTrue(TEXT("Shot modifier data validation reports overlapping shot tags"), InvalidShotModifierDataSummary.Contains(TEXT("overlap")));
+	TestTrue(TEXT("Shot modifier data validation reports invalid projectile effects"), InvalidShotModifierDataSummary.Contains(TEXT("projectile effect")));
 	TestTrue(TEXT("Shot modifier data validation reports empty impact spawns"), InvalidShotModifierDataSummary.Contains(TEXT("projectile count")));
 	TestTrue(TEXT("Blueprint helper reports shot modifier data validation"), UFortRogueRewardBlueprintLibrary::GetShotModifierDataValidationSummary(InvalidShotModifierData).ToString().Contains(TEXT("missing shot effect")));
 	FFortRogueShotModifierSpec ValidShotModifierData;
@@ -1633,7 +1661,33 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		if (ExhaustedTurnProjectile)
 		{
 			TestTrue(TEXT("Facing change with exhausted movement budget launches left"), ExhaustedTurnProjectile->GetActorLocation().X < ExhaustedCharacterX);
+			const FVector ExpectedLeftLaunchDirection(FMath::Cos(FMath::DegreesToRadians(135.0f)), 0.0f, FMath::Sin(FMath::DegreesToRadians(135.0f)));
+			const FVector ExpectedProjectileSpawnLocation = ExhaustedTurnCharacter->GetActorLocation() + ExpectedLeftLaunchDirection * 70.0f + FVector(0.0f, 0.0f, 35.0f);
+			TestTrue(TEXT("Projectile and trajectory start from the character launch offset"), ExhaustedTurnProjectile->GetActorLocation().Equals(ExpectedProjectileSpawnLocation, 0.1));
 			ExhaustedTurnProjectile->Destroy();
+		}
+	}
+
+	AFortRogueBattleCharacter* AimFacingCharacter = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(15.0f, 0.0f, 55.0f), FRotator::ZeroRotator, SpawnParams);
+	AFortRogueBattleCharacter* LeftAimTarget = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(-45.0f, 0.0f, 55.0f), FRotator::ZeroRotator, SpawnParams);
+	AFortRogueBattleCharacter* RightAimTarget = World->SpawnActor<AFortRogueBattleCharacter>(AFortRogueBattleCharacter::StaticClass(), FVector(45.0f, 0.0f, 55.0f), FRotator::ZeroRotator, SpawnParams);
+	TestNotNull(TEXT("Aim-facing battle character is spawned"), AimFacingCharacter);
+	TestNotNull(TEXT("Left aim target is spawned"), LeftAimTarget);
+	TestNotNull(TEXT("Right aim target is spawned"), RightAimTarget);
+	if (AimFacingCharacter && LeftAimTarget && RightAimTarget)
+	{
+		UPaperFlipbookComponent* AimFacingSprite = Cast<UPaperFlipbookComponent>(AimFacingCharacter->GetDefaultSubobjectByName(TEXT("BodySprite")));
+		TestNotNull(TEXT("Aim-facing sprite component exists"), AimFacingSprite);
+		FFortRogueStageDifficultyData AimFacingDifficulty;
+		AimFacingCharacter->FireAtTarget(LeftAimTarget, AimFacingDifficulty);
+		if (AimFacingSprite)
+		{
+			TestEqual(TEXT("Battle character sprite turns left when aim target is left"), AimFacingSprite->GetRelativeRotation(), FRotator(0.0f, 180.0f, 0.0f));
+		}
+		AimFacingCharacter->FireAtTarget(RightAimTarget, AimFacingDifficulty);
+		if (AimFacingSprite)
+		{
+			TestEqual(TEXT("Battle character sprite turns right when aim target is right"), AimFacingSprite->GetRelativeRotation(), FRotator(0.0f, -90.0f, 0.0f));
 		}
 	}
 

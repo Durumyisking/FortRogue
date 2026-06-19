@@ -5,6 +5,7 @@
 #include "Combat/FortRogueImpactSpawnSpec.h"
 #include "Engine/DataAsset.h"
 #include "GameplayTagContainer.h"
+#include "ProjectileEffects/FRProjectileEffect.h"
 #include "FortRogueWeaponDefinition.generated.h"
 
 class AFortRogueProjectile;
@@ -47,6 +48,9 @@ struct FFortRogueShotModifierSpec
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition", meta = (Categories = "Weapon,ShotEffect", ToolTip = "현재 ShotSpec에 있으면 modifier 적용을 막는 태그입니다. Weapon.* 또는 ShotEffect.* 태그만 사용하세요."))
 	FGameplayTagContainer BlockedShotTags;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Effects", meta = (TitleProperty = EffectClass, ToolTip = "조건을 만족했을 때 ShotSpec과 투사체 충돌에 적용할 조립식 효과 목록입니다. Drill과 TerrainCreate를 함께 넣으면 한 발이 파괴와 생성을 모두 수행할 수 있습니다."))
+	TArray<FFRProjectileEffectSpec> ProjectileEffects;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (ToolTip = "최종 피해량에 더할 고정값입니다. 음수도 가능하지만 최종 피해는 0 아래로 내려가지 않습니다."))
 	float DamageBonus = 0.0f;

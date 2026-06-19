@@ -29,6 +29,7 @@ bool HasShotModifierImpactSpawnEffect(const TArray<FFortRogueImpactSpawnSpec>& I
 bool HasShotModifierGameplayEffect(const FFortRogueShotModifierSpec& ShotModifier)
 {
 	return !ShotModifier.EffectTags.IsEmpty()
+		|| ShotModifier.ProjectileEffects.Num() > 0
 		|| !FMath::IsNearlyZero(ShotModifier.DamageBonus)
 		|| !FMath::IsNearlyEqual(ShotModifier.DamageMultiplier, 1.0f)
 		|| !FMath::IsNearlyZero(ShotModifier.BlastRadiusBonus)
@@ -173,6 +174,20 @@ FText FFortRogueShotModifierSpec::GetDataValidationSummary() const
 	if (bHasEmptyImpactSpawn)
 	{
 		AddShotModifierValidationIssue(Issues, TEXT("impact spawn projectile count must be greater than 0"));
+	}
+
+	bool bHasInvalidProjectileEffect = false;
+	for (const FFRProjectileEffectSpec& ProjectileEffect : ProjectileEffects)
+	{
+		if (!ProjectileEffect.GetDataValidationSummary().IsEmpty())
+		{
+			bHasInvalidProjectileEffect = true;
+			break;
+		}
+	}
+	if (bHasInvalidProjectileEffect)
+	{
+		AddShotModifierValidationIssue(Issues, TEXT("projectile effect data has warnings"));
 	}
 
 	return Issues.Num() > 0 ? FText::FromString(FString::Join(Issues, TEXT(" | "))) : FText::GetEmpty();

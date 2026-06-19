@@ -73,6 +73,7 @@ void AddShotModifierSummary(TArray<FString>& Parts, const TArray<FFortRogueShotM
 	float LaunchSpeedMultiplier = 1.0f;
 	float GravityMultiplier = 1.0f;
 	int32 ImpactSpawnCount = 0;
+	int32 ProjectileEffectCount = 0;
 	for (const FFortRogueShotModifierSpec& Modifier : Modifiers)
 	{
 		const FString ModifierDisplayName = Modifier.DisplayName.ToString();
@@ -122,6 +123,7 @@ void AddShotModifierSummary(TArray<FString>& Parts, const TArray<FFortRogueShotM
 		LaunchSpeedMultiplier *= Modifier.LaunchSpeedMultiplier;
 		GravityMultiplier *= Modifier.GravityMultiplier;
 		ImpactSpawnCount += CountRewardImpactSpawnProjectiles(Modifier.ImpactSpawns);
+		ProjectileEffectCount += Modifier.ProjectileEffects.Num();
 	}
 
 	if (!FMath::IsNearlyZero(DamageBonus))
@@ -171,6 +173,10 @@ void AddShotModifierSummary(TArray<FString>& Parts, const TArray<FFortRogueShotM
 	if (ImpactSpawnCount > 0)
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("impact projectiles +%d"), ImpactSpawnCount));
+	}
+	if (ProjectileEffectCount > 0)
+	{
+		AddSummaryPart(Parts, FString::Printf(TEXT("projectile effects %d"), ProjectileEffectCount));
 	}
 }
 }

@@ -65,7 +65,7 @@ AFortRogueProjectile::AFortRogueProjectile()
 	}
 }
 
-void AFortRogueProjectile::InitializeProjectile(AFortRogueBattleCharacter* InOwnerCharacter, AFortRogueDestructibleTerrain* InTerrain, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity, float InTerrainCarveRadius, float InTerrainFillRadius, FGameplayTag InWeaponTag, FGameplayTagContainer InEffectTags, TArray<FFortRogueImpactSpawnSpec> InImpactSpawns)
+void AFortRogueProjectile::InitializeProjectile(AFortRogueBattleCharacter* InOwnerCharacter, AFortRogueDestructibleTerrain* InTerrain, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity, float InTerrainCarveRadius, float InTerrainFillRadius, FGameplayTag InWeaponTag, FGameplayTagContainer InEffectTags, TArray<FFortRogueImpactSpawnSpec> InImpactSpawns, TArray<FFRProjectileEffectSpec> InProjectileEffects)
 {
 	OwnerCharacter = InOwnerCharacter;
 	AssignedTerrain = InTerrain;
@@ -73,6 +73,7 @@ void AFortRogueProjectile::InitializeProjectile(AFortRogueBattleCharacter* InOwn
 	WeaponTag = InWeaponTag;
 	EffectTags = InEffectTags;
 	ImpactSpawns = MoveTemp(InImpactSpawns);
+	ProjectileEffects = MoveTemp(InProjectileEffects);
 	Damage = FMath::Max(0.0f, InDamage);
 	BlastRadius = FMath::Max(0.0f, InBlastRadius);
 	TerrainCarveRadius = InTerrainCarveRadius >= 0.0f ? FMath::Max(0.0f, InTerrainCarveRadius) : BlastRadius;
@@ -93,7 +94,8 @@ void AFortRogueProjectile::InitializeProjectileFromShotSpec(AFortRogueBattleChar
 		ShotSpec.TerrainFillRadius,
 		ShotSpec.WeaponTag,
 		ShotSpec.EffectTags,
-		ShotSpec.ImpactSpawns);
+		ShotSpec.ImpactSpawns,
+		ShotSpec.ProjectileEffects);
 }
 
 void AFortRogueProjectile::Tick(float DeltaSeconds)
@@ -201,31 +203,11 @@ void AFortRogueProjectile::ResolveImpact(const FVector& ImpactLocation)
 	bResolved = true;
 	SetActorLocation(ImpactLocation);
 
-	if (AssignedTerrain)
+	if (!UsesCustomTerrainImpact())
 	{
-		if (TerrainFillRadius > 0.0f)
-		{
-			AssignedTerrain->FillCircle(ImpactLocation, TerrainFillRadius);
-		}
-		else
-		{
-			AssignedTerrain->CarveCircle(ImpactLocation, TerrainCarveRadius);
-		}
+		ApplyDefaultTerrainImpact(ImpactLocation);
 	}
-	else
-	{
-		for (TActorIterator<AFortRogueDestructibleTerrain> It(GetWorld()); It; ++It)
-		{
-			if (TerrainFillRadius > 0.0f)
-			{
-				It->FillCircle(ImpactLocation, TerrainFillRadius);
-			}
-			else
-			{
-				It->CarveCircle(ImpactLocation, TerrainCarveRadius);
-			}
-		}
-	}
+	ApplyProjectileEffects(ImpactLocation);
 
 	for (TActorIterator<AFortRogueBattleCharacter> It(GetWorld()); It; ++It)
 	{
@@ -260,6 +242,62 @@ void AFortRogueProjectile::ResolveImpact(const FVector& ImpactLocation)
 	}
 
 	Destroy();
+}
+
+void AFortRogueProjectile::ApplyDefaultTerrainImpact(const FVector& ImpactLocation)
+{
+	if (AssignedTerrain)
+	{
+		if (TerrainFillRadius > 0.0f)
+		{
+			AssignedTerrain->FillCircle(ImpactLocation, TerrainFillRadius);
+		}
+		else
+		{
+			AssignedTerrain->CarveCircle(ImpactLocation, TerrainCarveRadius);
+		}
+		return;
+	}
+
+	for (TActorIterator<AFortRogueDestructibleTerrain> It(GetWorld()); It; ++It)
+	{
+		if (TerrainFillRadius > 0.0f)
+		{
+			It->FillCircle(ImpactLocation, TerrainFillRadius);
+		}
+		else
+		{
+			It->CarveCircle(ImpactLocation, TerrainCarveRadius);
+		}
+	}
+}
+
+void AFortRogueProjectile::ApplyProjectileEffects(const FVector& ImpactLocation)
+{
+	if (ProjectileEffects.Num() <= 0)
+	{
+		return;
+	}
+
+	FFRProjectileEffectImpactContext Context;
+	Context.World = GetWorld();
+	Context.Projectile = this;
+	Context.OwnerCharacter = OwnerCharacter;
+	Context.AssignedTerrain = AssignedTerrain;
+	Context.ImpactLocation = ImpactLocation;
+	Context.Velocity = Velocity;
+	Context.WeaponTag = WeaponTag;
+	Context.EffectTags = EffectTags;
+	Context.Damage = Damage;
+	Context.BlastRadius = BlastRadius;
+	Context.TerrainCarveRadius = TerrainCarveRadius;
+	Context.TerrainFillRadius = TerrainFillRadius;
+	Context.Gravity = Gravity;
+
+	for (const FFRProjectileEffectSpec& ProjectileEffect : ProjectileEffects)
+	{
+		ProjectileEffect.HandleImpact(Context);
+	}
 }
 
 void AFortRogueProjectile::SpawnImpactProjectiles(const FVector& ImpactLocation)
@@ -314,4 +352,16 @@ void AFortRogueProjectile::SpawnImpactProjectiles(const FVector& ImpactLocation)
 			}
 		}
 	}
+}
+
+bool AFortRogueProjectile::UsesCustomTerrainImpact() const
+{
+	for (const FFRProjectileEffectSpec& ProjectileEffect : ProjectileEffects)
+	{
+		if (ProjectileEffect.UsesCustomTerrainImpact())
+		{
+			return true;
+		}
+	}
+	return false;
 }

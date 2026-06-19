@@ -1547,6 +1547,11 @@ FFortRogueShotSpec AFortRogueBattleCharacter::BuildShotSpec(const FFortRogueWeap
 		ShotSpec.LaunchSpeed = FMath::Max(0.0f, ShotSpec.LaunchSpeed * Modifier.LaunchSpeedMultiplier);
 		ShotSpec.Gravity = FMath::Max(0.0f, ShotSpec.Gravity * Modifier.GravityMultiplier);
 		ShotSpec.ProjectileCount = FMath::Max(1, ShotSpec.ProjectileCount + Modifier.ProjectileCountBonus);
+		for (const FFRProjectileEffectSpec& ProjectileEffect : Modifier.ProjectileEffects)
+		{
+			ProjectileEffect.ApplyToShotSpec(ShotSpec);
+			ShotSpec.ProjectileEffects.Add(ProjectileEffect);
+		}
 		ShotSpec.ImpactSpawns.Append(Modifier.ImpactSpawns);
 	};
 	for (const FFortRogueShotModifierSpec& Modifier : Weapon.ShotModifiers)
