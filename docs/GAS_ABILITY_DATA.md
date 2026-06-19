@@ -113,6 +113,7 @@ modifier 적용 순서:
 - 예를 들어 child 탄이 지형을 만들게 하려면 `ChildShotModifiers` 안에 `UFRProjectileEffectTerrainCreate`를 가진 modifier를 넣는다.
 - child 탄도 `ChildShotModifiers`에서 만들어진 `ProjectileEffects`를 그대로 들고 스폰된다. 따라서 child 탄에 Drill, TerrainCreate, 추가 Split 같은 효과를 다시 조립할 수 있다.
 - child 탄 수는 Split effect의 `ProjectileCount`가 정한다. `ChildShotModifiers`는 각 child 탄의 효과/피해/반경/속도 같은 내용을 바꾸는 용도다.
+- child 수를 바꾸려면 `ChildShotModifiers.ProjectileCountBonus`가 아니라 Split effect의 `ProjectileCount`를 수정한다. child modifier의 `ProjectileCountBonus`는 런타임에서 child 수를 바꾸지 않고 데이터 검수 경고 대상이다.
 - `ChildShotModifiers`의 조건은 각 child 탄의 발사 방향, 현재 풍향, 직전 child ShotSpec 태그를 기준으로 평가된다.
 - `UFRProjectileEffectSplit`은 ShotSpec에 `ShotEffect.SplitOnImpact` 태그를 자동 추가한다.
 
