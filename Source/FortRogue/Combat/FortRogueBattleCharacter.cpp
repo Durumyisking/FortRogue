@@ -1505,7 +1505,7 @@ void AFortRogueBattleCharacter::UpdateVisualTransform(float PitchDegrees)
 {
 	if (VisualRoot)
 	{
-		VisualRoot->SetRelativeRotation(FRotator(PitchDegrees, bFacingRight ? 0.0f : 180.0f, 0.0f));
+		VisualRoot->SetRelativeRotation(FRotator(PitchDegrees, 0.0f, 0.0f));
 	}
 
 	UpdateBodySpriteTransform();
@@ -1516,7 +1516,7 @@ void AFortRogueBattleCharacter::UpdateBodySpriteTransform()
 	if (BodySprite)
 	{
 		BodySprite->SetRelativeLocation(FVector(0.0f, 0.0f, -FootOffsetZ));
-		BodySprite->SetRelativeRotation(FRotator::ZeroRotator);
+		BodySprite->SetRelativeRotation(FRotator(0.0f, bFacingRight ? 0.0f : 180.0f, 0.0f));
 	}
 }
 

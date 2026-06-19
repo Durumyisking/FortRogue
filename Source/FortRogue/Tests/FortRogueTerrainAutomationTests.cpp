@@ -1512,7 +1512,7 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		if (BodySprite)
 		{
 			TestEqual(TEXT("Battle character sprite does not use Unreal collision"), BodySprite->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
-			TestEqual(TEXT("Battle character sprite keeps local rotation identity"), BodySprite->GetRelativeRotation(), FRotator::ZeroRotator);
+			TestEqual(TEXT("Battle character sprite starts facing right"), BodySprite->GetRelativeRotation(), FRotator::ZeroRotator);
 			TestEqual(TEXT("Battle character sprite bottom is aligned to the character foot offset"), static_cast<float>(BodySprite->GetRelativeLocation().Z), -45.0f);
 		}
 		Character->SetTerrain(Terrain);
@@ -1849,11 +1849,11 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		ExhaustedTurnCharacter->MoveHorizontal(-1.0f, 0.1f);
 		if (USceneComponent* ExhaustedTurnVisualRoot = Cast<USceneComponent>(ExhaustedTurnCharacter->GetDefaultSubobjectByName(TEXT("VisualRoot"))))
 		{
-			TestEqual(TEXT("Battle character visual root turns left when facing changes without movement"), static_cast<float>(FMath::Abs(FRotator::NormalizeAxis(ExhaustedTurnVisualRoot->GetRelativeRotation().Yaw))), 180.0f);
+			TestEqual(TEXT("Battle character visual root keeps facing yaw neutral"), static_cast<float>(ExhaustedTurnVisualRoot->GetRelativeRotation().Yaw), 0.0f);
 		}
 		if (UPaperFlipbookComponent* ExhaustedTurnSprite = Cast<UPaperFlipbookComponent>(ExhaustedTurnCharacter->GetDefaultSubobjectByName(TEXT("BodySprite"))))
 		{
-			TestEqual(TEXT("Battle character sprite keeps local rotation when facing changes"), ExhaustedTurnSprite->GetRelativeRotation(), FRotator::ZeroRotator);
+			TestEqual(TEXT("Battle character sprite turns left when facing changes without movement"), static_cast<float>(FMath::Abs(FRotator::NormalizeAxis(ExhaustedTurnSprite->GetRelativeRotation().Yaw))), 180.0f);
 		}
 		TestEqual(TEXT("Exhausted movement budget does not move the character"), static_cast<float>(ExhaustedTurnCharacter->GetActorLocation().X), ExhaustedCharacterX);
 		TestEqual(TEXT("Exhausted movement budget still leaves the budget at zero"), ExhaustedTurnCharacter->GetMoveBudget(), 0.0f);
@@ -1897,16 +1897,20 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		AimFacingCharacter->FireAtTarget(LeftAimTarget, AimFacingDifficulty);
 		if (AimFacingVisualRoot)
 		{
-			TestEqual(TEXT("Battle character visual root turns left when aim target is left"), static_cast<float>(FMath::Abs(FRotator::NormalizeAxis(AimFacingVisualRoot->GetRelativeRotation().Yaw))), 180.0f);
+			TestEqual(TEXT("Battle character visual root keeps yaw neutral when aim target is left"), static_cast<float>(AimFacingVisualRoot->GetRelativeRotation().Yaw), 0.0f);
+		}
+		if (AimFacingSprite)
+		{
+			TestEqual(TEXT("Battle character sprite turns left when aim target is left"), static_cast<float>(FMath::Abs(FRotator::NormalizeAxis(AimFacingSprite->GetRelativeRotation().Yaw))), 180.0f);
 		}
 		AimFacingCharacter->FireAtTarget(RightAimTarget, AimFacingDifficulty);
 		if (AimFacingVisualRoot)
 		{
-			TestEqual(TEXT("Battle character visual root turns right when aim target is right"), static_cast<float>(AimFacingVisualRoot->GetRelativeRotation().Yaw), 0.0f);
+			TestEqual(TEXT("Battle character visual root keeps yaw neutral when aim target is right"), static_cast<float>(AimFacingVisualRoot->GetRelativeRotation().Yaw), 0.0f);
 		}
 		if (AimFacingSprite)
 		{
-			TestEqual(TEXT("Battle character sprite stays locally unrotated while visual root turns"), AimFacingSprite->GetRelativeRotation(), FRotator::ZeroRotator);
+			TestEqual(TEXT("Battle character sprite turns right when aim target is right"), AimFacingSprite->GetRelativeRotation(), FRotator::ZeroRotator);
 		}
 	}
 
