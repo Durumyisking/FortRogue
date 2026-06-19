@@ -310,34 +310,34 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Character")
 	FText GetCharacterDisplayName() const;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Abilities")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Abilities", meta = (ToolTip = "캐릭터가 BeginPlay 시 자동으로 부여받을 AbilitySet 목록입니다."))
 	TArray<TObjectPtr<UFortRogueAbilitySet>> StartupAbilitySets;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Character")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Character", meta = (ToolTip = "이 캐릭터에 적용할 기본 캐릭터 데이터입니다. 체력, 이동력, 로드아웃 같은 초기값을 설정합니다."))
 	TObjectPtr<UFortRogueCharacterDefinition> CharacterDefinition;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Weapons")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Weapons", meta = (ToolTip = "캐릭터가 사용할 무기 스펙 목록입니다. 첫 번째 항목이 기본 선택 무기입니다."))
 	TArray<FFortRogueWeaponSpec> WeaponLoadout;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Items")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Items", meta = (ToolTip = "캐릭터가 보유한 아이템과 사용 가능 횟수 목록입니다."))
 	TArray<FFortRogueItemStack> ItemLoadout;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Perks")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Perks", meta = (ToolTip = "캐릭터에게 지속 적용되는 샷 modifier 목록입니다. 퍽이나 보상으로 얻은 장기 효과를 담습니다."))
 	TArray<FFortRogueShotModifierSpec> GrantedShotModifiers;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Items")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Items", meta = (ToolTip = "다음 발사에만 적용되는 샷 modifier 목록입니다. 공격 아이템처럼 1회성 효과를 담습니다."))
 	TArray<FFortRogueShotModifierSpec> PendingShotModifiers;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Loadout")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Loadout", meta = (ToolTip = "CharacterDefinition에 로드아웃이 없을 때 사용할 기본 로드아웃 데이터입니다."))
 	TObjectPtr<UFortRogueDefaultLoadoutDefinition> DefaultLoadoutDefinition;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Charge", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Charge", meta = (ClampMin = "0.0", ClampMax = "1.0", ToolTip = "샷 차지를 시작했을 때의 최소 파워입니다. 0~1 범위를 사용하세요."))
 	float MinShotPower = 0.25f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Charge", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Charge", meta = (ClampMin = "0.0", ClampMax = "1.0", ToolTip = "샷 차지가 끝까지 찼을 때의 최대 파워입니다. 0~1 범위를 사용하세요."))
 	float MaxShotPower = 1.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Charge", meta = (ClampMin = "0.01"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Charge", meta = (ClampMin = "0.01", ToolTip = "MinShotPower에서 MaxShotPower까지 차지되는 데 걸리는 시간입니다. 초 단위입니다."))
 	float ShotChargeSeconds = 1.25f;
 
 private:
@@ -390,37 +390,37 @@ private:
 	bool bFiredThisTurn = false;
 	bool bFacingRight = true;
 	float AimAngle = 45.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Charge", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ClampMax = "1.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Charge", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ClampMax = "1.0", ToolTip = "현재 발사 파워입니다. 차지 중 MinShotPower와 MaxShotPower 사이에서 갱신됩니다."))
 	float ShotPower = 0.25f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "턴 중 좌우 이동 속도입니다. 월드 단위/초 기준입니다."))
 	float MoveSpeed = 260.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "캐릭터 위치에서 발 접지점을 찾을 때 아래로 내리는 Z 오프셋입니다."))
 	float FootOffsetZ = 45.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "발판 판정을 위해 캐릭터 중심 좌우로 검사할 반폭입니다."))
 	float FootProbeHalfWidth = 22.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "한 번에 올라갈 수 있는 최대 지형 높이입니다. 이보다 높은 턱은 이동을 막습니다."))
 	float MaxStepUp = 34.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "한 번에 내려갈 수 있는 최대 지형 높이입니다. 이보다 깊으면 낙하 상태로 처리됩니다."))
 	float MaxStepDown = 56.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "이동 가능한 최대 지형 경사각입니다. 값이 클수록 더 가파른 경사를 오를 수 있습니다."))
 	float MaxSlopeAngleDegrees = 52.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "접지 중 지형 표면에 붙이기 위해 허용하는 최대 보정 거리입니다."))
 	float GroundSnapDistance = 12.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "몸체 기울기를 계산할 때 캐릭터 중심 좌우로 검사할 반폭입니다."))
 	float BodySlopeProbeHalfWidth = 28.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "지형 경사에 맞춰 몸체를 시각적으로 기울일 최대 각도입니다."))
 	float MaxBodySlopeVisualDegrees = 45.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "지형 지지가 없을 때 적용할 낙하 가속도입니다."))
 	float GravityAcceleration = 980.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "낙하 중 도달할 수 있는 최대 하강 속도입니다."))
 	float MaxFallSpeed = 1600.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "지형 아래로 이 깊이 이상 떨어지면 패배 처리할 기준 거리입니다."))
 	float FallDeathDepth = 400.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Debug", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Debug", meta = (AllowPrivateAccess = "true", ToolTip = "현재 조준과 무기 기준의 예상 탄도를 디버그 라인으로 그릴지 여부입니다."))
 	bool bDrawProjectileTrajectory = true;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Debug", meta = (AllowPrivateAccess = "true", ClampMin = "1"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Debug", meta = (AllowPrivateAccess = "true", ClampMin = "1", ToolTip = "예상 탄도 디버그 라인을 몇 구간으로 나누어 계산할지 정합니다."))
 	int32 TrajectoryDebugSteps = 50;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Debug", meta = (AllowPrivateAccess = "true", ClampMin = "0.01"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Debug", meta = (AllowPrivateAccess = "true", ClampMin = "0.01", ToolTip = "예상 탄도 디버그 계산에서 한 스텝이 의미하는 시간입니다. 초 단위입니다."))
 	float TrajectoryDebugTimeStep = 0.08f;
 	float ShotChargeElapsed = 0.0f;
 	float VerticalVelocity = 0.0f;
