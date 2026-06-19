@@ -103,17 +103,7 @@ void FFRProjectileEffectSpecCustomization::SyncParametersToEffectClass() const
 			continue;
 		}
 
-		const UScriptStruct* ExpectedStruct = EffectSpec->GetExpectedParameterStruct();
-		if (!ExpectedStruct)
-		{
-			EffectSpec->Parameters.Reset();
-			continue;
-		}
-
-		if (!EffectSpec->Parameters.IsValid() || EffectSpec->Parameters.GetScriptStruct() != ExpectedStruct)
-		{
-			EffectSpec->Parameters.InitializeAs(ExpectedStruct);
-		}
+		EffectSpec->EnsureParametersMatchEffectClass();
 	}
 	ParametersHandle->NotifyPostChange(EPropertyChangeType::ValueSet);
 	ParametersHandle->NotifyFinishedChangingProperties();

@@ -65,6 +65,7 @@ struct FORTROGUE_API FFRProjectileEffectSpec
 	const UScriptStruct* GetExpectedParameterStruct() const;
 	FText GetEffectDisplayName() const;
 	bool HasValidParameters() const;
+	bool EnsureParametersMatchEffectClass();
 	void ApplyToShotSpec(FFortRogueShotSpec& ShotSpec) const;
 	void HandleImpact(const FFRProjectileEffectImpactContext& Context) const;
 	bool UsesCustomTerrainImpact() const;

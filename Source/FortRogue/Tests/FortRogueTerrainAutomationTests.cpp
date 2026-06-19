@@ -183,6 +183,17 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	DrillEffect.EffectClass = UFRProjectileEffectDrill::StaticClass();
 	DrillEffect.Parameters = FInstancedStruct::Make(DrillParams);
 	TestEqual(TEXT("Projectile effect display name uses class display name"), DrillEffect.GetEffectDisplayName().ToString(), UFRProjectileEffectDrill::StaticClass()->GetDisplayNameText().ToString());
+	FFRProjectileEffectSpec MissingParamsEffect;
+	MissingParamsEffect.EffectClass = UFRProjectileEffectDrill::StaticClass();
+	TestFalse(TEXT("Projectile effect detects missing parameter structs"), MissingParamsEffect.HasValidParameters());
+	TestTrue(TEXT("Projectile effect data validation reports missing parameter structs"), MissingParamsEffect.GetDataValidationSummary().ToString().Contains(TEXT("parameters do not match")));
+	TestTrue(TEXT("Projectile effect spec creates parameters for its effect class"), MissingParamsEffect.EnsureParametersMatchEffectClass());
+	TestTrue(TEXT("Projectile effect spec has valid parameters after sync"), MissingParamsEffect.HasValidParameters());
+	TestTrue(TEXT("Projectile effect spec uses the effect class parameter struct"), MissingParamsEffect.Parameters.GetScriptStruct() == FFRProjectileEffectDrillParams::StaticStruct());
+	FFRProjectileEffectSpec EmptyClassEffect;
+	EmptyClassEffect.Parameters = FInstancedStruct::Make(DrillParams);
+	TestTrue(TEXT("Projectile effect spec removes parameters when effect class is empty"), EmptyClassEffect.EnsureParametersMatchEffectClass());
+	TestFalse(TEXT("Projectile effect spec clears orphaned parameters"), EmptyClassEffect.Parameters.IsValid());
 	FFRProjectileEffectTerrainCreateParams TerrainCreateParams;
 	TerrainCreateParams.RadiusBonus = 60.0f;
 	FFRProjectileEffectSpec TerrainCreateEffect;

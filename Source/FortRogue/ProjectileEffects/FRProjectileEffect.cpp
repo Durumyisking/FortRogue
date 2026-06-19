@@ -92,6 +92,29 @@ bool FFRProjectileEffectSpec::HasValidParameters() const
 	return Parameters.IsValid() && Parameters.GetScriptStruct() == ExpectedStruct;
 }
 
+bool FFRProjectileEffectSpec::EnsureParametersMatchEffectClass()
+{
+	const UScriptStruct* ExpectedStruct = GetExpectedParameterStruct();
+	if (!ExpectedStruct)
+	{
+		if (!Parameters.IsValid())
+		{
+			return false;
+		}
+
+		Parameters.Reset();
+		return true;
+	}
+
+	if (Parameters.IsValid() && Parameters.GetScriptStruct() == ExpectedStruct)
+	{
+		return false;
+	}
+
+	Parameters.InitializeAs(ExpectedStruct);
+	return true;
+}
+
 void FFRProjectileEffectSpec::ApplyToShotSpec(FFortRogueShotSpec& ShotSpec) const
 {
 	if (const UFRProjectileEffectBase* EffectCDO = GetEffectCDO())
