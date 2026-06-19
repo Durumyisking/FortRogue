@@ -63,6 +63,7 @@ struct FORTROGUE_API FFRProjectileEffectSpec
 
 	const UFRProjectileEffectBase* GetEffectCDO() const;
 	const UScriptStruct* GetExpectedParameterStruct() const;
+	FText GetEffectDisplayName() const;
 	bool HasValidParameters() const;
 	void ApplyToShotSpec(FFortRogueShotSpec& ShotSpec) const;
 	void HandleImpact(const FFRProjectileEffectImpactContext& Context) const;

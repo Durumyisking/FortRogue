@@ -70,6 +70,17 @@ const UScriptStruct* FFRProjectileEffectSpec::GetExpectedParameterStruct() const
 	return EffectCDO ? EffectCDO->GetParameterStruct() : nullptr;
 }
 
+FText FFRProjectileEffectSpec::GetEffectDisplayName() const
+{
+	if (!EffectClass)
+	{
+		return FText::GetEmpty();
+	}
+
+	const FText DisplayName = EffectClass->GetDisplayNameText();
+	return DisplayName.IsEmpty() ? FText::FromString(EffectClass->GetName()) : DisplayName;
+}
+
 bool FFRProjectileEffectSpec::HasValidParameters() const
 {
 	const UScriptStruct* ExpectedStruct = GetExpectedParameterStruct();

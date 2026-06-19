@@ -122,10 +122,13 @@ FText FFRProjectileEffectSpecCustomization::GetHeaderText() const
 	for (void* RawEntry : RawData)
 	{
 		const FFRProjectileEffectSpec* EffectSpec = static_cast<const FFRProjectileEffectSpec*>(RawEntry);
-		if (EffectSpec && EffectSpec->EffectClass)
+		if (EffectSpec)
 		{
-			const FText DisplayName = EffectSpec->EffectClass->GetDisplayNameText();
-			return DisplayName.IsEmpty() ? FText::FromString(EffectSpec->EffectClass->GetName()) : DisplayName;
+			const FText DisplayName = EffectSpec->GetEffectDisplayName();
+			if (!DisplayName.IsEmpty())
+			{
+				return DisplayName;
+			}
 		}
 	}
 

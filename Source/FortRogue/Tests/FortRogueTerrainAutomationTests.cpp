@@ -182,6 +182,7 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	FFRProjectileEffectSpec DrillEffect;
 	DrillEffect.EffectClass = UFRProjectileEffectDrill::StaticClass();
 	DrillEffect.Parameters = FInstancedStruct::Make(DrillParams);
+	TestEqual(TEXT("Projectile effect display name uses class display name"), DrillEffect.GetEffectDisplayName().ToString(), UFRProjectileEffectDrill::StaticClass()->GetDisplayNameText().ToString());
 	FFRProjectileEffectTerrainCreateParams TerrainCreateParams;
 	TerrainCreateParams.RadiusBonus = 60.0f;
 	FFRProjectileEffectSpec TerrainCreateEffect;
