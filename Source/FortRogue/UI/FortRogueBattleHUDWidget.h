@@ -6,14 +6,14 @@
 #include "FortRogueGameMode.h"
 #include "GameplayTagContainer.h"
 #include "Items/FortRogueItemDefinition.h"
-#include "UI/FortRogueActivatableWidget.h"
+#include "CommonActivatableWidget.h"
 #include "Weapons/FortRogueWeaponDefinition.h"
 #include "FortRogueBattleHUDWidget.generated.h"
 
 class UFortRogueAbilitySet;
 
 UCLASS(Abstract, Blueprintable)
-class FORTROGUE_API UFortRogueBattleHUDWidget : public UFortRogueActivatableWidget
+class FORTROGUE_API UFortRogueBattleHUDWidget : public UCommonActivatableWidget
 {
 	GENERATED_BODY()
 

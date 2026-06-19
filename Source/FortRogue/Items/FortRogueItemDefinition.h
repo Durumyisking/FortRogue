@@ -8,6 +8,19 @@
 #include "FortRogueItemDefinition.generated.h"
 
 class UFortRogueAbilitySet;
+class UFortRogueItemDefinition;
+
+USTRUCT(BlueprintType)
+struct FFortRogueItemStack
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (ToolTip = "캐릭터가 보유할 아이템 데이터입니다. 비워두면 해당 슬롯은 사용할 수 없습니다."))
+	TObjectPtr<UFortRogueItemDefinition> ItemDefinition;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (ClampMin = "0", ToolTip = "이 아이템을 몇 회 사용할 수 있는지 정합니다. 0이면 보유하지만 사용할 수 없습니다."))
+	int32 Charges = 1;
+};
 
 UENUM(BlueprintType)
 enum class EFortRogueItemType : uint8
@@ -44,7 +57,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item", meta = (ToolTip = "아이템 사용 시 부여할 AbilitySet입니다. ItemType이 AbilitySet일 때 주로 사용합니다."))
 	TObjectPtr<UFortRogueAbilitySet> UseAbilitySet;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shot Modifier", meta = (TitleProperty = DisplayName, ToolTip = "아이템 사용 후 다음 샷에 적용할 modifier 목록입니다. 굴착, 지형 생성, 분열 같은 샷 변화를 여기에 조립합니다."))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shot Modifier", meta = (TitleProperty = ModifierTag, ToolTip = "아이템 사용 후 다음 샷에 적용할 modifier 목록입니다. 굴착, 지형 생성, 분열 같은 샷 변화를 여기에 조립합니다."))
 	TArray<FFortRogueShotModifierSpec> UseShotModifiers;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item", meta = (EditCondition = "ItemType == EFortRogueItemType::AttackMultiplier", ClampMin = "1.0", ToolTip = "AttackMultiplier 아이템이 다음 샷 피해량에 적용할 배율입니다. 1.0은 변화 없음입니다."))

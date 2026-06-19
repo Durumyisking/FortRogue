@@ -19,27 +19,9 @@ void AddSummaryPart(TArray<FString>& Parts, const FString& Part)
 
 bool HasRewardGameplayEffect(const FFortRogueRewardChoice& Reward)
 {
-	bool bHasShotModifierEffect = false;
-	for (const FFortRogueShotModifierSpec& ShotModifier : Reward.ShotModifiers)
-	{
-		if (ShotModifier.HasGameplayEffect())
-		{
-			bHasShotModifierEffect = true;
-			break;
-		}
-	}
-
 	return Reward.WeaponReward
 		|| Reward.ItemReward
-		|| Reward.PerkReward
-		|| Reward.GrantedAbilitySet
-		|| bHasShotModifierEffect
-		|| !FMath::IsNearlyZero(Reward.DamageBonus)
-		|| !FMath::IsNearlyZero(Reward.MaxHealthBonus)
-		|| !FMath::IsNearlyZero(Reward.MaxMoveBudgetBonus)
-		|| Reward.ProjectileBonus != 0
-		|| !FMath::IsNearlyZero(Reward.ShotPowerMultiplierBonus)
-		|| (Reward.RepairCharges > 0 && Reward.ItemReward);
+		|| Reward.PerkReward;
 }
 
 void AddAbilitySetSummary(TArray<FString>& Parts, const UFortRogueAbilitySet* AbilitySet)
@@ -71,16 +53,6 @@ FString GetPerkRarityName(EFortRoguePerkRarity Rarity)
 	}
 }
 
-int32 CountRewardImpactSpawnProjectiles(const TArray<FFortRogueImpactSpawnSpec>& ImpactSpawns)
-{
-	int32 TotalCount = 0;
-	for (const FFortRogueImpactSpawnSpec& ImpactSpawn : ImpactSpawns)
-	{
-		TotalCount += FMath::Max(0, ImpactSpawn.ProjectileCount);
-	}
-	return TotalCount;
-}
-
 int32 CountRewardProjectileEffects(const TArray<FFRProjectileEffectSpec>& ProjectileEffects)
 {
 	int32 TotalCount = 0;
@@ -106,26 +78,11 @@ void AddShotModifierSummary(TArray<FString>& Parts, const TArray<FFortRogueShotM
 	float DamageMultiplier = 1.0f;
 	float BlastRadiusBonus = 0.0f;
 	float BlastRadiusMultiplier = 1.0f;
-	float TerrainCarveBonus = 0.0f;
-	float TerrainCarveMultiplier = 1.0f;
-	float TerrainFillBonus = 0.0f;
-	float TerrainFillMultiplier = 1.0f;
 	float LaunchSpeedMultiplier = 1.0f;
 	float GravityMultiplier = 1.0f;
-	int32 ImpactSpawnCount = 0;
 	int32 ProjectileEffectCount = 0;
 	for (const FFortRogueShotModifierSpec& Modifier : Modifiers)
 	{
-		const FString ModifierDisplayName = Modifier.DisplayName.ToString();
-		if (!ModifierDisplayName.IsEmpty())
-		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("modifier %s"), *ModifierDisplayName));
-		}
-		const FString ModifierDescription = Modifier.Description.ToString();
-		if (!ModifierDescription.IsEmpty())
-		{
-			AddSummaryPart(Parts, ModifierDescription);
-		}
 		if (Modifier.ModifierTag.IsValid())
 		{
 			AddSummaryPart(Parts, FString::Printf(TEXT("modifier tag %s"), *Modifier.ModifierTag.ToString()));
@@ -164,13 +121,8 @@ void AddShotModifierSummary(TArray<FString>& Parts, const TArray<FFortRogueShotM
 		DamageMultiplier *= Modifier.DamageMultiplier;
 		BlastRadiusBonus += Modifier.BlastRadiusBonus;
 		BlastRadiusMultiplier *= Modifier.BlastRadiusMultiplier;
-		TerrainCarveBonus += Modifier.TerrainCarveRadiusBonus;
-		TerrainCarveMultiplier *= Modifier.TerrainCarveRadiusMultiplier;
-		TerrainFillBonus += Modifier.TerrainFillRadiusBonus;
-		TerrainFillMultiplier *= Modifier.TerrainFillRadiusMultiplier;
 		LaunchSpeedMultiplier *= Modifier.LaunchSpeedMultiplier;
 		GravityMultiplier *= Modifier.GravityMultiplier;
-		ImpactSpawnCount += CountRewardImpactSpawnProjectiles(Modifier.ImpactSpawns);
 		ProjectileEffectCount += CountRewardProjectileEffects(Modifier.ProjectileEffects);
 	}
 
@@ -194,22 +146,6 @@ void AddShotModifierSummary(TArray<FString>& Parts, const TArray<FFortRogueShotM
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("projectiles %+d"), ProjectileBonus));
 	}
-	if (!FMath::IsNearlyZero(TerrainCarveBonus))
-	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("carve %+.0f"), TerrainCarveBonus));
-	}
-	if (!FMath::IsNearlyEqual(TerrainCarveMultiplier, 1.0f))
-	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("carve x%.2g"), TerrainCarveMultiplier));
-	}
-	if (!FMath::IsNearlyZero(TerrainFillBonus))
-	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("fill %+.0f"), TerrainFillBonus));
-	}
-	if (!FMath::IsNearlyEqual(TerrainFillMultiplier, 1.0f))
-	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("fill x%.2g"), TerrainFillMultiplier));
-	}
 	if (!FMath::IsNearlyEqual(LaunchSpeedMultiplier, 1.0f))
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("speed x%.2g"), LaunchSpeedMultiplier));
@@ -217,10 +153,6 @@ void AddShotModifierSummary(TArray<FString>& Parts, const TArray<FFortRogueShotM
 	if (!FMath::IsNearlyEqual(GravityMultiplier, 1.0f))
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("gravity x%.2g"), GravityMultiplier));
-	}
-	if (ImpactSpawnCount > 0)
-	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("impact projectiles +%d"), ImpactSpawnCount));
 	}
 	if (ProjectileEffectCount > 0)
 	{
@@ -279,11 +211,6 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 		{
 			AddSummaryPart(Parts, FString::Printf(TEXT("projectile effects %d"), ProjectileEffectCount));
 		}
-		const int32 ImpactSpawnCount = CountRewardImpactSpawnProjectiles(WeaponReward->Weapon.ImpactSpawns);
-		if (ImpactSpawnCount > 0)
-		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("impact projectiles %d"), ImpactSpawnCount));
-		}
 	}
 	if (ItemReward)
 	{
@@ -297,7 +224,7 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 		{
 			AddSummaryPart(Parts, FString::Printf(TEXT("tag %s"), *ItemReward->ItemTag.ToString()));
 		}
-		if (RepairCharges <= 0 && ItemReward->InitialCharges > 1)
+		if (ItemReward->InitialCharges > 1)
 		{
 			AddSummaryPart(Parts, FString::Printf(TEXT("charges %d"), ItemReward->InitialCharges));
 		}
@@ -348,36 +275,6 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 			AddSummaryPart(Parts, FString::Printf(TEXT("shot power %+.2g"), PerkReward->ShotPowerMultiplierBonus));
 		}
 	}
-	if (GrantedAbilitySet)
-	{
-		AddAbilitySetSummary(Parts, GrantedAbilitySet);
-	}
-	AddShotModifierSummary(Parts, ShotModifiers);
-
-	if (!FMath::IsNearlyZero(DamageBonus))
-	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("damage %+.0f"), DamageBonus));
-	}
-	if (!FMath::IsNearlyZero(MaxHealthBonus))
-	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("max HP %+.0f"), MaxHealthBonus));
-	}
-	if (!FMath::IsNearlyZero(MaxMoveBudgetBonus))
-	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("move %+.0f"), MaxMoveBudgetBonus));
-	}
-	if (ProjectileBonus != 0)
-	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("projectiles %+d"), ProjectileBonus));
-	}
-	if (!FMath::IsNearlyZero(ShotPowerMultiplierBonus))
-	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("shot power %+.2g"), ShotPowerMultiplierBonus));
-	}
-	if (RepairCharges > 0)
-	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("charges +%d"), RepairCharges));
-	}
 	if (RewardTag.IsValid())
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("reward tag %s"), *RewardTag.ToString()));
@@ -403,6 +300,13 @@ FText FFortRogueRewardChoice::GetEffectSummary() const
 	return FText::FromString(FString::Join(Parts, TEXT(" | ")));
 }
 
+FText GetFortRogueShotModifierEffectSummary(const TArray<FFortRogueShotModifierSpec>& ShotModifiers)
+{
+	TArray<FString> Parts;
+	AddShotModifierSummary(Parts, ShotModifiers);
+	return Parts.Num() > 0 ? FText::FromString(FString::Join(Parts, TEXT(" | "))) : FText::GetEmpty();
+}
+
 FText FFortRogueRewardChoice::GetDataValidationSummary() const
 {
 	TArray<FString> Issues;
@@ -425,14 +329,6 @@ FText FFortRogueRewardChoice::GetDataValidationSummary() const
 	if (!RequiredRewardTags.IsEmpty() && !BlockedRewardTags.IsEmpty() && RequiredRewardTags.HasAny(BlockedRewardTags))
 	{
 		AddSummaryPart(Issues, TEXT("required and blocked reward tags overlap"));
-	}
-	for (const FFortRogueShotModifierSpec& ShotModifier : ShotModifiers)
-	{
-		if (!ShotModifier.GetDataValidationSummary().IsEmpty())
-		{
-			AddSummaryPart(Issues, TEXT("shot modifier data has warnings"));
-			break;
-		}
 	}
 
 	return Issues.Num() > 0 ? FText::FromString(FString::Join(Issues, TEXT(" | "))) : FText::GetEmpty();

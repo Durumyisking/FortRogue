@@ -11,18 +11,6 @@ class UPaperFlipbook;
 class UFortRogueTerrainMapDefinition;
 class UFortRogueWeaponDefinition;
 
-USTRUCT(BlueprintType)
-struct FFortRogueItemStack
-{
-	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (ToolTip = "캐릭터가 보유할 아이템 데이터입니다. 비워두면 해당 슬롯은 사용할 수 없습니다."))
-	TObjectPtr<UFortRogueItemDefinition> ItemDefinition;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (ClampMin = "0", ToolTip = "이 아이템을 몇 회 사용할 수 있는지 정합니다. 0이면 보유하지만 사용할 수 없습니다."))
-	int32 Charges = 1;
-};
-
 UCLASS(BlueprintType)
 class FORTROGUE_API UFortRogueCharacterDefinition : public UPrimaryDataAsset
 {

@@ -35,15 +35,6 @@ bool DoesAbilitySetMatchTag(const UFortRogueAbilitySet* AbilitySet, FGameplayTag
 	return AbilitySet && AbilitySetTag.IsValid() && AbilitySet->AbilitySetTag.MatchesTagExact(AbilitySetTag);
 }
 
-int32 CountImpactSpawnProjectiles(const TArray<FFortRogueImpactSpawnSpec>& ImpactSpawns)
-{
-	int32 TotalCount = 0;
-	for (const FFortRogueImpactSpawnSpec& ImpactSpawn : ImpactSpawns)
-	{
-		TotalCount += FMath::Max(0, ImpactSpawn.ProjectileCount);
-	}
-	return TotalCount;
-}
 }
 
 AFortRogueBattleCharacter::AFortRogueBattleCharacter()
@@ -1222,18 +1213,13 @@ FText AFortRogueBattleCharacter::GetCurrentShotSummary() const
 {
 	const FFortRogueShotSpec ShotSpec = GetCurrentShotSpec();
 	const bool bFillsTerrain = ShotSpec.TerrainFillRadius > 0.0f;
-	const int32 ImpactProjectileCount = CountImpactSpawnProjectiles(ShotSpec.ImpactSpawns);
-	const FString ImpactText = ImpactProjectileCount > 0
-		? FString::Printf(TEXT(" | Impact +%d"), ImpactProjectileCount)
-		: FString();
 
-	return FText::FromString(FString::Printf(TEXT("Shot Dmg %.0f | Blast %.0f | %s %.0f | Projectiles %d%s"),
+	return FText::FromString(FString::Printf(TEXT("Shot Dmg %.0f | Blast %.0f | %s %.0f | Projectiles %d"),
 		ShotSpec.Damage,
 		ShotSpec.BlastRadius,
 		bFillsTerrain ? TEXT("Fill") : TEXT("Carve"),
 		bFillsTerrain ? ShotSpec.TerrainFillRadius : ShotSpec.TerrainCarveRadius,
-		ShotSpec.ProjectileCount,
-		*ImpactText));
+		ShotSpec.ProjectileCount));
 }
 
 bool AFortRogueBattleCharacter::DoesShotModifierMeetCurrentShotConditions(const FFortRogueShotModifierSpec& ShotModifier) const
@@ -1577,7 +1563,6 @@ FFortRogueShotSpec AFortRogueBattleCharacter::BuildShotSpec(const FFortRogueWeap
 	ShotSpec.Gravity = FMath::Max(0.0f, Weapon.Gravity);
 	ShotSpec.ProjectileCount = FMath::Max(1, Weapon.ProjectilesPerShot + FMath::RoundToInt(CombatSet->GetProjectileCount()) - 1);
 	ShotSpec.ProjectileClass = Weapon.ProjectileClass ? Weapon.ProjectileClass : TSubclassOf<AFortRogueProjectile>(AFortRogueProjectile::StaticClass());
-	ShotSpec.ImpactSpawns = Weapon.ImpactSpawns;
 	for (const FFRProjectileEffectSpec& ProjectileEffect : Weapon.ProjectileEffects)
 	{
 		ProjectileEffect.ApplyToShotSpec(ShotSpec);
@@ -1661,7 +1646,7 @@ void AFortRogueBattleCharacter::EnsureDefaultLoadout()
 
 	if (DefaultLoadoutDefinition && ItemLoadout.Num() == 0)
 	{
-		for (const FFortRogueDefaultItemStack& ItemStack : DefaultLoadoutDefinition->ItemDefinitions)
+		for (const FFortRogueItemStack& ItemStack : DefaultLoadoutDefinition->ItemDefinitions)
 		{
 			AddItemDefinition(ItemStack.ItemDefinition, ItemStack.Charges);
 		}

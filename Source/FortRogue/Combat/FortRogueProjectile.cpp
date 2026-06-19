@@ -65,14 +65,13 @@ AFortRogueProjectile::AFortRogueProjectile()
 	}
 }
 
-void AFortRogueProjectile::InitializeProjectile(AFortRogueBattleCharacter* InOwnerCharacter, AFortRogueDestructibleTerrain* InTerrain, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity, float InTerrainCarveRadius, float InTerrainFillRadius, FGameplayTag InWeaponTag, FGameplayTagContainer InEffectTags, TArray<FFortRogueImpactSpawnSpec> InImpactSpawns, TArray<FFRProjectileEffectSpec> InProjectileEffects)
+void AFortRogueProjectile::InitializeProjectile(AFortRogueBattleCharacter* InOwnerCharacter, AFortRogueDestructibleTerrain* InTerrain, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity, float InTerrainCarveRadius, float InTerrainFillRadius, FGameplayTag InWeaponTag, FGameplayTagContainer InEffectTags, TArray<FFRProjectileEffectSpec> InProjectileEffects)
 {
 	OwnerCharacter = InOwnerCharacter;
 	AssignedTerrain = InTerrain;
 	Velocity = InVelocity;
 	WeaponTag = InWeaponTag;
 	EffectTags = InEffectTags;
-	ImpactSpawns = MoveTemp(InImpactSpawns);
 	ProjectileEffects = MoveTemp(InProjectileEffects);
 	Damage = FMath::Max(0.0f, InDamage);
 	BlastRadius = FMath::Max(0.0f, InBlastRadius);
@@ -94,7 +93,6 @@ void AFortRogueProjectile::InitializeProjectileFromShotSpec(AFortRogueBattleChar
 		ShotSpec.TerrainFillRadius,
 		ShotSpec.WeaponTag,
 		ShotSpec.EffectTags,
-		ShotSpec.ImpactSpawns,
 		ShotSpec.ProjectileEffects);
 }
 
@@ -310,8 +308,6 @@ void AFortRogueProjectile::ResolveImpact(const FVector& ImpactLocation)
 		Character->ReevaluateTerrainSupport();
 	}
 
-	SpawnImpactProjectiles(ImpactLocation);
-
 	if (AFortRogueGameMode* GameMode = GetWorld()->GetAuthGameMode<AFortRogueGameMode>())
 	{
 		GameMode->NotifyProjectileResolved(this);
@@ -373,60 +369,6 @@ void AFortRogueProjectile::ApplyProjectileEffects(const FVector& ImpactLocation)
 	for (const FFRProjectileEffectSpec& ProjectileEffect : ProjectileEffects)
 	{
 		ProjectileEffect.HandleImpact(Context);
-	}
-}
-
-void AFortRogueProjectile::SpawnImpactProjectiles(const FVector& ImpactLocation)
-{
-	if (!GetWorld() || ImpactSpawns.Num() <= 0)
-	{
-		return;
-	}
-
-	const FVector FallbackDirection = OwnerCharacter && OwnerCharacter->IsEnemy()
-		? FVector(-1.0f, 0.0f, 1.0f).GetSafeNormal()
-		: FVector(1.0f, 0.0f, 1.0f).GetSafeNormal();
-	const FVector BaseDirection = Velocity.GetSafeNormal(SMALL_NUMBER, FallbackDirection);
-	const float BaseAngleDegrees = FMath::RadiansToDegrees(FMath::Atan2(BaseDirection.Z, BaseDirection.X));
-	for (const FFortRogueImpactSpawnSpec& ImpactSpawn : ImpactSpawns)
-	{
-		const int32 ChildCount = FMath::Max(0, ImpactSpawn.ProjectileCount);
-		for (int32 Index = 0; Index < ChildCount; ++Index)
-		{
-			const float SpreadAlpha = ChildCount > 1 ? static_cast<float>(Index) / static_cast<float>(ChildCount - 1) - 0.5f : 0.0f;
-			const float ChildAngleDegrees = BaseAngleDegrees + SpreadAlpha * ImpactSpawn.SpreadDegrees;
-			const float ChildAngleRadians = FMath::DegreesToRadians(ChildAngleDegrees);
-			const FVector ChildDirection = FVector(FMath::Cos(ChildAngleRadians), 0.0f, FMath::Sin(ChildAngleRadians)).GetSafeNormal();
-			const TSubclassOf<AFortRogueProjectile> ChildProjectileClass = ImpactSpawn.ProjectileClass ? ImpactSpawn.ProjectileClass : TSubclassOf<AFortRogueProjectile>(GetClass());
-
-			FActorSpawnParameters SpawnParams;
-			SpawnParams.Owner = OwnerCharacter ? Cast<AActor>(OwnerCharacter) : GetOwner();
-			SpawnParams.Instigator = OwnerCharacter;
-			AFortRogueProjectile* ChildProjectile = GetWorld()->SpawnActor<AFortRogueProjectile>(ChildProjectileClass, ImpactLocation + ChildDirection * 18.0f, FRotator::ZeroRotator, SpawnParams);
-			if (!ChildProjectile)
-			{
-				continue;
-			}
-
-			FGameplayTagContainer ChildEffectTags = EffectTags;
-			ChildEffectTags.AppendTags(ImpactSpawn.ChildEffectTags);
-			ChildProjectile->InitializeProjectile(
-				OwnerCharacter,
-				AssignedTerrain,
-				ChildDirection * ImpactSpawn.LaunchSpeed,
-				Damage * ImpactSpawn.DamageMultiplier,
-				BlastRadius * ImpactSpawn.BlastRadiusMultiplier,
-				Gravity * ImpactSpawn.GravityMultiplier,
-				TerrainCarveRadius * ImpactSpawn.TerrainCarveRadiusMultiplier,
-				ImpactSpawn.TerrainFillRadius,
-				WeaponTag,
-				ChildEffectTags);
-
-			if (AFortRogueGameMode* GameMode = GetWorld()->GetAuthGameMode<AFortRogueGameMode>())
-			{
-				GameMode->NotifyProjectileSpawned(ChildProjectile);
-			}
-		}
 	}
 }
 

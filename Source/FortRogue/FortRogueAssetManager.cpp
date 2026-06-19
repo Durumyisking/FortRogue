@@ -5,23 +5,14 @@
 #include "FortRogue.h"
 #include "Engine/AssetManagerSettings.h"
 
-UFortRogueAssetManager::UFortRogueAssetManager()
-{
-}
-
 void UFortRogueAssetManager::StartInitialLoading()
 {
 	Super::StartInitialLoading();
 
-	OnCompletedInitialScanDelegate.AddUObject(this, &ThisClass::PreloadAsset);
+	OnCompletedInitialScanDelegate.AddUObject(this, &ThisClass::HandleCompletedInitialScan);
 }
 
-void UFortRogueAssetManager::FinishInitialLoading()
-{
-	Super::FinishInitialLoading();
-}
-
-void UFortRogueAssetManager::PreloadAsset()
+void UFortRogueAssetManager::HandleCompletedInitialScan()
 {
 	if (ShouldDumpInitialScanState())
 	{
@@ -31,61 +22,11 @@ void UFortRogueAssetManager::PreloadAsset()
 	OnCompletedInitialScanDelegate.RemoveAll(this);
 }
 
-void UFortRogueAssetManager::PreloadAssetType(const FString AssetType)
-{
-	TArray<FPrimaryAssetId> PrimaryAssetIds;
-	Get().GetPrimaryAssetIdList(*AssetType, PrimaryAssetIds);
-	for (const FPrimaryAssetId& PrimaryAssetId : PrimaryAssetIds)
-	{
-		GetAsset<UObject>(PrimaryAssetId, true);
-	}
-}
-
-UFortRogueAssetManager& UFortRogueAssetManager::Get()
-{
-	UFortRogueAssetManager* Singleton = Cast<UFortRogueAssetManager>(GEngine->AssetManager);
-	if (Singleton)
-	{
-		return *Singleton;
-	}
-
-	UE_LOG(LogFortRogue, Fatal, TEXT("Cannot use FortRogueAssetManager if AssetManagerClassName is not configured."));
-	return *NewObject<UFortRogueAssetManager>();
-}
-
-bool UFortRogueAssetManager::ShouldLogAssetLoads()
-{
-	const TCHAR* CommandLineContent = FCommandLine::Get();
-	static bool bLogAssetLoads = FParse::Param(CommandLineContent, TEXT("LogAssetLoads"));
-	return bLogAssetLoads;
-}
-
 bool UFortRogueAssetManager::ShouldDumpInitialScanState()
 {
 	const TCHAR* CommandLineContent = FCommandLine::Get();
 	static bool bDumpInitialScanState = FParse::Param(CommandLineContent, TEXT("LogAssetManagerScan"));
 	return bDumpInitialScanState;
-}
-
-UObject* UFortRogueAssetManager::SynchronousLoadAsset(const FSoftObjectPath& AssetPath)
-{
-	if (!AssetPath.IsValid())
-	{
-		return nullptr;
-	}
-
-	TUniquePtr<FScopeLogTime> LogTimePtr;
-	if (ShouldLogAssetLoads())
-	{
-		LogTimePtr = MakeUnique<FScopeLogTime>(*FString::Printf(TEXT("Synchronous loaded asset [%s]"), *AssetPath.ToString()), nullptr, FScopeLogTime::ScopeLog_Seconds);
-	}
-
-	if (IsInitialized())
-	{
-		return GetStreamableManager().LoadSynchronous(AssetPath);
-	}
-
-	return AssetPath.TryLoad();
 }
 
 void UFortRogueAssetManager::DumpInitialScanState() const
@@ -142,35 +83,4 @@ void UFortRogueAssetManager::DumpInitialScanState() const
 	}
 
 	UE_LOG(LogFortRogue, Warning, TEXT("[AssetManagerScanDump] ===== Initial Scan Dump End ====="));
-}
-
-void UFortRogueAssetManager::DumpAssetPathMapElements(const FPrimaryAssetId& InRequestedAssetId) const
-{
-	TArray<FString> AssetPathMapEntries;
-	AssetPathMapEntries.Reserve(AssetPathMap.Num());
-
-	for (const TPair<FSoftObjectPath, FPrimaryAssetId>& AssetPathPair : AssetPathMap)
-	{
-		AssetPathMapEntries.Add(FString::Printf(TEXT("Path=%s -> AssetId=%s"), *AssetPathPair.Key.ToString(), *AssetPathPair.Value.ToString()));
-	}
-
-	AssetPathMapEntries.Sort();
-
-	UE_LOG(LogFortRogue, Warning, TEXT("[AssetPathMapDump] ===== Begin Request=%s Count=%d ====="), *InRequestedAssetId.ToString(), AssetPathMapEntries.Num());
-	for (const FString& AssetPathMapEntry : AssetPathMapEntries)
-	{
-		UE_LOG(LogFortRogue, Warning, TEXT("[AssetPathMapDump] %s"), *AssetPathMapEntry);
-	}
-	UE_LOG(LogFortRogue, Warning, TEXT("[AssetPathMapDump] RequestedPath=%s"), *GetPrimaryAssetPath(InRequestedAssetId).ToString());
-	UE_LOG(LogFortRogue, Warning, TEXT("[AssetPathMapDump] RequestedClass=%s"), *GetNameSafe(GetPrimaryAssetObjectClass<UObject>(InRequestedAssetId)));
-	UE_LOG(LogFortRogue, Warning, TEXT("[AssetPathMapDump] ===== End Request=%s ====="), *InRequestedAssetId.ToString());
-}
-
-void UFortRogueAssetManager::AddLoadedAsset(const UObject* Asset)
-{
-	if (ensureAlways(Asset))
-	{
-		FScopeLock Lock(&SyncObject);
-		LoadedAssets.Add(Asset);
-	}
 }

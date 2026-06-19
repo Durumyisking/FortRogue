@@ -77,9 +77,7 @@ FText UFortRogueRewardBlueprintLibrary::GetAbilitySetDataValidationSummary(UFort
 
 FText UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(const TArray<FFortRogueShotModifierSpec>& ShotModifiers)
 {
-	FFortRogueRewardChoice RewardChoice;
-	RewardChoice.ShotModifiers = ShotModifiers;
-	return RewardChoice.GetEffectSummary();
+	return GetFortRogueShotModifierEffectSummary(ShotModifiers);
 }
 
 FText UFortRogueRewardBlueprintLibrary::GetShotModifierDataValidationSummary(const FFortRogueShotModifierSpec& ShotModifier)

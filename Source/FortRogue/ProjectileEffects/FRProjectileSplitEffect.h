@@ -42,7 +42,7 @@ struct FORTROGUE_API FFRProjectileEffectSplitParams : public FFRProjectileEffect
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Split", meta = (ToolTip = "child 투사체 클래스입니다. 비워두면 부모 투사체 클래스를 사용합니다."))
 	TSubclassOf<AFortRogueProjectile> ProjectileClass;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Split", meta = (TitleProperty = DisplayName, ToolTip = "child 투사체 ShotSpec에 추가로 적용할 modifier 목록입니다. 여기서 Drill, TerrainCreate 같은 ProjectileEffects를 다시 조립할 수 있습니다."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Split", meta = (TitleProperty = ModifierTag, ToolTip = "child 투사체 ShotSpec에 추가로 적용할 modifier 목록입니다. 여기서 Drill, TerrainCreate 같은 ProjectileEffects를 다시 조립할 수 있습니다."))
 	TArray<FFortRogueShotModifierSpec> ChildShotModifiers;
 };
 

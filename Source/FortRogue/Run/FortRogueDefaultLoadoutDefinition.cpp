@@ -50,7 +50,7 @@ FText UFortRogueDefaultLoadoutDefinition::GetDataValidationSummary() const
 	bool bHasMissingItem = false;
 	bool bHasInvalidItemCharges = false;
 	bool bHasItemDataWarning = false;
-	for (const FFortRogueDefaultItemStack& ItemStack : ItemDefinitions)
+	for (const FFortRogueItemStack& ItemStack : ItemDefinitions)
 	{
 		if (!ItemStack.ItemDefinition)
 		{

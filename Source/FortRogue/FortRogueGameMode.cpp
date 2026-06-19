@@ -8,7 +8,6 @@
 #include "Combat/FortRogueProjectile.h"
 #include "FortRogue.h"
 #include "FortRogueGameplayTags.h"
-#include "FortRogueHUD.h"
 #include "FortRoguePlayerController.h"
 #include "Items/FortRogueItemDefinition.h"
 #include "Perks/FortRoguePerkDefinition.h"
@@ -33,7 +32,6 @@ AFortRogueGameMode::AFortRogueGameMode()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PlayerControllerClass = AFortRoguePlayerController::StaticClass();
-	HUDClass = AFortRogueHUD::StaticClass();
 	DefaultPawnClass = nullptr;
 	StatusText = FText::FromString(TEXT("Ready"));
 	PlayerCharacterClass = AFortRogueBattleCharacter::StaticClass();
@@ -467,40 +465,11 @@ void AFortRogueGameMode::ApplyRewardToPlayer(const FFortRogueRewardChoice& Rewar
 	{
 		PlayerCharacter->ApplyPerkDefinition(Reward.PerkReward);
 	}
-	if (Reward.GrantedAbilitySet)
-	{
-		PlayerCharacter->GrantAbilitySet(Reward.GrantedAbilitySet);
-	}
-	PlayerCharacter->GrantShotModifiers(Reward.ShotModifiers);
-	if (!FMath::IsNearlyZero(Reward.DamageBonus))
-	{
-		PlayerCharacter->ApplyRewardDamage(Reward.DamageBonus);
-	}
-	if (!FMath::IsNearlyZero(Reward.MaxHealthBonus))
-	{
-		PlayerCharacter->ApplyRewardHealth(Reward.MaxHealthBonus);
-	}
-	if (!FMath::IsNearlyZero(Reward.MaxMoveBudgetBonus))
-	{
-		PlayerCharacter->ApplyRewardMoveBudget(Reward.MaxMoveBudgetBonus);
-	}
-	if (Reward.ProjectileBonus != 0)
-	{
-		PlayerCharacter->ApplyRewardProjectiles(Reward.ProjectileBonus);
-	}
-	if (!FMath::IsNearlyZero(Reward.ShotPowerMultiplierBonus))
-	{
-		PlayerCharacter->ApplyRewardShotPowerMultiplier(Reward.ShotPowerMultiplierBonus);
-	}
-	if (Reward.RepairCharges > 0 && Reward.ItemReward)
-	{
-		PlayerCharacter->AddItemDefinition(Reward.ItemReward, Reward.RepairCharges);
-	}
 	if (Reward.WeaponReward)
 	{
 		PlayerCharacter->AddWeaponDefinition(Reward.WeaponReward);
 	}
-	if (Reward.ItemReward && Reward.RepairCharges <= 0)
+	if (Reward.ItemReward)
 	{
 		PlayerCharacter->AddItemDefinition(Reward.ItemReward);
 	}

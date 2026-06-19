@@ -2,12 +2,12 @@
 
 #pragma once
 
+#include "CommonActivatableWidget.h"
 #include "Rewards/FortRogueRewardTypes.h"
-#include "UI/FortRogueActivatableWidget.h"
 #include "FortRogueRewardScreenWidget.generated.h"
 
 UCLASS(Abstract, Blueprintable)
-class FORTROGUE_API UFortRogueRewardScreenWidget : public UFortRogueActivatableWidget
+class FORTROGUE_API UFortRogueRewardScreenWidget : public UCommonActivatableWidget
 {
 	GENERATED_BODY()
 

@@ -2,7 +2,6 @@
 
 #pragma once
 
-#include "Combat/FortRogueImpactSpawnSpec.h"
 #include "Engine/DataAsset.h"
 #include "GameplayTagContainer.h"
 #include "ProjectileEffects/FRProjectileEffect.h"
@@ -15,12 +14,6 @@ USTRUCT(BlueprintType)
 struct FFortRogueShotModifierSpec
 {
 	GENERATED_BODY()
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (ToolTip = "에디터와 UI에 표시할 샷 modifier 이름입니다. 비워두면 데이터 검수 경고가 발생합니다."))
-	FText DisplayName;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (MultiLine = "true", ToolTip = "플레이어에게 보여줄 설명입니다. 어떤 조건에서 어떤 플레이가 바뀌는지 적어주세요."))
-	FText Description;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (Categories = "ShotEffect", ToolTip = "이 modifier가 최종 ShotSpec에 추가할 효과 태그입니다. ShotEffect.* 태그만 사용하세요."))
 	FGameplayTagContainer EffectTags;
@@ -64,18 +57,6 @@ struct FFortRogueShotModifierSpec
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (ClampMin = "0.0", ToolTip = "폭발 반경 보너스 적용 후 곱할 배율입니다. 1.0은 변화 없음입니다."))
 	float BlastRadiusMultiplier = 1.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Shot Modifier|Legacy Direct Terrain", meta = (ToolTip = "기존 호환용 직접 지형 파괴 보너스입니다. 새 굴착탄은 ProjectileEffects에 FR Projectile Effect Drill을 추가하세요."))
-	float TerrainCarveRadiusBonus = 0.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Shot Modifier|Legacy Direct Terrain", meta = (ClampMin = "0.0", ToolTip = "기존 호환용 직접 지형 파괴 배율입니다. 새 굴착탄은 ProjectileEffects에 FR Projectile Effect Drill을 추가하세요."))
-	float TerrainCarveRadiusMultiplier = 1.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Shot Modifier|Legacy Direct Terrain", meta = (ToolTip = "기존 호환용 직접 지형 생성 보너스입니다. 새 지형 생성탄은 ProjectileEffects에 FR Projectile Effect Terrain Create를 추가하세요."))
-	float TerrainFillRadiusBonus = 0.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Shot Modifier|Legacy Direct Terrain", meta = (ClampMin = "0.0", ToolTip = "기존 호환용 직접 지형 생성 배율입니다. 새 지형 생성탄은 ProjectileEffects에 FR Projectile Effect Terrain Create를 추가하세요."))
-	float TerrainFillRadiusMultiplier = 1.0f;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (ClampMin = "0.0", ToolTip = "발사 속도에 곱할 배율입니다. 1.0은 변화 없음, 0이면 발사 속도가 0이 됩니다."))
 	float LaunchSpeedMultiplier = 1.0f;
 
@@ -84,9 +65,6 @@ struct FFortRogueShotModifierSpec
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (ToolTip = "이번 발사에서 추가로 생성할 투사체 수입니다. 음수 입력 시 최종 투사체 수는 최소 1개로 보정됩니다."))
 	int32 ProjectileCountBonus = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Shot Modifier|Impact", meta = (DisplayName = "Legacy Impact Spawns", TitleProperty = ProjectileCount, ToolTip = "기존 호환용 분열 설정입니다. 새 modifier에서는 ProjectileEffects에 FR Projectile Effect Split을 추가하세요."))
-	TArray<FFortRogueImpactSpawnSpec> ImpactSpawns;
 
 	bool MeetsShotConditions(const FFortRogueShotSpec& CurrentShotSpec, float CurrentAimAngle, float Wind, bool bShotFacingRight) const;
 	FText GetShotConditionFailureSummary(const FFortRogueShotSpec& CurrentShotSpec, float CurrentAimAngle, float Wind, bool bShotFacingRight) const;
@@ -114,9 +92,6 @@ struct FFortRogueWeaponSpec
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Projectile Effect", meta = (TitleProperty = EffectClass, ToolTip = "이 무기의 기본 투사체 효과입니다. 굴착탄, 지형생성탄, 분열탄처럼 탄 자체의 정체성을 만드는 효과만 설정하고 런 성장용 수치 보정은 Reward, Perk, Character 쪽 ShotModifiers에 설정하세요."))
 	TArray<FFRProjectileEffectSpec> ProjectileEffects;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Weapon", meta = (DisplayName = "Legacy Impact Spawns", TitleProperty = ProjectileCount, ToolTip = "무기 자체가 충돌 후 추가 투사체를 만들 때 사용하는 기존 호환 설정입니다. 런 성장용 modifier는 Reward, Perk, Character 쪽 ShotModifiers에 설정하세요."))
-	TArray<FFortRogueImpactSpawnSpec> ImpactSpawns;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (ToolTip = "기본 피해량입니다. 캐릭터 피해 보너스와 modifier가 이후 반영됩니다."))
 	float Damage = 35.0f;

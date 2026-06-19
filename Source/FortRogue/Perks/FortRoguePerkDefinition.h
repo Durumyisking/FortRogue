@@ -42,7 +42,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Perk", meta = (ToolTip = "퍽 획득 시 부여할 AbilitySet입니다."))
 	TObjectPtr<UFortRogueAbilitySet> GrantedAbilitySet;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shot Modifier", meta = (TitleProperty = DisplayName, ToolTip = "퍽 획득 후 계속 적용될 샷 modifier 목록입니다. 빌드의 핵심 샷 변화를 여기에 조립합니다."))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shot Modifier", meta = (TitleProperty = ModifierTag, ToolTip = "퍽 획득 후 계속 적용될 샷 modifier 목록입니다. 빌드의 핵심 샷 변화를 여기에 조립합니다."))
 	TArray<FFortRogueShotModifierSpec> ShotModifiers;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats", meta = (ClampMin = "0.0", ToolTip = "캐릭터 기본 피해에 더할 고정값입니다."))

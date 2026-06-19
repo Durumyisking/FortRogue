@@ -10,7 +10,6 @@
 class UFortRogueItemDefinition;
 class UFortRoguePerkDefinition;
 class UFortRogueWeaponDefinition;
-class UFortRogueAbilitySet;
 
 UENUM(BlueprintType)
 enum class EFortRogueRewardType : uint8
@@ -58,32 +57,10 @@ struct FFortRogueRewardChoice
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward", meta = (ToolTip = "Type이 Trait일 때 지급할 퍽 데이터입니다."))
 	TObjectPtr<UFortRoguePerkDefinition> PerkReward;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward", meta = (ToolTip = "보상 획득 시 직접 부여할 AbilitySet입니다."))
-	TObjectPtr<UFortRogueAbilitySet> GrantedAbilitySet;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (TitleProperty = DisplayName, ToolTip = "보상 획득 후 플레이어에게 부여할 샷 modifier 목록입니다."))
-	TArray<FFortRogueShotModifierSpec> ShotModifiers;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward", meta = (ToolTip = "캐릭터 기본 피해에 더할 고정값입니다."))
-	float DamageBonus = 0.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward", meta = (ToolTip = "최대 체력에 더할 고정값입니다."))
-	float MaxHealthBonus = 0.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward", meta = (ToolTip = "턴당 최대 이동 예산에 더할 고정값입니다."))
-	float MaxMoveBudgetBonus = 0.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward", meta = (ToolTip = "기본 발사 투사체 수에 더할 값입니다."))
-	int32 ProjectileBonus = 0;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward", meta = (ToolTip = "샷 파워 배율에 더할 값입니다. 0이면 변화 없음입니다."))
-	float ShotPowerMultiplierBonus = 0.0f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward", meta = (ToolTip = "ItemReward의 사용 횟수에 추가할 보상 충전 수입니다."))
-	int32 RepairCharges = 0;
-
 	FText GetEffectSummary() const;
 	FText GetDataValidationSummary() const;
 	bool MeetsRewardTagConditions(const FGameplayTagContainer& ChosenRewardTags) const;
 	FText GetRewardTagConditionFailureSummary(const FGameplayTagContainer& ChosenRewardTags) const;
 };
+
+FORTROGUE_API FText GetFortRogueShotModifierEffectSummary(const TArray<FFortRogueShotModifierSpec>& ShotModifiers);
