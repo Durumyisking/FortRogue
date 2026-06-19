@@ -235,6 +235,12 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	InvalidSplitChildCountModifier.DisplayName = FText::FromString(TEXT("Invalid Split Child Count"));
 	InvalidSplitChildCountModifier.ProjectileCountBonus = 1;
 	InvalidSplitParams.ChildShotModifiers.Add(InvalidSplitChildCountModifier);
+	FFortRogueShotModifierSpec LegacySplitChildModifier;
+	LegacySplitChildModifier.DisplayName = FText::FromString(TEXT("Legacy Split Child"));
+	FFortRogueImpactSpawnSpec LegacySplitImpactSpawn;
+	LegacySplitImpactSpawn.ProjectileCount = 1;
+	LegacySplitChildModifier.ImpactSpawns.Add(LegacySplitImpactSpawn);
+	InvalidSplitParams.ChildShotModifiers.Add(LegacySplitChildModifier);
 	FFRProjectileEffectSpec InvalidSplitEffect;
 	InvalidSplitEffect.EffectClass = UFRProjectileEffectSplit::StaticClass();
 	InvalidSplitEffect.Parameters = FInstancedStruct::Make(InvalidSplitParams);
@@ -242,6 +248,7 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Projectile effect data validation reports class-owned split warnings"), InvalidSplitEffectSummary.Contains(TEXT("split projectile count")));
 	TestTrue(TEXT("Projectile effect data validation reports invalid split child modifiers"), InvalidSplitEffectSummary.Contains(TEXT("split child shot modifier")));
 	TestTrue(TEXT("Projectile effect data validation reports ignored split child projectile bonuses"), InvalidSplitEffectSummary.Contains(TEXT("projectile count bonus")));
+	TestTrue(TEXT("Projectile effect data validation reports legacy split child impact spawns"), InvalidSplitEffectSummary.Contains(TEXT("legacy impact spawns")));
 	FFortRogueShotModifierSpec InvalidShotModifierData;
 	InvalidShotModifierData.bUseAimAngleRange = true;
 	InvalidShotModifierData.MinAimAngle = 80.0f;

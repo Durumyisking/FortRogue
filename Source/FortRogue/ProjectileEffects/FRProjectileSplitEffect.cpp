@@ -128,11 +128,16 @@ void UFRProjectileEffectSplit::AddDataValidationIssues(const FFRProjectileEffect
 
 	bool bHasInvalidChildModifier = false;
 	bool bHasIgnoredProjectileCountBonus = false;
+	bool bHasLegacyImpactSpawns = false;
 	for (const FFortRogueShotModifierSpec& ChildModifier : Params.ChildShotModifiers)
 	{
 		if (ChildModifier.ProjectileCountBonus != 0)
 		{
 			bHasIgnoredProjectileCountBonus = true;
+		}
+		if (ChildModifier.ImpactSpawns.Num() > 0)
+		{
+			bHasLegacyImpactSpawns = true;
 		}
 		if (!ChildModifier.GetDataValidationSummary().IsEmpty())
 		{
@@ -142,6 +147,10 @@ void UFRProjectileEffectSplit::AddDataValidationIssues(const FFRProjectileEffect
 	if (bHasIgnoredProjectileCountBonus)
 	{
 		Issues.Add(TEXT("split child shot modifier projectile count bonus is ignored"));
+	}
+	if (bHasLegacyImpactSpawns)
+	{
+		Issues.Add(TEXT("split child shot modifier legacy impact spawns should use split projectile effects"));
 	}
 	if (bHasInvalidChildModifier)
 	{
