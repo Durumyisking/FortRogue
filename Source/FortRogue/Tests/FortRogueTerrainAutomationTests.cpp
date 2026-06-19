@@ -210,7 +210,11 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	EffectModifierData.ProjectileEffects.Add(SplitEffect);
 	TestTrue(TEXT("Shot modifier data validation accepts projectile effects"), EffectModifierData.GetDataValidationSummary().ToString().IsEmpty());
 	TArray<FFortRogueShotModifierSpec> EffectModifierSummaryData = { EffectModifierData };
-	TestTrue(TEXT("Shot modifier summary counts projectile effects"), UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(EffectModifierSummaryData).ToString().Contains(TEXT("projectile effects 3")));
+	const FString EffectModifierSummary = UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(EffectModifierSummaryData).ToString();
+	TestTrue(TEXT("Shot modifier summary counts projectile effects"), EffectModifierSummary.Contains(TEXT("projectile effects 3")));
+	TestTrue(TEXT("Shot modifier summary names drill projectile effects"), EffectModifierSummary.Contains(UFRProjectileEffectDrill::StaticClass()->GetDisplayNameText().ToString()));
+	TestTrue(TEXT("Shot modifier summary names terrain create projectile effects"), EffectModifierSummary.Contains(UFRProjectileEffectTerrainCreate::StaticClass()->GetDisplayNameText().ToString()));
+	TestTrue(TEXT("Shot modifier summary names split projectile effects"), EffectModifierSummary.Contains(UFRProjectileEffectSplit::StaticClass()->GetDisplayNameText().ToString()));
 	TestTrue(TEXT("Shot modifier gameplay effect helper accepts projectile effects"), EffectModifierData.HasGameplayEffect());
 	FFortRogueShotModifierSpec EmptyProjectileEffectSummaryModifier;
 	EmptyProjectileEffectSummaryModifier.ProjectileEffects.AddDefaulted();

@@ -77,6 +77,17 @@ int32 CountRewardProjectileEffects(const TArray<FFRProjectileEffectSpec>& Projec
 	return TotalCount;
 }
 
+FString GetRewardProjectileEffectName(const FFRProjectileEffectSpec& ProjectileEffect)
+{
+	if (!ProjectileEffect.EffectClass)
+	{
+		return FString();
+	}
+
+	const FString DisplayName = ProjectileEffect.EffectClass->GetDisplayNameText().ToString();
+	return DisplayName.IsEmpty() ? ProjectileEffect.EffectClass->GetName() : DisplayName;
+}
+
 void AddShotModifierSummary(TArray<FString>& Parts, const TArray<FFortRogueShotModifierSpec>& Modifiers)
 {
 	if (Modifiers.Num() <= 0)
@@ -132,6 +143,14 @@ void AddShotModifierSummary(TArray<FString>& Parts, const TArray<FFortRogueShotM
 		if (!Modifier.BlockedShotTags.IsEmpty())
 		{
 			AddSummaryPart(Parts, FString::Printf(TEXT("blocks %s"), *Modifier.BlockedShotTags.ToStringSimple()));
+		}
+		for (const FFRProjectileEffectSpec& ProjectileEffect : Modifier.ProjectileEffects)
+		{
+			const FString ProjectileEffectName = GetRewardProjectileEffectName(ProjectileEffect);
+			if (!ProjectileEffectName.IsEmpty())
+			{
+				AddSummaryPart(Parts, FString::Printf(TEXT("projectile effect %s"), *ProjectileEffectName));
+			}
 		}
 
 		ProjectileBonus += Modifier.ProjectileCountBonus;
