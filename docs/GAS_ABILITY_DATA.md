@@ -180,7 +180,7 @@ GameMode의 현재 보상 슬롯을 바로 표시해야 한다면 `AFortRogueGam
 무기/아이템/퍽 카탈로그나 인벤토리 UI에서는 같은 라이브러리의 `GetWeaponEffectSummary()`, `GetItemEffectSummary()`, `GetPerkEffectSummary()`로 개별 데이터 에셋의 효과 요약을 얻는다.
 요약은 설정된 `WeaponTag`, `ItemTag`, `PerkTag`, `RewardTag`도 함께 표시해 데이터 검수 중 식별자를 바로 확인할 수 있게 한다.
 무기 요약은 기본 피해, 폭발 반경, 2발 이상인 경우 기본 탄 수를 포함한다.
-ShotModifier 배열만 따로 표시해야 하는 디버그/편집 UI에서는 `GetShotModifierEffectSummary()`를 사용한다. 요약에는 `ModifierTag`와 `EffectTags`도 포함되어 제거 가능한 효과와 실제 탄 효과 태그를 바로 확인할 수 있다.
+ShotModifier 배열만 따로 표시해야 하는 디버그/편집 UI에서는 `GetShotModifierEffectSummary()`를 사용한다. 요약에는 `ModifierTag`, `EffectTags`, 유효한 `ProjectileEffects` 개수와 EffectClass 표시명도 포함되어 제거 가능한 효과와 실제 탄 효과 태그를 바로 확인할 수 있다.
 
 퍽 에셋에서 런 전체의 탄 방식을 바꾸려면 `UFortRoguePerkDefinition::ShotModifiers`를 사용한다.
 
