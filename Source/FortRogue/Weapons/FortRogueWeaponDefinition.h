@@ -43,7 +43,7 @@ struct FFortRogueShotModifierSpec
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition", meta = (EditCondition = "bRequireWindAligned", ClampMin = "0.0", ToolTip = "바람 조건에 필요한 최소 바람 세기입니다. 0이면 방향만 확인합니다."))
 	float MinWindMagnitude = 0.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition", meta = (Categories = "Weapon,ShotEffect", ToolTip = "현재 ShotSpec에 반드시 있어야 하는 태그입니다. Weapon.* 또는 ShotEffect.* 태그만 사용하세요."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition", meta = (Categories = "Weapon,ShotEffect", ToolTip = "현재 ShotSpec에 모두 있어야 하는 태그입니다. Weapon.* 또는 ShotEffect.* 태그만 사용하세요."))
 	FGameplayTagContainer RequiredShotTags;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition", meta = (Categories = "Weapon,ShotEffect", ToolTip = "현재 ShotSpec에 있으면 modifier 적용을 막는 태그입니다. Weapon.* 또는 ShotEffect.* 태그만 사용하세요."))

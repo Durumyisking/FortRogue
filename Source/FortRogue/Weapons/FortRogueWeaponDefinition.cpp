@@ -106,7 +106,7 @@ bool FFortRogueShotModifierSpec::MeetsShotConditions(const FFortRogueShotSpec& C
 		}
 	}
 	const FGameplayTagContainer ShotConditionTags = BuildShotConditionTags(CurrentShotSpec);
-	if (!RequiredShotTags.IsEmpty() && !ShotConditionTags.HasAny(RequiredShotTags))
+	if (!RequiredShotTags.IsEmpty() && !ShotConditionTags.HasAll(RequiredShotTags))
 	{
 		return false;
 	}
@@ -137,7 +137,7 @@ FText FFortRogueShotModifierSpec::GetShotConditionFailureSummary(const FFortRogu
 		}
 	}
 	const FGameplayTagContainer ShotConditionTags = BuildShotConditionTags(CurrentShotSpec);
-	if (!RequiredShotTags.IsEmpty() && !ShotConditionTags.HasAny(RequiredShotTags))
+	if (!RequiredShotTags.IsEmpty() && !ShotConditionTags.HasAll(RequiredShotTags))
 	{
 		return FText::FromString(FString::Printf(TEXT("requires shot tag %s"), *RequiredShotTags.ToStringSimple()));
 	}

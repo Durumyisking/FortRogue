@@ -327,6 +327,12 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	ConditionModifier.RequiredShotTags.AddTag(FortRogueGameplayTags::ShotEffect_Drill);
 	TestTrue(TEXT("Shot modifier condition helper accepts required effect tags"), ConditionModifier.MeetsShotConditions(ConditionShotSpec, 45.0f, 0.0f, true));
 	ConditionModifier.RequiredShotTags.Reset();
+	ConditionModifier.RequiredShotTags.AddTag(FortRogueGameplayTags::Weapon_Shell);
+	ConditionModifier.RequiredShotTags.AddTag(FortRogueGameplayTags::ShotEffect_TerrainCreate);
+	TestFalse(TEXT("Shot modifier condition helper requires all required shot tags"), ConditionModifier.MeetsShotConditions(ConditionShotSpec, 45.0f, 0.0f, true));
+	ConditionShotSpec.EffectTags.AddTag(FortRogueGameplayTags::ShotEffect_TerrainCreate);
+	TestTrue(TEXT("Shot modifier condition helper accepts all required shot tags"), ConditionModifier.MeetsShotConditions(ConditionShotSpec, 45.0f, 0.0f, true));
+	ConditionModifier.RequiredShotTags.Reset();
 	ConditionModifier.RequiredShotTags.AddTag(FortRogueGameplayTags::Weapon_Cluster);
 	TestFalse(TEXT("Shot modifier condition helper rejects missing required shot tags"), ConditionModifier.MeetsShotConditions(ConditionShotSpec, 45.0f, 0.0f, true));
 	TestTrue(TEXT("Shot modifier condition failure summary names required shot tags"), ConditionModifier.GetShotConditionFailureSummary(ConditionShotSpec, 45.0f, 0.0f, true).ToString().Contains(TEXT("requires shot tag")));
