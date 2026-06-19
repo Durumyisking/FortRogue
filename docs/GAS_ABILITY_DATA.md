@@ -166,6 +166,7 @@ ShotModifier 배열만 따로 표시해야 하는 디버그/편집 UI에서는 `
 퍽 에셋에서 런 전체의 탄 방식을 바꾸려면 `UFortRoguePerkDefinition::ShotModifiers`를 사용한다.
 
 퍽도 `DamageBonus`, `MaxHealthBonus`, `MaxMoveBudgetBonus`, `ProjectileBonus`, `ShotPowerMultiplierBonus`로 기본 전투 어트리뷰트를 올리거나 낮출 수 있다.
+퍽 데이터를 검수할 때는 `UFortRoguePerkDefinition::GetDataValidationSummary()` 또는 `UFortRogueRewardBlueprintLibrary::GetPerkDataValidationSummary()`를 사용한다. 표시 이름/`PerkTag` 누락, 실제 perk effect 없음, 내부 AbilitySet/ShotModifier 경고를 한 줄로 보여준다.
 
 둘 다 캐릭터의 `GrantedShotModifiers`에 누적되고, 이후 모든 발사에서 `BuildShotSpec()`에 반영된다.
 

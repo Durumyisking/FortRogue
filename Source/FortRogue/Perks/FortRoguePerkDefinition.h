@@ -15,6 +15,9 @@ class FORTROGUE_API UFortRoguePerkDefinition : public UPrimaryDataAsset
 	GENERATED_BODY()
 
 public:
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Perk")
+	FText GetDataValidationSummary() const;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Perk")
 	FText DisplayName = FText::FromString(TEXT("Perk"));
 

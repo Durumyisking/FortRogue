@@ -48,6 +48,11 @@ FText UFortRogueRewardBlueprintLibrary::GetPerkEffectSummary(UFortRoguePerkDefin
 	return RewardChoice.GetEffectSummary();
 }
 
+FText UFortRogueRewardBlueprintLibrary::GetPerkDataValidationSummary(UFortRoguePerkDefinition* PerkDefinition)
+{
+	return PerkDefinition ? PerkDefinition->GetDataValidationSummary() : FText::FromString(TEXT("missing perk"));
+}
+
 FText UFortRogueRewardBlueprintLibrary::GetAbilitySetEffectSummary(UFortRogueAbilitySet* AbilitySet)
 {
 	return AbilitySet ? AbilitySet->GetEffectSummary() : FText::GetEmpty();
