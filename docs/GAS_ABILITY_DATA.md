@@ -91,6 +91,7 @@ modifier 적용 순서:
 - 여러 조건을 같이 켜면 모두 만족해야 적용된다.
 - 태그 조건은 modifier 자신의 `EffectTags`를 붙이기 전에 검사한다.
 - 데이터 편집 UI에서 modifier 적용 가능 여부와 실패 이유를 미리 보여주려면 `DoesShotModifierMeetShotConditions()`와 `GetShotModifierConditionFailureSummary()`를 사용한다.
+- modifier 데이터 자체를 검수하려면 `ShotModifier.GetDataValidationSummary()` 또는 `UFortRogueRewardBlueprintLibrary::GetShotModifierDataValidationSummary()`를 사용한다. 표시 이름 누락, 실제 shot effect 없음, 뒤집힌 조준 범위, Required/Blocked shot tag 겹침, projectile count가 0 이하인 impact spawn을 한 줄 경고로 보여준다.
 
 ## 4. ImpactSpawns 사용 예
 

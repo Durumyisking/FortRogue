@@ -55,6 +55,11 @@ FText UFortRogueRewardBlueprintLibrary::GetShotModifierEffectSummary(const TArra
 	return RewardChoice.GetEffectSummary();
 }
 
+FText UFortRogueRewardBlueprintLibrary::GetShotModifierDataValidationSummary(const FFortRogueShotModifierSpec& ShotModifier)
+{
+	return ShotModifier.GetDataValidationSummary();
+}
+
 bool UFortRogueRewardBlueprintLibrary::DoesShotModifierMeetShotConditions(const FFortRogueShotModifierSpec& ShotModifier, const FFortRogueShotSpec& CurrentShotSpec, float CurrentAimAngle, float Wind, bool bShotFacingRight)
 {
 	return ShotModifier.MeetsShotConditions(CurrentShotSpec, CurrentAimAngle, Wind, bShotFacingRight);

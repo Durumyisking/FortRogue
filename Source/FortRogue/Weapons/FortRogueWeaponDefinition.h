@@ -86,6 +86,7 @@ struct FFortRogueShotModifierSpec
 
 	bool MeetsShotConditions(const FFortRogueShotSpec& CurrentShotSpec, float CurrentAimAngle, float Wind, bool bShotFacingRight) const;
 	FText GetShotConditionFailureSummary(const FFortRogueShotSpec& CurrentShotSpec, float CurrentAimAngle, float Wind, bool bShotFacingRight) const;
+	FText GetDataValidationSummary() const;
 };
 
 USTRUCT(BlueprintType)

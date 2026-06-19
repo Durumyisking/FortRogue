@@ -4,6 +4,46 @@
 
 #include "Combat/FortRogueShotSpec.h"
 
+namespace
+{
+void AddShotModifierValidationIssue(TArray<FString>& Issues, const FString& Issue)
+{
+	if (!Issue.IsEmpty())
+	{
+		Issues.Add(Issue);
+	}
+}
+
+bool HasShotModifierImpactSpawnEffect(const TArray<FFortRogueImpactSpawnSpec>& ImpactSpawns)
+{
+	for (const FFortRogueImpactSpawnSpec& ImpactSpawn : ImpactSpawns)
+	{
+		if (ImpactSpawn.ProjectileCount > 0)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool HasShotModifierGameplayEffect(const FFortRogueShotModifierSpec& ShotModifier)
+{
+	return !ShotModifier.EffectTags.IsEmpty()
+		|| !FMath::IsNearlyZero(ShotModifier.DamageBonus)
+		|| !FMath::IsNearlyEqual(ShotModifier.DamageMultiplier, 1.0f)
+		|| !FMath::IsNearlyZero(ShotModifier.BlastRadiusBonus)
+		|| !FMath::IsNearlyEqual(ShotModifier.BlastRadiusMultiplier, 1.0f)
+		|| !FMath::IsNearlyZero(ShotModifier.TerrainCarveRadiusBonus)
+		|| !FMath::IsNearlyEqual(ShotModifier.TerrainCarveRadiusMultiplier, 1.0f)
+		|| !FMath::IsNearlyZero(ShotModifier.TerrainFillRadiusBonus)
+		|| !FMath::IsNearlyEqual(ShotModifier.TerrainFillRadiusMultiplier, 1.0f)
+		|| !FMath::IsNearlyEqual(ShotModifier.LaunchSpeedMultiplier, 1.0f)
+		|| !FMath::IsNearlyEqual(ShotModifier.GravityMultiplier, 1.0f)
+		|| ShotModifier.ProjectileCountBonus != 0
+		|| HasShotModifierImpactSpawnEffect(ShotModifier.ImpactSpawns);
+}
+}
+
 bool FFortRogueShotModifierSpec::MeetsShotConditions(const FFortRogueShotSpec& CurrentShotSpec, float CurrentAimAngle, float Wind, bool bShotFacingRight) const
 {
 	if (bUseAimAngleRange)
@@ -62,4 +102,41 @@ FText FFortRogueShotModifierSpec::GetShotConditionFailureSummary(const FFortRogu
 		return FText::FromString(FString::Printf(TEXT("blocked by shot tag %s"), *BlockedShotTags.ToStringSimple()));
 	}
 	return FText::GetEmpty();
+}
+
+FText FFortRogueShotModifierSpec::GetDataValidationSummary() const
+{
+	TArray<FString> Issues;
+	if (DisplayName.ToString().IsEmpty())
+	{
+		AddShotModifierValidationIssue(Issues, TEXT("missing display name"));
+	}
+	if (!HasShotModifierGameplayEffect(*this))
+	{
+		AddShotModifierValidationIssue(Issues, TEXT("missing shot effect"));
+	}
+	if (bUseAimAngleRange && MinAimAngle > MaxAimAngle)
+	{
+		AddShotModifierValidationIssue(Issues, TEXT("aim range min is greater than max"));
+	}
+	if (!RequiredShotTags.IsEmpty() && !BlockedShotTags.IsEmpty() && RequiredShotTags.HasAny(BlockedShotTags))
+	{
+		AddShotModifierValidationIssue(Issues, TEXT("required and blocked shot tags overlap"));
+	}
+
+	bool bHasEmptyImpactSpawn = false;
+	for (const FFortRogueImpactSpawnSpec& ImpactSpawn : ImpactSpawns)
+	{
+		if (ImpactSpawn.ProjectileCount <= 0)
+		{
+			bHasEmptyImpactSpawn = true;
+			break;
+		}
+	}
+	if (bHasEmptyImpactSpawn)
+	{
+		AddShotModifierValidationIssue(Issues, TEXT("impact spawn projectile count must be greater than 0"));
+	}
+
+	return Issues.Num() > 0 ? FText::FromString(FString::Join(Issues, TEXT(" | "))) : FText::GetEmpty();
 }

@@ -8,7 +8,7 @@
 
 namespace
 {
-void AddSummaryPart(TArray<FString>& Parts, const FString& Part)
+void AddAbilitySetSummaryPart(TArray<FString>& Parts, const FString& Part)
 {
 	if (!Part.IsEmpty())
 	{
@@ -81,15 +81,15 @@ FText UFortRogueAbilitySet::GetEffectSummary() const
 	TArray<FString> Parts;
 	const FString DisplayNameString = DisplayName.ToString();
 	const FString AbilitySetName = DisplayNameString.IsEmpty() ? GetName() : DisplayNameString;
-	AddSummaryPart(Parts, AbilitySetName);
+	AddAbilitySetSummaryPart(Parts, AbilitySetName);
 	const FString DescriptionString = Description.ToString();
 	if (!DescriptionString.IsEmpty())
 	{
-		AddSummaryPart(Parts, DescriptionString);
+		AddAbilitySetSummaryPart(Parts, DescriptionString);
 	}
 	if (AbilitySetTag.IsValid())
 	{
-		AddSummaryPart(Parts, AbilitySetTag.ToString());
+		AddAbilitySetSummaryPart(Parts, AbilitySetTag.ToString());
 	}
 
 	int32 AbilityCount = 0;
@@ -102,7 +102,7 @@ FText UFortRogueAbilitySet::GetEffectSummary() const
 	}
 	if (AbilityCount > 0)
 	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("abilities %d"), AbilityCount));
+		AddAbilitySetSummaryPart(Parts, FString::Printf(TEXT("abilities %d"), AbilityCount));
 	}
 
 	int32 EffectCount = 0;
@@ -115,7 +115,7 @@ FText UFortRogueAbilitySet::GetEffectSummary() const
 	}
 	if (EffectCount > 0)
 	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("effects %d"), EffectCount));
+		AddAbilitySetSummaryPart(Parts, FString::Printf(TEXT("effects %d"), EffectCount));
 	}
 
 	int32 AttributeSetCount = 0;
@@ -128,7 +128,7 @@ FText UFortRogueAbilitySet::GetEffectSummary() const
 	}
 	if (AttributeSetCount > 0)
 	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("attribute sets %d"), AttributeSetCount));
+		AddAbilitySetSummaryPart(Parts, FString::Printf(TEXT("attribute sets %d"), AttributeSetCount));
 	}
 
 	if (Parts.Num() <= 0)
@@ -144,7 +144,7 @@ FText UFortRogueAbilitySet::GetDataValidationSummary() const
 	TArray<FString> Issues;
 	if (DisplayName.ToString().IsEmpty())
 	{
-		AddSummaryPart(Issues, TEXT("missing display name"));
+		AddAbilitySetSummaryPart(Issues, TEXT("missing display name"));
 	}
 
 	bool bHasGrant = false;
@@ -196,27 +196,27 @@ FText UFortRogueAbilitySet::GetDataValidationSummary() const
 
 	if (!bHasGrant)
 	{
-		AddSummaryPart(Issues, TEXT("missing granted ability/effect/attribute"));
+		AddAbilitySetSummaryPart(Issues, TEXT("missing granted ability/effect/attribute"));
 	}
 	if (bHasEmptyAbilityEntry)
 	{
-		AddSummaryPart(Issues, TEXT("empty ability entry"));
+		AddAbilitySetSummaryPart(Issues, TEXT("empty ability entry"));
 	}
 	if (bHasInvalidAbilityLevel)
 	{
-		AddSummaryPart(Issues, TEXT("ability level must be greater than 0"));
+		AddAbilitySetSummaryPart(Issues, TEXT("ability level must be greater than 0"));
 	}
 	if (bHasEmptyEffectEntry)
 	{
-		AddSummaryPart(Issues, TEXT("empty gameplay effect entry"));
+		AddAbilitySetSummaryPart(Issues, TEXT("empty gameplay effect entry"));
 	}
 	if (bHasInvalidEffectLevel)
 	{
-		AddSummaryPart(Issues, TEXT("effect level must be greater than 0"));
+		AddAbilitySetSummaryPart(Issues, TEXT("effect level must be greater than 0"));
 	}
 	if (bHasEmptyAttributeEntry)
 	{
-		AddSummaryPart(Issues, TEXT("empty attribute set entry"));
+		AddAbilitySetSummaryPart(Issues, TEXT("empty attribute set entry"));
 	}
 
 	return Issues.Num() > 0 ? FText::FromString(FString::Join(Issues, TEXT(" | "))) : FText::GetEmpty();
