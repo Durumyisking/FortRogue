@@ -231,12 +231,17 @@ bool FFortRogueTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	InvalidSplitParams.ProjectileCount = 0;
 	InvalidSplitParams.LaunchSpeed = 0.0f;
 	InvalidSplitParams.ChildShotModifiers.AddDefaulted();
+	FFortRogueShotModifierSpec InvalidSplitChildCountModifier;
+	InvalidSplitChildCountModifier.DisplayName = FText::FromString(TEXT("Invalid Split Child Count"));
+	InvalidSplitChildCountModifier.ProjectileCountBonus = 1;
+	InvalidSplitParams.ChildShotModifiers.Add(InvalidSplitChildCountModifier);
 	FFRProjectileEffectSpec InvalidSplitEffect;
 	InvalidSplitEffect.EffectClass = UFRProjectileEffectSplit::StaticClass();
 	InvalidSplitEffect.Parameters = FInstancedStruct::Make(InvalidSplitParams);
 	const FString InvalidSplitEffectSummary = InvalidSplitEffect.GetDataValidationSummary().ToString();
 	TestTrue(TEXT("Projectile effect data validation reports class-owned split warnings"), InvalidSplitEffectSummary.Contains(TEXT("split projectile count")));
 	TestTrue(TEXT("Projectile effect data validation reports invalid split child modifiers"), InvalidSplitEffectSummary.Contains(TEXT("split child shot modifier")));
+	TestTrue(TEXT("Projectile effect data validation reports ignored split child projectile bonuses"), InvalidSplitEffectSummary.Contains(TEXT("projectile count bonus")));
 	FFortRogueShotModifierSpec InvalidShotModifierData;
 	InvalidShotModifierData.bUseAimAngleRange = true;
 	InvalidShotModifierData.MinAimAngle = 80.0f;

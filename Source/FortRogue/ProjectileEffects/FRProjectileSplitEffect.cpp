@@ -126,12 +126,25 @@ void UFRProjectileEffectSplit::AddDataValidationIssues(const FFRProjectileEffect
 		Issues.Add(TEXT("split gravity multiplier must be non-negative"));
 	}
 
+	bool bHasInvalidChildModifier = false;
+	bool bHasIgnoredProjectileCountBonus = false;
 	for (const FFortRogueShotModifierSpec& ChildModifier : Params.ChildShotModifiers)
 	{
+		if (ChildModifier.ProjectileCountBonus != 0)
+		{
+			bHasIgnoredProjectileCountBonus = true;
+		}
 		if (!ChildModifier.GetDataValidationSummary().IsEmpty())
 		{
-			Issues.Add(TEXT("split child shot modifier data has warnings"));
-			break;
+			bHasInvalidChildModifier = true;
 		}
+	}
+	if (bHasIgnoredProjectileCountBonus)
+	{
+		Issues.Add(TEXT("split child shot modifier projectile count bonus is ignored"));
+	}
+	if (bHasInvalidChildModifier)
+	{
+		Issues.Add(TEXT("split child shot modifier data has warnings"));
 	}
 }
