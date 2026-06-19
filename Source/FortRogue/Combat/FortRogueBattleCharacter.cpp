@@ -53,11 +53,8 @@ AFortRogueBattleCharacter::AFortRogueBattleCharacter()
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	SetRootComponent(Root);
 
-	VisualRoot = CreateDefaultSubobject<USceneComponent>(TEXT("VisualRoot"));
-	VisualRoot->SetupAttachment(Root);
-
 	Body = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Body"));
-	Body->SetupAttachment(VisualRoot);
+	Body->SetupAttachment(Root);
 	Body->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Body->SetRelativeScale3D(FVector(0.65f, 0.08f, 0.9f));
 
@@ -68,10 +65,10 @@ AFortRogueBattleCharacter::AFortRogueBattleCharacter()
 	}
 
 	BodySprite = CreateDefaultSubobject<UPaperFlipbookComponent>(TEXT("BodySprite"));
-	BodySprite->SetupAttachment(VisualRoot);
+	BodySprite->SetupAttachment(Root);
 	BodySprite->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	BodySprite->SetVisibility(false);
-	UpdateVisualTransform(0.0f);
+	UpdateCharacterRotation(0.0f);
 
 	AbilitySystemComponent = CreateDefaultSubobject<UFortRogueAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	CombatSet = CreateDefaultSubobject<UFortRogueCombatSet>(TEXT("CombatSet"));
@@ -88,7 +85,7 @@ void AFortRogueBattleCharacter::BeginPlay()
 	InitializeFromDefinition(CharacterDefinition);
 	EnsureDefaultLoadout();
 	GrantStartupAbilitySets();
-	UpdateVisualTransform(GetBodyPitchDegrees());
+	UpdateCharacterRotation(GetActorPitchDegrees());
 	SnapToTerrain();
 }
 
@@ -154,7 +151,7 @@ void AFortRogueBattleCharacter::ConfigureAsEnemy(bool bNewEnemy)
 {
 	bEnemy = bNewEnemy;
 	bFacingRight = !bEnemy;
-	UpdateVisualTransform(GetBodyPitchDegrees());
+	UpdateCharacterRotation(GetActorPitchDegrees());
 }
 
 void AFortRogueBattleCharacter::BeginTurn()
@@ -429,7 +426,7 @@ void AFortRogueBattleCharacter::FireAtTarget(AFortRogueBattleCharacter* Target, 
 
 	const FVector ToTarget = Target->GetActorLocation() - GetActorLocation();
 	bFacingRight = ToTarget.X >= 0.0f;
-	UpdateVisualTransform(GetBodyPitchDegrees());
+	UpdateCharacterRotation(GetActorPitchDegrees());
 	const float AimArcHeight = FMath::Max(DifficultyData.MinAimArcHeight, FMath::Abs(ToTarget.Z) + DifficultyData.AimHeightOffset);
 	const float Distance = FMath::Max(1.0f, FMath::Abs(ToTarget.X));
 	const float AimError = DifficultyData.AimAngleErrorDegrees > 0.0f ? FMath::RandRange(-DifficultyData.AimAngleErrorDegrees, DifficultyData.AimAngleErrorDegrees) : 0.0f;
@@ -1391,7 +1388,7 @@ void AFortRogueBattleCharacter::UpdateBodyTerrainAlignment(const AFortRogueDestr
 
 	if (!Terrain)
 	{
-		UpdateVisualTransform(0.0f);
+		UpdateCharacterRotation(0.0f);
 		return;
 	}
 
@@ -1404,13 +1401,13 @@ void AFortRogueBattleCharacter::UpdateBodyTerrainAlignment(const AFortRogueDestr
 	const bool bRightSurface = Terrain->FindSurfaceZAtWorldX(CurrentLocation.X + ProbeHalfWidth, CurrentFootZ + GroundSnapDistance, GroundSnapDistance + MaxStepDown, RightSurfaceZ);
 	if (!bLeftSurface || !bRightSurface)
 	{
-		UpdateVisualTransform(0.0f);
+		UpdateCharacterRotation(0.0f);
 		return;
 	}
 
 	const float SlopeAngleDegrees = FMath::RadiansToDegrees(FMath::Atan2(RightSurfaceZ - LeftSurfaceZ, ProbeHalfWidth * 2.0f));
 	const float ClampedPitch = FMath::Clamp(SlopeAngleDegrees, -MaxBodySlopeVisualDegrees, MaxBodySlopeVisualDegrees);
-	UpdateVisualTransform(ClampedPitch);
+	UpdateCharacterRotation(ClampedPitch);
 }
 
 void AFortRogueBattleCharacter::ApplyTerrainGravity(float DeltaSeconds)
@@ -1497,17 +1494,13 @@ void AFortRogueBattleCharacter::SetFacingFromAxis(float Axis)
 	if (!FMath::IsNearlyZero(Axis))
 	{
 		bFacingRight = Axis > 0.0f;
-		UpdateVisualTransform(GetBodyPitchDegrees());
+		UpdateCharacterRotation(GetActorPitchDegrees());
 	}
 }
 
-void AFortRogueBattleCharacter::UpdateVisualTransform(float PitchDegrees)
+void AFortRogueBattleCharacter::UpdateCharacterRotation(float PitchDegrees)
 {
-	if (VisualRoot)
-	{
-		VisualRoot->SetRelativeRotation(FRotator(PitchDegrees, 0.0f, 0.0f));
-	}
-
+	SetActorRotation(FRotator(PitchDegrees, bFacingRight ? 0.0f : 180.0f, 0.0f));
 	UpdateBodySpriteTransform();
 }
 
@@ -1516,19 +1509,23 @@ void AFortRogueBattleCharacter::UpdateBodySpriteTransform()
 	if (BodySprite)
 	{
 		BodySprite->SetRelativeLocation(FVector(0.0f, 0.0f, -FootOffsetZ));
-		BodySprite->SetRelativeRotation(FRotator(0.0f, bFacingRight ? 0.0f : 180.0f, 0.0f));
+		BodySprite->SetRelativeRotation(FRotator::ZeroRotator);
 	}
 }
 
-float AFortRogueBattleCharacter::GetBodyPitchDegrees() const
+float AFortRogueBattleCharacter::GetActorPitchDegrees() const
 {
-	return VisualRoot ? VisualRoot->GetRelativeRotation().Pitch : 0.0f;
+	return GetActorRotation().Pitch;
 }
 
 FVector AFortRogueBattleCharacter::GetProjectileLaunchDirection(float SpreadDegrees) const
 {
 	const float RelativeAimDegrees = FMath::Clamp(AimAngle + SpreadDegrees, 5.0f, 90.0f);
-	const float WorldAngleDegrees = bFacingRight ? GetBodyPitchDegrees() + RelativeAimDegrees : GetBodyPitchDegrees() + 180.0f - RelativeAimDegrees;
+	const FRotator ActorRotation = GetActorRotation();
+	const bool bActorFacingLeft = FMath::IsNearlyEqual(FMath::Abs(FRotator::NormalizeAxis(ActorRotation.Yaw)), 180.0f);
+	const float WorldAngleDegrees = bActorFacingLeft
+		? ActorRotation.Pitch + 180.0f - RelativeAimDegrees
+		: ActorRotation.Pitch + RelativeAimDegrees;
 	const float WorldAngleRadians = FMath::DegreesToRadians(WorldAngleDegrees);
 	return FVector(FMath::Cos(WorldAngleRadians), 0.0f, FMath::Sin(WorldAngleRadians)).GetSafeNormal();
 }

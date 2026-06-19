@@ -16,7 +16,6 @@
 #include "Camera/CameraComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/PrimitiveComponent.h"
-#include "Components/SceneComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
@@ -1497,12 +1496,7 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	TestNotNull(TEXT("Battle character is spawned"), Character);
 	if (Character)
 	{
-		USceneComponent* VisualRoot = Cast<USceneComponent>(Character->GetDefaultSubobjectByName(TEXT("VisualRoot")));
-		TestNotNull(TEXT("Battle character visual root exists"), VisualRoot);
-		if (VisualRoot)
-		{
-			TestEqual(TEXT("Battle character visual root starts facing right"), VisualRoot->GetRelativeRotation(), FRotator::ZeroRotator);
-		}
+		TestEqual(TEXT("Battle character actor starts facing right"), Character->GetActorRotation(), FRotator::ZeroRotator);
 		if (UPrimitiveComponent* Body = Cast<UPrimitiveComponent>(Character->GetDefaultSubobjectByName(TEXT("Body"))))
 		{
 			TestEqual(TEXT("Battle character body does not use Unreal collision"), Body->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
@@ -1512,7 +1506,7 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		if (BodySprite)
 		{
 			TestEqual(TEXT("Battle character sprite does not use Unreal collision"), BodySprite->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
-			TestEqual(TEXT("Battle character sprite starts facing right"), BodySprite->GetRelativeRotation(), FRotator::ZeroRotator);
+			TestEqual(TEXT("Battle character sprite inherits actor facing"), BodySprite->GetRelativeRotation(), FRotator::ZeroRotator);
 			TestEqual(TEXT("Battle character sprite bottom is aligned to the character foot offset"), static_cast<float>(BodySprite->GetRelativeLocation().Z), -45.0f);
 		}
 		Character->SetTerrain(Terrain);
@@ -1847,13 +1841,10 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		}
 		const float ExhaustedCharacterX = ExhaustedTurnCharacter->GetActorLocation().X;
 		ExhaustedTurnCharacter->MoveHorizontal(-1.0f, 0.1f);
-		if (USceneComponent* ExhaustedTurnVisualRoot = Cast<USceneComponent>(ExhaustedTurnCharacter->GetDefaultSubobjectByName(TEXT("VisualRoot"))))
-		{
-			TestEqual(TEXT("Battle character visual root keeps facing yaw neutral"), static_cast<float>(ExhaustedTurnVisualRoot->GetRelativeRotation().Yaw), 0.0f);
-		}
+		TestEqual(TEXT("Battle character actor turns left when facing changes without movement"), static_cast<float>(FMath::Abs(FRotator::NormalizeAxis(ExhaustedTurnCharacter->GetActorRotation().Yaw))), 180.0f);
 		if (UPaperFlipbookComponent* ExhaustedTurnSprite = Cast<UPaperFlipbookComponent>(ExhaustedTurnCharacter->GetDefaultSubobjectByName(TEXT("BodySprite"))))
 		{
-			TestEqual(TEXT("Battle character sprite turns left when facing changes without movement"), static_cast<float>(FMath::Abs(FRotator::NormalizeAxis(ExhaustedTurnSprite->GetRelativeRotation().Yaw))), 180.0f);
+			TestEqual(TEXT("Battle character sprite stays local while actor turns left"), ExhaustedTurnSprite->GetRelativeRotation(), FRotator::ZeroRotator);
 		}
 		TestEqual(TEXT("Exhausted movement budget does not move the character"), static_cast<float>(ExhaustedTurnCharacter->GetActorLocation().X), ExhaustedCharacterX);
 		TestEqual(TEXT("Exhausted movement budget still leaves the budget at zero"), ExhaustedTurnCharacter->GetMoveBudget(), 0.0f);
@@ -1890,27 +1881,19 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	if (AimFacingCharacter && LeftAimTarget && RightAimTarget)
 	{
 		UPaperFlipbookComponent* AimFacingSprite = Cast<UPaperFlipbookComponent>(AimFacingCharacter->GetDefaultSubobjectByName(TEXT("BodySprite")));
-		USceneComponent* AimFacingVisualRoot = Cast<USceneComponent>(AimFacingCharacter->GetDefaultSubobjectByName(TEXT("VisualRoot")));
 		TestNotNull(TEXT("Aim-facing sprite component exists"), AimFacingSprite);
-		TestNotNull(TEXT("Aim-facing visual root exists"), AimFacingVisualRoot);
 		FFortRogueStageDifficultyData AimFacingDifficulty;
 		AimFacingCharacter->FireAtTarget(LeftAimTarget, AimFacingDifficulty);
-		if (AimFacingVisualRoot)
-		{
-			TestEqual(TEXT("Battle character visual root keeps yaw neutral when aim target is left"), static_cast<float>(AimFacingVisualRoot->GetRelativeRotation().Yaw), 0.0f);
-		}
+		TestEqual(TEXT("Battle character actor turns left when aim target is left"), static_cast<float>(FMath::Abs(FRotator::NormalizeAxis(AimFacingCharacter->GetActorRotation().Yaw))), 180.0f);
 		if (AimFacingSprite)
 		{
-			TestEqual(TEXT("Battle character sprite turns left when aim target is left"), static_cast<float>(FMath::Abs(FRotator::NormalizeAxis(AimFacingSprite->GetRelativeRotation().Yaw))), 180.0f);
+			TestEqual(TEXT("Battle character sprite stays local when actor turns left"), AimFacingSprite->GetRelativeRotation(), FRotator::ZeroRotator);
 		}
 		AimFacingCharacter->FireAtTarget(RightAimTarget, AimFacingDifficulty);
-		if (AimFacingVisualRoot)
-		{
-			TestEqual(TEXT("Battle character visual root keeps yaw neutral when aim target is right"), static_cast<float>(AimFacingVisualRoot->GetRelativeRotation().Yaw), 0.0f);
-		}
+		TestEqual(TEXT("Battle character actor turns right when aim target is right"), static_cast<float>(AimFacingCharacter->GetActorRotation().Yaw), 0.0f);
 		if (AimFacingSprite)
 		{
-			TestEqual(TEXT("Battle character sprite turns right when aim target is right"), AimFacingSprite->GetRelativeRotation(), FRotator::ZeroRotator);
+			TestEqual(TEXT("Battle character sprite stays local when actor turns right"), AimFacingSprite->GetRelativeRotation(), FRotator::ZeroRotator);
 		}
 	}
 
@@ -1942,6 +1925,7 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	TestNotNull(TEXT("Ramp battle character is spawned"), RampCharacter);
 	if (RampCharacter)
 	{
+		RampCharacter->AddWeaponDefinition(CreateTestWeaponDefinition(RampCharacter));
 		RampCharacter->SetTerrain(Terrain);
 		SetFloatProperty(RampCharacter, TEXT("FootProbeHalfWidth"), 0.0f);
 		SetFloatProperty(RampCharacter, TEXT("BodySlopeProbeHalfWidth"), 5.0f);
@@ -1950,16 +1934,31 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 		RampCharacter->MoveHorizontal(1.0f, 0.12f);
 		TestTrue(TEXT("Battle character climbs a traversable gentle slope"), RampCharacter->GetActorLocation().X > -70.0f && RampCharacter->GetActorLocation().Z >= 65.0f);
 		UStaticMeshComponent* RampBody = Cast<UStaticMeshComponent>(RampCharacter->GetDefaultSubobjectByName(TEXT("Body")));
-		USceneComponent* RampVisualRoot = Cast<USceneComponent>(RampCharacter->GetDefaultSubobjectByName(TEXT("VisualRoot")));
 		TestNotNull(TEXT("Ramp battle character body exists"), RampBody);
-		TestNotNull(TEXT("Ramp battle character visual root exists"), RampVisualRoot);
-		if (RampVisualRoot)
-		{
-			TestTrue(TEXT("Battle character visual root aligns to terrain slope"), RampVisualRoot->GetRelativeRotation().Pitch > 15.0f);
-		}
+		TestTrue(TEXT("Battle character actor aligns to terrain slope"), RampCharacter->GetActorRotation().Pitch > 15.0f);
 		if (RampBody)
 		{
-			TestEqual(TEXT("Battle character body keeps local rotation under visual root"), RampBody->GetRelativeRotation(), FRotator::ZeroRotator);
+			TestEqual(TEXT("Battle character body inherits actor terrain rotation"), RampBody->GetRelativeRotation(), FRotator::ZeroRotator);
+		}
+		const float RampPitch = RampCharacter->GetActorRotation().Pitch;
+		TestEqual(TEXT("Slope-aligned battle character fires from actor rotation"), RampCharacter->FireSelectedWeapon(), 1);
+		AFortRogueProjectile* RampProjectile = nullptr;
+		for (TActorIterator<AFortRogueProjectile> It(World); It; ++It)
+		{
+			if (It->GetOwner() == RampCharacter)
+			{
+				RampProjectile = *It;
+				break;
+			}
+		}
+		TestNotNull(TEXT("Slope-aligned battle character spawns a projectile"), RampProjectile);
+		if (RampProjectile)
+		{
+			const float ExpectedLaunchAngle = RampPitch + 45.0f;
+			const FVector ExpectedRampLaunchDirection(FMath::Cos(FMath::DegreesToRadians(ExpectedLaunchAngle)), 0.0f, FMath::Sin(FMath::DegreesToRadians(ExpectedLaunchAngle)));
+			const FVector ExpectedRampProjectileSpawnLocation = RampCharacter->GetActorLocation() + ExpectedRampLaunchDirection * 70.0f + FVector(0.0f, 0.0f, 35.0f);
+			TestTrue(TEXT("Slope-aligned projectile launch uses actor pitch"), RampProjectile->GetActorLocation().Equals(ExpectedRampProjectileSpawnLocation, 0.1));
+			RampProjectile->Destroy();
 		}
 	}
 

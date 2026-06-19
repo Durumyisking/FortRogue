@@ -355,9 +355,9 @@ private:
 	bool CheckFallDeath();
 	void SnapToTerrain();
 	void SetFacingFromAxis(float Axis);
-	void UpdateVisualTransform(float PitchDegrees);
+	void UpdateCharacterRotation(float PitchDegrees);
 	void UpdateBodySpriteTransform();
-	float GetBodyPitchDegrees() const;
+	float GetActorPitchDegrees() const;
 	FVector GetProjectileLaunchDirection(float SpreadDegrees) const;
 	FVector GetProjectileSpawnLocation(const FVector& LaunchDirection) const;
 	FFortRogueShotSpec BuildShotSpec(const FFortRogueWeaponSpec& Weapon) const;
@@ -367,9 +367,6 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue")
 	TObjectPtr<USceneComponent> Root;
-
-	UPROPERTY(VisibleAnywhere, Category = "FortRogue")
-	TObjectPtr<USceneComponent> VisualRoot;
 
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue")
 	TObjectPtr<UStaticMeshComponent> Body;
