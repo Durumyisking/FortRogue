@@ -59,7 +59,36 @@ modifier 적용 순서:
 각 `UFRProjectileEffectBase` 상속 클래스는 실행 로직과 자기 파라미터 검수를 함께 가진다. 새 효과를 추가할 때는 ShotModifier 필드를 늘리기보다 effect class와 params struct를 추가한다.
 `ShotModifier::ImpactSpawns`는 기존 호환 경로다. 에디터에서는 `Legacy Impact Spawns`로 표시되고 Advanced 영역에 들어간다. 새 데이터에서 분열탄을 만들 때는 `ProjectileEffects`의 Split effect를 우선 사용한다.
 
-## 3. ShotModifier 사용 예
+## 3. 새 Projectile Effect 클래스 추가 절차
+
+새 탄 능력은 `FFortRogueShotModifierSpec`에 새 전용 필드를 추가하지 않고, `UFRProjectileEffectBase` 상속 클래스로 만든다.
+
+추가 순서:
+
+1. `FFRProjectileEffectParameters`를 상속한 params struct를 만든다.
+2. params struct의 모든 편집 프로퍼티에 한글 `ToolTip`과 필요한 `ClampMin`, `ClampMax`, `Categories`를 붙인다.
+3. `UFRProjectileEffectBase`를 상속한 `UFRProjectileEffect...` 클래스를 만든다.
+4. `GetParameterStruct()`가 새 params struct의 `StaticStruct()`를 반환하게 한다.
+5. 발사 전 `ShotSpec` 값을 바꿔야 하면 `ApplyToShotSpec()`에 넣는다.
+6. 충돌 시 지형, 추가 투사체, 상태 변화를 만들면 `HandleImpact()`에 넣는다.
+7. 기본 지형 파괴/생성을 대체해야 하면 `UsesCustomTerrainImpact()`에서 `true`를 반환한다.
+8. 잘못된 데이터 입력은 `AddDataValidationIssues()`에서 한 줄 경고로 보고한다.
+9. `Source/FortRogue/Tests/FortRogueTerrainAutomationTests.cpp`에 params 보정, 데이터 검수, 런타임 효과 중 필요한 항목을 추가한다.
+
+명명 규칙:
+
+- 클래스 접두사는 긴 `FortRogue` 대신 `FR`을 사용한다. 예: `UFRProjectileEffectDrill`
+- params struct도 같은 이름을 따른다. 예: `FFRProjectileEffectDrillParams`
+- 에디터 표시명은 `UCLASS(meta = (DisplayName = "FR Projectile Effect ..."))`로 지정한다.
+
+금지 패턴:
+
+- 굴착탄, 지형 생성탄, 분열탄마다 `FFortRogueShotModifierSpec`에 새 필드를 추가하지 않는다.
+- effect class와 params struct가 맞지 않는 상태를 정상 데이터로 취급하지 않는다.
+- 새 `FGameplayTag` 편집 프로퍼티를 만들 때 `Categories` 없이 전체 태그 picker를 열지 않는다.
+- 단순 스탯 변화만 있는 효과는 먼저 기존 `DamageMultiplier`, `BlastRadiusMultiplier`, `LaunchSpeedMultiplier`, `GravityMultiplier`로 충분한지 확인한다.
+
+## 4. ShotModifier 사용 예
 
 낮은 각도 강화:
 
@@ -102,7 +131,7 @@ modifier 적용 순서:
 - 데이터 편집 UI에서 modifier 적용 가능 여부와 실패 이유를 미리 보여주려면 `DoesShotModifierMeetShotConditions()`와 `GetShotModifierConditionFailureSummary()`를 사용한다.
 - modifier 데이터 자체를 검수하려면 `ShotModifier.GetDataValidationSummary()` 또는 `UFortRogueRewardBlueprintLibrary::GetShotModifierDataValidationSummary()`를 사용한다. 표시 이름 누락, 실제 shot effect 없음, 뒤집힌 조준 범위, Required/Blocked shot tag 겹침, projectile effect class/params 불일치, effect별 파라미터 오류, projectile count가 0 이하인 impact spawn을 한 줄 경고로 보여준다.
 
-## 4. 분열탄과 ImpactSpawns 사용 예
+## 5. 분열탄과 ImpactSpawns 사용 예
 
 권장 분열탄:
 
@@ -137,7 +166,7 @@ modifier 적용 순서:
 
 런 보상이나 다음 발 아이템으로 분열 효과를 주고 싶다면 `ShotModifier::ProjectileEffects`의 Split effect를 우선 사용한다. `ShotModifier::ImpactSpawns`는 기존 데이터 호환이 필요할 때만 사용한다.
 
-## 5. 보상과 퍽
+## 6. 보상과 퍽
 
 런 진행 HUD는 `AFortRogueGameMode::GetRunProgressSummary()`로 현재 스테이지와 상태를 한 줄로 표시할 수 있다. UMG 전투 HUD에서는 `GetRunProgressSummary()`, `GetBattleState()`, `GetStatusText()`로 런 진행, 상태 enum, 상태 문구를 읽을 수 있다. PlayerController 경유 UI에서는 `GetCurrentBattleState()`, `GetCurrentStatusText()`를 사용한다.
 
@@ -202,7 +231,7 @@ UI나 블루프린트에서 현재 적용 여부를 확인할 때는 `GetGranted
 현재 누적된 전체 modifier 목록과 요약을 표시하려면 `GetGrantedShotModifiersForBlueprint()`, `GetGrantedShotModifiersSummary()`를 사용한다. PlayerController 경유 UI에서는 `GetPlayerGrantedShotModifiers()`, `GetPlayerGrantedShotModifiersSummary()`를 사용한다.
 UMG 전투 HUD에서는 `UFortRogueBattleHUDWidget::GetPlayerGrantedShotModifiers()`, `GetPlayerGrantedShotModifiersSummary()`로 현재 런 modifier 목록과 요약을 읽을 수 있다.
 
-## 6. 아이템과 AbilitySet
+## 7. 아이템과 AbilitySet
 
 아이템은 기존 enum 방식도 유지한다.
 
@@ -242,7 +271,7 @@ Canvas HUD도 현재 `ItemLoadout`의 아이템 이름과 수량을 표시한다
 - 다음 발에 쌓인 modifier 목록과 요약은 `GetPendingShotModifiersForBlueprint()`, `GetPendingShotModifiersSummary()`로 읽는다. PlayerController 경유 UI에서는 `GetPlayerPendingShotModifiers()`, `GetPlayerPendingShotModifiersSummary()`를 사용한다.
 - UMG 전투 HUD에서는 `UFortRogueBattleHUDWidget::GetPlayerPendingShotModifiers()`, `GetPlayerPendingShotModifiersSummary()`로 다음 발 modifier 목록과 요약을 읽을 수 있다.
 
-## 7. 주의할 점
+## 8. 주의할 점
 
 - 단순 스탯 보상만 늘리지 말고, 가능하면 `ShotModifiers`, `ProjectileEffects`, `AbilitySet`으로 플레이 방식이 바뀌게 만든다.
 - 포탄 물리, 충돌, 지형 마스크 수정은 아직 C++ 경로가 기준이다.
