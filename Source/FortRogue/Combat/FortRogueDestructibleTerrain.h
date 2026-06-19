@@ -39,25 +39,25 @@ public:
 	FVector GetEnemySpawnWorldLocation() const;
 	UTexture2D* GetRuntimeTerrainTexture() const;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Terrain")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Terrain", meta = (ToolTip = "이 액터가 사용할 지형 맵 데이터입니다. 지정하면 Width/Height/CellSize와 마스크를 맵 데이터에서 가져옵니다."))
 	TObjectPtr<UFortRogueTerrainMapDefinition> MapDefinition;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Terrain")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Terrain", meta = (ToolTip = "MapDefinition이 없을 때 생성할 기본 지형의 월드 가로 크기입니다."))
 	float Width = 2400.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Terrain")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Terrain", meta = (ToolTip = "MapDefinition이 없을 때 생성할 기본 지형의 월드 세로 크기입니다."))
 	float Height = 520.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Terrain")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Terrain", meta = (ToolTip = "MapDefinition이 없을 때 사용할 셀 크기입니다. 값이 작을수록 지형 해상도가 높아집니다."))
 	float CellSize = 1.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Projectile Bounds", meta = (ClampMin = "0.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Projectile Bounds", meta = (ClampMin = "0.0", ToolTip = "투사체가 지형 바깥으로 나갔다고 판단하기 전에 허용할 여유 거리입니다."))
 	float ProjectileBoundsPadding = 800.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Terrain|Rendering")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Terrain|Rendering", meta = (ToolTip = "런타임 지형 텍스처를 표시할 머티리얼입니다. 비워두면 인스턴스 메시 기반 fallback 렌더링을 사용합니다."))
 	TObjectPtr<UMaterialInterface> TextureTerrainMaterial;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Terrain|Rendering")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Terrain|Rendering", meta = (ToolTip = "TextureTerrainMaterial 안에서 런타임 지형 텍스처를 받을 파라미터 이름입니다."))
 	FName TextureParameterName = TEXT("TerrainTexture");
 
 private:

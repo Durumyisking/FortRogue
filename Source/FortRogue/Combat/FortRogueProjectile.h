@@ -48,7 +48,7 @@ private:
 	UPROPERTY()
 	TObjectPtr<AFortRogueDestructibleTerrain> AssignedTerrain;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Projectile|Lifetime", meta = (ClampMin = "0.1"))
+	UPROPERTY(EditDefaultsOnly, Category = "Projectile|Lifetime", meta = (ClampMin = "0.1", ToolTip = "충돌하지 않은 투사체가 자동으로 사라지기까지의 최대 시간입니다. 너무 길면 턴 종료가 늦어질 수 있습니다."))
 	float MaxLifeSeconds = 8.0f;
 
 	FVector Velocity = FVector::ZeroVector;
