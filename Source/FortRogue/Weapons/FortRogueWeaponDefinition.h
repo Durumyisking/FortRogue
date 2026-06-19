@@ -85,7 +85,7 @@ struct FFortRogueShotModifierSpec
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier", meta = (ToolTip = "이번 발사에서 추가로 생성할 투사체 수입니다. 음수 입력 시 최종 투사체 수는 최소 1개로 보정됩니다."))
 	int32 ProjectileCountBonus = 0;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Impact", meta = (TitleProperty = ProjectileCount, ToolTip = "충돌 후 추가 투사체를 생성하는 기존 분열 설정입니다. 새 효과 구조에서는 Split effect로 옮기는 것이 목표입니다."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Shot Modifier|Impact", meta = (DisplayName = "Legacy Impact Spawns", TitleProperty = ProjectileCount, ToolTip = "기존 호환용 분열 설정입니다. 새 modifier에서는 ProjectileEffects에 FR Projectile Effect Split을 추가하세요."))
 	TArray<FFortRogueImpactSpawnSpec> ImpactSpawns;
 
 	bool MeetsShotConditions(const FFortRogueShotSpec& CurrentShotSpec, float CurrentAimAngle, float Wind, bool bShotFacingRight) const;
@@ -115,7 +115,7 @@ struct FFortRogueWeaponSpec
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (TitleProperty = DisplayName, ToolTip = "이 무기에 항상 적용되는 modifier 목록입니다. 조건을 만족한 항목만 최종 ShotSpec에 반영됩니다."))
 	TArray<FFortRogueShotModifierSpec> ShotModifiers;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (TitleProperty = ProjectileCount, ToolTip = "무기 자체가 충돌 후 추가 투사체를 만들 때 사용하는 기존 분열 설정입니다."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, AdvancedDisplay, Category = "Weapon", meta = (DisplayName = "Legacy Impact Spawns", TitleProperty = ProjectileCount, ToolTip = "무기 자체가 충돌 후 추가 투사체를 만들 때 사용하는 기존 호환 설정입니다. 새 무기 데이터에서는 ShotModifiers의 ProjectileEffects에 FR Projectile Effect Split을 추가하세요."))
 	TArray<FFortRogueImpactSpawnSpec> ImpactSpawns;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (ToolTip = "기본 피해량입니다. 캐릭터 피해 보너스와 modifier가 이후 반영됩니다."))
