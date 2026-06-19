@@ -57,7 +57,7 @@ modifier 적용 순서:
 `ShotModifier`를 나중에 제거해야 하는 효과라면 `ModifierTag`에 고유 태그를 넣는다.
 `ShotModifier::ProjectileEffects`는 새 조립식 능력 경로다. `EffectClass`에 `UFRProjectileEffectBase` 상속 클래스를 고르면 DetailCustomization이 `Parameters`를 해당 effect가 요구하는 `FFRProjectileEffectParameters` 파생 구조체로 자동 보정한다.
 각 `UFRProjectileEffectBase` 상속 클래스는 실행 로직과 자기 파라미터 검수를 함께 가진다. 새 효과를 추가할 때는 ShotModifier 필드를 늘리기보다 effect class와 params struct를 추가한다.
-`ShotModifier::ImpactSpawns`는 기존 호환 경로다. 새 데이터에서 분열탄을 만들 때는 `ProjectileEffects`의 Split effect를 우선 사용한다.
+`ShotModifier::ImpactSpawns`는 기존 호환 경로다. 에디터에서는 `Legacy Impact Spawns`로 표시되고 Advanced 영역에 들어간다. 새 데이터에서 분열탄을 만들 때는 `ProjectileEffects`의 Split effect를 우선 사용한다.
 
 ## 3. ShotModifier 사용 예
 
@@ -111,6 +111,7 @@ modifier 적용 순서:
 - `ProjectileCount`, `SpreadDegrees`, `LaunchSpeed`로 child 탄 수와 퍼짐을 정한다.
 - `ChildShotModifiers`에 child 탄에 적용할 modifier를 넣는다.
 - 예를 들어 child 탄이 지형을 만들게 하려면 `ChildShotModifiers` 안에 `UFRProjectileEffectTerrainCreate`를 가진 modifier를 넣는다.
+- child 탄도 `ChildShotModifiers`에서 만들어진 `ProjectileEffects`를 그대로 들고 스폰된다. 따라서 child 탄에 Drill, TerrainCreate, 추가 Split 같은 효과를 다시 조립할 수 있다.
 - `UFRProjectileEffectSplit`은 ShotSpec에 `ShotEffect.SplitOnImpact` 태그를 자동 추가한다.
 
 기존 호환 분열탄:
@@ -124,9 +125,11 @@ modifier 적용 순서:
 - `TerrainCarveRadiusMultiplier = 0.5`
 - `ChildEffectTags`에 `ShotEffect.SplitOnImpact`
 
+기존 호환 분열탄은 에디터에서 `Legacy Impact Spawns`로 표시된다. child `ShotModifiers`나 `ProjectileEffects`를 조립할 수 없으므로 새 데이터에서는 권장하지 않는다.
+
 자식 탄이 지형을 만들게 하려면 `TerrainFillRadius`를 0보다 크게 설정한다. 이 값이 0이면 자식 탄은 `TerrainCarveRadiusMultiplier` 기준으로 지형을 판다.
 
-자식 탄은 기본적으로 다시 분열하지 않는다. 무한 분열을 막기 위해 `ImpactSpawns`를 자식에게 전달하지 않는다.
+기존 호환 `ImpactSpawns` 자식 탄은 기본적으로 다시 분열하지 않는다. 무한 분열을 막기 위해 `ImpactSpawns`를 자식에게 전달하지 않는다.
 
 런 보상이나 다음 발 아이템으로 분열 효과를 주고 싶다면 `ShotModifier::ProjectileEffects`의 Split effect를 우선 사용한다. `ShotModifier::ImpactSpawns`는 기존 데이터 호환이 필요할 때만 사용한다.
 
