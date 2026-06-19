@@ -1,6 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "Combat/FortRogueTerrainMapDefinition.h"
+#include "FRProjectileEffectSpecCustomization.h"
 #include "FortRogueSpriteFlipbookGenerator.h"
 #include "AssetImportTask.h"
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -19,6 +20,7 @@
 #include "PaperFlipbookFactory.h"
 #include "PaperSprite.h"
 #include "PaperSpriteFactory.h"
+#include "PropertyEditorModule.h"
 #include "PropertyCustomizationHelpers.h"
 #include "SpriteEditorOnlyTypes.h"
 #include "ToolMenus.h"
@@ -38,6 +40,7 @@ class SFortRogueTerrainMapEditor;
 namespace FortRogueEditor
 {
 static const FName TerrainMapEditorTabName(TEXT("FortRogueTerrainMapEditor"));
+static const FName ProjectileEffectSpecTypeName(TEXT("FRProjectileEffectSpec"));
 constexpr float DefaultSpawnClearance = 80.0f;
 constexpr int32 GeneratedSpriteSheetColumns = 4;
 constexpr int32 GeneratedSpriteSheetRows = 3;
@@ -1644,6 +1647,9 @@ public:
 		TerrainMapAssetTypeActions = MakeShared<FFortRogueTerrainMapAssetTypeActions>();
 		AssetToolsModule.Get().RegisterAssetTypeActions(TerrainMapAssetTypeActions.ToSharedRef());
 
+		FPropertyEditorModule& PropertyEditorModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		PropertyEditorModule.RegisterCustomPropertyTypeLayout(FortRogueEditor::ProjectileEffectSpecTypeName, FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FFRProjectileEffectSpecCustomization::MakeInstance));
+		PropertyEditorModule.NotifyCustomizationModuleChanged();
 	}
 
 	virtual void ShutdownModule() override
@@ -1656,6 +1662,13 @@ public:
 		TerrainMapAssetTypeActions.Reset();
 		FortRogueEditor::ActiveTerrainMapEditor.Reset();
 		FortRogueEditor::PendingTerrainMapAsset.Reset();
+
+		if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
+		{
+			FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
+			PropertyEditorModule.UnregisterCustomPropertyTypeLayout(FortRogueEditor::ProjectileEffectSpecTypeName);
+			PropertyEditorModule.NotifyCustomizationModuleChanged();
+		}
 
 		if (UObjectInitialized())
 		{
