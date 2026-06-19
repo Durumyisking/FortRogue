@@ -68,7 +68,7 @@ AFortRogueBattleCharacter::AFortRogueBattleCharacter()
 	BodySprite->SetupAttachment(Root);
 	BodySprite->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	BodySprite->SetVisibility(false);
-	BodySprite->SetRelativeRotation(FRotator(0.0f, 90.0f, 0.0f));
+	UpdateBodySpriteTransform();
 
 	AbilitySystemComponent = CreateDefaultSubobject<UFortRogueAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	CombatSet = CreateDefaultSubobject<UFortRogueCombatSet>(TEXT("CombatSet"));
@@ -85,6 +85,7 @@ void AFortRogueBattleCharacter::BeginPlay()
 	InitializeFromDefinition(CharacterDefinition);
 	EnsureDefaultLoadout();
 	GrantStartupAbilitySets();
+	UpdateBodySpriteTransform();
 	SnapToTerrain();
 }
 
@@ -150,6 +151,7 @@ void AFortRogueBattleCharacter::ConfigureAsEnemy(bool bNewEnemy)
 {
 	bEnemy = bNewEnemy;
 	bFacingRight = !bEnemy;
+	UpdateBodySpriteTransform();
 }
 
 void AFortRogueBattleCharacter::BeginTurn()
@@ -424,6 +426,7 @@ void AFortRogueBattleCharacter::FireAtTarget(AFortRogueBattleCharacter* Target, 
 
 	const FVector ToTarget = Target->GetActorLocation() - GetActorLocation();
 	bFacingRight = ToTarget.X >= 0.0f;
+	UpdateBodySpriteTransform();
 	const float AimArcHeight = FMath::Max(DifficultyData.MinAimArcHeight, FMath::Abs(ToTarget.Z) + DifficultyData.AimHeightOffset);
 	const float Distance = FMath::Max(1.0f, FMath::Abs(ToTarget.X));
 	const float AimError = DifficultyData.AimAngleErrorDegrees > 0.0f ? FMath::RandRange(-DifficultyData.AimAngleErrorDegrees, DifficultyData.AimAngleErrorDegrees) : 0.0f;
@@ -1491,7 +1494,19 @@ void AFortRogueBattleCharacter::SetFacingFromAxis(float Axis)
 	if (!FMath::IsNearlyZero(Axis))
 	{
 		bFacingRight = Axis > 0.0f;
+		UpdateBodySpriteTransform();
 	}
+}
+
+void AFortRogueBattleCharacter::UpdateBodySpriteTransform()
+{
+	if (!BodySprite)
+	{
+		return;
+	}
+
+	BodySprite->SetRelativeLocation(FVector(0.0f, 0.0f, -FootOffsetZ));
+	BodySprite->SetRelativeRotation(FRotator(0.0f, bFacingRight ? -90.0f : 180.0f, 0.0f));
 }
 
 float AFortRogueBattleCharacter::GetBodyPitchDegrees() const

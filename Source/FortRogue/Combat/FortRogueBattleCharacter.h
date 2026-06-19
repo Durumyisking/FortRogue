@@ -355,6 +355,7 @@ private:
 	bool CheckFallDeath();
 	void SnapToTerrain();
 	void SetFacingFromAxis(float Axis);
+	void UpdateBodySpriteTransform();
 	float GetBodyPitchDegrees() const;
 	FVector GetProjectileLaunchDirection(float SpreadDegrees) const;
 	FVector GetProjectileSpawnLocation(const FVector& LaunchDirection) const;
