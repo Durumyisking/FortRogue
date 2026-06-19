@@ -1501,6 +1501,8 @@ bool FFortRogueDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters
 	if (RuntimeSplitChildProjectile)
 	{
 		TestEqual(TEXT("Runtime split child projectile keeps child modifier effects"), RuntimeSplitChildProjectile->GetProjectileEffectCount(), 2);
+		TestTrue(TEXT("Runtime split child projectile keeps drill effect class"), RuntimeSplitChildProjectile->HasProjectileEffectClass(UFRProjectileEffectDrill::StaticClass()));
+		TestTrue(TEXT("Runtime split child projectile keeps terrain create effect class"), RuntimeSplitChildProjectile->HasProjectileEffectClass(UFRProjectileEffectTerrainCreate::StaticClass()));
 		RuntimeSplitChildProjectile->Destroy();
 	}
 

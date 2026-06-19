@@ -103,6 +103,23 @@ int32 AFortRogueProjectile::GetProjectileEffectCount() const
 	return ProjectileEffects.Num();
 }
 
+bool AFortRogueProjectile::HasProjectileEffectClass(TSubclassOf<UFRProjectileEffectBase> EffectClass) const
+{
+	if (!EffectClass)
+	{
+		return false;
+	}
+
+	for (const FFRProjectileEffectSpec& ProjectileEffect : ProjectileEffects)
+	{
+		if (ProjectileEffect.EffectClass == EffectClass)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 void AFortRogueProjectile::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
