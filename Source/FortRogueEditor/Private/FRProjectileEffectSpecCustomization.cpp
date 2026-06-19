@@ -71,7 +71,29 @@ void FFRProjectileEffectSpecCustomization::SyncParametersToEffectClass() const
 		return;
 	}
 
-	bool bChanged = false;
+	bool bNeedsChange = false;
+	for (void* RawEntry : RawData)
+	{
+		const FFRProjectileEffectSpec* EffectSpec = static_cast<const FFRProjectileEffectSpec*>(RawEntry);
+		if (!EffectSpec)
+		{
+			continue;
+		}
+
+		const UScriptStruct* ExpectedStruct = EffectSpec->GetExpectedParameterStruct();
+		if ((!ExpectedStruct && EffectSpec->Parameters.IsValid())
+			|| (ExpectedStruct && (!EffectSpec->Parameters.IsValid() || EffectSpec->Parameters.GetScriptStruct() != ExpectedStruct)))
+		{
+			bNeedsChange = true;
+			break;
+		}
+	}
+
+	if (!bNeedsChange)
+	{
+		return;
+	}
+
 	ParametersHandle->NotifyPreChange();
 	for (void* RawEntry : RawData)
 	{
@@ -84,29 +106,20 @@ void FFRProjectileEffectSpecCustomization::SyncParametersToEffectClass() const
 		const UScriptStruct* ExpectedStruct = EffectSpec->GetExpectedParameterStruct();
 		if (!ExpectedStruct)
 		{
-			if (EffectSpec->Parameters.IsValid())
-			{
-				EffectSpec->Parameters.Reset();
-				bChanged = true;
-			}
+			EffectSpec->Parameters.Reset();
 			continue;
 		}
 
 		if (!EffectSpec->Parameters.IsValid() || EffectSpec->Parameters.GetScriptStruct() != ExpectedStruct)
 		{
 			EffectSpec->Parameters.InitializeAs(ExpectedStruct);
-			bChanged = true;
 		}
 	}
-
-	if (bChanged)
+	ParametersHandle->NotifyPostChange(EPropertyChangeType::ValueSet);
+	ParametersHandle->NotifyFinishedChangingProperties();
+	if (PropertyUtilities.IsValid())
 	{
-		ParametersHandle->NotifyPostChange(EPropertyChangeType::ValueSet);
-		ParametersHandle->NotifyFinishedChangingProperties();
-		if (PropertyUtilities.IsValid())
-		{
-			PropertyUtilities->ForceRefresh();
-		}
+		PropertyUtilities->ForceRefresh();
 	}
 }
 
