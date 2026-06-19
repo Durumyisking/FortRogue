@@ -124,8 +124,8 @@ modifier 적용 순서:
 
 - `bUseAimAngleRange`는 현재 조준 각도가 범위 안일 때만 modifier를 적용한다.
 - `bRequireWindAligned`는 발사 방향과 바람 방향이 같을 때만 modifier를 적용한다.
-- `RequiredShotTags`가 있으면 현재 `ShotSpec.EffectTags`에 해당 태그가 하나 이상 있을 때만 적용된다.
-- `BlockedShotTags`가 있으면 현재 `ShotSpec.EffectTags`에 해당 태그가 하나라도 있을 때 적용되지 않는다.
+- `RequiredShotTags`가 있으면 현재 `ShotSpec.WeaponTag` 또는 `ShotSpec.EffectTags`에 해당 태그가 하나 이상 있을 때만 적용된다.
+- `BlockedShotTags`가 있으면 현재 `ShotSpec.WeaponTag` 또는 `ShotSpec.EffectTags`에 해당 태그가 하나라도 있을 때 적용되지 않는다.
 - 여러 조건을 같이 켜면 모두 만족해야 적용된다.
 - 태그 조건은 modifier 자신의 `EffectTags`를 붙이기 전에 검사한다.
 - 데이터 편집 UI에서 modifier 적용 가능 여부와 실패 이유를 미리 보여주려면 `DoesShotModifierMeetShotConditions()`와 `GetShotModifierConditionFailureSummary()`를 사용한다.

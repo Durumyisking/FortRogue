@@ -74,6 +74,16 @@ bool HasWeaponGameplayEffect(const FFortRogueWeaponSpec& Weapon)
 	}
 	return false;
 }
+
+FGameplayTagContainer BuildShotConditionTags(const FFortRogueShotSpec& ShotSpec)
+{
+	FGameplayTagContainer ShotConditionTags = ShotSpec.EffectTags;
+	if (ShotSpec.WeaponTag.IsValid())
+	{
+		ShotConditionTags.AddTag(ShotSpec.WeaponTag);
+	}
+	return ShotConditionTags;
+}
 }
 
 bool FFortRogueShotModifierSpec::MeetsShotConditions(const FFortRogueShotSpec& CurrentShotSpec, float CurrentAimAngle, float Wind, bool bShotFacingRight) const
@@ -95,11 +105,12 @@ bool FFortRogueShotModifierSpec::MeetsShotConditions(const FFortRogueShotSpec& C
 			return false;
 		}
 	}
-	if (!RequiredShotTags.IsEmpty() && !CurrentShotSpec.EffectTags.HasAny(RequiredShotTags))
+	const FGameplayTagContainer ShotConditionTags = BuildShotConditionTags(CurrentShotSpec);
+	if (!RequiredShotTags.IsEmpty() && !ShotConditionTags.HasAny(RequiredShotTags))
 	{
 		return false;
 	}
-	if (!BlockedShotTags.IsEmpty() && CurrentShotSpec.EffectTags.HasAny(BlockedShotTags))
+	if (!BlockedShotTags.IsEmpty() && ShotConditionTags.HasAny(BlockedShotTags))
 	{
 		return false;
 	}
@@ -125,11 +136,12 @@ FText FFortRogueShotModifierSpec::GetShotConditionFailureSummary(const FFortRogu
 			return FText::FromString(MinWindMagnitude > 0.0f ? FString::Printf(TEXT("requires aligned wind %.0f+"), MinWindMagnitude) : FString(TEXT("requires aligned wind")));
 		}
 	}
-	if (!RequiredShotTags.IsEmpty() && !CurrentShotSpec.EffectTags.HasAny(RequiredShotTags))
+	const FGameplayTagContainer ShotConditionTags = BuildShotConditionTags(CurrentShotSpec);
+	if (!RequiredShotTags.IsEmpty() && !ShotConditionTags.HasAny(RequiredShotTags))
 	{
 		return FText::FromString(FString::Printf(TEXT("requires shot tag %s"), *RequiredShotTags.ToStringSimple()));
 	}
-	if (!BlockedShotTags.IsEmpty() && CurrentShotSpec.EffectTags.HasAny(BlockedShotTags))
+	if (!BlockedShotTags.IsEmpty() && ShotConditionTags.HasAny(BlockedShotTags))
 	{
 		return FText::FromString(FString::Printf(TEXT("blocked by shot tag %s"), *BlockedShotTags.ToStringSimple()));
 	}
