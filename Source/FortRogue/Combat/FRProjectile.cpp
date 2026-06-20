@@ -65,7 +65,7 @@ AFRProjectile::AFRProjectile()
 	}
 }
 
-void AFRProjectile::InitializeProjectile(AFRBattleCharacter* InOwnerCharacter, AFRDestructibleTerrain* InTerrain, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity, float InTerrainCarveRadius, float InTerrainFillRadius, FGameplayTag InWeaponTag, FGameplayTagContainer InEffectTags, TArray<FFRProjectileEffectSpec> InProjectileEffects)
+void AFRProjectile::InitializeProjectile(AFRBattleCharacter* InOwnerCharacter, AFRDestructibleTerrain* InTerrain, const FVector& InVelocity, float InHitDamage, float InExplosionDamage, float InBlastRadius, float InExplosionFullDamageRadius, float InGravity, float InTerrainDamage, float InTerrainFillRadius, FGameplayTag InWeaponTag, FGameplayTagContainer InEffectTags, TArray<FFRProjectileEffectSpec> InProjectileEffects)
 {
 	OwnerCharacter = InOwnerCharacter;
 	AssignedTerrain = InTerrain;
@@ -73,9 +73,11 @@ void AFRProjectile::InitializeProjectile(AFRBattleCharacter* InOwnerCharacter, A
 	WeaponTag = InWeaponTag;
 	EffectTags = InEffectTags;
 	ProjectileEffects = MoveTemp(InProjectileEffects);
-	Damage = FMath::Max(0.0f, InDamage);
+	HitDamage = FMath::Max(0.0f, InHitDamage);
+	Damage = FMath::Max(0.0f, InExplosionDamage);
 	BlastRadius = FMath::Max(0.0f, InBlastRadius);
-	TerrainCarveRadius = InTerrainCarveRadius >= 0.0f ? FMath::Max(0.0f, InTerrainCarveRadius) : BlastRadius;
+	ExplosionFullDamageRadius = FMath::Clamp(InExplosionFullDamageRadius, 0.0f, BlastRadius);
+	TerrainDamage = FMath::Max(0.0f, InTerrainDamage);
 	TerrainFillRadius = FMath::Max(0.0f, InTerrainFillRadius);
 	Gravity = FMath::Max(0.0f, InGravity);
 }
@@ -86,10 +88,12 @@ void AFRProjectile::InitializeProjectileFromShotSpec(AFRBattleCharacter* InOwner
 		InOwnerCharacter,
 		InTerrain,
 		InVelocity,
+		ShotSpec.HitDamage,
 		ShotSpec.Damage,
 		ShotSpec.BlastRadius,
+		ShotSpec.ExplosionFullDamageRadius,
 		ShotSpec.Gravity,
-		ShotSpec.TerrainCarveRadius,
+		ShotSpec.TerrainDamage,
 		ShotSpec.TerrainFillRadius,
 		ShotSpec.WeaponTag,
 		ShotSpec.EffectTags,
@@ -141,8 +145,9 @@ void AFRProjectile::Tick(float DeltaSeconds)
 	bool bHasImpact = false;
 	float BestImpactAlpha = TNumericLimits<float>::Max();
 	FVector BestImpactLocation = NewLocation;
+	AFRBattleCharacter* BestDirectHitCharacter = nullptr;
 
-	auto ConsiderImpact = [&](const FVector& CandidateImpactLocation)
+	auto ConsiderImpact = [&](const FVector& CandidateImpactLocation, AFRBattleCharacter* DirectHitCharacter)
 	{
 		const float CandidateAlpha = GetSegmentAlphaXZ(OldLocation, NewLocation, CandidateImpactLocation);
 		if (!bHasImpact || CandidateAlpha < BestImpactAlpha)
@@ -150,6 +155,7 @@ void AFRProjectile::Tick(float DeltaSeconds)
 			bHasImpact = true;
 			BestImpactAlpha = CandidateAlpha;
 			BestImpactLocation = CandidateImpactLocation;
+			BestDirectHitCharacter = DirectHitCharacter;
 		}
 	};
 
@@ -158,7 +164,7 @@ void AFRProjectile::Tick(float DeltaSeconds)
 		FVector ImpactLocation = FVector::ZeroVector;
 		if (AssignedTerrain->FindFirstSolidAlongWorldSegment(OldLocation, NewLocation, ImpactLocation))
 		{
-			ConsiderImpact(ImpactLocation);
+			ConsiderImpact(ImpactLocation, nullptr);
 		}
 	}
 	else
@@ -168,7 +174,7 @@ void AFRProjectile::Tick(float DeltaSeconds)
 			FVector ImpactLocation = FVector::ZeroVector;
 			if (It->FindFirstSolidAlongWorldSegment(OldLocation, NewLocation, ImpactLocation))
 			{
-				ConsiderImpact(ImpactLocation);
+				ConsiderImpact(ImpactLocation, nullptr);
 			}
 		}
 	}
@@ -176,7 +182,7 @@ void AFRProjectile::Tick(float DeltaSeconds)
 	for (TActorIterator<AFRBattleCharacter> It(GetWorld()); It; ++It)
 	{
 		AFRBattleCharacter* Character = *It;
-		if (!Character || Character == OwnerCharacter || Character->IsDefeated())
+		if (!Character || Character->IsDefeated())
 		{
 			continue;
 		}
@@ -184,13 +190,13 @@ void AFRProjectile::Tick(float DeltaSeconds)
 		const FVector ClosestPoint = GetClosestPointOnSegmentXZ(OldLocation, NewLocation, Character->GetActorLocation());
 		if (GetDistanceSquaredXZ(Character->GetActorLocation(), ClosestPoint) <= FMath::Square(CharacterHitRadius))
 		{
-			ConsiderImpact(ClosestPoint);
+			ConsiderImpact(ClosestPoint, Character);
 		}
 	}
 
 	if (bHasImpact)
 	{
-		ResolveImpact(BestImpactLocation);
+		ResolveImpact(BestImpactLocation, BestDirectHitCharacter);
 		return;
 	}
 
@@ -267,7 +273,7 @@ void AFRProjectile::ApplyHoming(float DeltaSeconds)
 	Velocity = FMath::Lerp(CurrentDirection, DesiredDirection, Alpha).GetSafeNormal() * Speed;
 }
 
-void AFRProjectile::ResolveImpact(const FVector& ImpactLocation)
+void AFRProjectile::ResolveImpact(const FVector& ImpactLocation, AFRBattleCharacter* DirectHitCharacter)
 {
 	if (bResolved)
 	{
@@ -292,17 +298,21 @@ void AFRProjectile::ResolveImpact(const FVector& ImpactLocation)
 		}
 
 		const float Distance = GetDistanceXZ(Character->GetActorLocation(), ImpactLocation);
-		if (BlastRadius <= KINDA_SMALL_NUMBER)
+		float TotalDamage = 0.0f;
+		if (Character == DirectHitCharacter)
 		{
-			if (Distance <= CharacterHitRadius)
-			{
-				Character->ApplyDamage(Damage);
-			}
+			TotalDamage += HitDamage;
 		}
-		else if (Distance <= BlastRadius)
+
+		const float ExplosionDamage = CalculateExplosionDamage(Distance);
+		if (ExplosionDamage > 0.0f)
 		{
-			const float Falloff = 1.0f - FMath::Clamp(Distance / BlastRadius, 0.0f, 1.0f);
-			Character->ApplyDamage(Damage * FMath::Max(0.25f, Falloff));
+			TotalDamage += ExplosionDamage;
+		}
+
+		if (TotalDamage > 0.0f)
+		{
+			Character->ApplyDamage(TotalDamage);
 		}
 
 		Character->ReevaluateTerrainSupport();
@@ -324,9 +334,9 @@ void AFRProjectile::ApplyDefaultTerrainImpact(const FVector& ImpactLocation)
 		{
 			AssignedTerrain->FillCircle(ImpactLocation, TerrainFillRadius);
 		}
-		else
+		else if (TerrainDamage > 0.0f)
 		{
-			AssignedTerrain->CarveCircle(ImpactLocation, TerrainCarveRadius);
+			AssignedTerrain->CarveCircle(ImpactLocation, TerrainDamage);
 		}
 		return;
 	}
@@ -337,11 +347,28 @@ void AFRProjectile::ApplyDefaultTerrainImpact(const FVector& ImpactLocation)
 		{
 			It->FillCircle(ImpactLocation, TerrainFillRadius);
 		}
-		else
+		else if (TerrainDamage > 0.0f)
 		{
-			It->CarveCircle(ImpactLocation, TerrainCarveRadius);
+			It->CarveCircle(ImpactLocation, TerrainDamage);
 		}
 	}
+}
+
+float AFRProjectile::CalculateExplosionDamage(float Distance) const
+{
+	if (Damage <= 0.0f || BlastRadius <= 0.0f || Distance > BlastRadius)
+	{
+		return 0.0f;
+	}
+
+	if (Distance <= ExplosionFullDamageRadius || ExplosionFullDamageRadius >= BlastRadius)
+	{
+		return Damage;
+	}
+
+	const float FalloffRange = FMath::Max(KINDA_SMALL_NUMBER, BlastRadius - ExplosionFullDamageRadius);
+	const float FalloffAlpha = FMath::Clamp((Distance - ExplosionFullDamageRadius) / FalloffRange, 0.0f, 1.0f);
+	return FMath::Lerp(Damage, 0.0f, FalloffAlpha);
 }
 
 void AFRProjectile::ApplyProjectileEffects(const FVector& ImpactLocation)
@@ -360,9 +387,11 @@ void AFRProjectile::ApplyProjectileEffects(const FVector& ImpactLocation)
 	Context.Velocity = Velocity;
 	Context.WeaponTag = WeaponTag;
 	Context.EffectTags = EffectTags;
+	Context.HitDamage = HitDamage;
 	Context.Damage = Damage;
 	Context.BlastRadius = BlastRadius;
-	Context.TerrainCarveRadius = TerrainCarveRadius;
+	Context.ExplosionFullDamageRadius = ExplosionFullDamageRadius;
+	Context.TerrainDamage = TerrainDamage;
 	Context.TerrainFillRadius = TerrainFillRadius;
 	Context.Gravity = Gravity;
 

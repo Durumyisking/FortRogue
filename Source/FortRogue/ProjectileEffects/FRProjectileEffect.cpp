@@ -165,19 +165,19 @@ void UFRProjectileEffectDrill::ApplyToShotSpec(const FFRProjectileEffectSpec& Ef
 {
 	const FFRProjectileEffectDrillParams& Params = EffectSpec.GetParametersOrDefault<FFRProjectileEffectDrillParams>();
 	ShotSpec.EffectTags.AddTag(FRGameplayTags::ShotEffect_Drill);
-	ShotSpec.TerrainCarveRadius = FMath::Max(0.0f, (ShotSpec.TerrainCarveRadius + Params.RadiusBonus) * Params.RadiusMultiplier);
+	ShotSpec.TerrainDamage = FMath::Max(0.0f, (ShotSpec.TerrainDamage + Params.RadiusBonus) * Params.RadiusMultiplier);
 }
 
 void UFRProjectileEffectDrill::HandleImpact(const FFRProjectileEffectSpec& EffectSpec, const FFRProjectileEffectImpactContext& Context) const
 {
-	if (Context.TerrainCarveRadius <= 0.0f)
+	if (Context.TerrainDamage <= 0.0f)
 	{
 		return;
 	}
 
 	ApplyToImpactTerrain(Context, [&Context](AFRDestructibleTerrain& Terrain)
 	{
-		Terrain.CarveCircle(Context.ImpactLocation, Context.TerrainCarveRadius);
+		Terrain.CarveCircle(Context.ImpactLocation, Context.TerrainDamage);
 	});
 }
 

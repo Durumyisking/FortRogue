@@ -1234,8 +1234,11 @@ const FFRWeaponSpec& AFRBattleCharacter::GetCurrentWeapon() const
 		FFRWeaponSpec Weapon;
 		Weapon.DisplayName = FText::FromString(TEXT("No Weapon"));
 		Weapon.Description = FText::GetEmpty();
+		Weapon.HitDamage = 0.0f;
 		Weapon.Damage = 0.0f;
 		Weapon.BlastRadius = 0.0f;
+		Weapon.ExplosionFullDamageRadius = 0.0f;
+		Weapon.TerrainDamage = 0.0f;
 		Weapon.ProjectileSpeed = 0.0f;
 		Weapon.Gravity = 0.0f;
 		Weapon.ProjectilesPerShot = 0;
@@ -1259,11 +1262,12 @@ FText AFRBattleCharacter::GetCurrentShotSummary() const
 	const FFRShotSpec ShotSpec = GetCurrentShotSpec();
 	const bool bFillsTerrain = ShotSpec.TerrainFillRadius > 0.0f;
 
-	return FText::FromString(FString::Printf(TEXT("Shot Dmg %.0f | Blast %.0f | %s %.0f | Projectiles %d"),
+	return FText::FromString(FString::Printf(TEXT("Hit %.0f | Blast Dmg %.0f | Blast %.0f | %s %.0f | Projectiles %d"),
+		ShotSpec.HitDamage,
 		ShotSpec.Damage,
 		ShotSpec.BlastRadius,
 		bFillsTerrain ? TEXT("Fill") : TEXT("Carve"),
-		bFillsTerrain ? ShotSpec.TerrainFillRadius : ShotSpec.TerrainCarveRadius,
+		bFillsTerrain ? ShotSpec.TerrainFillRadius : ShotSpec.TerrainDamage,
 		ShotSpec.ProjectileCount));
 }
 
@@ -1605,9 +1609,11 @@ FFRShotSpec AFRBattleCharacter::BuildShotSpec(const FFRWeaponSpec& Weapon) const
 	{
 		ShotSpec.EffectTags.AddTag(Weapon.WeaponTag);
 	}
+	ShotSpec.HitDamage = FMath::Max(0.0f, Weapon.HitDamage * PendingAttackMultiplier);
 	ShotSpec.Damage = FMath::Max(0.0f, (Weapon.Damage + CombatSet->GetDamage()) * PendingAttackMultiplier);
 	ShotSpec.BlastRadius = FMath::Max(0.0f, Weapon.BlastRadius);
-	ShotSpec.TerrainCarveRadius = ShotSpec.BlastRadius;
+	ShotSpec.ExplosionFullDamageRadius = FMath::Clamp(Weapon.ExplosionFullDamageRadius, 0.0f, ShotSpec.BlastRadius);
+	ShotSpec.TerrainDamage = FMath::Max(0.0f, Weapon.TerrainDamage);
 	ShotSpec.TerrainFillRadius = 0.0f;
 	ShotSpec.LaunchSpeed = FMath::Max(0.0f, Weapon.ProjectileSpeed * ShotPower * CombatSet->GetShotPowerMultiplier());
 	ShotSpec.Gravity = FMath::Max(0.0f, Weapon.Gravity);

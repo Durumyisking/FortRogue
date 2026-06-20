@@ -93,11 +93,20 @@ struct FFRWeaponSpec
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Projectile Effect", meta = (TitleProperty = EffectClass, ToolTip = "이 무기의 기본 투사체 효과입니다. 굴착탄, 지형생성탄, 분열탄처럼 탄 자체의 정체성을 만드는 효과만 설정하고 런 성장용 수치 보정은 Reward, Perk, Character 쪽 ShotModifiers에 설정하세요."))
 	TArray<FFRProjectileEffectSpec> ProjectileEffects;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (ToolTip = "기본 피해량입니다. 캐릭터 피해 보너스와 modifier가 이후 반영됩니다."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (ClampMin = "0.0", ToolTip = "투사체가 캐릭터에게 직접 닿았을 때 주는 기본 명중 피해량입니다."))
+	float HitDamage = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (DisplayName = "Explosion Damage", ToolTip = "기본 폭발 피해량입니다. 캐릭터 피해 보너스와 modifier가 이후 반영됩니다."))
 	float Damage = 35.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (ToolTip = "기본 폭발 반경입니다. 지형 파괴 반경의 기본값으로도 사용됩니다."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (ToolTip = "기본 폭발 바깥 반경입니다."))
 	float BlastRadius = 150.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (ClampMin = "0.0", ToolTip = "충돌 지점부터 이 반경까지는 폭발 피해가 100% 적용되고, 여기서 BlastRadius까지 0으로 선형 감소합니다."))
+	float ExplosionFullDamageRadius = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (ClampMin = "0.0", ToolTip = "충돌 지점에서 지형을 파내는 기본 반경입니다. 0이면 기본 지형 파괴가 일어나지 않습니다."))
+	float TerrainDamage = 150.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (ToolTip = "기본 발사 속도입니다. 실제 발사 속도는 파워와 샷 파워 배율을 곱해 결정됩니다."))
 	float ProjectileSpeed = 1200.0f;

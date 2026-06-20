@@ -36,8 +36,10 @@ void AddWeaponValidationIssue(TArray<FString>& Issues, const FString& Issue)
 
 bool HasWeaponGameplayEffect(const FFRWeaponSpec& Weapon)
 {
-	return Weapon.Damage > 0.0f
+	return Weapon.HitDamage > 0.0f
+		|| Weapon.Damage > 0.0f
 		|| Weapon.BlastRadius > 0.0f
+		|| Weapon.TerrainDamage > 0.0f
 		|| HasShotModifierProjectileEffect(Weapon.ProjectileEffects);
 }
 
@@ -119,6 +121,7 @@ void FFRShotModifierSpec::ApplyToShotSpec(FFRShotSpec& ShotSpec) const
 	ShotSpec.EffectTags.AppendTags(EffectTags);
 	ShotSpec.Damage = FMath::Max(0.0f, (ShotSpec.Damage + DamageBonus) * DamageMultiplier);
 	ShotSpec.BlastRadius = FMath::Max(0.0f, (ShotSpec.BlastRadius + BlastRadiusBonus) * BlastRadiusMultiplier);
+	ShotSpec.ExplosionFullDamageRadius = FMath::Clamp(ShotSpec.ExplosionFullDamageRadius, 0.0f, ShotSpec.BlastRadius);
 	ShotSpec.LaunchSpeed = FMath::Max(0.0f, ShotSpec.LaunchSpeed * LaunchSpeedMultiplier);
 	ShotSpec.Gravity = FMath::Max(0.0f, ShotSpec.Gravity * GravityMultiplier);
 	ShotSpec.ProjectileCount = FMath::Max(1, ShotSpec.ProjectileCount + ProjectileCountBonus);

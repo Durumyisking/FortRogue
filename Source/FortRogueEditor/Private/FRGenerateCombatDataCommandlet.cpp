@@ -105,6 +105,8 @@ void ConfigureWeapon(UFRWeaponDefinition* WeaponDefinition, const FText& Display
 	WeaponDefinition->Weapon.WeaponTag = WeaponTag;
 	WeaponDefinition->Weapon.Damage = Damage;
 	WeaponDefinition->Weapon.BlastRadius = BlastRadius;
+	WeaponDefinition->Weapon.ExplosionFullDamageRadius = 0.0f;
+	WeaponDefinition->Weapon.TerrainDamage = BlastRadius;
 	WeaponDefinition->Weapon.ProjectileSpeed = 1200.0f;
 	WeaponDefinition->Weapon.Gravity = 980.0f;
 	WeaponDefinition->Weapon.ProjectilesPerShot = FMath::Max(1, ProjectilesPerShot);

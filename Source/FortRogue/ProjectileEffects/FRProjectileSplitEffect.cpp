@@ -36,9 +36,11 @@ void UFRProjectileEffectSplit::HandleImpact(const FFRProjectileEffectSpec& Effec
 	BaseChildShotSpec.WeaponTag = Context.WeaponTag;
 	BaseChildShotSpec.EffectTags = Context.EffectTags;
 	BaseChildShotSpec.EffectTags.AppendTags(Params.ChildEffectTags);
+	BaseChildShotSpec.HitDamage = FMath::Max(0.0f, Context.HitDamage * Params.DamageMultiplier);
 	BaseChildShotSpec.Damage = FMath::Max(0.0f, Context.Damage * Params.DamageMultiplier);
 	BaseChildShotSpec.BlastRadius = FMath::Max(0.0f, Context.BlastRadius * Params.BlastRadiusMultiplier);
-	BaseChildShotSpec.TerrainCarveRadius = FMath::Max(0.0f, Context.TerrainCarveRadius * Params.TerrainCarveRadiusMultiplier);
+	BaseChildShotSpec.ExplosionFullDamageRadius = FMath::Clamp(Context.ExplosionFullDamageRadius * Params.BlastRadiusMultiplier, 0.0f, BaseChildShotSpec.BlastRadius);
+	BaseChildShotSpec.TerrainDamage = FMath::Max(0.0f, Context.TerrainDamage * Params.TerrainCarveRadiusMultiplier);
 	BaseChildShotSpec.TerrainFillRadius = FMath::Max(0.0f, Params.TerrainFillRadius);
 	BaseChildShotSpec.LaunchSpeed = FMath::Max(0.0f, Params.LaunchSpeed);
 	BaseChildShotSpec.Gravity = FMath::Max(0.0f, Context.Gravity * Params.GravityMultiplier);

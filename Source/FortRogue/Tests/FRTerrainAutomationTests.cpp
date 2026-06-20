@@ -43,8 +43,11 @@ UFRWeaponDefinition* CreateTestWeaponDefinition(UObject* Outer)
 {
 	UFRWeaponDefinition* WeaponDefinition = NewObject<UFRWeaponDefinition>(Outer);
 	WeaponDefinition->Weapon.DisplayName = FText::FromString(TEXT("Test Shell"));
+	WeaponDefinition->Weapon.HitDamage = 0.0f;
 	WeaponDefinition->Weapon.Damage = 35.0f;
 	WeaponDefinition->Weapon.BlastRadius = 145.0f;
+	WeaponDefinition->Weapon.ExplosionFullDamageRadius = 0.0f;
+	WeaponDefinition->Weapon.TerrainDamage = 145.0f;
 	WeaponDefinition->Weapon.ProjectileSpeed = 1180.0f;
 	WeaponDefinition->Weapon.ProjectilesPerShot = 1;
 	return WeaponDefinition;
@@ -519,12 +522,12 @@ bool FFRTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	TerrainCreateEffect.EffectClass = UFRProjectileEffectTerrainCreate::StaticClass();
 	TerrainCreateEffect.Parameters = FInstancedStruct::Make(TerrainCreateParams);
 	FFRShotSpec EffectShotSpec;
-	EffectShotSpec.TerrainCarveRadius = 100.0f;
+	EffectShotSpec.TerrainDamage = 100.0f;
 	DrillEffect.ApplyToShotSpec(EffectShotSpec);
 	TerrainCreateEffect.ApplyToShotSpec(EffectShotSpec);
 	TestTrue(TEXT("Projectile effect CDO adds drill tags"), EffectShotSpec.EffectTags.HasTagExact(FRGameplayTags::ShotEffect_Drill));
 	TestTrue(TEXT("Projectile effect CDO adds terrain create tags"), EffectShotSpec.EffectTags.HasTagExact(FRGameplayTags::ShotEffect_TerrainCreate));
-	TestEqual(TEXT("Projectile drill effect updates terrain carve radius"), EffectShotSpec.TerrainCarveRadius, 125.0f);
+	TestEqual(TEXT("Projectile drill effect updates terrain damage radius"), EffectShotSpec.TerrainDamage, 125.0f);
 	TestEqual(TEXT("Projectile terrain create effect updates terrain fill radius"), EffectShotSpec.TerrainFillRadius, 60.0f);
 	FFRShotModifierSpec EffectModifierData;
 	EffectModifierData.ProjectileEffects.Add(DrillEffect);
@@ -661,13 +664,16 @@ bool FFRTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Blueprint helper summarizes weapon assets"), UFRRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("weapon Fork Shell")));
 	TestTrue(TEXT("Blueprint helper summarizes weapon descriptions"), UFRRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("Splits the battlefield.")));
 	TestTrue(TEXT("Blueprint helper summarizes weapon tags"), UFRRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("tag Weapon.Shell")));
-	TestTrue(TEXT("Blueprint helper summarizes weapon base damage"), UFRRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("damage 35")));
+	TestTrue(TEXT("Blueprint helper summarizes weapon base damage"), UFRRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("explosion damage 35")));
 	TestTrue(TEXT("Blueprint helper summarizes weapon blast radius"), UFRRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("blast 150")));
+	TestTrue(TEXT("Blueprint helper summarizes weapon terrain damage"), UFRRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("terrain damage 150")));
 	TestTrue(TEXT("Blueprint helper summarizes weapon projectile effects"), UFRRewardBlueprintLibrary::GetWeaponEffectSummary(SummaryWeapon).ToString().Contains(TEXT("projectile effect")));
 	UFRWeaponDefinition* InvalidWeaponData = NewObject<UFRWeaponDefinition>();
 	InvalidWeaponData->Weapon.DisplayName = FText::GetEmpty();
+	InvalidWeaponData->Weapon.HitDamage = 0.0f;
 	InvalidWeaponData->Weapon.Damage = 0.0f;
 	InvalidWeaponData->Weapon.BlastRadius = 0.0f;
+	InvalidWeaponData->Weapon.TerrainDamage = 0.0f;
 	InvalidWeaponData->Weapon.ProjectileSpeed = 0.0f;
 	InvalidWeaponData->Weapon.ProjectilesPerShot = 0;
 	InvalidWeaponData->Weapon.ProjectileEffects.AddDefaulted();
@@ -1275,7 +1281,7 @@ bool FFRTerrainGameModeMapDefinitionTest::RunTest(const FString& Parameters)
 	TestNotNull(TEXT("Wind test projectile is spawned"), WindProjectile);
 	if (WindProjectile)
 	{
-		WindProjectile->InitializeProjectile(nullptr, nullptr, FVector::ZeroVector, 0.0f, 0.0f, 0.0f);
+		WindProjectile->InitializeProjectile(nullptr, nullptr, FVector::ZeroVector, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
 		WindProjectile->Tick(0.5f);
 		TestEqual(TEXT("Projectile drift follows the current wind acceleration"), static_cast<float>(WindProjectile->GetActorLocation().X), 30.0f);
 	}
@@ -1984,22 +1990,28 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		const FFRShotSpec DrillWeaponShotSpec = StatCharacter->GetCurrentShotSpec();
 		TestTrue(TEXT("Weapon projectile effects add shot tags"), DrillWeaponShotSpec.EffectTags.HasTagExact(FRGameplayTags::ShotEffect_Drill));
 		TestEqual(TEXT("Weapon projectile effects are carried into shot spec"), DrillWeaponShotSpec.ProjectileEffects.Num(), 1);
-		TestEqual(TEXT("Weapon projectile effects can adjust terrain carve radius"), DrillWeaponShotSpec.TerrainCarveRadius, 175.0f);
+		TestEqual(TEXT("Weapon projectile effects can adjust terrain damage radius"), DrillWeaponShotSpec.TerrainDamage, 170.0f);
 		UFRWeaponDefinition* UnsafeWeapon = CreateTestWeaponDefinition(StatCharacter);
+		UnsafeWeapon->Weapon.HitDamage = -10.0f;
 		UnsafeWeapon->Weapon.Damage = -100.0f;
 		UnsafeWeapon->Weapon.BlastRadius = -20.0f;
+		UnsafeWeapon->Weapon.ExplosionFullDamageRadius = -5.0f;
+		UnsafeWeapon->Weapon.TerrainDamage = -30.0f;
 		UnsafeWeapon->Weapon.ProjectileSpeed = -500.0f;
 		UnsafeWeapon->Weapon.Gravity = -980.0f;
 		StatCharacter->AddWeaponDefinition(UnsafeWeapon);
 		StatCharacter->SelectWeapon(StatCharacter->GetWeaponLoadout().Num() - 1);
 		const FFRShotSpec UnsafeShotSpec = StatCharacter->GetCurrentShotSpec();
-		TestEqual(TEXT("Shot spec clamps negative weapon damage"), UnsafeShotSpec.Damage, 0.0f);
+		TestEqual(TEXT("Shot spec clamps negative hit damage"), UnsafeShotSpec.HitDamage, 0.0f);
+		TestEqual(TEXT("Shot spec clamps negative weapon explosion damage"), UnsafeShotSpec.Damage, 0.0f);
 		TestEqual(TEXT("Shot spec clamps negative blast radius"), UnsafeShotSpec.BlastRadius, 0.0f);
-		TestEqual(TEXT("Shot spec clamps negative terrain carve radius"), UnsafeShotSpec.TerrainCarveRadius, 0.0f);
+		TestEqual(TEXT("Shot spec clamps negative explosion full damage radius"), UnsafeShotSpec.ExplosionFullDamageRadius, 0.0f);
+		TestEqual(TEXT("Shot spec clamps negative terrain damage"), UnsafeShotSpec.TerrainDamage, 0.0f);
 		TestEqual(TEXT("Shot spec clamps negative launch speed"), UnsafeShotSpec.LaunchSpeed, 0.0f);
 		TestEqual(TEXT("Shot spec clamps negative gravity"), UnsafeShotSpec.Gravity, 0.0f);
 		const FString CurrentShotSummary = StatCharacter->GetCurrentShotSummary().ToString();
-		TestTrue(TEXT("Battle character shot summary includes damage"), CurrentShotSummary.Contains(TEXT("Shot Dmg 0")));
+		TestTrue(TEXT("Battle character shot summary includes hit damage"), CurrentShotSummary.Contains(TEXT("Hit 0")));
+		TestTrue(TEXT("Battle character shot summary includes explosion damage"), CurrentShotSummary.Contains(TEXT("Blast Dmg 0")));
 		TestTrue(TEXT("Battle character shot summary includes blast radius"), CurrentShotSummary.Contains(TEXT("Blast 0")));
 		TestTrue(TEXT("Battle character shot summary includes projectile count"), CurrentShotSummary.Contains(TEXT("Projectiles 2")));
 		UFRItemDefinition* PendingModifierItem = NewObject<UFRItemDefinition>(StatCharacter);
@@ -2252,10 +2264,27 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 			TestNotNull(TEXT("Fast character projectile is spawned"), FastCharacterProjectile);
 			if (FastCharacterProjectile)
 			{
-				FastCharacterProjectile->InitializeProjectile(nullptr, FastProjectileTerrain, FVector(1940.0f, 0.0f, 0.0f), 20.0f, 12.0f, 0.0f);
+				FastCharacterProjectile->InitializeProjectile(nullptr, FastProjectileTerrain, FVector(1940.0f, 0.0f, 0.0f), 20.0f, 30.0f, 50.0f, 20.0f, 0.0f);
 				FastCharacterProjectile->Tick(0.1f);
-				TestTrue(TEXT("Fast projectile hits the character in the X/Z gameplay plane before later terrain"), FastProjectileTarget->GetHealth() < TargetHealthBeforeHit);
+				TestEqual(TEXT("Direct hit applies hit plus full explosion damage"), FastProjectileTarget->GetHealth(), TargetHealthBeforeHit - 50.0f);
 				TestTrue(TEXT("Later terrain remains solid when the earlier character is hit"), FastProjectileTerrain->IsSolidAtWorldLocation(FVector(305.0f, 0.0f, 35.0f)));
+			}
+		}
+
+		AFRBattleCharacter* ExplosionFalloffTarget = World->SpawnActor<AFRBattleCharacter>(AFRBattleCharacter::StaticClass(), FVector(340.0f, 500.0f, 35.0f), FRotator::ZeroRotator, SpawnParams);
+		TestNotNull(TEXT("Explosion falloff target is spawned behind the wall"), ExplosionFalloffTarget);
+		if (ExplosionFalloffTarget)
+		{
+			ExplosionFalloffTarget->SetActorLocation(FVector(340.0f, 500.0f, 35.0f));
+			const float TargetHealthBeforeExplosion = ExplosionFalloffTarget->GetHealth();
+			AFRProjectile* ExplosionFalloffProjectile = World->SpawnActor<AFRProjectile>(AFRProjectile::StaticClass(), FVector(203.0f, 0.0f, 35.0f), FRotator::ZeroRotator, SpawnParams);
+			TestNotNull(TEXT("Explosion falloff projectile is spawned"), ExplosionFalloffProjectile);
+			if (ExplosionFalloffProjectile)
+			{
+				ExplosionFalloffProjectile->InitializeProjectile(nullptr, FastProjectileTerrain, FVector(1940.0f, 0.0f, 0.0f), 0.0f, 80.0f, 100.0f, 25.0f, 0.0f);
+				ExplosionFalloffProjectile->Tick(0.1f);
+				TestTrue(TEXT("Explosion damage falls off from full radius to the blast edge"), FMath::IsNearlyEqual(ExplosionFalloffTarget->GetHealth(), TargetHealthBeforeExplosion - 64.0f, 0.1f));
+				TestTrue(TEXT("Zero terrain damage leaves impacted terrain intact"), FastProjectileTerrain->IsSolidAtWorldLocation(FVector(305.0f, 0.0f, 35.0f)));
 			}
 		}
 
@@ -2269,7 +2298,7 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 			TestNotNull(TEXT("Zero-radius direct-hit projectile is spawned"), ZeroRadiusProjectile);
 			if (ZeroRadiusProjectile)
 			{
-				ZeroRadiusProjectile->InitializeProjectile(nullptr, FastProjectileTerrain, FVector(740.0f, 0.0f, 0.0f), 20.0f, 0.0f, 0.0f);
+				ZeroRadiusProjectile->InitializeProjectile(nullptr, FastProjectileTerrain, FVector(740.0f, 0.0f, 0.0f), 20.0f, 0.0f, 0.0f, 0.0f, 0.0f);
 				ZeroRadiusProjectile->Tick(0.1f);
 				TestTrue(TEXT("Zero-radius direct hit applies finite point damage"), FMath::IsFinite(ZeroRadiusTarget->GetHealth()) && ZeroRadiusTarget->GetHealth() < TargetHealthBeforeZeroRadiusHit);
 			}
@@ -2279,7 +2308,7 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		TestNotNull(TEXT("Fast projectile is spawned"), FastProjectile);
 		if (FastProjectile)
 		{
-			FastProjectile->InitializeProjectile(FastProjectileTarget, FastProjectileTerrain, FVector(1940.0f, 0.0f, 0.0f), 0.0f, 6.0f, 0.0f);
+			FastProjectile->InitializeProjectile(FastProjectileTarget, FastProjectileTerrain, FVector(1940.0f, 0.0f, 0.0f), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 6.0f);
 			FastProjectile->Tick(0.1f);
 			TestTrue(TEXT("Resolved projectile actor location stays at the terrain impact point"), FastProjectile->GetActorLocation().X >= 300.0f && FastProjectile->GetActorLocation().X < 310.0f);
 			TestFalse(TEXT("Fast projectile carves the one-cell vertical wall instead of tunneling through it"), FastProjectileTerrain->IsSolidAtWorldLocation(FVector(305.0f, 0.0f, 35.0f)));
@@ -2298,7 +2327,7 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		{
 			TestEqual(TEXT("Projectile visual collision is disabled"), ProjectileVisual->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
 		}
-		AssignedTerrainProjectile->InitializeProjectile(Character, Terrain, FVector(0.0f, 0.0f, -100.0f), 0.0f, 24.0f, 0.0f);
+		AssignedTerrainProjectile->InitializeProjectile(Character, Terrain, FVector(0.0f, 0.0f, -100.0f), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 24.0f);
 		AssignedTerrainProjectile->Tick(0.25f);
 		TestFalse(TEXT("Projectile carves its assigned terrain"), Terrain->IsSolidAtWorldLocation(FVector(-75.0f, 0.0f, 5.0f)));
 		TestTrue(TEXT("Projectile does not carve overlapping unassigned terrain"), OverlappingTerrain->IsSolidAtWorldLocation(FVector(-75.0f, 0.0f, 5.0f)));

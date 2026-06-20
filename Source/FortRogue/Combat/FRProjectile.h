@@ -23,7 +23,7 @@ public:
 
 	virtual void Tick(float DeltaSeconds) override;
 
-	void InitializeProjectile(AFRBattleCharacter* InOwnerCharacter, AFRDestructibleTerrain* InTerrain, const FVector& InVelocity, float InDamage, float InBlastRadius, float InGravity, float InTerrainCarveRadius = -1.0f, float InTerrainFillRadius = 0.0f, FGameplayTag InWeaponTag = FGameplayTag(), FGameplayTagContainer InEffectTags = FGameplayTagContainer(), TArray<FFRProjectileEffectSpec> InProjectileEffects = TArray<FFRProjectileEffectSpec>());
+	void InitializeProjectile(AFRBattleCharacter* InOwnerCharacter, AFRDestructibleTerrain* InTerrain, const FVector& InVelocity, float InHitDamage, float InExplosionDamage, float InBlastRadius, float InExplosionFullDamageRadius, float InGravity, float InTerrainDamage = 0.0f, float InTerrainFillRadius = 0.0f, FGameplayTag InWeaponTag = FGameplayTag(), FGameplayTagContainer InEffectTags = FGameplayTagContainer(), TArray<FFRProjectileEffectSpec> InProjectileEffects = TArray<FFRProjectileEffectSpec>());
 	void InitializeProjectileFromShotSpec(AFRBattleCharacter* InOwnerCharacter, AFRDestructibleTerrain* InTerrain, const FVector& InVelocity, const FFRShotSpec& ShotSpec);
 	int32 GetProjectileEffectCount() const;
 	bool HasProjectileEffectClass(TSubclassOf<UFRProjectileEffectBase> EffectClass) const;
@@ -31,9 +31,10 @@ public:
 private:
 	AFRBattleCharacter* FindHomingTarget() const;
 	void ApplyHoming(float DeltaSeconds);
-	void ResolveImpact(const FVector& ImpactLocation);
+	void ResolveImpact(const FVector& ImpactLocation, AFRBattleCharacter* DirectHitCharacter = nullptr);
 	void ApplyDefaultTerrainImpact(const FVector& ImpactLocation);
 	void ApplyProjectileEffects(const FVector& ImpactLocation);
+	float CalculateExplosionDamage(float Distance) const;
 	bool UsesCustomTerrainImpact() const;
 
 	UPROPERTY(VisibleAnywhere, Category = "Projectile")
@@ -66,9 +67,11 @@ private:
 	FGameplayTag WeaponTag;
 	FGameplayTagContainer EffectTags;
 	TArray<FFRProjectileEffectSpec> ProjectileEffects;
+	float HitDamage = 0.0f;
 	float Damage = 35.0f;
 	float BlastRadius = 150.0f;
-	float TerrainCarveRadius = 150.0f;
+	float ExplosionFullDamageRadius = 0.0f;
+	float TerrainDamage = 150.0f;
 	float TerrainFillRadius = 0.0f;
 	float Gravity = 980.0f;
 	float LifeSeconds = 0.0f;

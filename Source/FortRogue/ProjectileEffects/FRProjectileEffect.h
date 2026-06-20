@@ -24,9 +24,11 @@ struct FFRProjectileEffectImpactContext
 	FVector Velocity = FVector::ZeroVector;
 	FGameplayTag WeaponTag;
 	FGameplayTagContainer EffectTags;
+	float HitDamage = 0.0f;
 	float Damage = 0.0f;
 	float BlastRadius = 0.0f;
-	float TerrainCarveRadius = 0.0f;
+	float ExplosionFullDamageRadius = 0.0f;
+	float TerrainDamage = 0.0f;
 	float TerrainFillRadius = 0.0f;
 	float Gravity = 0.0f;
 };
@@ -89,7 +91,7 @@ struct FORTROGUE_API FFRProjectileEffectDrillParams : public FFRProjectileEffect
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drill", meta = (ClampMin = "0.0", ToolTip = "기본 지형 파괴 반경에 더할 값입니다. 0이면 현재 ShotSpec의 TerrainCarveRadius를 그대로 사용합니다."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drill", meta = (ClampMin = "0.0", ToolTip = "기본 지형 파괴 반경에 더할 값입니다. 0이면 현재 ShotSpec의 TerrainDamage를 그대로 사용합니다."))
 	float RadiusBonus = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drill", meta = (ClampMin = "0.0", ToolTip = "RadiusBonus 적용 후 지형 파괴 반경에 곱할 배율입니다. 1.0은 변화 없음입니다."))

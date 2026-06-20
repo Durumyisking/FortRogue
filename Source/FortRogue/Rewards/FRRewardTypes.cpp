@@ -186,13 +186,21 @@ FText FFRRewardChoice::GetEffectSummary() const
 		{
 			AddSummaryPart(Parts, FString::Printf(TEXT("tag %s"), *WeaponReward->Weapon.WeaponTag.ToString()));
 		}
+		if (WeaponReward->Weapon.HitDamage > 0.0f)
+		{
+			AddSummaryPart(Parts, FString::Printf(TEXT("hit damage %.0f"), WeaponReward->Weapon.HitDamage));
+		}
 		if (WeaponReward->Weapon.Damage > 0.0f)
 		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("damage %.0f"), WeaponReward->Weapon.Damage));
+			AddSummaryPart(Parts, FString::Printf(TEXT("explosion damage %.0f"), WeaponReward->Weapon.Damage));
 		}
 		if (WeaponReward->Weapon.BlastRadius > 0.0f)
 		{
 			AddSummaryPart(Parts, FString::Printf(TEXT("blast %.0f"), WeaponReward->Weapon.BlastRadius));
+		}
+		if (WeaponReward->Weapon.TerrainDamage > 0.0f)
+		{
+			AddSummaryPart(Parts, FString::Printf(TEXT("terrain damage %.0f"), WeaponReward->Weapon.TerrainDamage));
 		}
 		if (WeaponReward->Weapon.ProjectilesPerShot > 1)
 		{
