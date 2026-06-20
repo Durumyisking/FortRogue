@@ -35,6 +35,7 @@ class FORTROGUE_API AFRGameMode : public AGameModeBase
 	GENERATED_BODY()
 
 #if WITH_DEV_AUTOMATION_TESTS
+	friend class FFRGameModeEnemyTurnContinuationTest;
 	friend class FFRTerrainGameModeMapDefinitionTest;
 #endif
 

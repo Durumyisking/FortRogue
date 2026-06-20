@@ -1,5 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
+#include "Characters/FRCharacterDefinition.h"
 #include "Combat/FRTerrainMapDefinition.h"
 #include "FRProjectileEffectSpecCustomization.h"
 #include "FRSpriteFlipbookGenerator.h"
@@ -428,6 +429,15 @@ enum class EFRTerrainEditMode : int32
 	EnemySpawn
 };
 
+enum class EFREnemyPlacementCanvasAction : uint8
+{
+	Pressed,
+	Dragged,
+	Released
+};
+
+DECLARE_DELEGATE_RetVal_TwoParams(bool, FFREnemyPlacementCanvasActionDelegate, EFREnemyPlacementCanvasAction, const FIntPoint&);
+
 class SFRTerrainMapCanvas : public SLeafWidget
 {
 public:
@@ -437,7 +447,9 @@ public:
 		SLATE_ATTRIBUTE(int32, BrushRadius)
 		SLATE_ATTRIBUTE(int32, TextureLayer)
 		SLATE_ATTRIBUTE(int32, CanvasCellPixels)
+		SLATE_ATTRIBUTE(int32, SelectedEnemyPlacement)
 		SLATE_EVENT(FSimpleDelegate, OnEdited)
+		SLATE_EVENT(FFREnemyPlacementCanvasActionDelegate, OnEnemyPlacementCanvasAction)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs)
@@ -447,7 +459,9 @@ public:
 		BrushRadiusAttribute = InArgs._BrushRadius;
 		TextureLayerAttribute = InArgs._TextureLayer;
 		CanvasCellPixelsAttribute = InArgs._CanvasCellPixels;
+		SelectedEnemyPlacementAttribute = InArgs._SelectedEnemyPlacement;
 		OnEdited = InArgs._OnEdited;
+		OnEnemyPlacementCanvasAction = InArgs._OnEnemyPlacementCanvasAction;
 	}
 
 	virtual FVector2D ComputeDesiredSize(float LayoutScaleMultiplier) const override
@@ -512,9 +526,11 @@ public:
 		DrawSpawnMarker(AllottedGeometry, OutDrawElements, LayerId + 2, Origin, CellPixels, *Map, Map->PlayerSpawnLocal, FLinearColor(0.12f, 0.42f, 1.0f, 0.85f));
 		if (Map->EnemyPlacements.Num() > 0)
 		{
+			const int32 SelectedEnemyPlacement = SelectedEnemyPlacementAttribute.Get();
 			for (int32 PlacementIndex = 0; PlacementIndex < Map->EnemyPlacements.Num(); ++PlacementIndex)
 			{
-				DrawSpawnMarker(AllottedGeometry, OutDrawElements, LayerId + 3 + PlacementIndex, Origin, CellPixels, *Map, Map->EnemyPlacements[PlacementIndex].SpawnLocal, FLinearColor(1.0f, 0.18f, 0.12f, 0.85f));
+				const bool bSelected = PlacementIndex == SelectedEnemyPlacement;
+				DrawSpawnMarker(AllottedGeometry, OutDrawElements, LayerId + 3 + PlacementIndex, Origin, CellPixels, *Map, Map->EnemyPlacements[PlacementIndex].SpawnLocal, bSelected ? FLinearColor(1.0f, 0.82f, 0.08f, 0.95f) : FLinearColor(1.0f, 0.18f, 0.12f, 0.85f), bSelected ? 4.0f : 2.0f);
 			}
 		}
 		else
@@ -552,7 +568,11 @@ public:
 		bDragging = true;
 		DragStart = Cell;
 		DragCurrent = Cell;
-		if (!IsRectMode(GetEditMode()))
+		if (IsEnemySpawnMode(GetEditMode()))
+		{
+			ApplyEnemyPlacementCanvasAction(EFREnemyPlacementCanvasAction::Pressed, Cell);
+		}
+		else if (!IsRectMode(GetEditMode()))
 		{
 			ApplyCircleAt(Cell);
 		}
@@ -572,7 +592,11 @@ public:
 		{
 			const FIntPoint PreviousCell = DragCurrent;
 			DragCurrent = Cell;
-			if (IsStrokeMode(GetEditMode()) && PreviousCell.X >= 0)
+			if (IsEnemySpawnMode(GetEditMode()))
+			{
+				ApplyEnemyPlacementCanvasAction(EFREnemyPlacementCanvasAction::Dragged, Cell);
+			}
+			else if (IsStrokeMode(GetEditMode()) && PreviousCell.X >= 0)
 			{
 				ApplyCircleStroke(PreviousCell, Cell);
 			}
@@ -593,7 +617,11 @@ public:
 		}
 
 		bDragging = false;
-		if (IsRectMode(GetEditMode()))
+		if (IsEnemySpawnMode(GetEditMode()))
+		{
+			ApplyEnemyPlacementCanvasAction(EFREnemyPlacementCanvasAction::Released, DragCurrent);
+		}
+		else if (IsRectMode(GetEditMode()))
 		{
 			ApplyRect(DragStart, DragCurrent);
 		}
@@ -619,6 +647,11 @@ private:
 		return EditMode == static_cast<int32>(EFRTerrainEditMode::PaintCircle)
 			|| EditMode == static_cast<int32>(EFRTerrainEditMode::EraseCircle)
 			|| EditMode == static_cast<int32>(EFRTerrainEditMode::TextureCircle);
+	}
+
+	static bool IsEnemySpawnMode(int32 EditMode)
+	{
+		return EditMode == static_cast<int32>(EFRTerrainEditMode::EnemySpawn);
 	}
 
 	float GetCellPixels(const FGeometry& Geometry) const
@@ -779,6 +812,14 @@ private:
 		OnEdited.ExecuteIfBound();
 	}
 
+	void ApplyEnemyPlacementCanvasAction(EFREnemyPlacementCanvasAction Action, const FIntPoint& Cell)
+	{
+		if (OnEnemyPlacementCanvasAction.IsBound() && OnEnemyPlacementCanvasAction.Execute(Action, Cell))
+		{
+			OnEdited.ExecuteIfBound();
+		}
+	}
+
 	static FLinearColor GetLayerColor(uint8 Layer)
 	{
 		static const FLinearColor Colors[] = {
@@ -795,11 +836,10 @@ private:
 
 	static void SetSpawnAtCell(UFRTerrainMapDefinition& Map, const FIntPoint& Cell, bool bEnemySpawn)
 	{
-		const float LocalX = (static_cast<float>(Cell.X) + 0.5f) * Map.CellSize - Map.CellsX * Map.CellSize * 0.5f;
-		const float LocalZ = Map.CellsZ * Map.CellSize + FREditor::DefaultSpawnClearance;
+		const FVector SpawnLocal = GetSpawnLocalForCell(Map, Cell);
 		if (bEnemySpawn)
 		{
-			Map.EnemySpawnLocal = FVector(LocalX, 0.0f, LocalZ);
+			Map.EnemySpawnLocal = SpawnLocal;
 			if (Map.EnemyPlacements.Num() == 0)
 			{
 				Map.EnemyPlacements.AddDefaulted();
@@ -808,18 +848,25 @@ private:
 		}
 		else
 		{
-			Map.PlayerSpawnLocal = FVector(LocalX, 0.0f, LocalZ);
+			Map.PlayerSpawnLocal = SpawnLocal;
 		}
 	}
 
-	static void DrawSpawnMarker(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FVector2D& Origin, float CellPixels, const UFRTerrainMapDefinition& Map, const FVector& SpawnLocal, const FLinearColor& Color)
+	static FVector GetSpawnLocalForCell(const UFRTerrainMapDefinition& Map, const FIntPoint& Cell)
+	{
+		const float LocalX = (static_cast<float>(Cell.X) + 0.5f) * Map.CellSize - Map.CellsX * Map.CellSize * 0.5f;
+		const float LocalZ = Map.CellsZ * Map.CellSize + FREditor::DefaultSpawnClearance;
+		return FVector(LocalX, 0.0f, LocalZ);
+	}
+
+	static void DrawSpawnMarker(const FGeometry& AllottedGeometry, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FVector2D& Origin, float CellPixels, const UFRTerrainMapDefinition& Map, const FVector& SpawnLocal, const FLinearColor& Color, float MarkerWidth = 2.0f)
 	{
 		const float MapWidth = Map.CellsX * Map.CellSize;
 		const float ClampedLocalX = FMath::Clamp(static_cast<float>(SpawnLocal.X), MapWidth * -0.5f, MapWidth * 0.5f);
 		const float MarkerX = Origin.X + (ClampedLocalX + MapWidth * 0.5f) / FMath::Max(Map.CellSize, UE_SMALL_NUMBER) * CellPixels;
 		const float CanvasHeight = Map.CellsZ * CellPixels;
-		const FVector2D MarkerPosition(MarkerX - 1.0f, Origin.Y);
-		const FVector2D MarkerSize(2.0f, CanvasHeight);
+		const FVector2D MarkerPosition(MarkerX - MarkerWidth * 0.5f, Origin.Y);
+		const FVector2D MarkerSize(MarkerWidth, CanvasHeight);
 		FSlateDrawElement::MakeBox(OutDrawElements, LayerId, AllottedGeometry.ToPaintGeometry(MarkerSize, FSlateLayoutTransform(MarkerPosition)), FCoreStyle::Get().GetBrush("WhiteBrush"), ESlateDrawEffect::None, Color);
 	}
 
@@ -828,7 +875,9 @@ private:
 	TAttribute<int32> BrushRadiusAttribute;
 	TAttribute<int32> TextureLayerAttribute;
 	TAttribute<int32> CanvasCellPixelsAttribute;
+	TAttribute<int32> SelectedEnemyPlacementAttribute;
 	FSimpleDelegate OnEdited;
+	FFREnemyPlacementCanvasActionDelegate OnEnemyPlacementCanvasAction;
 	mutable bool bDragging = false;
 	mutable FIntPoint DragStart = FIntPoint(-1, -1);
 	mutable FIntPoint DragCurrent = FIntPoint(-1, -1);
@@ -874,6 +923,12 @@ public:
 					MakeCanvasControls()
 				]
 				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(8.0f)
+				[
+					MakeEnemyPlacementControls()
+				]
+				+ SVerticalBox::Slot()
 				.FillHeight(1.0f)
 				.Padding(8.0f)
 				[
@@ -887,7 +942,9 @@ public:
 						.BrushRadius_Lambda([this]() { return CircleRadius; })
 						.TextureLayer_Lambda([this]() { return TextureLayerIndex; })
 						.CanvasCellPixels_Lambda([this]() { return CanvasCellPixels; })
+						.SelectedEnemyPlacement_Lambda([this]() { return SelectedEnemyPlacementIndex; })
 						.OnEdited(FSimpleDelegate::CreateSP(this, &SFRTerrainMapEditor::OnCanvasEdited))
+						.OnEnemyPlacementCanvasAction(FFREnemyPlacementCanvasActionDelegate::CreateSP(this, &SFRTerrainMapEditor::HandleEnemyPlacementCanvasAction))
 					]
 				]
 				+ SVerticalBox::Slot()
@@ -940,9 +997,11 @@ public:
 			CellsZ = EditingAsset->CellsZ;
 			CellSize = EditingAsset->CellSize;
 			StatusText = LOCTEXT("AssetLoaded", "Loaded terrain map asset.");
+			SelectEnemyPlacement(EditingAsset->EnemyPlacements.Num() > 0 ? 0 : INDEX_NONE);
 		}
 		else
 		{
+			SelectedEnemyPlacementIndex = INDEX_NONE;
 			StatusText = LOCTEXT("NoAsset", "No terrain map asset selected.");
 		}
 	}
@@ -1297,6 +1356,75 @@ private:
 			];
 	}
 
+	TSharedRef<SWidget> MakeEnemyPlacementControls()
+	{
+		return SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("EnemyPlacementLabel", "Enemy Placement"))
+			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0.0f, 4.0f)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(0.0f, 0.0f, 8.0f, 0.0f)
+				[
+					SNew(SObjectPropertyEntryBox)
+					.AllowedClass(UFRCharacterDefinition::StaticClass())
+					.ObjectPath(this, &SFRTerrainMapEditor::GetEnemyCharacterPath)
+					.OnObjectChanged(this, &SFRTerrainMapEditor::OnEnemyCharacterChanged)
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(0.0f, 0.0f, 8.0f, 0.0f)
+				[
+					SNew(SCheckBox)
+					.IsChecked_Lambda([this]() { return bEnemyPlacementUsesSpecialAttack ? ECheckBoxState::Checked : ECheckBoxState::Unchecked; })
+					.OnCheckStateChanged_Lambda([this](ECheckBoxState NewState) { bEnemyPlacementUsesSpecialAttack = NewState == ECheckBoxState::Checked; })
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("EnemyPlacementUseSpecial", "Use Special"))
+					]
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(0.0f, 0.0f, 8.0f, 0.0f)
+				[
+					SNew(SButton)
+					.Text(LOCTEXT("ApplyEnemyPlacementButton", "Apply To Selected"))
+					.IsEnabled_Lambda([this]() { return HasSelectedEnemyPlacement(); })
+					.OnClicked(this, &SFRTerrainMapEditor::ApplySelectedEnemyPlacement)
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding(0.0f, 0.0f, 8.0f, 0.0f)
+				[
+					SNew(SButton)
+					.Text(LOCTEXT("DeleteEnemyPlacementButton", "Delete Selected"))
+					.IsEnabled_Lambda([this]() { return HasSelectedEnemyPlacement(); })
+					.OnClicked(this, &SFRTerrainMapEditor::DeleteSelectedEnemyPlacement)
+				]
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SButton)
+					.Text(LOCTEXT("ClearEnemySelectionButton", "Clear Selection"))
+					.OnClicked(this, &SFRTerrainMapEditor::ClearEnemyPlacementSelection)
+				]
+			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0.0f, 4.0f)
+			[
+				SNew(STextBlock)
+				.Text(this, &SFRTerrainMapEditor::GetSelectedEnemyPlacementText)
+			];
+	}
+
 	TSharedRef<SWidget> MakeSaveControls()
 	{
 		return SNew(SHorizontalBox)
@@ -1405,6 +1533,11 @@ private:
 		return EditingTexture.IsValid() ? EditingTexture->GetPathName() : FString();
 	}
 
+	FString GetEnemyCharacterPath() const
+	{
+		return EditingEnemyCharacter.IsValid() ? EditingEnemyCharacter->GetPathName() : FString();
+	}
+
 	void OnAssetChanged(const FAssetData& AssetData)
 	{
 		SetEditingAsset(Cast<UFRTerrainMapDefinition>(AssetData.GetAsset()));
@@ -1413,6 +1546,11 @@ private:
 	void OnTextureChanged(const FAssetData& AssetData)
 	{
 		EditingTexture = Cast<UTexture2D>(AssetData.GetAsset());
+	}
+
+	void OnEnemyCharacterChanged(const FAssetData& AssetData)
+	{
+		EditingEnemyCharacter = Cast<UFRCharacterDefinition>(AssetData.GetAsset());
 	}
 
 	FReply ResizeMap()
@@ -1553,9 +1691,71 @@ private:
 		return FReply::Handled();
 	}
 
+	FReply ApplySelectedEnemyPlacement()
+	{
+		if (UFRTerrainMapDefinition* Map = EditingAsset.Get())
+		{
+			if (Map->EnemyPlacements.IsValidIndex(SelectedEnemyPlacementIndex))
+			{
+				Map->Modify();
+				FFREnemyPlacement& Placement = Map->EnemyPlacements[SelectedEnemyPlacementIndex];
+				Placement.CharacterDefinition = EditingEnemyCharacter.Get();
+				Placement.bUseSpecialAttack = bEnemyPlacementUsesSpecialAttack;
+				Map->MarkPackageDirty();
+				StatusText = LOCTEXT("EnemyPlacementApplied", "Updated selected enemy placement.");
+			}
+		}
+		return FReply::Handled();
+	}
+
+	FReply DeleteSelectedEnemyPlacement()
+	{
+		if (UFRTerrainMapDefinition* Map = EditingAsset.Get())
+		{
+			if (Map->EnemyPlacements.IsValidIndex(SelectedEnemyPlacementIndex))
+			{
+				Map->Modify();
+				Map->EnemyPlacements.RemoveAt(SelectedEnemyPlacementIndex);
+				if (Map->EnemyPlacements.Num() > 0)
+				{
+					SelectEnemyPlacement(FMath::Min(SelectedEnemyPlacementIndex, Map->EnemyPlacements.Num() - 1));
+					Map->EnemySpawnLocal = Map->EnemyPlacements[0].SpawnLocal;
+				}
+				else
+				{
+					SelectedEnemyPlacementIndex = INDEX_NONE;
+				}
+				Map->MarkPackageDirty();
+				StatusText = LOCTEXT("EnemyPlacementDeleted", "Deleted selected enemy placement.");
+			}
+		}
+		return FReply::Handled();
+	}
+
+	FReply ClearEnemyPlacementSelection()
+	{
+		SelectedEnemyPlacementIndex = INDEX_NONE;
+		StatusText = LOCTEXT("EnemyPlacementSelectionCleared", "Cleared enemy placement selection.");
+		return FReply::Handled();
+	}
+
 	FText GetStatusText() const
 	{
 		return StatusText;
+	}
+
+	FText GetSelectedEnemyPlacementText() const
+	{
+		const UFRTerrainMapDefinition* Map = EditingAsset.Get();
+		if (!Map || !Map->EnemyPlacements.IsValidIndex(SelectedEnemyPlacementIndex))
+		{
+			const int32 PlacementCount = Map ? Map->EnemyPlacements.Num() : 0;
+			return FText::Format(LOCTEXT("NoSelectedEnemyPlacement", "Selected Enemy: None ({0} placed)"), FText::AsNumber(PlacementCount));
+		}
+
+		const FFREnemyPlacement& Placement = Map->EnemyPlacements[SelectedEnemyPlacementIndex];
+		const FString CharacterName = Placement.CharacterDefinition ? Placement.CharacterDefinition->GetName() : FString(TEXT("None"));
+		return FText::Format(LOCTEXT("SelectedEnemyPlacement", "Selected Enemy: {0}/{1} {2}"), FText::AsNumber(SelectedEnemyPlacementIndex + 1), FText::AsNumber(Map->EnemyPlacements.Num()), FText::FromString(CharacterName));
 	}
 
 	UFRTerrainMapDefinition* GetEditableMap()
@@ -1606,13 +1806,134 @@ private:
 
 	void OnCanvasEdited()
 	{
-		StatusText = LOCTEXT("CanvasEdited", "Edited terrain map from canvas.");
+		if (EditMode != static_cast<int32>(EFRTerrainEditMode::EnemySpawn))
+		{
+			StatusText = LOCTEXT("CanvasEdited", "Edited terrain map from canvas.");
+		}
+	}
+
+	bool HandleEnemyPlacementCanvasAction(EFREnemyPlacementCanvasAction Action, const FIntPoint& Cell)
+	{
+		UFRTerrainMapDefinition* Map = EditingAsset.Get();
+		if (!Map)
+		{
+			StatusText = LOCTEXT("EnemyPlacementNoMap", "Select a terrain map asset first.");
+			return false;
+		}
+
+		if (Action == EFREnemyPlacementCanvasAction::Pressed)
+		{
+			const int32 HitIndex = FindEnemyPlacementAtCell(*Map, Cell);
+			if (HitIndex != INDEX_NONE)
+			{
+				SelectEnemyPlacement(HitIndex);
+				StatusText = LOCTEXT("EnemyPlacementSelected", "Selected enemy placement.");
+				return true;
+			}
+
+			if (!EditingEnemyCharacter.IsValid())
+			{
+				StatusText = LOCTEXT("EnemyPlacementNeedsCharacter", "Select a CharacterDefinition before placing an enemy.");
+				return false;
+			}
+
+			Map->Modify();
+			FFREnemyPlacement& Placement = Map->EnemyPlacements.AddDefaulted_GetRef();
+			Placement.CharacterDefinition = EditingEnemyCharacter.Get();
+			Placement.SpawnLocal = GetSpawnLocalForCell(*Map, Cell);
+			Placement.bUseSpecialAttack = bEnemyPlacementUsesSpecialAttack;
+			SelectedEnemyPlacementIndex = Map->EnemyPlacements.Num() - 1;
+			Map->EnemySpawnLocal = Placement.SpawnLocal;
+			Map->MarkPackageDirty();
+			StatusText = LOCTEXT("EnemyPlacementAdded", "Added enemy placement.");
+			return true;
+		}
+
+		if (Action == EFREnemyPlacementCanvasAction::Dragged)
+		{
+			return MoveSelectedEnemyPlacementToCell(*Map, Cell);
+		}
+
+		return false;
+	}
+
+	bool HasSelectedEnemyPlacement() const
+	{
+		const UFRTerrainMapDefinition* Map = EditingAsset.Get();
+		return Map && Map->EnemyPlacements.IsValidIndex(SelectedEnemyPlacementIndex);
+	}
+
+	void SelectEnemyPlacement(int32 PlacementIndex)
+	{
+		UFRTerrainMapDefinition* Map = EditingAsset.Get();
+		if (!Map || !Map->EnemyPlacements.IsValidIndex(PlacementIndex))
+		{
+			SelectedEnemyPlacementIndex = INDEX_NONE;
+			return;
+		}
+
+		SelectedEnemyPlacementIndex = PlacementIndex;
+		const FFREnemyPlacement& Placement = Map->EnemyPlacements[SelectedEnemyPlacementIndex];
+		EditingEnemyCharacter = Placement.CharacterDefinition;
+		bEnemyPlacementUsesSpecialAttack = Placement.bUseSpecialAttack;
+	}
+
+	bool MoveSelectedEnemyPlacementToCell(UFRTerrainMapDefinition& Map, const FIntPoint& Cell)
+	{
+		if (!Map.EnemyPlacements.IsValidIndex(SelectedEnemyPlacementIndex))
+		{
+			return false;
+		}
+
+		Map.Modify();
+		const FVector SpawnLocal = GetSpawnLocalForCell(Map, Cell);
+		Map.EnemyPlacements[SelectedEnemyPlacementIndex].SpawnLocal = SpawnLocal;
+		if (SelectedEnemyPlacementIndex == 0)
+		{
+			Map.EnemySpawnLocal = SpawnLocal;
+		}
+		Map.MarkPackageDirty();
+		StatusText = LOCTEXT("EnemyPlacementMoved", "Moved selected enemy placement.");
+		return true;
+	}
+
+	int32 FindEnemyPlacementAtCell(const UFRTerrainMapDefinition& Map, const FIntPoint& Cell) const
+	{
+		if (Map.EnemyPlacements.Num() == 0)
+		{
+			return INDEX_NONE;
+		}
+
+		const FVector CellSpawnLocal = GetSpawnLocalForCell(Map, Cell);
+		const float MaxHitDistance = FMath::Max(Map.CellSize * 10.0f, 10.0f);
+		float BestDistance = MaxHitDistance;
+		int32 BestIndex = INDEX_NONE;
+		for (int32 PlacementIndex = 0; PlacementIndex < Map.EnemyPlacements.Num(); ++PlacementIndex)
+		{
+			const float Distance = FMath::Abs(static_cast<float>(Map.EnemyPlacements[PlacementIndex].SpawnLocal.X - CellSpawnLocal.X));
+			if (Distance <= BestDistance)
+			{
+				BestDistance = Distance;
+				BestIndex = PlacementIndex;
+			}
+		}
+
+		return BestIndex;
+	}
+
+	static FVector GetSpawnLocalForCell(const UFRTerrainMapDefinition& Map, const FIntPoint& Cell)
+	{
+		const float LocalX = (static_cast<float>(Cell.X) + 0.5f) * Map.CellSize - Map.CellsX * Map.CellSize * 0.5f;
+		const float LocalZ = Map.CellsZ * Map.CellSize + FREditor::DefaultSpawnClearance;
+		return FVector(LocalX, 0.0f, LocalZ);
 	}
 
 	TWeakObjectPtr<UFRTerrainMapDefinition> EditingAsset;
 	TWeakObjectPtr<UTexture2D> EditingTexture;
+	TWeakObjectPtr<UFRCharacterDefinition> EditingEnemyCharacter;
 	FText StatusText = LOCTEXT("InitialStatus", "Select a terrain map asset.");
 	int32 EditMode = static_cast<int32>(EFRTerrainEditMode::PaintCircle);
+	int32 SelectedEnemyPlacementIndex = INDEX_NONE;
 	int32 CellsX = 1280;
 	int32 CellsZ = 960;
 	float CellSize = 1.0f;
@@ -1631,6 +1952,7 @@ private:
 	int32 ImportSourceHeight = 0;
 	bool bImportMaskUsesAlpha = true;
 	bool bImportKeepCurrentSize = true;
+	bool bEnemyPlacementUsesSpecialAttack = false;
 	float ImportMaskThreshold = 0.5f;
 	float ImportColorR = 0.43f;
 	float ImportColorG = 0.34f;

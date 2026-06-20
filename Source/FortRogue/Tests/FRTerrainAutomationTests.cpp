@@ -205,6 +205,120 @@ bool FFRCharacterAttackSlotDefinitionTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFRGameModeEnemyTurnContinuationTest, "FortRogue.GameMode.EnemyTurnContinuation", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FFRGameModeEnemyTurnContinuationTest::RunTest(const FString& Parameters)
+{
+	UGameInstance* GameInstance = NewObject<UGameInstance>(GEngine);
+	TestNotNull(TEXT("Transient game instance is created"), GameInstance);
+	if (!GameInstance)
+	{
+		return false;
+	}
+
+	UWorld* World = UWorld::CreateWorld(EWorldType::Game, false);
+	TestNotNull(TEXT("Transient test world is created"), World);
+	if (!World)
+	{
+		return false;
+	}
+
+	World->SetShouldTick(false);
+	World->AddToRoot();
+
+	FWorldContext& WorldContext = GEngine->CreateNewWorldContext(EWorldType::Game);
+	WorldContext.OwningGameInstance = GameInstance;
+	World->SetGameInstance(GameInstance);
+	WorldContext.SetCurrentWorld(World);
+	GameInstance->Init();
+
+	auto CleanupWorld = [&World, &GameInstance]()
+	{
+		if (World->HasBegunPlay())
+		{
+			World->BeginTearingDown();
+			World->EndPlay(EEndPlayReason::Quit);
+		}
+
+		World->RemoveFromRoot();
+		GameInstance->Shutdown();
+		GEngine->DestroyWorldContext(World);
+		World->DestroyWorld(false);
+	};
+
+	UFRTerrainMapDefinition* Map = NewObject<UFRTerrainMapDefinition>();
+	Map->Resize(20, 6);
+	Map->CellSize = 10.0f;
+	Map->Clear(false);
+	Map->FillRect(0, 0, 19, 0, true);
+	Map->PlayerSpawnLocal = FVector(-40.0f, 0.0f, 140.0f);
+	Map->EnemySpawnLocal = FVector(40.0f, 0.0f, 140.0f);
+
+	FURL URL;
+	World->SetGameMode(URL);
+	AFRGameMode* GameMode = World->GetAuthGameMode<AFRGameMode>();
+	TestNotNull(TEXT("FortRogue game mode is created"), GameMode);
+	if (!GameMode)
+	{
+		CleanupWorld();
+		return false;
+	}
+
+	FObjectProperty* TerrainMapProperty = FindFProperty<FObjectProperty>(AFRGameMode::StaticClass(), TEXT("TerrainMapDefinition"));
+	TestNotNull(TEXT("Game mode exposes a terrain map definition property"), TerrainMapProperty);
+	if (!TerrainMapProperty)
+	{
+		CleanupWorld();
+		return false;
+	}
+	TerrainMapProperty->SetObjectPropertyValue_InContainer(GameMode, Map);
+
+	UFRStageRunDefinition* StageRunDefinition = NewObject<UFRStageRunDefinition>(GameMode);
+	StageRunDefinition->StageCount = 1;
+	StageRunDefinition->NormalizeStageData();
+	GameMode->StageRunDefinition = StageRunDefinition;
+
+	World->InitializeActorsForPlay(URL);
+	World->BeginPlay();
+
+	AFRBattleCharacter* FirstEnemy = GameMode->GetEnemyCharacter();
+	TestNotNull(TEXT("Game mode spawns the first enemy"), FirstEnemy);
+	if (!FirstEnemy)
+	{
+		CleanupWorld();
+		return false;
+	}
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	AFRBattleCharacter* SecondEnemy = World->SpawnActor<AFRBattleCharacter>(AFRBattleCharacter::StaticClass(), FirstEnemy->GetActorLocation() + FVector(-30.0f, 0.0f, 0.0f), FRotator::ZeroRotator, SpawnParams);
+	TestNotNull(TEXT("Second enemy is spawned for enemy turn continuation"), SecondEnemy);
+	if (!SecondEnemy)
+	{
+		CleanupWorld();
+		return false;
+	}
+
+	SecondEnemy->ConfigureAsEnemy(true);
+	SecondEnemy->SetTerrain(GameMode->Terrain);
+	SecondEnemy->AddWeaponDefinition(CreateTestWeaponDefinition(SecondEnemy));
+	SecondEnemy->BeginTurn();
+	GameMode->EnemyCharacters.Add(SecondEnemy);
+	GameMode->ActiveEnemyTurnIndex = 0;
+	GameMode->LastShooter = FirstEnemy;
+	GameMode->BattleState = EFRBattleState::ResolvingShot;
+
+	GameMode->FinishShotResolution();
+
+	TestEqual(TEXT("Enemy shot resolution resumes enemy turn before selecting the next enemy"), GameMode->GetBattleState(), EFRBattleState::ResolvingShot);
+	TestTrue(TEXT("Second enemy fires after the first enemy shot resolves"), SecondEnemy->HasFiredThisTurn());
+	TestFalse(TEXT("Second enemy turn ends after firing"), SecondEnemy->IsActiveTurn());
+	TestEqual(TEXT("Second enemy becomes the last shooter"), GameMode->LastShooter.Get(), SecondEnemy);
+
+	CleanupWorld();
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFRTerrainMapEnemyPlacementTest, "FortRogue.Terrain.MapDefinition.EnemyPlacements", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FFRTerrainMapEnemyPlacementTest::RunTest(const FString& Parameters)

@@ -662,6 +662,7 @@ void AFRGameMode::FinishShotResolution()
 
 	if (LastShooter.IsValid() && LastShooter->IsEnemy())
 	{
+		BattleState = EFRBattleState::EnemyTurn;
 		RunEnemyTurn();
 	}
 	else
