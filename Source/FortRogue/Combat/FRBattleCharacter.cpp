@@ -1661,6 +1661,8 @@ void AFRBattleCharacter::DrawProjectileTrajectory() const
 	const FFRShotSpec ShotSpec = BuildShotSpec(Weapon);
 	FVector Velocity = GetProjectileLaunchDirection(0.0f) * ShotSpec.LaunchSpeed;
 	FVector Location = GetProjectileSpawnLocation(Velocity.GetSafeNormal());
+	// Keep the preview validated from the orthographic battle camera, not only a free 3D viewport.
+	// Side-view camera depth/projection can make a physically correct 3D debug path look wrong in-game.
 	const float StepSeconds = FMath::Max(TrajectoryDebugTimeStep, KINDA_SMALL_NUMBER);
 	const int32 StepCount = FMath::Max(1, TrajectoryDebugSteps);
 	const AFRGameMode* GameMode = GetWorld()->GetAuthGameMode<AFRGameMode>();
