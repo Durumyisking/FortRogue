@@ -34,9 +34,14 @@ void AFRPlayerController::BeginPlay()
 		}
 	}
 
-	if (BattleHUDWidgetClass)
+	TSubclassOf<UFRBattleHUDWidget> HUDClass = BattleHUDWidgetClass;
+	if (!HUDClass)
 	{
-		BattleHUDWidget = CreateWidget<UFRBattleHUDWidget>(this, BattleHUDWidgetClass);
+		HUDClass = UFRBattleHUDWidget::StaticClass();
+	}
+	if (HUDClass)
+	{
+		BattleHUDWidget = CreateWidget<UFRBattleHUDWidget>(this, HUDClass);
 		if (BattleHUDWidget)
 		{
 			BattleHUDWidget->AddToViewport(0);

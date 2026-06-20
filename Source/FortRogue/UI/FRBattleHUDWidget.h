@@ -11,8 +11,15 @@
 #include "FRBattleHUDWidget.generated.h"
 
 class UFRAbilitySet;
+class UBorder;
+class UHorizontalBox;
+class UOverlay;
+class UProgressBar;
+class UTextBlock;
+class UVerticalBox;
+class UWidget;
 
-UCLASS(Abstract, Blueprintable)
+UCLASS(Blueprintable)
 class FORTROGUE_API UFRBattleHUDWidget : public UCommonActivatableWidget
 {
 	GENERATED_BODY()
@@ -153,6 +160,97 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	bool CanBeginPlayerShotCharge() const;
 
-	UFUNCTION(BlueprintImplementableEvent, Category = "FortRogue|UI")
+	UFUNCTION(BlueprintNativeEvent, Category = "FortRogue|UI")
 	void RefreshBattleHUD();
+
+protected:
+	virtual void NativeOnInitialized() override;
+
+private:
+	void BuildDefaultHUD();
+	void RefreshDefaultHUD();
+	void RefreshCharacterBars(class AFRBattleCharacter* PlayerCharacter, class AFRBattleCharacter* EnemyCharacter);
+	void RefreshWeaponSlots(class AFRBattleCharacter* PlayerCharacter);
+	void RefreshItemSlots(class AFRBattleCharacter* PlayerCharacter);
+	void RefreshModifierSummaries(class AFRBattleCharacter* PlayerCharacter);
+	void RefreshAimIndicator(float AimAngle);
+
+	UTextBlock* AddText(UWidget* Parent, FName WidgetName, const FText& InitialText, float FontSize, const FLinearColor& Color);
+	UProgressBar* AddLabeledBar(UVerticalBox* Parent, FName WidgetName, const FText& LabelText, UTextBlock*& OutValueText);
+	UBorder* AddSlot(UHorizontalBox* Parent, FName WidgetName, const FVector2D& Size);
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> RunProgressText;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> TurnText;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UBorder> TurnBadge;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> StatusText;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UProgressBar> PlayerHealthBar;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> PlayerHealthText;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UProgressBar> EnemyHealthBar;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> EnemyHealthText;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> WindText;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> AimText;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UBorder> AimBarrel;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UProgressBar> ShotPowerBar;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> ShotPowerText;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UProgressBar> MoveBudgetBar;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> MoveBudgetText;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> CurrentWeaponText;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> AttackTypeText;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> ShotInfoText;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UBorder>> WeaponSlots;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UTextBlock>> WeaponSlotTexts;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UBorder>> ItemSlots;
+
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UTextBlock>> ItemSlotTexts;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> GrantedModifierText;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> PendingModifierText;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> AbilitySetText;
 };
