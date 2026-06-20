@@ -2110,7 +2110,9 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		if (ExhaustedTurnProjectile)
 		{
 			TestTrue(TEXT("Facing change with exhausted movement budget launches left"), ExhaustedTurnProjectile->GetActorLocation().X < ExhaustedCharacterX);
-			const FVector ExpectedLeftLaunchDirection(FMath::Cos(FMath::DegreesToRadians(135.0f)), 0.0f, FMath::Sin(FMath::DegreesToRadians(135.0f)));
+			const FRotator ExhaustedActorRotation = ExhaustedTurnCharacter->GetActorRotation();
+			const float ExpectedLeftLaunchAngleDegrees = ExhaustedActorRotation.Pitch + 180.0f - 45.0f;
+			const FVector ExpectedLeftLaunchDirection(FMath::Cos(FMath::DegreesToRadians(ExpectedLeftLaunchAngleDegrees)), 0.0f, FMath::Sin(FMath::DegreesToRadians(ExpectedLeftLaunchAngleDegrees)));
 			const FVector ExpectedProjectileSpawnLocation = ExhaustedTurnCharacter->GetActorLocation() + ExpectedLeftLaunchDirection * 70.0f + FVector(0.0f, 0.0f, 35.0f);
 			TestTrue(TEXT("Projectile and trajectory start from the character launch offset"), ExhaustedTurnProjectile->GetActorLocation().Equals(ExpectedProjectileSpawnLocation, 0.1));
 			ExhaustedTurnProjectile->Destroy();
@@ -2269,6 +2271,7 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 				TestEqual(TEXT("Direct hit applies hit plus full explosion damage"), FastProjectileTarget->GetHealth(), TargetHealthBeforeHit - 50.0f);
 				TestTrue(TEXT("Later terrain remains solid when the earlier character is hit"), FastProjectileTerrain->IsSolidAtWorldLocation(FVector(305.0f, 0.0f, 35.0f)));
 			}
+			FastProjectileTarget->Destroy();
 		}
 
 		AFRBattleCharacter* ExplosionFalloffTarget = World->SpawnActor<AFRBattleCharacter>(AFRBattleCharacter::StaticClass(), FVector(340.0f, 500.0f, 35.0f), FRotator::ZeroRotator, SpawnParams);
@@ -2276,14 +2279,19 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		if (ExplosionFalloffTarget)
 		{
 			ExplosionFalloffTarget->SetActorLocation(FVector(340.0f, 500.0f, 35.0f));
+			const FVector ExplosionFalloffTargetLocation = ExplosionFalloffTarget->GetActorLocation();
 			const float TargetHealthBeforeExplosion = ExplosionFalloffTarget->GetHealth();
-			AFRProjectile* ExplosionFalloffProjectile = World->SpawnActor<AFRProjectile>(AFRProjectile::StaticClass(), FVector(203.0f, 0.0f, 35.0f), FRotator::ZeroRotator, SpawnParams);
+			AFRProjectile* ExplosionFalloffProjectile = World->SpawnActor<AFRProjectile>(AFRProjectile::StaticClass(), FVector(280.0f, 0.0f, 35.0f), FRotator::ZeroRotator, SpawnParams);
 			TestNotNull(TEXT("Explosion falloff projectile is spawned"), ExplosionFalloffProjectile);
 			if (ExplosionFalloffProjectile)
 			{
-				ExplosionFalloffProjectile->InitializeProjectile(nullptr, FastProjectileTerrain, FVector(1940.0f, 0.0f, 0.0f), 0.0f, 80.0f, 100.0f, 25.0f, 0.0f);
+				FVector ExplosionFalloffImpactLocation = FVector::ZeroVector;
+				TestTrue(TEXT("Explosion falloff projectile hits terrain before the target"), FastProjectileTerrain->FindFirstSolidAlongWorldSegment(FVector(280.0f, 0.0f, 35.0f), FVector(397.0f, 0.0f, 35.0f), ExplosionFalloffImpactLocation));
+				ExplosionFalloffProjectile->InitializeProjectile(nullptr, FastProjectileTerrain, FVector(1170.0f, 0.0f, 0.0f), 0.0f, 80.0f, 100.0f, 25.0f, 0.0f);
 				ExplosionFalloffProjectile->Tick(0.1f);
-				TestTrue(TEXT("Explosion damage falls off from full radius to the blast edge"), FMath::IsNearlyEqual(ExplosionFalloffTarget->GetHealth(), TargetHealthBeforeExplosion - 64.0f, 0.1f));
+				const float ExplosionFalloffDistance = FVector2D(ExplosionFalloffTargetLocation.X - ExplosionFalloffImpactLocation.X, ExplosionFalloffTargetLocation.Z - ExplosionFalloffImpactLocation.Z).Size();
+				const float ExpectedExplosionFalloffDamage = FMath::Lerp(80.0f, 0.0f, FMath::Clamp((ExplosionFalloffDistance - 25.0f) / 75.0f, 0.0f, 1.0f));
+				TestTrue(TEXT("Explosion damage falls off from full radius to the blast edge"), FMath::IsNearlyEqual(ExplosionFalloffTarget->GetHealth(), TargetHealthBeforeExplosion - ExpectedExplosionFalloffDamage, 1.0f));
 				TestTrue(TEXT("Zero terrain damage leaves impacted terrain intact"), FastProjectileTerrain->IsSolidAtWorldLocation(FVector(305.0f, 0.0f, 35.0f)));
 			}
 		}
@@ -2308,7 +2316,7 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		TestNotNull(TEXT("Fast projectile is spawned"), FastProjectile);
 		if (FastProjectile)
 		{
-			FastProjectile->InitializeProjectile(FastProjectileTarget, FastProjectileTerrain, FVector(1940.0f, 0.0f, 0.0f), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 6.0f);
+			FastProjectile->InitializeProjectile(nullptr, FastProjectileTerrain, FVector(1940.0f, 0.0f, 0.0f), 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 6.0f);
 			FastProjectile->Tick(0.1f);
 			TestTrue(TEXT("Resolved projectile actor location stays at the terrain impact point"), FastProjectile->GetActorLocation().X >= 300.0f && FastProjectile->GetActorLocation().X < 310.0f);
 			TestFalse(TEXT("Fast projectile carves the one-cell vertical wall instead of tunneling through it"), FastProjectileTerrain->IsSolidAtWorldLocation(FVector(305.0f, 0.0f, 35.0f)));
