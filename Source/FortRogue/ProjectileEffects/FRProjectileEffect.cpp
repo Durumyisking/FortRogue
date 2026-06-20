@@ -2,10 +2,10 @@
 
 #include "ProjectileEffects/FRProjectileEffect.h"
 
-#include "Combat/FortRogueDestructibleTerrain.h"
-#include "Combat/FortRogueShotSpec.h"
+#include "Combat/FRDestructibleTerrain.h"
+#include "Combat/FRShotSpec.h"
 #include "EngineUtils.h"
-#include "FortRogueGameplayTags.h"
+#include "FRGameplayTags.h"
 
 namespace
 {
@@ -17,7 +17,7 @@ void AddProjectileEffectValidationIssue(TArray<FString>& Issues, const FString& 
 	}
 }
 
-void ApplyToImpactTerrain(const FFRProjectileEffectImpactContext& Context, TFunctionRef<void(AFortRogueDestructibleTerrain&)> Apply)
+void ApplyToImpactTerrain(const FFRProjectileEffectImpactContext& Context, TFunctionRef<void(AFRDestructibleTerrain&)> Apply)
 {
 	if (Context.AssignedTerrain)
 	{
@@ -30,7 +30,7 @@ void ApplyToImpactTerrain(const FFRProjectileEffectImpactContext& Context, TFunc
 		return;
 	}
 
-	for (TActorIterator<AFortRogueDestructibleTerrain> It(Context.World); It; ++It)
+	for (TActorIterator<AFRDestructibleTerrain> It(Context.World); It; ++It)
 	{
 		Apply(**It);
 	}
@@ -42,7 +42,7 @@ const UScriptStruct* UFRProjectileEffectBase::GetParameterStruct() const
 	return FFRProjectileEffectParameters::StaticStruct();
 }
 
-void UFRProjectileEffectBase::ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFortRogueShotSpec& ShotSpec) const
+void UFRProjectileEffectBase::ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFRShotSpec& ShotSpec) const
 {
 }
 
@@ -115,7 +115,7 @@ bool FFRProjectileEffectSpec::EnsureParametersMatchEffectClass()
 	return true;
 }
 
-void FFRProjectileEffectSpec::ApplyToShotSpec(FFortRogueShotSpec& ShotSpec) const
+void FFRProjectileEffectSpec::ApplyToShotSpec(FFRShotSpec& ShotSpec) const
 {
 	if (const UFRProjectileEffectBase* EffectCDO = GetEffectCDO())
 	{
@@ -161,10 +161,10 @@ const UScriptStruct* UFRProjectileEffectDrill::GetParameterStruct() const
 	return FFRProjectileEffectDrillParams::StaticStruct();
 }
 
-void UFRProjectileEffectDrill::ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFortRogueShotSpec& ShotSpec) const
+void UFRProjectileEffectDrill::ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFRShotSpec& ShotSpec) const
 {
 	const FFRProjectileEffectDrillParams& Params = EffectSpec.GetParametersOrDefault<FFRProjectileEffectDrillParams>();
-	ShotSpec.EffectTags.AddTag(FortRogueGameplayTags::ShotEffect_Drill);
+	ShotSpec.EffectTags.AddTag(FRGameplayTags::ShotEffect_Drill);
 	ShotSpec.TerrainCarveRadius = FMath::Max(0.0f, (ShotSpec.TerrainCarveRadius + Params.RadiusBonus) * Params.RadiusMultiplier);
 }
 
@@ -175,7 +175,7 @@ void UFRProjectileEffectDrill::HandleImpact(const FFRProjectileEffectSpec& Effec
 		return;
 	}
 
-	ApplyToImpactTerrain(Context, [&Context](AFortRogueDestructibleTerrain& Terrain)
+	ApplyToImpactTerrain(Context, [&Context](AFRDestructibleTerrain& Terrain)
 	{
 		Terrain.CarveCircle(Context.ImpactLocation, Context.TerrainCarveRadius);
 	});
@@ -204,10 +204,10 @@ const UScriptStruct* UFRProjectileEffectTerrainCreate::GetParameterStruct() cons
 	return FFRProjectileEffectTerrainCreateParams::StaticStruct();
 }
 
-void UFRProjectileEffectTerrainCreate::ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFortRogueShotSpec& ShotSpec) const
+void UFRProjectileEffectTerrainCreate::ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFRShotSpec& ShotSpec) const
 {
 	const FFRProjectileEffectTerrainCreateParams& Params = EffectSpec.GetParametersOrDefault<FFRProjectileEffectTerrainCreateParams>();
-	ShotSpec.EffectTags.AddTag(FortRogueGameplayTags::ShotEffect_TerrainCreate);
+	ShotSpec.EffectTags.AddTag(FRGameplayTags::ShotEffect_TerrainCreate);
 	ShotSpec.TerrainFillRadius = FMath::Max(0.0f, (ShotSpec.TerrainFillRadius + Params.RadiusBonus) * Params.RadiusMultiplier);
 }
 
@@ -218,7 +218,7 @@ void UFRProjectileEffectTerrainCreate::HandleImpact(const FFRProjectileEffectSpe
 		return;
 	}
 
-	ApplyToImpactTerrain(Context, [&Context](AFortRogueDestructibleTerrain& Terrain)
+	ApplyToImpactTerrain(Context, [&Context](AFRDestructibleTerrain& Terrain)
 	{
 		Terrain.FillCircle(Context.ImpactLocation, Context.TerrainFillRadius);
 	});
@@ -239,5 +239,58 @@ void UFRProjectileEffectTerrainCreate::AddDataValidationIssues(const FFRProjecti
 	if (Params.RadiusMultiplier < 0.0f)
 	{
 		AddProjectileEffectValidationIssue(Issues, TEXT("terrain create radius multiplier must be non-negative"));
+	}
+}
+
+const UScriptStruct* UFRProjectileEffectTerrainColumn::GetParameterStruct() const
+{
+	return FFRProjectileEffectTerrainColumnParams::StaticStruct();
+}
+
+void UFRProjectileEffectTerrainColumn::ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFRShotSpec& ShotSpec) const
+{
+	ShotSpec.EffectTags.AddTag(FRGameplayTags::ShotEffect_TerrainColumn);
+}
+
+void UFRProjectileEffectTerrainColumn::HandleImpact(const FFRProjectileEffectSpec& EffectSpec, const FFRProjectileEffectImpactContext& Context) const
+{
+	const FFRProjectileEffectTerrainColumnParams& Params = EffectSpec.GetParametersOrDefault<FFRProjectileEffectTerrainColumnParams>();
+	if (Params.Radius <= 0.0f || Params.Height <= 0.0f)
+	{
+		return;
+	}
+
+	const float StepSpacing = FMath::Max(1.0f, Params.StepSpacing);
+	ApplyToImpactTerrain(Context, [&Context, &Params, StepSpacing](AFRDestructibleTerrain& Terrain)
+	{
+		const int32 StepCount = FMath::Max(1, FMath::CeilToInt(Params.Height / StepSpacing));
+		for (int32 Step = 0; Step <= StepCount; ++Step)
+		{
+			const float Alpha = static_cast<float>(Step) / static_cast<float>(StepCount);
+			const FVector FillLocation = Context.ImpactLocation + FVector(0.0f, 0.0f, Params.Height * Alpha);
+			Terrain.FillCircle(FillLocation, Params.Radius, Params.TextureLayer);
+		}
+	});
+}
+
+bool UFRProjectileEffectTerrainColumn::UsesCustomTerrainImpact(const FFRProjectileEffectSpec& EffectSpec) const
+{
+	return true;
+}
+
+void UFRProjectileEffectTerrainColumn::AddDataValidationIssues(const FFRProjectileEffectSpec& EffectSpec, TArray<FString>& Issues) const
+{
+	const FFRProjectileEffectTerrainColumnParams& Params = EffectSpec.GetParametersOrDefault<FFRProjectileEffectTerrainColumnParams>();
+	if (Params.Radius <= 0.0f)
+	{
+		AddProjectileEffectValidationIssue(Issues, TEXT("terrain column radius must be positive"));
+	}
+	if (Params.Height <= 0.0f)
+	{
+		AddProjectileEffectValidationIssue(Issues, TEXT("terrain column height must be positive"));
+	}
+	if (Params.StepSpacing <= 0.0f)
+	{
+		AddProjectileEffectValidationIssue(Issues, TEXT("terrain column step spacing must be positive"));
 	}
 }

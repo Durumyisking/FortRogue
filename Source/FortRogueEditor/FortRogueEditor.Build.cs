@@ -13,6 +13,7 @@ public class FortRogueEditor : ModuleRules
 			"CoreUObject",
 			"Engine",
 			"FortRogue",
+			"GameplayTags",
 			"InputCore",
 			"Slate",
 			"SlateCore",

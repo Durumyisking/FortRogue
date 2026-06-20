@@ -8,18 +8,18 @@
 #include "UObject/Object.h"
 #include "FRProjectileEffect.generated.h"
 
-class AFortRogueBattleCharacter;
-class AFortRogueDestructibleTerrain;
-class AFortRogueProjectile;
-struct FFortRogueShotSpec;
+class AFRBattleCharacter;
+class AFRDestructibleTerrain;
+class AFRProjectile;
+struct FFRShotSpec;
 struct FFRProjectileEffectSpec;
 
 struct FFRProjectileEffectImpactContext
 {
 	UWorld* World = nullptr;
-	AFortRogueProjectile* Projectile = nullptr;
-	AFortRogueBattleCharacter* OwnerCharacter = nullptr;
-	AFortRogueDestructibleTerrain* AssignedTerrain = nullptr;
+	AFRProjectile* Projectile = nullptr;
+	AFRBattleCharacter* OwnerCharacter = nullptr;
+	AFRDestructibleTerrain* AssignedTerrain = nullptr;
 	FVector ImpactLocation = FVector::ZeroVector;
 	FVector Velocity = FVector::ZeroVector;
 	FGameplayTag WeaponTag;
@@ -44,7 +44,7 @@ class FORTROGUE_API UFRProjectileEffectBase : public UObject
 
 public:
 	virtual const UScriptStruct* GetParameterStruct() const;
-	virtual void ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFortRogueShotSpec& ShotSpec) const;
+	virtual void ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFRShotSpec& ShotSpec) const;
 	virtual void HandleImpact(const FFRProjectileEffectSpec& EffectSpec, const FFRProjectileEffectImpactContext& Context) const;
 	virtual bool UsesCustomTerrainImpact(const FFRProjectileEffectSpec& EffectSpec) const;
 	virtual void AddDataValidationIssues(const FFRProjectileEffectSpec& EffectSpec, TArray<FString>& Issues) const;
@@ -66,7 +66,7 @@ struct FORTROGUE_API FFRProjectileEffectSpec
 	FText GetEffectDisplayName() const;
 	bool HasValidParameters() const;
 	bool EnsureParametersMatchEffectClass();
-	void ApplyToShotSpec(FFortRogueShotSpec& ShotSpec) const;
+	void ApplyToShotSpec(FFRShotSpec& ShotSpec) const;
 	void HandleImpact(const FFRProjectileEffectImpactContext& Context) const;
 	bool UsesCustomTerrainImpact() const;
 	FText GetDataValidationSummary() const;
@@ -103,7 +103,7 @@ class FORTROGUE_API UFRProjectileEffectDrill : public UFRProjectileEffectBase
 
 public:
 	virtual const UScriptStruct* GetParameterStruct() const override;
-	virtual void ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFortRogueShotSpec& ShotSpec) const override;
+	virtual void ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFRShotSpec& ShotSpec) const override;
 	virtual void HandleImpact(const FFRProjectileEffectSpec& EffectSpec, const FFRProjectileEffectImpactContext& Context) const override;
 	virtual bool UsesCustomTerrainImpact(const FFRProjectileEffectSpec& EffectSpec) const override;
 	virtual void AddDataValidationIssues(const FFRProjectileEffectSpec& EffectSpec, TArray<FString>& Issues) const override;
@@ -128,7 +128,38 @@ class FORTROGUE_API UFRProjectileEffectTerrainCreate : public UFRProjectileEffec
 
 public:
 	virtual const UScriptStruct* GetParameterStruct() const override;
-	virtual void ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFortRogueShotSpec& ShotSpec) const override;
+	virtual void ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFRShotSpec& ShotSpec) const override;
+	virtual void HandleImpact(const FFRProjectileEffectSpec& EffectSpec, const FFRProjectileEffectImpactContext& Context) const override;
+	virtual bool UsesCustomTerrainImpact(const FFRProjectileEffectSpec& EffectSpec) const override;
+	virtual void AddDataValidationIssues(const FFRProjectileEffectSpec& EffectSpec, TArray<FString>& Issues) const override;
+};
+
+USTRUCT(BlueprintType)
+struct FORTROGUE_API FFRProjectileEffectTerrainColumnParams : public FFRProjectileEffectParameters
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain Column", meta = (ClampMin = "0.0", ToolTip = "기둥을 이루는 원형 지형의 반경입니다."))
+	float Radius = 42.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain Column", meta = (ClampMin = "0.0", ToolTip = "충돌 지점에서 위로 생성할 기둥 높이입니다."))
+	float Height = 360.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain Column", meta = (ClampMin = "1.0", ToolTip = "기둥을 채울 때 원을 찍는 간격입니다. 작을수록 촘촘하게 생성됩니다."))
+	float StepSpacing = 28.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Terrain Column", meta = (ClampMin = "0", ToolTip = "생성된 기둥에 칠할 지형 텍스처 레이어입니다."))
+	uint8 TextureLayer = 0;
+};
+
+UCLASS(BlueprintType, Const, meta = (DisplayName = "FR Projectile Effect Terrain Column"))
+class FORTROGUE_API UFRProjectileEffectTerrainColumn : public UFRProjectileEffectBase
+{
+	GENERATED_BODY()
+
+public:
+	virtual const UScriptStruct* GetParameterStruct() const override;
+	virtual void ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFRShotSpec& ShotSpec) const override;
 	virtual void HandleImpact(const FFRProjectileEffectSpec& EffectSpec, const FFRProjectileEffectImpactContext& Context) const override;
 	virtual bool UsesCustomTerrainImpact(const FFRProjectileEffectSpec& EffectSpec) const override;
 	virtual void AddDataValidationIssues(const FFRProjectileEffectSpec& EffectSpec, TArray<FString>& Issues) const override;

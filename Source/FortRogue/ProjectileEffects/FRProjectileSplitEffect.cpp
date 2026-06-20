@@ -2,20 +2,20 @@
 
 #include "ProjectileEffects/FRProjectileSplitEffect.h"
 
-#include "Combat/FortRogueBattleCharacter.h"
-#include "Combat/FortRogueProjectile.h"
-#include "Combat/FortRogueShotSpec.h"
-#include "FortRogueGameMode.h"
-#include "FortRogueGameplayTags.h"
+#include "Combat/FRBattleCharacter.h"
+#include "Combat/FRProjectile.h"
+#include "Combat/FRShotSpec.h"
+#include "FRGameMode.h"
+#include "FRGameplayTags.h"
 
 const UScriptStruct* UFRProjectileEffectSplit::GetParameterStruct() const
 {
 	return FFRProjectileEffectSplitParams::StaticStruct();
 }
 
-void UFRProjectileEffectSplit::ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFortRogueShotSpec& ShotSpec) const
+void UFRProjectileEffectSplit::ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFRShotSpec& ShotSpec) const
 {
-	ShotSpec.EffectTags.AddTag(FortRogueGameplayTags::ShotEffect_SplitOnImpact);
+	ShotSpec.EffectTags.AddTag(FRGameplayTags::ShotEffect_SplitOnImpact);
 }
 
 void UFRProjectileEffectSplit::HandleImpact(const FFRProjectileEffectSpec& EffectSpec, const FFRProjectileEffectImpactContext& Context) const
@@ -32,7 +32,7 @@ void UFRProjectileEffectSplit::HandleImpact(const FFRProjectileEffectSpec& Effec
 		return;
 	}
 
-	FFortRogueShotSpec BaseChildShotSpec;
+	FFRShotSpec BaseChildShotSpec;
 	BaseChildShotSpec.WeaponTag = Context.WeaponTag;
 	BaseChildShotSpec.EffectTags = Context.EffectTags;
 	BaseChildShotSpec.EffectTags.AppendTags(Params.ChildEffectTags);
@@ -43,8 +43,8 @@ void UFRProjectileEffectSplit::HandleImpact(const FFRProjectileEffectSpec& Effec
 	BaseChildShotSpec.LaunchSpeed = FMath::Max(0.0f, Params.LaunchSpeed);
 	BaseChildShotSpec.Gravity = FMath::Max(0.0f, Context.Gravity * Params.GravityMultiplier);
 	BaseChildShotSpec.ProjectileCount = 1;
-	BaseChildShotSpec.ProjectileClass = Params.ProjectileClass ? Params.ProjectileClass : TSubclassOf<AFortRogueProjectile>(Context.Projectile ? Context.Projectile->GetClass() : AFortRogueProjectile::StaticClass());
-	const AFortRogueGameMode* WindGameMode = Context.World->GetAuthGameMode<AFortRogueGameMode>();
+	BaseChildShotSpec.ProjectileClass = Params.ProjectileClass ? Params.ProjectileClass : TSubclassOf<AFRProjectile>(Context.Projectile ? Context.Projectile->GetClass() : AFRProjectile::StaticClass());
+	const AFRGameMode* WindGameMode = Context.World->GetAuthGameMode<AFRGameMode>();
 	const float Wind = WindGameMode ? WindGameMode->GetWind() : 0.0f;
 	const FVector FallbackDirection = Context.OwnerCharacter && Context.OwnerCharacter->IsEnemy()
 		? FVector(-1.0f, 0.0f, 1.0f).GetSafeNormal()
@@ -59,8 +59,8 @@ void UFRProjectileEffectSplit::HandleImpact(const FFRProjectileEffectSpec& Effec
 		const FVector ChildDirection = FVector(FMath::Cos(ChildAngleRadians), 0.0f, FMath::Sin(ChildAngleRadians)).GetSafeNormal();
 		const float ChildAimAngle = FMath::Clamp(FMath::RadiansToDegrees(FMath::Atan2(FMath::Abs(ChildDirection.Z), FMath::Abs(ChildDirection.X))), 0.0f, 90.0f);
 		const bool bChildFacingRight = ChildDirection.X >= 0.0f;
-		FFortRogueShotSpec ChildShotSpec = BaseChildShotSpec;
-		for (const FFortRogueShotModifierSpec& ChildModifier : Params.ChildShotModifiers)
+		FFRShotSpec ChildShotSpec = BaseChildShotSpec;
+		for (const FFRShotModifierSpec& ChildModifier : Params.ChildShotModifiers)
 		{
 			if (ChildModifier.MeetsShotConditions(ChildShotSpec, ChildAimAngle, Wind, bChildFacingRight))
 			{
@@ -71,7 +71,7 @@ void UFRProjectileEffectSplit::HandleImpact(const FFRProjectileEffectSpec& Effec
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = Context.OwnerCharacter ? Cast<AActor>(Context.OwnerCharacter) : (Context.Projectile ? Context.Projectile->GetOwner() : nullptr);
 		SpawnParams.Instigator = Context.OwnerCharacter;
-		AFortRogueProjectile* ChildProjectile = Context.World->SpawnActor<AFortRogueProjectile>(ChildShotSpec.ProjectileClass, Context.ImpactLocation + ChildDirection * 18.0f, FRotator::ZeroRotator, SpawnParams);
+		AFRProjectile* ChildProjectile = Context.World->SpawnActor<AFRProjectile>(ChildShotSpec.ProjectileClass, Context.ImpactLocation + ChildDirection * 18.0f, FRotator::ZeroRotator, SpawnParams);
 		if (!ChildProjectile)
 		{
 			continue;
@@ -83,7 +83,7 @@ void UFRProjectileEffectSplit::HandleImpact(const FFRProjectileEffectSpec& Effec
 			ChildDirection * ChildShotSpec.LaunchSpeed,
 			ChildShotSpec);
 
-		if (AFortRogueGameMode* GameMode = Context.World->GetAuthGameMode<AFortRogueGameMode>())
+		if (AFRGameMode* GameMode = Context.World->GetAuthGameMode<AFRGameMode>())
 		{
 			GameMode->NotifyProjectileSpawned(ChildProjectile);
 		}
@@ -128,7 +128,7 @@ void UFRProjectileEffectSplit::AddDataValidationIssues(const FFRProjectileEffect
 
 	bool bHasInvalidChildModifier = false;
 	bool bHasIgnoredProjectileCountBonus = false;
-	for (const FFortRogueShotModifierSpec& ChildModifier : Params.ChildShotModifiers)
+	for (const FFRShotModifierSpec& ChildModifier : Params.ChildShotModifiers)
 	{
 		if (ChildModifier.ProjectileCountBonus != 0)
 		{

@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "ProjectileEffects/FRProjectileEffect.h"
-#include "Weapons/FortRogueWeaponDefinition.h"
+#include "Weapons/FRWeaponDefinition.h"
 #include "FRProjectileSplitEffect.generated.h"
 
 USTRUCT(BlueprintType)
@@ -40,10 +40,10 @@ struct FORTROGUE_API FFRProjectileEffectSplitParams : public FFRProjectileEffect
 	FGameplayTagContainer ChildEffectTags;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Split", meta = (ToolTip = "child 투사체 클래스입니다. 비워두면 부모 투사체 클래스를 사용합니다."))
-	TSubclassOf<AFortRogueProjectile> ProjectileClass;
+	TSubclassOf<AFRProjectile> ProjectileClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Split", meta = (TitleProperty = ModifierTag, ToolTip = "child 투사체 ShotSpec에 추가로 적용할 modifier 목록입니다. 여기서 Drill, TerrainCreate 같은 ProjectileEffects를 다시 조립할 수 있습니다."))
-	TArray<FFortRogueShotModifierSpec> ChildShotModifiers;
+	TArray<FFRShotModifierSpec> ChildShotModifiers;
 };
 
 UCLASS(BlueprintType, Const, meta = (DisplayName = "FR Projectile Effect Split"))
@@ -53,7 +53,7 @@ class FORTROGUE_API UFRProjectileEffectSplit : public UFRProjectileEffectBase
 
 public:
 	virtual const UScriptStruct* GetParameterStruct() const override;
-	virtual void ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFortRogueShotSpec& ShotSpec) const override;
+	virtual void ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFRShotSpec& ShotSpec) const override;
 	virtual void HandleImpact(const FFRProjectileEffectSpec& EffectSpec, const FFRProjectileEffectImpactContext& Context) const override;
 	virtual void AddDataValidationIssues(const FFRProjectileEffectSpec& EffectSpec, TArray<FString>& Issues) const override;
 };
