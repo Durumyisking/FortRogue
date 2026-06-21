@@ -41,6 +41,13 @@ AFRGameMode::AFRGameMode()
 	CameraClass = ACameraActor::StaticClass();
 }
 
+void AFRGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
+{
+	PlayerControllerClass = AFRPlayerController::StaticClass();
+	Super::InitGame(MapName, Options, ErrorMessage);
+	PlayerControllerClass = AFRPlayerController::StaticClass();
+}
+
 void AFRGameMode::BeginPlay()
 {
 	Super::BeginPlay();

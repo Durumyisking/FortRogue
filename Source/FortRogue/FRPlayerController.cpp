@@ -45,6 +45,7 @@ void AFRPlayerController::BeginPlay()
 		if (BattleHUDWidget)
 		{
 			BattleHUDWidget->AddToViewport(0);
+			BattleHUDWidget->ActivateWidget();
 		}
 	}
 

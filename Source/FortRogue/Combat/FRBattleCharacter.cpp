@@ -24,6 +24,8 @@
 
 namespace
 {
+constexpr float TrajectoryPreviewCharacterHitRadius = 34.0f;
+
 bool DoesShotModifierMatchTag(const FFRShotModifierSpec& Modifier, FGameplayTag ModifierTag)
 {
 	return (Modifier.ModifierTag.IsValid() && Modifier.ModifierTag.MatchesTagExact(ModifierTag))
@@ -33,6 +35,29 @@ bool DoesShotModifierMatchTag(const FFRShotModifierSpec& Modifier, FGameplayTag 
 bool DoesAbilitySetMatchTag(const UFRAbilitySet* AbilitySet, FGameplayTag AbilitySetTag)
 {
 	return AbilitySet && AbilitySetTag.IsValid() && AbilitySet->AbilitySetTag.MatchesTagExact(AbilitySetTag);
+}
+
+float GetTrajectorySegmentAlphaXZ(const FVector& StartLocation, const FVector& EndLocation, const FVector& TestLocation)
+{
+	const FVector2D Segment(EndLocation.X - StartLocation.X, EndLocation.Z - StartLocation.Z);
+	const FVector2D ToTest(TestLocation.X - StartLocation.X, TestLocation.Z - StartLocation.Z);
+	const float SegmentLengthSq = Segment.SizeSquared();
+	if (SegmentLengthSq <= KINDA_SMALL_NUMBER)
+	{
+		return 0.0f;
+	}
+
+	return FMath::Clamp(FVector2D::DotProduct(ToTest, Segment) / SegmentLengthSq, 0.0f, 1.0f);
+}
+
+FVector GetClosestPointOnTrajectorySegmentXZ(const FVector& StartLocation, const FVector& EndLocation, const FVector& TestLocation)
+{
+	return FMath::Lerp(StartLocation, EndLocation, GetTrajectorySegmentAlphaXZ(StartLocation, EndLocation, TestLocation));
+}
+
+float GetTrajectoryDistanceSquaredXZ(const FVector& First, const FVector& Second)
+{
+	return FVector2D(First.X - Second.X, First.Z - Second.Z).SizeSquared();
 }
 
 }
@@ -1674,11 +1699,51 @@ void AFRBattleCharacter::DrawProjectileTrajectory() const
 		const FVector PreviousLocation = Location;
 		Velocity += FVector(Wind, 0.0f, -ShotSpec.Gravity) * StepSeconds;
 		Location += Velocity * StepSeconds;
-		DrawDebugLine(GetWorld(), PreviousLocation, Location, FColor::Yellow, false, 0.0f, 0, 2.0f);
 
-		if (Terrain && Terrain->IsSolidAtWorldLocation(Location))
+		bool bHasImpact = false;
+		float BestImpactAlpha = TNumericLimits<float>::Max();
+		FVector BestImpactLocation = Location;
+
+		auto ConsiderImpact = [&](const FVector& CandidateImpactLocation)
 		{
-			DrawDebugSphere(GetWorld(), Location, 16.0f, 12, FColor::Red, false, 0.0f, 0, 2.0f);
+			const float CandidateAlpha = GetTrajectorySegmentAlphaXZ(PreviousLocation, Location, CandidateImpactLocation);
+			if (!bHasImpact || CandidateAlpha < BestImpactAlpha)
+			{
+				bHasImpact = true;
+				BestImpactAlpha = CandidateAlpha;
+				BestImpactLocation = CandidateImpactLocation;
+			}
+		};
+
+		if (Terrain)
+		{
+			FVector TerrainImpactLocation = FVector::ZeroVector;
+			if (Terrain->FindFirstSolidAlongWorldSegment(PreviousLocation, Location, TerrainImpactLocation))
+			{
+				ConsiderImpact(TerrainImpactLocation);
+			}
+		}
+
+		for (TActorIterator<AFRBattleCharacter> It(GetWorld()); It; ++It)
+		{
+			AFRBattleCharacter* Character = *It;
+			if (!Character || Character->IsDefeated())
+			{
+				continue;
+			}
+
+			const FVector ClosestPoint = GetClosestPointOnTrajectorySegmentXZ(PreviousLocation, Location, Character->GetActorLocation());
+			if (GetTrajectoryDistanceSquaredXZ(Character->GetActorLocation(), ClosestPoint) <= FMath::Square(TrajectoryPreviewCharacterHitRadius))
+			{
+				ConsiderImpact(ClosestPoint);
+			}
+		}
+
+		DrawDebugLine(GetWorld(), PreviousLocation, bHasImpact ? BestImpactLocation : Location, FColor::Yellow, false, 0.0f, 0, 2.0f);
+
+		if (bHasImpact)
+		{
+			DrawDebugSphere(GetWorld(), BestImpactLocation, 16.0f, 12, FColor::Red, false, 0.0f, 0, 2.0f);
 			break;
 		}
 	}
