@@ -140,6 +140,22 @@ void ConfigureCharacter(UFRCharacterDefinition* CharacterDefinition, const FText
 	CharacterDefinition->WeaponLoadout.Reset();
 	CharacterDefinition->MarkPackageDirty();
 }
+
+FFRRewardChoice MakeWeaponReward(UFRWeaponDefinition* WeaponDefinition)
+{
+	FFRRewardChoice Reward;
+	Reward.Type = EFRRewardType::Weapon;
+	Reward.WeaponReward = WeaponDefinition;
+	Reward.RewardWeight = 1.0f;
+	Reward.bOfferOncePerRun = true;
+	if (WeaponDefinition)
+	{
+		Reward.DisplayName = WeaponDefinition->Weapon.DisplayName;
+		Reward.Description = WeaponDefinition->Weapon.Description;
+		Reward.RewardTag = WeaponDefinition->Weapon.WeaponTag;
+	}
+	return Reward;
+}
 }
 
 UFRGenerateCombatDataCommandlet::UFRGenerateCombatDataCommandlet()
@@ -219,6 +235,11 @@ int32 UFRGenerateCombatDataCommandlet::Main(const FString& Params)
 		DefaultRun->EnemyDefinitionPool.Reset();
 		DefaultRun->EnemyDefinitionPool.Add(EnemyGrunt);
 		DefaultRun->EnemyDefinitionPool.Add(EnemyMarauder);
+		DefaultRun->RewardPool.Reset();
+		DefaultRun->RewardPool.Add(MakeWeaponReward(CannonSpecial));
+		DefaultRun->RewardPool.Add(MakeWeaponReward(BanditSpecial));
+		DefaultRun->RewardPool.Add(MakeWeaponReward(MinerSpecial));
+		DefaultRun->RewardPool.Add(MakeWeaponReward(EngineerSpecial));
 		DefaultRun->MarkPackageDirty();
 	}
 

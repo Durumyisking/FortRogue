@@ -2,8 +2,10 @@
 
 #include "FRPlayerController.h"
 
+#include "AbilitySystem/FRAbilitySystemComponent.h"
 #include "Combat/FRBattleCharacter.h"
 #include "FRGameMode.h"
+#include "FRGameplayTags.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/World.h"
@@ -151,10 +153,12 @@ void AFRPlayerController::Tick(float DeltaSeconds)
 		TickKeyboardWeaponInput();
 		TickKeyboardItemInput();
 		TickPlayerWeaponCharge(DeltaSeconds);
+		ProcessPlayerAbilityInput(DeltaSeconds);
 		return;
 	}
 
 	TickBattleInput(DeltaSeconds);
+	ProcessPlayerAbilityInput(DeltaSeconds);
 }
 
 void AFRPlayerController::TickBattleInput(float DeltaSeconds)
@@ -294,6 +298,85 @@ void AFRPlayerController::UpdateOptionalWidgets()
 	}
 }
 
+UFRAbilitySystemComponent* AFRPlayerController::GetPlayerAbilitySystemComponent() const
+{
+	const AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
+	const AFRBattleCharacter* PlayerCharacter = GameMode ? GameMode->GetPlayerCharacter() : nullptr;
+	return PlayerCharacter ? Cast<UFRAbilitySystemComponent>(PlayerCharacter->GetAbilitySystemComponent()) : nullptr;
+}
+
+void AFRPlayerController::ProcessPlayerAbilityInput(float DeltaSeconds)
+{
+	const AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
+	UFRAbilitySystemComponent* AbilitySystem = GetPlayerAbilitySystemComponent();
+	if (!GameMode || GameMode->GetBattleState() != EFRBattleState::PlayerTurn || !GameMode->GetPlayerCharacter() || !AbilitySystem)
+	{
+		ReleasePlayerAbilityAxisInput();
+		SetPlayerFireAbilityInput(false);
+		if (AbilitySystem)
+		{
+			AbilitySystem->ProcessAbilityInput(DeltaSeconds, GetWorld() && GetWorld()->IsPaused());
+			AbilitySystem->ClearAbilityInput();
+		}
+		return;
+	}
+
+	AbilitySystem->ProcessAbilityInput(DeltaSeconds, GetWorld() && GetWorld()->IsPaused());
+}
+
+void AFRPlayerController::SetPlayerAbilityInputTag(const FGameplayTag& InputTag, bool bPressed)
+{
+	if (!InputTag.IsValid())
+	{
+		return;
+	}
+
+	if (UFRAbilitySystemComponent* AbilitySystem = GetPlayerAbilitySystemComponent())
+	{
+		if (bPressed)
+		{
+			AbilitySystem->AbilityInputTagPressed(InputTag);
+		}
+		else
+		{
+			AbilitySystem->AbilityInputTagReleased(InputTag);
+		}
+	}
+}
+
+void AFRPlayerController::SetPlayerFireAbilityInput(bool bPressed)
+{
+	if (bFireAbilityInputPressed == bPressed)
+	{
+		return;
+	}
+
+	bFireAbilityInputPressed = bPressed;
+	SetPlayerAbilityInputTag(FRGameplayTags::InputTag_Fire, bFireAbilityInputPressed);
+}
+
+void AFRPlayerController::UpdatePlayerAbilityAxisInput(float Axis, const FGameplayTag& NegativeTag, const FGameplayTag& PositiveTag, bool& bNegativePressed, bool& bPositivePressed)
+{
+	const bool bShouldPressNegative = Axis < -KINDA_SMALL_NUMBER;
+	const bool bShouldPressPositive = Axis > KINDA_SMALL_NUMBER;
+	if (bNegativePressed != bShouldPressNegative)
+	{
+		bNegativePressed = bShouldPressNegative;
+		SetPlayerAbilityInputTag(NegativeTag, bNegativePressed);
+	}
+	if (bPositivePressed != bShouldPressPositive)
+	{
+		bPositivePressed = bShouldPressPositive;
+		SetPlayerAbilityInputTag(PositiveTag, bPositivePressed);
+	}
+}
+
+void AFRPlayerController::ReleasePlayerAbilityAxisInput()
+{
+	UpdatePlayerAbilityAxisInput(0.0f, FRGameplayTags::InputTag_MoveLeft, FRGameplayTags::InputTag_MoveRight, bMoveLeftAbilityInputPressed, bMoveRightAbilityInputPressed);
+	UpdatePlayerAbilityAxisInput(0.0f, FRGameplayTags::InputTag_AimDown, FRGameplayTags::InputTag_AimUp, bAimDownAbilityInputPressed, bAimUpAbilityInputPressed);
+}
+
 bool AFRPlayerController::HasEnhancedInputBindings() const
 {
 	return MoveAction || AimAction || FireAction
@@ -385,7 +468,9 @@ void AFRPlayerController::HandleReward5()
 void AFRPlayerController::ApplyMoveAxis(float Axis, float DeltaSeconds)
 {
 	AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
-	if (GameMode && GameMode->GetBattleState() == EFRBattleState::PlayerTurn && GameMode->GetPlayerCharacter())
+	const bool bCanMove = GameMode && GameMode->GetBattleState() == EFRBattleState::PlayerTurn && GameMode->GetPlayerCharacter();
+	UpdatePlayerAbilityAxisInput(bCanMove ? Axis : 0.0f, FRGameplayTags::InputTag_MoveLeft, FRGameplayTags::InputTag_MoveRight, bMoveLeftAbilityInputPressed, bMoveRightAbilityInputPressed);
+	if (bCanMove)
 	{
 		GameMode->GetPlayerCharacter()->MoveHorizontal(Axis, DeltaSeconds);
 	}
@@ -394,7 +479,9 @@ void AFRPlayerController::ApplyMoveAxis(float Axis, float DeltaSeconds)
 void AFRPlayerController::ApplyAimAxis(float Axis, float DeltaSeconds)
 {
 	AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
-	if (GameMode && GameMode->GetBattleState() == EFRBattleState::PlayerTurn && GameMode->GetPlayerCharacter())
+	const bool bCanAim = GameMode && GameMode->GetBattleState() == EFRBattleState::PlayerTurn && GameMode->GetPlayerCharacter();
+	UpdatePlayerAbilityAxisInput(bCanAim ? Axis : 0.0f, FRGameplayTags::InputTag_AimDown, FRGameplayTags::InputTag_AimUp, bAimDownAbilityInputPressed, bAimUpAbilityInputPressed);
+	if (bCanAim)
 	{
 		GameMode->GetPlayerCharacter()->AdjustAim(Axis, DeltaSeconds);
 	}
@@ -405,6 +492,7 @@ void AFRPlayerController::BeginPlayerWeaponCharge()
 	AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
 	if (GameMode && GameMode->GetBattleState() == EFRBattleState::PlayerTurn && GameMode->GetPlayerCharacter())
 	{
+		SetPlayerFireAbilityInput(true);
 		GameMode->GetPlayerCharacter()->BeginShotCharge();
 	}
 }
@@ -427,6 +515,7 @@ void AFRPlayerController::ReleasePlayerWeaponCharge()
 	}
 
 	const int32 SpawnedProjectiles = GameMode->GetPlayerCharacter()->ReleaseShotCharge();
+	SetPlayerFireAbilityInput(false);
 	GameMode->NotifyShotFired(GameMode->GetPlayerCharacter(), SpawnedProjectiles);
 }
 
@@ -444,7 +533,9 @@ void AFRPlayerController::UsePlayerItem(EFRItemType ItemType)
 	AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
 	if (GameMode && GameMode->GetBattleState() == EFRBattleState::PlayerTurn && GameMode->GetPlayerCharacter())
 	{
+		SetPlayerAbilityInputTag(FRGameplayTags::InputTag_UseItem, true);
 		GameMode->GetPlayerCharacter()->UseItemByType(ItemType);
+		SetPlayerAbilityInputTag(FRGameplayTags::InputTag_UseItem, false);
 	}
 }
 

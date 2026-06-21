@@ -98,6 +98,20 @@ void AFRGameMode::NotifyShotFired(AFRBattleCharacter* Shooter, int32 ProjectileC
 	SetStatus(Shooter->IsEnemy() ? TEXT("Enemy shell incoming") : TEXT("Shell fired"));
 }
 
+void AFRGameMode::NotifyProjectileSpawnFailed(int32 ProjectileCount)
+{
+	if (ProjectileCount <= 0 || BattleState != EFRBattleState::ResolvingShot)
+	{
+		return;
+	}
+
+	PendingProjectiles = FMath::Max(0, PendingProjectiles - ProjectileCount);
+	if (PendingProjectiles <= 0)
+	{
+		FinishShotResolution();
+	}
+}
+
 void AFRGameMode::NotifyProjectileResolved(AFRProjectile* Projectile)
 {
 	if (Projectile)
@@ -636,11 +650,11 @@ void AFRGameMode::RunEnemyTurn()
 		return;
 	}
 
-	ActingEnemy->FireAtTarget(PlayerCharacter, GetCurrentStageDifficulty());
 	if (!ActingEnemy->SelectSpecialAttack())
 	{
 		ActingEnemy->SelectBasicAttack();
 	}
+	ActingEnemy->FireAtTarget(PlayerCharacter, GetCurrentStageDifficulty());
 	const int32 SpawnedProjectiles = ActingEnemy->FireSelectedWeapon();
 	if (SpawnedProjectiles <= 0)
 	{

@@ -441,19 +441,28 @@ int32 AFRBattleCharacter::FireSelectedWeapon()
 	PendingAttackMultiplier = 1.0f;
 	PendingShotModifiers.Reset();
 
-	SpawnShotSpecProjectiles(ShotSpec, false);
+	int32 ExpectedProjectiles = SpawnShotSpecProjectiles(ShotSpec, false);
 	for (int32 SalvoIndex = 1; SalvoIndex < SalvoCount; ++SalvoIndex)
 	{
+		ExpectedProjectiles += ProjectileCount;
 		FTimerHandle SalvoTimerHandle;
 		FTimerDelegate SalvoDelegate;
-		SalvoDelegate.BindWeakLambda(this, [this, ShotSpec]()
+		SalvoDelegate.BindWeakLambda(this, [this, ShotSpec, ProjectileCount]()
 		{
-			SpawnShotSpecProjectiles(ShotSpec, false);
+			const int32 SpawnedProjectiles = SpawnShotSpecProjectiles(ShotSpec, false);
+			const int32 FailedProjectiles = FMath::Max(0, ProjectileCount - SpawnedProjectiles);
+			if (FailedProjectiles > 0)
+			{
+				if (AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr)
+				{
+					GameMode->NotifyProjectileSpawnFailed(FailedProjectiles);
+				}
+			}
 		});
 		GetWorldTimerManager().SetTimer(SalvoTimerHandle, SalvoDelegate, SalvoInterval * SalvoIndex, false);
 	}
 
-	return ProjectileCount * SalvoCount;
+	return ExpectedProjectiles;
 }
 
 bool AFRBattleCharacter::CanFireSelectedWeapon() const
@@ -471,16 +480,83 @@ void AFRBattleCharacter::FireAtTarget(AFRBattleCharacter* Target, const FFRStage
 	const FVector ToTarget = Target->GetActorLocation() - GetActorLocation();
 	bFacingRight = ToTarget.X >= 0.0f;
 	UpdateCharacterRotation(GetActorPitchDegrees());
-	const float AimArcHeight = FMath::Max(DifficultyData.MinAimArcHeight, FMath::Abs(ToTarget.Z) + DifficultyData.AimHeightOffset);
-	const float Distance = FMath::Max(1.0f, FMath::Abs(ToTarget.X));
 	const float AimError = DifficultyData.AimAngleErrorDegrees > 0.0f ? FMath::RandRange(-DifficultyData.AimAngleErrorDegrees, DifficultyData.AimAngleErrorDegrees) : 0.0f;
 	const float PowerError = DifficultyData.ShotPowerError > 0.0f ? FMath::RandRange(-DifficultyData.ShotPowerError, DifficultyData.ShotPowerError) : 0.0f;
 	const float MinAim = FMath::Min(DifficultyData.MinAimAngleDegrees, DifficultyData.MaxAimAngleDegrees);
 	const float MaxAim = FMath::Max(DifficultyData.MinAimAngleDegrees, DifficultyData.MaxAimAngleDegrees);
 	const float MinPower = FMath::Min(DifficultyData.MinShotPower, DifficultyData.MaxShotPower);
 	const float MaxPower = FMath::Max(DifficultyData.MinShotPower, DifficultyData.MaxShotPower);
-	AimAngle = FMath::Clamp(FMath::RadiansToDegrees(FMath::Atan2(AimArcHeight, Distance)) + AimError, MinAim, MaxAim);
-	ShotPower = FMath::Clamp(Distance / FMath::Max(1.0f, DifficultyData.ShotPowerDistanceScale) + PowerError, MinPower, MaxPower);
+
+	const FFRWeaponSpec& Weapon = GetCurrentWeapon();
+	const AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
+	const float Wind = GameMode ? GameMode->GetWind() : 0.0f;
+	const FVector TargetLocation = Target->GetActorLocation();
+	float BestAimAngle = AimAngle;
+	float BestShotPower = ShotPower;
+	float BestScore = MAX_flt;
+	constexpr int32 AimSamples = 24;
+	constexpr int32 PowerSamples = 24;
+	constexpr int32 SimulationSteps = 150;
+	constexpr float SimulationDeltaSeconds = 1.0f / 30.0f;
+
+	for (int32 AimSampleIndex = 0; AimSampleIndex <= AimSamples; ++AimSampleIndex)
+	{
+		const float AimAlpha = static_cast<float>(AimSampleIndex) / static_cast<float>(AimSamples);
+		const float CandidateAimAngle = FMath::Lerp(MinAim, MaxAim, AimAlpha);
+		for (int32 PowerSampleIndex = 0; PowerSampleIndex <= PowerSamples; ++PowerSampleIndex)
+		{
+			const float PowerAlpha = static_cast<float>(PowerSampleIndex) / static_cast<float>(PowerSamples);
+			const float CandidateShotPower = FMath::Lerp(MinPower, MaxPower, PowerAlpha);
+			AimAngle = CandidateAimAngle;
+			ShotPower = CandidateShotPower;
+
+			const FFRShotSpec CandidateShotSpec = BuildShotSpec(Weapon);
+			if (CandidateShotSpec.LaunchSpeed <= KINDA_SMALL_NUMBER)
+			{
+				continue;
+			}
+
+			const FVector LaunchDirection = GetProjectileLaunchDirection(0.0f);
+			FVector SimulatedLocation = GetProjectileSpawnLocation(LaunchDirection);
+			FVector SimulatedVelocity = LaunchDirection * CandidateShotSpec.LaunchSpeed;
+			float CandidateScore = GetTrajectoryDistanceSquaredXZ(SimulatedLocation, TargetLocation);
+			for (int32 StepIndex = 0; StepIndex < SimulationSteps; ++StepIndex)
+			{
+				const FVector PreviousLocation = SimulatedLocation;
+				SimulatedVelocity += FVector(Wind, 0.0f, -CandidateShotSpec.Gravity) * SimulationDeltaSeconds;
+				SimulatedLocation += SimulatedVelocity * SimulationDeltaSeconds;
+				const FVector ClosestPoint = GetClosestPointOnTrajectorySegmentXZ(PreviousLocation, SimulatedLocation, TargetLocation);
+				CandidateScore = FMath::Min(CandidateScore, GetTrajectoryDistanceSquaredXZ(ClosestPoint, TargetLocation));
+
+				const float HorizontalOvershoot = bFacingRight ? SimulatedLocation.X - TargetLocation.X : TargetLocation.X - SimulatedLocation.X;
+				const bool bMovingPastTarget = bFacingRight ? SimulatedVelocity.X > 0.0f : SimulatedVelocity.X < 0.0f;
+				if ((SimulatedLocation.Z < TargetLocation.Z - 2000.0f && SimulatedVelocity.Z < 0.0f) || (HorizontalOvershoot > 1400.0f && bMovingPastTarget))
+				{
+					break;
+				}
+			}
+
+			if (CandidateScore < BestScore)
+			{
+				BestScore = CandidateScore;
+				BestAimAngle = CandidateAimAngle;
+				BestShotPower = CandidateShotPower;
+			}
+		}
+	}
+
+	if (BestScore < MAX_flt)
+	{
+		AimAngle = FMath::Clamp(BestAimAngle + AimError, MinAim, MaxAim);
+		ShotPower = FMath::Clamp(BestShotPower + PowerError, MinPower, MaxPower);
+	}
+	else
+	{
+		const float AimArcHeight = FMath::Max(DifficultyData.MinAimArcHeight, FMath::Abs(ToTarget.Z) + DifficultyData.AimHeightOffset);
+		const float Distance = FMath::Max(1.0f, FMath::Abs(ToTarget.X));
+		AimAngle = FMath::Clamp(FMath::RadiansToDegrees(FMath::Atan2(AimArcHeight, Distance)) + AimError, MinAim, MaxAim);
+		ShotPower = FMath::Clamp(Distance / FMath::Max(1.0f, DifficultyData.ShotPowerDistanceScale) + PowerError, MinPower, MaxPower);
+	}
 }
 
 void AFRBattleCharacter::ApplyDamage(float DamageAmount)

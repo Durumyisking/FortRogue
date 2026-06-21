@@ -48,7 +48,36 @@ void UFRAbilitySystemComponent::ProcessAbilityInput(float DeltaTime, bool bGameP
 
 	for (const FGameplayAbilitySpecHandle& SpecHandle : InputPressedSpecHandles)
 	{
-		TryActivateAbility(SpecHandle);
+		FGameplayAbilitySpec* AbilitySpec = FindAbilitySpecFromHandle(SpecHandle);
+		if (!AbilitySpec || !AbilitySpec->Ability)
+		{
+			continue;
+		}
+
+		AbilitySpec->InputPressed = true;
+		if (AbilitySpec->IsActive())
+		{
+			AbilitySpecInputPressed(*AbilitySpec);
+		}
+		else
+		{
+			TryActivateAbility(SpecHandle);
+		}
+	}
+
+	for (const FGameplayAbilitySpecHandle& SpecHandle : InputReleasedSpecHandles)
+	{
+		FGameplayAbilitySpec* AbilitySpec = FindAbilitySpecFromHandle(SpecHandle);
+		if (!AbilitySpec || !AbilitySpec->Ability)
+		{
+			continue;
+		}
+
+		AbilitySpec->InputPressed = false;
+		if (AbilitySpec->IsActive())
+		{
+			AbilitySpecInputReleased(*AbilitySpec);
+		}
 	}
 
 	InputPressedSpecHandles.Reset();

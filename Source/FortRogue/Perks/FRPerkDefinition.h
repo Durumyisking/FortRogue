@@ -45,18 +45,18 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shot Modifier", meta = (TitleProperty = ModifierTag, ToolTip = "퍽 획득 후 계속 적용될 샷 modifier 목록입니다. 빌드의 핵심 샷 변화를 여기에 조립합니다."))
 	TArray<FFRShotModifierSpec> ShotModifiers;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats", meta = (ClampMin = "0.0", ToolTip = "캐릭터 기본 피해에 더할 고정값입니다."))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats", meta = (ToolTip = "캐릭터 기본 피해에 더할 고정값입니다. 음수 값은 리스크/보상형 퍽에 사용할 수 있습니다."))
 	float DamageBonus = 0.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats", meta = (ClampMin = "0.0", ToolTip = "최대 체력에 더할 고정값입니다."))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats", meta = (ToolTip = "최대 체력에 더할 고정값입니다. 음수 값은 리스크/보상형 퍽에 사용할 수 있습니다."))
 	float MaxHealthBonus = 0.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats", meta = (ClampMin = "0.0", ToolTip = "턴당 최대 이동 예산에 더할 고정값입니다."))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats", meta = (ToolTip = "턴당 최대 이동 예산에 더할 고정값입니다. 음수 값은 리스크/보상형 퍽에 사용할 수 있습니다."))
 	float MaxMoveBudgetBonus = 0.0f;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats", meta = (ClampMin = "0", ToolTip = "기본 발사 투사체 수에 더할 값입니다."))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats", meta = (ToolTip = "기본 발사 투사체 수에 더할 값입니다. 음수 값은 리스크/보상형 퍽에 사용할 수 있습니다."))
 	int32 ProjectileBonus = 0;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats", meta = (ClampMin = "0.0", ToolTip = "샷 파워 배율에 더할 값입니다. 0이면 변화 없음입니다."))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats", meta = (ToolTip = "샷 파워 배율에 더할 값입니다. 0이면 변화 없음이며, 음수 값은 리스크/보상형 퍽에 사용할 수 있습니다."))
 	float ShotPowerMultiplierBonus = 0.0f;
 };

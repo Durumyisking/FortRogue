@@ -52,6 +52,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Battle")
 	void NotifyShotFired(AFRBattleCharacter* Shooter, int32 ProjectileCount);
 
+	void NotifyProjectileSpawnFailed(int32 ProjectileCount);
+
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Battle")
 	void NotifyProjectileResolved(AFRProjectile* Projectile);
 

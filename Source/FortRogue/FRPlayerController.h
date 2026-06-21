@@ -9,8 +9,10 @@
 
 class UFRBattleHUDWidget;
 class UFRRewardScreenWidget;
+class UFRAbilitySystemComponent;
 class UInputAction;
 class UInputMappingContext;
+struct FGameplayTag;
 struct FInputActionValue;
 
 UCLASS()
@@ -32,6 +34,12 @@ private:
 	void TickKeyboardItemInput();
 	void TickRewardInput();
 	void UpdateOptionalWidgets();
+	UFRAbilitySystemComponent* GetPlayerAbilitySystemComponent() const;
+	void ProcessPlayerAbilityInput(float DeltaSeconds);
+	void SetPlayerAbilityInputTag(const FGameplayTag& InputTag, bool bPressed);
+	void SetPlayerFireAbilityInput(bool bPressed);
+	void UpdatePlayerAbilityAxisInput(float Axis, const FGameplayTag& NegativeTag, const FGameplayTag& PositiveTag, bool& bNegativePressed, bool& bPositivePressed);
+	void ReleasePlayerAbilityAxisInput();
 	bool HasEnhancedInputBindings() const;
 
 	void HandleMove(const FInputActionValue& Value);
@@ -124,4 +132,9 @@ private:
 
 	float EnhancedMoveAxis = 0.0f;
 	float EnhancedAimAxis = 0.0f;
+	bool bMoveLeftAbilityInputPressed = false;
+	bool bMoveRightAbilityInputPressed = false;
+	bool bAimUpAbilityInputPressed = false;
+	bool bAimDownAbilityInputPressed = false;
+	bool bFireAbilityInputPressed = false;
 };
