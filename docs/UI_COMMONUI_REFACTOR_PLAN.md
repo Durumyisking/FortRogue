@@ -38,6 +38,7 @@
 - Character health bars and floating combat text use authored UMG assets; their C++ classes only find named widgets and push runtime values.
 - Character health bars now expose a runtime `UFRCharacterHealthBarViewModel` and optional CommonTextBlock/CommonNumericTextBlock display fields.
 - World status markers now have a `UFRWorldStatusMarkerWidget` CommonUI adapter with a runtime `UFRWorldStatusMarkerViewModel`, optional `CommonTextBlock`, and optional `CommonBorder`.
+- Trajectory preview points now have a `UFRTrajectoryPreviewPointWidget` CommonUI adapter with a runtime `UFRTrajectoryPreviewPointViewModel`, optional `CommonBorder`, `CommonTextBlock`, and `CommonNumericTextBlock`.
 - Floating combat text now expects a `CommonTextBlock` named `DamageText` and can apply an editor-selected `CommonTextStyle`.
 - `Content/FortRogue/Widget` now has CommonUI root, menu, HUD, world health, floating text, style, and component assets.
 - `AFRPlayerController`, `AFRBattleCharacter`, and `AFRFloatingCombatText` now default to the authored HUD/world/floating WBP assets while keeping editable class overrides.
@@ -139,6 +140,8 @@
 - `UFRCharacterHealthBarWidget` updates `UFRCharacterHealthBarViewModel` and can drive optional `HealthText`, `CurrentHealthValueText`, and `MaxHealthValueText` CommonUI widgets.
 - `AFRBattleCharacter` now owns a `StatusMarkerComponent` that points to `/Game/FortRogue/Widget/MainGame/Components/WBP_WorldStatusMarker` when that authored WBP exists, then falls back to the C++ adapter class.
 - `UFRWorldStatusMarkerWidget` can drive optional `MarkerText` and `MarkerBorder` CommonUI widgets and exposes CommonTextStyle/CommonBorderStyle overrides.
+- `AFRBattleCharacter` now samples trajectory preview points into screen-space WidgetComponents using `/Game/FortRogue/Widget/MainGame/Components/WBP_TrajectoryPreviewPoint` when that authored WBP exists instead of drawing debug lines and spheres.
+- `UFRTrajectoryPreviewPointWidget` can drive optional `PointText`, `PointIndexText`, and `PointBorder` CommonUI widgets and exposes text, number, trajectory border, and impact border style overrides.
 - `UFRFloatingCombatTextWidget` uses `UCommonTextBlock` for authored damage text and exposes a `DamageTextStyle` override.
 - `UFRBattleHUDWidget` no longer constructs a fallback HUD layout in C++; missing authored HUD modules will surface as missing UI instead of silently showing generated panels.
 - `UFRBattleHUDWidget` now injects module-specific runtime ViewModels into known child module widgets so modules can own their own MVVM bindings.
@@ -175,6 +178,7 @@
 - `WBP_HealthBar`
 - `WBP_WorldHealthBar`
 - `WBP_WorldStatusMarker`
+- `WBP_TrajectoryPreviewPoint`
 - `WBP_AimWindIndicator`
 - `WBP_ShotPowerMeter`
 - `WBP_LoadoutBar`
@@ -296,6 +300,7 @@
 - [x] Add Reward screen CommonUI style override surface.
 - [x] Add world health bar ViewModel and CommonNumericTextBlock display surface.
 - [x] Add world status marker CommonUI/MVVM adapter and runtime widget component.
+- [x] Add trajectory preview CommonUI/MVVM point adapter and runtime widget components.
 - [ ] Replace prototype MVVM with module/domain ViewModels and real module-level bindings.
 - [x] Compile and save created UMG assets.
 

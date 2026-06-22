@@ -23,3 +23,4 @@ UI 체크리스트
 - Floating combat text CommonTextBlock 전환 [v]
 - World health bar MVVM 숫자 표시 표면 추가 [v]
 - World status marker CommonUI MVVM 추가 [v]
+- Trajectory preview CommonUI MVVM 포인트 추가 [v]

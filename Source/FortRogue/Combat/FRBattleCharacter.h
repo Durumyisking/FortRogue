@@ -18,6 +18,7 @@ class UFRCombatSet;
 class UFRDefaultLoadoutDefinition;
 class UFRCharacterHealthBarWidget;
 class UFRWorldStatusMarkerWidget;
+class UFRTrajectoryPreviewPointWidget;
 class UPaperFlipbookComponent;
 class UStaticMeshComponent;
 class UFRItemDefinition;
@@ -383,7 +384,9 @@ private:
 	float GetEffectiveShotPower() const;
 	FFRShotSpec BuildShotSpec(const FFRWeaponSpec& Weapon) const;
 	int32 SpawnShotSpecProjectiles(const FFRShotSpec& ShotSpec, bool bIncreasePendingProjectileCount);
-	void DrawProjectileTrajectory() const;
+	void DrawProjectileTrajectory();
+	UWidgetComponent* GetOrCreateTrajectoryPreviewComponent(int32 PreviewIndex);
+	void HideTrajectoryPreviewComponents(int32 StartIndex = 0);
 	void UpdateCharacterWorldIndicators();
 	void SpawnFloatingDamageText(float DamageAmount);
 	void GrantStartupAbilitySets();
@@ -415,6 +418,18 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI", meta = (ToolTip = "현재 공격 대상 캐릭터에 표시할 월드 마커 텍스트입니다."))
 	FText TargetMarkerText = FText::FromString(TEXT("TARGET"));
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Trajectory", meta = (ToolTip = "조준 궤적 포인트를 표시할 UMG 위젯 클래스입니다."))
+	TSubclassOf<UFRTrajectoryPreviewPointWidget> TrajectoryPreviewPointWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Trajectory", meta = (ClampMin = "1", ClampMax = "64", ToolTip = "화면에 표시할 조준 궤적 포인트 수입니다."))
+	int32 TrajectoryPreviewPointCount = 16;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Trajectory", meta = (ToolTip = "조준 궤적 포인트 위젯의 draw size입니다."))
+	FVector2D TrajectoryPreviewPointDrawSize = FVector2D(34.0f, 24.0f);
+
+	UPROPERTY()
+	TArray<TObjectPtr<UWidgetComponent>> TrajectoryPreviewComponents;
 
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue|Abilities")
 	TObjectPtr<UFRAbilitySystemComponent> AbilitySystemComponent;
@@ -462,7 +477,7 @@ private:
 	float MaxFallSpeed = 1600.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "지형 아래로 이 깊이 이상 떨어지면 패배 처리할 기준 거리입니다."))
 	float FallDeathDepth = 400.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Debug", meta = (AllowPrivateAccess = "true", ToolTip = "현재 조준과 무기 기준의 예상 탄도를 디버그 라인으로 그릴지 여부입니다."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Debug", meta = (AllowPrivateAccess = "true", ToolTip = "현재 조준과 무기 기준의 예상 탄도를 UMG 포인트로 표시할지 여부입니다."))
 	bool bDrawProjectileTrajectory = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Debug", meta = (AllowPrivateAccess = "true", ClampMin = "1", ToolTip = "예상 탄도 디버그 라인을 몇 구간으로 나누어 계산할지 정합니다."))
 	int32 TrajectoryDebugSteps = 50;

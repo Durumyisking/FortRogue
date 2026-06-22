@@ -14,12 +14,12 @@
 #include "Rewards/FRRewardBlueprintLibrary.h"
 #include "Run/FRDefaultLoadoutDefinition.h"
 #include "UI/FRCharacterHealthBarWidget.h"
+#include "UI/FRTrajectoryPreviewPointWidget.h"
 #include "UI/FRFloatingCombatText.h"
 #include "UI/FRWorldStatusMarkerWidget.h"
 #include "Weapons/FRWeaponDefinition.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/WidgetComponent.h"
-#include "DrawDebugHelpers.h"
 #include "Engine/StaticMesh.h"
 #include "EngineUtils.h"
 #include "PaperFlipbook.h"
@@ -120,6 +120,13 @@ AFRBattleCharacter::AFRBattleCharacter()
 	StatusMarkerComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 54.0f));
 	StatusMarkerComponent->SetTwoSided(true);
 	StatusMarkerComponent->SetVisibility(false);
+
+	static ConstructorHelpers::FClassFinder<UFRTrajectoryPreviewPointWidget> TrajectoryPreviewPointWidgetClassFinder(TEXT("/Game/FortRogue/Widget/MainGame/Components/WBP_TrajectoryPreviewPoint"));
+	TrajectoryPreviewPointWidgetClass = UFRTrajectoryPreviewPointWidget::StaticClass();
+	if (TrajectoryPreviewPointWidgetClassFinder.Succeeded())
+	{
+		TrajectoryPreviewPointWidgetClass = TrajectoryPreviewPointWidgetClassFinder.Class;
+	}
 
 	AbilitySystemComponent = CreateDefaultSubobject<UFRAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	CombatSet = CreateDefaultSubobject<UFRCombatSet>(TEXT("CombatSet"));
@@ -1825,14 +1832,16 @@ FFRShotSpec AFRBattleCharacter::BuildShotSpec(const FFRWeaponSpec& Weapon) const
 	return ShotSpec;
 }
 
-void AFRBattleCharacter::DrawProjectileTrajectory() const
+void AFRBattleCharacter::DrawProjectileTrajectory()
 {
 	if (!bDrawProjectileTrajectory || !bActiveTurn || bFiredThisTurn || IsDefeated() || !IsSupportedByTerrain() || !GetWorld())
 	{
+		HideTrajectoryPreviewComponents();
 		return;
 	}
 	if (!WeaponLoadout.IsValidIndex(SelectedWeaponIndex))
 	{
+		HideTrajectoryPreviewComponents();
 		return;
 	}
 
@@ -1849,8 +1858,32 @@ void AFRBattleCharacter::DrawProjectileTrajectory() const
 	const AFRGameMode* GameMode = GetWorld()->GetAuthGameMode<AFRGameMode>();
 	const float Wind = GameMode ? GameMode->GetWind() : 0.0f;
 	const AFRDestructibleTerrain* Terrain = FindTerrain();
+	const int32 PreviewPointCount = FMath::Clamp(TrajectoryPreviewPointCount, 1, 64);
+	const int32 PointStepStride = FMath::Max(1, FMath::CeilToInt(static_cast<float>(StepCount) / static_cast<float>(PreviewPointCount)));
+	int32 PreviewPointIndex = 0;
 
-	DrawDebugLine(GetWorld(), Location + PreviewRenderOffset, Location + LaunchDirection * 150.0f + PreviewRenderOffset, FColor::Cyan, false, 0.0f, 1, 3.0f);
+	auto ShowPreviewPoint = [&](const FVector& PreviewLocation, bool bImpact)
+	{
+		if (PreviewPointIndex >= PreviewPointCount)
+		{
+			return;
+		}
+
+		UWidgetComponent* PreviewComponent = GetOrCreateTrajectoryPreviewComponent(PreviewPointIndex);
+		if (!PreviewComponent)
+		{
+			return;
+		}
+
+		PreviewComponent->SetWorldLocation(PreviewLocation + PreviewRenderOffset);
+		PreviewComponent->SetVisibility(true);
+		PreviewComponent->InitWidget();
+		if (UFRTrajectoryPreviewPointWidget* PointWidget = Cast<UFRTrajectoryPreviewPointWidget>(PreviewComponent->GetUserWidgetObject()))
+		{
+			PointWidget->SetPreviewPointState(bImpact ? FText::FromString(TEXT("HIT")) : FText::GetEmpty(), static_cast<float>(PreviewPointIndex + 1), true, bImpact);
+		}
+		++PreviewPointIndex;
+	};
 
 	for (int32 Step = 0; Step < StepCount; ++Step)
 	{
@@ -1897,12 +1930,57 @@ void AFRBattleCharacter::DrawProjectileTrajectory() const
 			}
 		}
 
-		DrawDebugLine(GetWorld(), PreviousLocation + PreviewRenderOffset, (bHasImpact ? BestImpactLocation : Location) + PreviewRenderOffset, FColor::Yellow, false, 0.0f, 1, 2.5f);
-
 		if (bHasImpact)
 		{
-			DrawDebugSphere(GetWorld(), BestImpactLocation + PreviewRenderOffset, 16.0f, 12, FColor::Red, false, 0.0f, 1, 2.0f);
+			ShowPreviewPoint(BestImpactLocation, true);
 			break;
+		}
+		if (Step % PointStepStride == 0)
+		{
+			ShowPreviewPoint(Location, false);
+		}
+	}
+	HideTrajectoryPreviewComponents(PreviewPointIndex);
+}
+
+UWidgetComponent* AFRBattleCharacter::GetOrCreateTrajectoryPreviewComponent(int32 PreviewIndex)
+{
+	if (PreviewIndex < 0)
+	{
+		return nullptr;
+	}
+
+	while (TrajectoryPreviewComponents.Num() <= PreviewIndex)
+	{
+		const FName ComponentName(*FString::Printf(TEXT("TrajectoryPreviewPoint_%d"), TrajectoryPreviewComponents.Num()));
+		UWidgetComponent* PreviewComponent = NewObject<UWidgetComponent>(this, ComponentName);
+		if (!PreviewComponent)
+		{
+			break;
+		}
+
+		PreviewComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		PreviewComponent->SetWidgetClass(TrajectoryPreviewPointWidgetClass ? TrajectoryPreviewPointWidgetClass : TSubclassOf<UFRTrajectoryPreviewPointWidget>(UFRTrajectoryPreviewPointWidget::StaticClass()));
+		PreviewComponent->SetWidgetSpace(EWidgetSpace::Screen);
+		PreviewComponent->SetDrawSize(TrajectoryPreviewPointDrawSize);
+		PreviewComponent->SetTwoSided(true);
+		PreviewComponent->SetVisibility(false);
+		PreviewComponent->SetupAttachment(Root);
+		PreviewComponent->RegisterComponent();
+		AddInstanceComponent(PreviewComponent);
+		TrajectoryPreviewComponents.Add(PreviewComponent);
+	}
+
+	return TrajectoryPreviewComponents.IsValidIndex(PreviewIndex) ? TrajectoryPreviewComponents[PreviewIndex] : nullptr;
+}
+
+void AFRBattleCharacter::HideTrajectoryPreviewComponents(int32 StartIndex)
+{
+	for (int32 Index = FMath::Max(0, StartIndex); Index < TrajectoryPreviewComponents.Num(); ++Index)
+	{
+		if (UWidgetComponent* PreviewComponent = TrajectoryPreviewComponents[Index])
+		{
+			PreviewComponent->SetVisibility(false);
 		}
 	}
 }
