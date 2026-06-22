@@ -6,6 +6,8 @@
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetTree.h"
 #include "Combat/FRBattleCharacter.h"
+#include "CommonBorder.h"
+#include "CommonTextBlock.h"
 #include "Components/Border.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
@@ -451,7 +453,7 @@ void UFRBattleHUDWidget::BuildDefaultHUD()
 	UCanvasPanel* RootCanvas = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("DefaultBattleHUDRoot"));
 	WidgetTree->RootWidget = RootCanvas;
 
-	UBorder* HeaderPanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("HeaderPanel"));
+	UBorder* HeaderPanel = WidgetTree->ConstructWidget<UCommonBorder>(UCommonBorder::StaticClass(), TEXT("HeaderPanel"));
 	HeaderPanel->SetBrushColor(PanelColor);
 	UHorizontalBox* HeaderBox = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("HeaderBox"));
 	HeaderPanel->SetContent(HeaderBox);
@@ -463,7 +465,7 @@ void UFRBattleHUDWidget::BuildDefaultHUD()
 		HeaderSlot->SetSize(FVector2D(900.0f, 72.0f));
 	}
 
-	TurnBadge = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("TurnBadge"));
+	TurnBadge = WidgetTree->ConstructWidget<UCommonBorder>(UCommonBorder::StaticClass(), TEXT("TurnBadge"));
 	TurnBadge->SetBrushColor(ReadyColor);
 	TurnText = AddText(TurnBadge, TEXT("TurnText"), FText::FromString(TEXT("PLAYER TURN")), 18.0f, FLinearColor::Black);
 	if (UHorizontalBoxSlot* TurnSlot = HeaderBox->AddChildToHorizontalBox(TurnBadge))
@@ -475,7 +477,7 @@ void UFRBattleHUDWidget::BuildDefaultHUD()
 	RunProgressText = AddText(HeaderBox, TEXT("RunProgressText"), FText::FromString(TEXT("Stage -/-")), 17.0f, TextColor);
 	StatusText = AddText(HeaderBox, TEXT("StatusText"), FText::GetEmpty(), 16.0f, MutedTextColor);
 
-	UBorder* LeftPanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("CombatPanel"));
+	UBorder* LeftPanel = WidgetTree->ConstructWidget<UCommonBorder>(UCommonBorder::StaticClass(), TEXT("CombatPanel"));
 	LeftPanel->SetBrushColor(PanelColor);
 	UVerticalBox* LeftBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("CombatBox"));
 	LeftPanel->SetContent(LeftBox);
@@ -507,7 +509,7 @@ void UFRBattleHUDWidget::BuildDefaultHUD()
 		AimBoxSlot->SetPadding(FMargin(12.0f, 8.0f, 12.0f, 10.0f));
 	}
 
-	UBorder* AimBase = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("AimBase"));
+	UBorder* AimBase = WidgetTree->ConstructWidget<UCommonBorder>(UCommonBorder::StaticClass(), TEXT("AimBase"));
 	AimBase->SetBrushColor(PanelAccentColor);
 	if (UCanvasPanelSlot* BaseSlot = AimCanvas->AddChildToCanvas(AimBase))
 	{
@@ -515,7 +517,7 @@ void UFRBattleHUDWidget::BuildDefaultHUD()
 		BaseSlot->SetSize(FVector2D(44.0f, 20.0f));
 	}
 
-	AimBarrel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("AimBarrel"));
+	AimBarrel = WidgetTree->ConstructWidget<UCommonBorder>(UCommonBorder::StaticClass(), TEXT("AimBarrel"));
 	AimBarrel->SetBrushColor(PowerColor);
 	AimBarrel->SetRenderTransformPivot(FVector2D(0.0f, 0.5f));
 	if (UCanvasPanelSlot* BarrelSlot = AimCanvas->AddChildToCanvas(AimBarrel))
@@ -532,7 +534,7 @@ void UFRBattleHUDWidget::BuildDefaultHUD()
 	MoveBudgetBar = AddLabeledBar(LeftBox, TEXT("MoveBudgetBar"), FText::FromString(TEXT("MOVE")), MoveBudgetValueText);
 	MoveBudgetText = MoveBudgetValueText;
 
-	UBorder* BottomPanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("LoadoutPanel"));
+	UBorder* BottomPanel = WidgetTree->ConstructWidget<UCommonBorder>(UCommonBorder::StaticClass(), TEXT("LoadoutPanel"));
 	BottomPanel->SetBrushColor(PanelColor);
 	UVerticalBox* BottomBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("LoadoutBox"));
 	BottomPanel->SetContent(BottomBox);
@@ -578,7 +580,7 @@ void UFRBattleHUDWidget::BuildDefaultHUD()
 		ItemSlotTexts.Add(SlotText);
 	}
 
-	UBorder* RightPanel = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), TEXT("ShotPanel"));
+	UBorder* RightPanel = WidgetTree->ConstructWidget<UCommonBorder>(UCommonBorder::StaticClass(), TEXT("ShotPanel"));
 	RightPanel->SetBrushColor(PanelColor);
 	UVerticalBox* RightBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("ShotBox"));
 	RightPanel->SetContent(RightBox);
@@ -774,7 +776,7 @@ void UFRBattleHUDWidget::RefreshAimIndicator(float AimAngle)
 
 UTextBlock* UFRBattleHUDWidget::AddText(UWidget* Parent, FName WidgetName, const FText& InitialText, float FontSize, const FLinearColor& Color)
 {
-	UTextBlock* Text = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), WidgetName);
+	UTextBlock* Text = WidgetTree->ConstructWidget<UCommonTextBlock>(UCommonTextBlock::StaticClass(), WidgetName);
 	Text->SetText(InitialText);
 	Text->SetColorAndOpacity(FSlateColor(Color));
 	Text->SetAutoWrapText(true);
@@ -839,7 +841,7 @@ UBorder* UFRBattleHUDWidget::AddSlot(UHorizontalBox* Parent, FName WidgetName, c
 	SlotSize->SetWidthOverride(Size.X);
 	SlotSize->SetHeightOverride(Size.Y);
 
-	UBorder* SlotBorder = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass(), WidgetName);
+	UBorder* SlotBorder = WidgetTree->ConstructWidget<UCommonBorder>(UCommonBorder::StaticClass(), WidgetName);
 	SlotBorder->SetBrushColor(DisabledColor);
 	SlotSize->SetContent(SlotBorder);
 
