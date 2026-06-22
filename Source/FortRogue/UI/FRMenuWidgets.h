@@ -7,10 +7,33 @@
 #include "FRMenuWidgets.generated.h"
 
 class UCommonButtonBase;
+class UCommonButtonStyle;
 class UCommonNumericTextBlock;
 class UCommonTextBlock;
+class UCommonTextStyle;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FFRMenuActionRequested);
+
+USTRUCT(BlueprintType)
+struct FFRMenuStyleSet
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|UI|Style")
+	TSubclassOf<UCommonTextStyle> TitleTextStyle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|UI|Style")
+	TSubclassOf<UCommonTextStyle> BodyTextStyle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|UI|Style")
+	TSubclassOf<UCommonTextStyle> StatusTextStyle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|UI|Style")
+	TSubclassOf<UCommonButtonStyle> PrimaryButtonStyle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|UI|Style")
+	TSubclassOf<UCommonButtonStyle> SecondaryButtonStyle;
+};
 
 UCLASS(BlueprintType)
 class FORTROGUE_API UFRMenuScreenViewModel : public UMVVMViewModelBase
@@ -126,6 +149,7 @@ private:
 	void CreateMenuScreenViewModel();
 	void RefreshMenuViewModel();
 	void RefreshFromMenuViewModel();
+	void ApplyMenuStyleSet();
 	void HandleStartRunClicked();
 	void HandleOptionsClicked();
 	void HandleQuitClicked();
@@ -138,6 +162,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Menu")
 	FText DefaultStatusText = FText::GetEmpty();
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Style")
+	FFRMenuStyleSet MenuStyleSet;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCommonTextBlock> TitleText;
@@ -189,6 +216,7 @@ private:
 	void CreateOptionsMenuViewModel();
 	void RefreshOptionsViewModel();
 	void RefreshFromViewModel();
+	void ApplyMenuStyleSet();
 	void HandleApplyClicked();
 	void HandleResetClicked();
 	void HandleBackClicked();
@@ -213,6 +241,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Options")
 	FText DefaultAccessibilityText = FText::FromString(TEXT("Default"));
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Style")
+	FFRMenuStyleSet MenuStyleSet;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCommonTextBlock> TitleText;
@@ -282,6 +313,7 @@ private:
 	void CreateMenuScreenViewModel();
 	void RefreshMenuViewModel();
 	void RefreshFromMenuViewModel();
+	void ApplyMenuStyleSet();
 	void HandleResumeClicked();
 	void HandleOptionsClicked();
 	void HandleRestartClicked();
@@ -296,6 +328,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Menu")
 	FText DefaultStatusText = FText::GetEmpty();
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Style")
+	FFRMenuStyleSet MenuStyleSet;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCommonTextBlock> TitleText;
@@ -349,6 +384,7 @@ protected:
 private:
 	void CreateDialogViewModel();
 	void RefreshFromDialogViewModel();
+	void ApplyMenuStyleSet();
 	void HandleConfirmClicked();
 	void HandleCancelClicked();
 
@@ -363,6 +399,9 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCommonButtonBase> CancelButton;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Style")
+	FFRMenuStyleSet MenuStyleSet;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UFRMenuScreenViewModel> DialogViewModel;

@@ -46,6 +46,7 @@
 - Options menu now has a runtime `UFROptionsMenuViewModel` and optional CommonTextBlock/CommonNumericTextBlock display fields for editor-authored option rows.
 - UI root now has a runtime `UFRUIRootViewModel` that exposes active HUD, menu, and modal layer state.
 - Main menu, pause menu, and confirmation dialog now share a runtime `UFRMenuScreenViewModel` for title/body/status display.
+- Menu adapters expose `FFRMenuStyleSet` so authored screens can apply editor-selected CommonTextStyle and CommonButtonStyle classes to their optional CommonUI children.
 
 ## Key Problems
 
@@ -141,6 +142,7 @@
 - `UFROptionsMenuWidget` creates and injects `UFROptionsMenuViewModel`; default option labels and numeric values are editable on the widget class.
 - `UFRUIRootWidget` creates and injects `UFRUIRootViewModel`; layer push, remove, and clear operations refresh the active layer state.
 - `UFRMainMenuWidget`, `UFRPauseMenuWidget`, and `UFRConfirmDialogWidget` create and inject `UFRMenuScreenViewModel`; optional CommonTextBlock fields can display the same values without Blueprint scripting.
+- `FFRMenuStyleSet` lets main menu, options, pause, and confirmation adapters apply title/body/status text styles and primary/secondary button styles in C++.
 - Next implementation step: restart the editor/MCP session, then bind and save each module widget directly to the injected ViewModel.
 
 ## Recommended Widget Modules
@@ -276,6 +278,7 @@
 - [x] Add Options menu ViewModel and CommonUI display adapter fields.
 - [x] Add UI root layer state ViewModel.
 - [x] Add Main/Pause/Confirm menu screen ViewModel display surfaces.
+- [x] Add menu CommonUI style override surface.
 - [ ] Replace prototype MVVM with module/domain ViewModels and real module-level bindings.
 - [x] Compile and save created UMG assets.
 

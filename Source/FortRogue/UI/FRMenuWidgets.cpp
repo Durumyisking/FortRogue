@@ -34,6 +34,29 @@ namespace
 		}
 	}
 
+	void ApplyTextStyle(UCommonTextBlock* TextBlock, TSubclassOf<UCommonTextStyle> TextStyle)
+	{
+		if (TextBlock && TextStyle)
+		{
+			TextBlock->SetStyle(TextStyle);
+		}
+	}
+
+	void ApplyButtonStyle(UCommonButtonBase* Button, TSubclassOf<UCommonButtonStyle> ButtonStyle)
+	{
+		if (Button && ButtonStyle)
+		{
+			Button->SetStyle(ButtonStyle);
+		}
+	}
+
+	void ApplyMenuTextStyles(const FFRMenuStyleSet& StyleSet, UCommonTextBlock* TitleText, UCommonTextBlock* BodyText, UCommonTextBlock* StatusText)
+	{
+		ApplyTextStyle(TitleText, StyleSet.TitleTextStyle);
+		ApplyTextStyle(BodyText, StyleSet.BodyTextStyle);
+		ApplyTextStyle(StatusText, StyleSet.StatusTextStyle);
+	}
+
 	void ApplyMenuViewModel(UUserWidget* Widget, UMVVMViewModelBase* ViewModel)
 	{
 		if (!Widget || !ViewModel)
@@ -105,6 +128,7 @@ void UFRMainMenuWidget::NativeOnInitialized()
 	CreateMenuScreenViewModel();
 	ApplyMenuViewModel(this, MenuScreenViewModel);
 	RefreshMainMenu();
+	ApplyMenuStyleSet();
 
 	BindMenuButton(StartRunButton, this, &UFRMainMenuWidget::HandleStartRunClicked);
 	BindMenuButton(OptionsButton, this, &UFRMainMenuWidget::HandleOptionsClicked);
@@ -150,6 +174,14 @@ void UFRMainMenuWidget::RefreshFromMenuViewModel()
 	SetMenuText(StatusText, MenuScreenViewModel->GetStatusText());
 }
 
+void UFRMainMenuWidget::ApplyMenuStyleSet()
+{
+	ApplyMenuTextStyles(MenuStyleSet, TitleText, BodyText, StatusText);
+	ApplyButtonStyle(StartRunButton, MenuStyleSet.PrimaryButtonStyle);
+	ApplyButtonStyle(OptionsButton, MenuStyleSet.SecondaryButtonStyle);
+	ApplyButtonStyle(QuitButton, MenuStyleSet.SecondaryButtonStyle);
+}
+
 void UFRMainMenuWidget::HandleStartRunClicked()
 {
 	OnStartRunRequested.Broadcast();
@@ -175,6 +207,7 @@ void UFROptionsMenuWidget::NativeOnInitialized()
 		ApplyMenuViewModel(this, OptionsMenuViewModel);
 	}
 	RefreshOptionsMenu();
+	ApplyMenuStyleSet();
 
 	BindMenuButton(ApplyButton, this, &UFROptionsMenuWidget::HandleApplyClicked);
 	BindMenuButton(ResetButton, this, &UFROptionsMenuWidget::HandleResetClicked);
@@ -228,6 +261,14 @@ void UFROptionsMenuWidget::RefreshFromViewModel()
 	SetMenuText(AccessibilityText, OptionsMenuViewModel->GetAccessibilityText());
 }
 
+void UFROptionsMenuWidget::ApplyMenuStyleSet()
+{
+	ApplyMenuTextStyles(MenuStyleSet, TitleText, nullptr, nullptr);
+	ApplyButtonStyle(ApplyButton, MenuStyleSet.PrimaryButtonStyle);
+	ApplyButtonStyle(ResetButton, MenuStyleSet.SecondaryButtonStyle);
+	ApplyButtonStyle(BackButton, MenuStyleSet.SecondaryButtonStyle);
+}
+
 void UFROptionsMenuWidget::HandleApplyClicked()
 {
 	OnApplyRequested.Broadcast();
@@ -251,6 +292,7 @@ void UFRPauseMenuWidget::NativeOnInitialized()
 	CreateMenuScreenViewModel();
 	ApplyMenuViewModel(this, MenuScreenViewModel);
 	RefreshPauseMenu();
+	ApplyMenuStyleSet();
 
 	BindMenuButton(ResumeButton, this, &UFRPauseMenuWidget::HandleResumeClicked);
 	BindMenuButton(OptionsButton, this, &UFRPauseMenuWidget::HandleOptionsClicked);
@@ -298,6 +340,16 @@ void UFRPauseMenuWidget::RefreshFromMenuViewModel()
 	SetMenuText(StatusText, MenuScreenViewModel->GetStatusText());
 }
 
+void UFRPauseMenuWidget::ApplyMenuStyleSet()
+{
+	ApplyMenuTextStyles(MenuStyleSet, TitleText, BodyText, StatusText);
+	ApplyButtonStyle(ResumeButton, MenuStyleSet.PrimaryButtonStyle);
+	ApplyButtonStyle(OptionsButton, MenuStyleSet.SecondaryButtonStyle);
+	ApplyButtonStyle(RestartButton, MenuStyleSet.SecondaryButtonStyle);
+	ApplyButtonStyle(MainMenuButton, MenuStyleSet.SecondaryButtonStyle);
+	ApplyButtonStyle(QuitButton, MenuStyleSet.SecondaryButtonStyle);
+}
+
 void UFRPauseMenuWidget::HandleResumeClicked()
 {
 	OnResumeRequested.Broadcast();
@@ -342,6 +394,7 @@ void UFRConfirmDialogWidget::NativeOnInitialized()
 	CreateDialogViewModel();
 	ApplyMenuViewModel(this, DialogViewModel);
 	RefreshFromDialogViewModel();
+	ApplyMenuStyleSet();
 
 	BindMenuButton(ConfirmButton, this, &UFRConfirmDialogWidget::HandleConfirmClicked);
 	BindMenuButton(CancelButton, this, &UFRConfirmDialogWidget::HandleCancelClicked);
@@ -364,6 +417,13 @@ void UFRConfirmDialogWidget::RefreshFromDialogViewModel()
 
 	SetMenuText(TitleText, DialogViewModel->GetTitleText());
 	SetMenuText(MessageText, DialogViewModel->GetBodyText());
+}
+
+void UFRConfirmDialogWidget::ApplyMenuStyleSet()
+{
+	ApplyMenuTextStyles(MenuStyleSet, TitleText, MessageText, nullptr);
+	ApplyButtonStyle(ConfirmButton, MenuStyleSet.PrimaryButtonStyle);
+	ApplyButtonStyle(CancelButton, MenuStyleSet.SecondaryButtonStyle);
 }
 
 void UFRConfirmDialogWidget::HandleConfirmClicked()
