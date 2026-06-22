@@ -219,7 +219,7 @@
 - [x] Research ShellShock Live, Worms W.M.D, and Fortress-style artillery UI references.
 - [x] Apply the reference direction to the FortRogue UI plan.
 - [x] Create CommonUI root and layer widgets.
-- [ ] Create modular battle HUD widgets.
+- [x] Create modular battle HUD widgets.
 - [ ] Create missing main menu and options screen widgets.
 - [ ] Convert world health/floating combat UI to authored UMG assets.
 - [ ] Replace prototype MVVM with domain ViewModels.
