@@ -1,0 +1,196 @@
+// Copyright Epic Games, Inc. All Rights Reserved.
+
+#pragma once
+
+#include "CoreMinimal.h"
+#include "MVVMViewModelBase.h"
+#include "FRBattleHUDModuleViewModels.generated.h"
+
+UCLASS(BlueprintType)
+class FORTROGUE_API UFRBattleStateViewModel : public UMVVMViewModelBase
+{
+	GENERATED_BODY()
+
+public:
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Battle State")
+	const FText& GetTurnText() const { return TurnText; }
+	void SetTurnText(const FText& InTurnText);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Battle State")
+	const FText& GetRunProgressText() const { return RunProgressText; }
+	void SetRunProgressText(const FText& InRunProgressText);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Battle State")
+	const FText& GetStatusText() const { return StatusText; }
+	void SetStatusText(const FText& InStatusText);
+
+private:
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Battle State", meta = (AllowPrivateAccess = "true"))
+	FText TurnText;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Battle State", meta = (AllowPrivateAccess = "true"))
+	FText RunProgressText;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Battle State", meta = (AllowPrivateAccess = "true"))
+	FText StatusText;
+};
+
+UCLASS(BlueprintType)
+class FORTROGUE_API UFRCombatantStatusViewModel : public UMVVMViewModelBase
+{
+	GENERATED_BODY()
+
+public:
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Combatant")
+	const FText& GetTitleText() const { return TitleText; }
+	void SetTitleText(const FText& InTitleText);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Combatant")
+	const FText& GetHealthText() const { return HealthText; }
+	void SetHealthText(const FText& InHealthText);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Combatant")
+	float GetHealthPercent() const { return HealthPercent; }
+	void SetHealthPercent(float InHealthPercent);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Combatant")
+	const FText& GetMoveBudgetText() const { return MoveBudgetText; }
+	void SetMoveBudgetText(const FText& InMoveBudgetText);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Combatant")
+	float GetMoveBudgetPercent() const { return MoveBudgetPercent; }
+	void SetMoveBudgetPercent(float InMoveBudgetPercent);
+
+private:
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Combatant", meta = (AllowPrivateAccess = "true"))
+	FText TitleText;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Combatant", meta = (AllowPrivateAccess = "true"))
+	FText HealthText;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Combatant", meta = (AllowPrivateAccess = "true"))
+	float HealthPercent = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Combatant", meta = (AllowPrivateAccess = "true"))
+	FText MoveBudgetText;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Combatant", meta = (AllowPrivateAccess = "true"))
+	float MoveBudgetPercent = 0.0f;
+};
+
+UCLASS(BlueprintType)
+class FORTROGUE_API UFRAimWindViewModel : public UMVVMViewModelBase
+{
+	GENERATED_BODY()
+
+public:
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Aim")
+	const FText& GetWindText() const { return WindText; }
+	void SetWindText(const FText& InWindText);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Aim")
+	const FText& GetAimText() const { return AimText; }
+	void SetAimText(const FText& InAimText);
+
+private:
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Aim", meta = (AllowPrivateAccess = "true"))
+	FText WindText;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Aim", meta = (AllowPrivateAccess = "true"))
+	FText AimText;
+};
+
+UCLASS(BlueprintType)
+class FORTROGUE_API UFRShotPowerViewModel : public UMVVMViewModelBase
+{
+	GENERATED_BODY()
+
+public:
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Shot Power")
+	const FText& GetShotPowerText() const { return ShotPowerText; }
+	void SetShotPowerText(const FText& InShotPowerText);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Shot Power")
+	float GetShotPowerPercent() const { return ShotPowerPercent; }
+	void SetShotPowerPercent(float InShotPowerPercent);
+
+private:
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Shot Power", meta = (AllowPrivateAccess = "true"))
+	FText ShotPowerText;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Shot Power", meta = (AllowPrivateAccess = "true"))
+	float ShotPowerPercent = 0.0f;
+};
+
+UCLASS(BlueprintType)
+class FORTROGUE_API UFRLoadoutViewModel : public UMVVMViewModelBase
+{
+	GENERATED_BODY()
+
+public:
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Loadout")
+	const FText& GetCurrentWeaponText() const { return CurrentWeaponText; }
+	void SetCurrentWeaponText(const FText& InCurrentWeaponText);
+
+private:
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Loadout", meta = (AllowPrivateAccess = "true"))
+	FText CurrentWeaponText;
+};
+
+UCLASS(BlueprintType)
+class FORTROGUE_API UFRShotPreviewViewModel : public UMVVMViewModelBase
+{
+	GENERATED_BODY()
+
+public:
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Shot Preview")
+	const FText& GetPrimaryText() const { return PrimaryText; }
+	void SetPrimaryText(const FText& InPrimaryText);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Shot Preview")
+	const FText& GetSecondaryText() const { return SecondaryText; }
+	void SetSecondaryText(const FText& InSecondaryText);
+
+private:
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Shot Preview", meta = (AllowPrivateAccess = "true"))
+	FText PrimaryText;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Shot Preview", meta = (AllowPrivateAccess = "true"))
+	FText SecondaryText;
+};
+
+UCLASS(BlueprintType)
+class FORTROGUE_API UFRModifierSummaryViewModel : public UMVVMViewModelBase
+{
+	GENERATED_BODY()
+
+public:
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Modifiers")
+	const FText& GetGrantedModifierText() const { return GrantedModifierText; }
+	void SetGrantedModifierText(const FText& InGrantedModifierText);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Modifiers")
+	const FText& GetPendingModifierText() const { return PendingModifierText; }
+	void SetPendingModifierText(const FText& InPendingModifierText);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Modifiers")
+	const FText& GetAbilitySetText() const { return AbilitySetText; }
+	void SetAbilitySetText(const FText& InAbilitySetText);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Modifiers")
+	const FText& GetSummaryText() const { return SummaryText; }
+	void SetSummaryText(const FText& InSummaryText);
+
+private:
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Modifiers", meta = (AllowPrivateAccess = "true"))
+	FText GrantedModifierText;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Modifiers", meta = (AllowPrivateAccess = "true"))
+	FText PendingModifierText;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Modifiers", meta = (AllowPrivateAccess = "true"))
+	FText AbilitySetText;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Modifiers", meta = (AllowPrivateAccess = "true"))
+	FText SummaryText;
+};

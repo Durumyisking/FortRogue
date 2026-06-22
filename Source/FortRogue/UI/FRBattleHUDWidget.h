@@ -19,7 +19,15 @@ class UTextBlock;
 class UUserWidget;
 class UVerticalBox;
 class UWidget;
+class UMVVMViewModelBase;
+class UFRAimWindViewModel;
 class UFRBattleHUDViewModel;
+class UFRBattleStateViewModel;
+class UFRCombatantStatusViewModel;
+class UFRLoadoutViewModel;
+class UFRModifierSummaryViewModel;
+class UFRShotPowerViewModel;
+class UFRShotPreviewViewModel;
 
 UCLASS(Blueprintable)
 class FORTROGUE_API UFRBattleHUDWidget : public UCommonActivatableWidget
@@ -165,6 +173,27 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|MVVM")
 	UFRBattleHUDViewModel* GetBattleHUDViewModel() const { return BattleHUDViewModel; }
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|MVVM")
+	UFRBattleStateViewModel* GetBattleStateViewModel() const { return BattleStateViewModel; }
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|MVVM")
+	UFRCombatantStatusViewModel* GetPlayerStatusViewModel() const { return PlayerStatusViewModel; }
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|MVVM")
+	UFRAimWindViewModel* GetAimWindViewModel() const { return AimWindViewModel; }
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|MVVM")
+	UFRShotPowerViewModel* GetShotPowerViewModel() const { return ShotPowerViewModel; }
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|MVVM")
+	UFRLoadoutViewModel* GetLoadoutViewModel() const { return LoadoutViewModel; }
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|MVVM")
+	UFRShotPreviewViewModel* GetShotPreviewViewModel() const { return ShotPreviewViewModel; }
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|MVVM")
+	UFRModifierSummaryViewModel* GetModifierSummaryViewModel() const { return ModifierSummaryViewModel; }
+
 	UFUNCTION(BlueprintNativeEvent, Category = "FortRogue|UI")
 	void RefreshBattleHUD();
 
@@ -173,8 +202,10 @@ protected:
 
 private:
 	void BuildDefaultHUD();
+	void CreateViewModels();
+	void ApplyViewModel(UUserWidget* Widget, UMVVMViewModelBase* ViewModel) const;
+	void ApplyViewModelToChild(FName WidgetName, UMVVMViewModelBase* ViewModel) const;
 	void ApplyBattleHUDViewModel(UUserWidget* Widget) const;
-	void ApplyBattleHUDViewModelToChild(FName WidgetName) const;
 	void RefreshViewModel();
 	void RefreshDefaultHUD();
 	void RefreshCharacterBars(class AFRBattleCharacter* PlayerCharacter, class AFRBattleCharacter* EnemyCharacter);
@@ -189,6 +220,27 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UFRBattleHUDViewModel> BattleHUDViewModel;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UFRBattleStateViewModel> BattleStateViewModel;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UFRCombatantStatusViewModel> PlayerStatusViewModel;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UFRAimWindViewModel> AimWindViewModel;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UFRShotPowerViewModel> ShotPowerViewModel;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UFRLoadoutViewModel> LoadoutViewModel;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UFRShotPreviewViewModel> ShotPreviewViewModel;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UFRModifierSummaryViewModel> ModifierSummaryViewModel;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UTextBlock> RunProgressText;

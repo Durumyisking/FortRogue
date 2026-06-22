@@ -21,6 +21,7 @@
 #include "FRGameMode.h"
 #include "Items/FRItemDefinition.h"
 #include "MVVMBlueprintLibrary.h"
+#include "UI/FRBattleHUDModuleViewModels.h"
 #include "UI/FRBattleHUDViewModel.h"
 
 namespace
@@ -209,20 +210,17 @@ void UFRBattleHUDWidget::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 
-	if (!BattleHUDViewModel)
-	{
-		BattleHUDViewModel = NewObject<UFRBattleHUDViewModel>(this);
-	}
+	CreateViewModels();
 	ApplyBattleHUDViewModel(this);
 
 	BuildDefaultHUD();
-	ApplyBattleHUDViewModelToChild(TEXT("TurnBanner"));
-	ApplyBattleHUDViewModelToChild(TEXT("PlayerStatusPanel"));
-	ApplyBattleHUDViewModelToChild(TEXT("AimWindIndicator"));
-	ApplyBattleHUDViewModelToChild(TEXT("ShotPowerMeter"));
-	ApplyBattleHUDViewModelToChild(TEXT("LoadoutBar"));
-	ApplyBattleHUDViewModelToChild(TEXT("ShotInfoPanel"));
-	ApplyBattleHUDViewModelToChild(TEXT("ModifierSummary"));
+	ApplyViewModelToChild(TEXT("TurnBanner"), BattleStateViewModel);
+	ApplyViewModelToChild(TEXT("PlayerStatusPanel"), PlayerStatusViewModel);
+	ApplyViewModelToChild(TEXT("AimWindIndicator"), AimWindViewModel);
+	ApplyViewModelToChild(TEXT("ShotPowerMeter"), ShotPowerViewModel);
+	ApplyViewModelToChild(TEXT("LoadoutBar"), LoadoutViewModel);
+	ApplyViewModelToChild(TEXT("ShotInfoPanel"), ShotPreviewViewModel);
+	ApplyViewModelToChild(TEXT("ModifierSummary"), ModifierSummaryViewModel);
 }
 
 void UFRBattleHUDWidget::RefreshBattleHUD_Implementation()
@@ -231,32 +229,75 @@ void UFRBattleHUDWidget::RefreshBattleHUD_Implementation()
 	RefreshDefaultHUD();
 }
 
-void UFRBattleHUDWidget::ApplyBattleHUDViewModel(UUserWidget* Widget) const
+void UFRBattleHUDWidget::CreateViewModels()
 {
-	if (!Widget || !BattleHUDViewModel)
+	if (!BattleHUDViewModel)
+	{
+		BattleHUDViewModel = NewObject<UFRBattleHUDViewModel>(this);
+	}
+	if (!BattleStateViewModel)
+	{
+		BattleStateViewModel = NewObject<UFRBattleStateViewModel>(this);
+	}
+	if (!PlayerStatusViewModel)
+	{
+		PlayerStatusViewModel = NewObject<UFRCombatantStatusViewModel>(this);
+	}
+	if (!AimWindViewModel)
+	{
+		AimWindViewModel = NewObject<UFRAimWindViewModel>(this);
+	}
+	if (!ShotPowerViewModel)
+	{
+		ShotPowerViewModel = NewObject<UFRShotPowerViewModel>(this);
+	}
+	if (!LoadoutViewModel)
+	{
+		LoadoutViewModel = NewObject<UFRLoadoutViewModel>(this);
+	}
+	if (!ShotPreviewViewModel)
+	{
+		ShotPreviewViewModel = NewObject<UFRShotPreviewViewModel>(this);
+	}
+	if (!ModifierSummaryViewModel)
+	{
+		ModifierSummaryViewModel = NewObject<UFRModifierSummaryViewModel>(this);
+	}
+}
+
+void UFRBattleHUDWidget::ApplyViewModel(UUserWidget* Widget, UMVVMViewModelBase* ViewModel) const
+{
+	if (!Widget || !ViewModel)
 	{
 		return;
 	}
 
 	TScriptInterface<INotifyFieldValueChanged> ViewModelInterface;
-	ViewModelInterface.SetObject(BattleHUDViewModel);
-	ViewModelInterface.SetInterface(Cast<INotifyFieldValueChanged>(BattleHUDViewModel));
+	ViewModelInterface.SetObject(ViewModel);
+	ViewModelInterface.SetInterface(Cast<INotifyFieldValueChanged>(ViewModel));
 	UMVVMBlueprintLibrary::SetViewModelByClass(Widget, ViewModelInterface);
 }
 
-void UFRBattleHUDWidget::ApplyBattleHUDViewModelToChild(FName WidgetName) const
+void UFRBattleHUDWidget::ApplyViewModelToChild(FName WidgetName, UMVVMViewModelBase* ViewModel) const
 {
 	if (!WidgetTree)
 	{
 		return;
 	}
 
-	ApplyBattleHUDViewModel(Cast<UUserWidget>(WidgetTree->FindWidget(WidgetName)));
+	ApplyViewModel(Cast<UUserWidget>(WidgetTree->FindWidget(WidgetName)), ViewModel);
+}
+
+void UFRBattleHUDWidget::ApplyBattleHUDViewModel(UUserWidget* Widget) const
+{
+	ApplyViewModel(Widget, BattleHUDViewModel);
 }
 
 void UFRBattleHUDWidget::RefreshViewModel()
 {
-	if (!BattleHUDViewModel)
+	CreateViewModels();
+	if (!BattleHUDViewModel || !BattleStateViewModel || !PlayerStatusViewModel || !AimWindViewModel ||
+		!ShotPowerViewModel || !LoadoutViewModel || !ShotPreviewViewModel || !ModifierSummaryViewModel)
 	{
 		return;
 	}
@@ -266,8 +307,12 @@ void UFRBattleHUDWidget::RefreshViewModel()
 	AFRBattleCharacter* EnemyCharacter = GetEnemyCharacter();
 	const EFRBattleState BattleState = GameMode ? GameMode->GetBattleState() : EFRBattleState::PlayerTurn;
 
-	BattleHUDViewModel->SetTurnText(GetBattleStateText(BattleState));
-	BattleHUDViewModel->SetRunProgressText(GetRunProgressSummary());
+	const FText TurnTextValue = GetBattleStateText(BattleState);
+	const FText RunProgressTextValue = GetRunProgressSummary();
+	BattleHUDViewModel->SetTurnText(TurnTextValue);
+	BattleHUDViewModel->SetRunProgressText(RunProgressTextValue);
+	BattleStateViewModel->SetTurnText(TurnTextValue);
+	BattleStateViewModel->SetRunProgressText(RunProgressTextValue);
 
 	FString Status = GetStatusText().ToString();
 	if (BattleState == EFRBattleState::PlayerTurn && PlayerCharacter)
@@ -285,12 +330,19 @@ void UFRBattleHUDWidget::RefreshViewModel()
 			Status = TEXT("Cannot fire from current state");
 		}
 	}
-	BattleHUDViewModel->SetStatusText(FText::FromString(Status));
+	const FText StatusTextValue = FText::FromString(Status);
+	BattleHUDViewModel->SetStatusText(StatusTextValue);
+	BattleStateViewModel->SetStatusText(StatusTextValue);
 
 	const float PlayerHealth = PlayerCharacter ? PlayerCharacter->GetHealth() : 0.0f;
 	const float PlayerMaxHealth = PlayerCharacter ? PlayerCharacter->GetMaxHealth() : 0.0f;
-	BattleHUDViewModel->SetPlayerHealthPercent(SafePercent(PlayerHealth, PlayerMaxHealth));
-	BattleHUDViewModel->SetPlayerHealthText(FText::FromString(FString::Printf(TEXT("%.0f / %.0f"), PlayerHealth, PlayerMaxHealth)));
+	const float PlayerHealthPercent = SafePercent(PlayerHealth, PlayerMaxHealth);
+	const FText PlayerHealthTextValue = FText::FromString(FString::Printf(TEXT("%.0f / %.0f"), PlayerHealth, PlayerMaxHealth));
+	BattleHUDViewModel->SetPlayerHealthPercent(PlayerHealthPercent);
+	BattleHUDViewModel->SetPlayerHealthText(PlayerHealthTextValue);
+	PlayerStatusViewModel->SetTitleText(FText::FromString(TEXT("PLAYER ARMOR")));
+	PlayerStatusViewModel->SetHealthPercent(PlayerHealthPercent);
+	PlayerStatusViewModel->SetHealthText(PlayerHealthTextValue);
 
 	const float EnemyHealth = EnemyCharacter ? EnemyCharacter->GetHealth() : 0.0f;
 	const float EnemyMaxHealth = EnemyCharacter ? EnemyCharacter->GetMaxHealth() : 0.0f;
@@ -301,30 +353,43 @@ void UFRBattleHUDWidget::RefreshViewModel()
 
 	const float Wind = GameMode ? GameMode->GetWind() : 0.0f;
 	const FString WindArrow = Wind > 1.0f ? TEXT("->") : Wind < -1.0f ? TEXT("<-") : TEXT("--");
-	BattleHUDViewModel->SetWindText(FText::FromString(FString::Printf(TEXT("Wind %s %.0f"), *WindArrow, FMath::Abs(Wind))));
+	const FText WindTextValue = FText::FromString(FString::Printf(TEXT("Wind %s %.0f"), *WindArrow, FMath::Abs(Wind)));
+	BattleHUDViewModel->SetWindText(WindTextValue);
+	AimWindViewModel->SetWindText(WindTextValue);
 
 	const float AimAngle = PlayerCharacter ? PlayerCharacter->GetAimAngle() : 0.0f;
-	BattleHUDViewModel->SetAimText(FText::FromString(FString::Printf(TEXT("Aim %.0f deg"), AimAngle)));
+	const FText AimTextValue = FText::FromString(FString::Printf(TEXT("Aim %.0f deg"), AimAngle));
+	BattleHUDViewModel->SetAimText(AimTextValue);
+	AimWindViewModel->SetAimText(AimTextValue);
 
 	const float ShotPower = PlayerCharacter ? PlayerCharacter->GetShotPower() : 0.0f;
 	const float ShotCharge = PlayerCharacter ? PlayerCharacter->GetShotChargeAlpha() : 0.0f;
 	const float DisplayedShotPower = PlayerCharacter && PlayerCharacter->IsChargingShot() ? ShotCharge : ShotPower;
+	const FText ShotPowerTextValue = PercentText(DisplayedShotPower);
 	BattleHUDViewModel->SetShotPowerPercent(DisplayedShotPower);
-	BattleHUDViewModel->SetShotPowerText(PercentText(DisplayedShotPower));
+	BattleHUDViewModel->SetShotPowerText(ShotPowerTextValue);
+	ShotPowerViewModel->SetShotPowerPercent(DisplayedShotPower);
+	ShotPowerViewModel->SetShotPowerText(ShotPowerTextValue);
 
 	const float MoveBudget = PlayerCharacter ? PlayerCharacter->GetMoveBudget() : 0.0f;
 	const float MaxMoveBudget = PlayerCharacter ? PlayerCharacter->GetMaxMoveBudget() : 0.0f;
-	BattleHUDViewModel->SetMoveBudgetPercent(SafePercent(MoveBudget, MaxMoveBudget));
-	BattleHUDViewModel->SetMoveBudgetText(FText::FromString(FString::Printf(TEXT("%.0f / %.0f"), MoveBudget, MaxMoveBudget)));
+	const float MoveBudgetPercent = SafePercent(MoveBudget, MaxMoveBudget);
+	const FText MoveBudgetTextValue = FText::FromString(FString::Printf(TEXT("%.0f / %.0f"), MoveBudget, MaxMoveBudget));
+	BattleHUDViewModel->SetMoveBudgetPercent(MoveBudgetPercent);
+	BattleHUDViewModel->SetMoveBudgetText(MoveBudgetTextValue);
+	PlayerStatusViewModel->SetMoveBudgetPercent(MoveBudgetPercent);
+	PlayerStatusViewModel->SetMoveBudgetText(MoveBudgetTextValue);
 
 	const FFRWeaponSpec CurrentWeapon = PlayerCharacter ? PlayerCharacter->GetCurrentWeaponSpec() : FFRWeaponSpec();
-	BattleHUDViewModel->SetCurrentWeaponText(CurrentWeapon.DisplayName.IsEmpty()
+	const FText CurrentWeaponTextValue = CurrentWeapon.DisplayName.IsEmpty()
 		? FText::FromString(TEXT("No Shell"))
-		: CurrentWeapon.DisplayName);
+		: CurrentWeapon.DisplayName;
+	BattleHUDViewModel->SetCurrentWeaponText(CurrentWeaponTextValue);
+	LoadoutViewModel->SetCurrentWeaponText(CurrentWeaponTextValue);
 
 	const FFRShotSpec ShotSpec = PlayerCharacter ? PlayerCharacter->GetCurrentShotSpec() : FFRShotSpec();
 	const FText ShotEffectSummary = GetShotEffectSummary(ShotSpec.EffectTags);
-	BattleHUDViewModel->SetShotInfoText(FText::FromString(FString::Printf(
+	const FText ShotInfoTextValue = FText::FromString(FString::Printf(
 		TEXT("Damage %.0f  Blast %.0f\nProjectiles x%d\nEffects %s\nSpeed %.0f  Gravity %.0f\nTerrain %.0f  Fill %.0f"),
 		ShotSpec.Damage,
 		ShotSpec.BlastRadius,
@@ -333,19 +398,24 @@ void UFRBattleHUDWidget::RefreshViewModel()
 		ShotSpec.LaunchSpeed,
 		ShotSpec.Gravity,
 		ShotSpec.TerrainDamage,
-		ShotSpec.TerrainFillRadius)));
-	BattleHUDViewModel->SetShotPrimaryText(FText::FromString(FString::Printf(
+		ShotSpec.TerrainFillRadius));
+	const FText ShotPrimaryTextValue = FText::FromString(FString::Printf(
 		TEXT("Damage %.0f  Blast %.0f\nProjectiles x%d\nEffects %s"),
 		ShotSpec.Damage,
 		ShotSpec.BlastRadius,
 		ShotSpec.ProjectileCount,
-		*ShotEffectSummary.ToString())));
-	BattleHUDViewModel->SetShotSecondaryText(FText::FromString(FString::Printf(
+		*ShotEffectSummary.ToString()));
+	const FText ShotSecondaryTextValue = FText::FromString(FString::Printf(
 		TEXT("Speed %.0f  Gravity %.0f\nTerrain %.0f  Fill %.0f"),
 		ShotSpec.LaunchSpeed,
 		ShotSpec.Gravity,
 		ShotSpec.TerrainDamage,
-		ShotSpec.TerrainFillRadius)));
+		ShotSpec.TerrainFillRadius));
+	BattleHUDViewModel->SetShotInfoText(ShotInfoTextValue);
+	BattleHUDViewModel->SetShotPrimaryText(ShotPrimaryTextValue);
+	BattleHUDViewModel->SetShotSecondaryText(ShotSecondaryTextValue);
+	ShotPreviewViewModel->SetPrimaryText(ShotPrimaryTextValue);
+	ShotPreviewViewModel->SetSecondaryText(ShotSecondaryTextValue);
 
 	const FText GrantedModifierSummary = PlayerCharacter
 		? GetModifierSummary(PlayerCharacter->GetGrantedShotModifiersForBlueprint())
@@ -359,11 +429,16 @@ void UFRBattleHUDWidget::RefreshViewModel()
 	BattleHUDViewModel->SetGrantedModifierText(GrantedModifierSummary);
 	BattleHUDViewModel->SetPendingModifierText(PendingModifierSummary);
 	BattleHUDViewModel->SetAbilitySetText(AbilitySetSummary);
-	BattleHUDViewModel->SetModifierSummaryText(FText::FromString(FString::Printf(
+	const FText ModifierSummaryTextValue = FText::FromString(FString::Printf(
 		TEXT("Active: %s\nNext: %s\nTraits: %s"),
 		*GrantedModifierSummary.ToString(),
 		*PendingModifierSummary.ToString(),
-		*AbilitySetSummary.ToString())));
+		*AbilitySetSummary.ToString()));
+	BattleHUDViewModel->SetModifierSummaryText(ModifierSummaryTextValue);
+	ModifierSummaryViewModel->SetGrantedModifierText(GrantedModifierSummary);
+	ModifierSummaryViewModel->SetPendingModifierText(PendingModifierSummary);
+	ModifierSummaryViewModel->SetAbilitySetText(AbilitySetSummary);
+	ModifierSummaryViewModel->SetSummaryText(ModifierSummaryTextValue);
 }
 
 void UFRBattleHUDWidget::BuildDefaultHUD()
