@@ -7,6 +7,7 @@
 #include "Blueprint/WidgetTree.h"
 #include "Combat/FRBattleCharacter.h"
 #include "CommonBorder.h"
+#include "CommonNumericTextBlock.h"
 #include "CommonTextBlock.h"
 #include "Components/Border.h"
 #include "Components/CanvasPanel.h"
@@ -174,6 +175,14 @@ namespace
 		if (TextBlock)
 		{
 			TextBlock->SetText(Text);
+		}
+	}
+
+	void SetNumericText(UCommonNumericTextBlock* TextBlock, float Value)
+	{
+		if (TextBlock)
+		{
+			TextBlock->SetCurrentValue(Value);
 		}
 	}
 
@@ -503,12 +512,12 @@ void UFRBattleHUDWidget::BuildDefaultHUD()
 	}
 
 	AddText(LeftBox, TEXT("PlayerLabel"), FText::FromString(TEXT("PLAYER ARMOR")), 13.0f, MutedTextColor);
-	UTextBlock* PlayerHealthValueText = nullptr;
-	PlayerHealthBar = AddLabeledBar(LeftBox, TEXT("PlayerHealthBar"), FText::FromString(TEXT("HP")), PlayerHealthValueText);
+	UCommonNumericTextBlock* PlayerHealthValueText = nullptr;
+	PlayerHealthBar = AddLabeledBar(LeftBox, TEXT("PlayerHealthBar"), FText::FromString(TEXT("HP")), false, PlayerHealthValueText);
 	PlayerHealthText = PlayerHealthValueText;
 	AddText(LeftBox, TEXT("EnemyLabel"), FText::FromString(TEXT("ENEMY ARMOR")), 13.0f, MutedTextColor);
-	UTextBlock* EnemyHealthValueText = nullptr;
-	EnemyHealthBar = AddLabeledBar(LeftBox, TEXT("EnemyHealthBar"), FText::FromString(TEXT("HP")), EnemyHealthValueText);
+	UCommonNumericTextBlock* EnemyHealthValueText = nullptr;
+	EnemyHealthBar = AddLabeledBar(LeftBox, TEXT("EnemyHealthBar"), FText::FromString(TEXT("HP")), false, EnemyHealthValueText);
 	EnemyHealthText = EnemyHealthValueText;
 
 	WindText = AddText(LeftBox, TEXT("WindText"), FText::FromString(TEXT("Wind: 0")), 17.0f, TextColor);
@@ -541,11 +550,11 @@ void UFRBattleHUDWidget::BuildDefaultHUD()
 		BarrelSlot->SetAlignment(FVector2D(0.0f, 0.5f));
 	}
 
-	UTextBlock* ShotPowerValueText = nullptr;
-	ShotPowerBar = AddLabeledBar(LeftBox, TEXT("ShotPowerBar"), FText::FromString(TEXT("POWER")), ShotPowerValueText);
+	UCommonNumericTextBlock* ShotPowerValueText = nullptr;
+	ShotPowerBar = AddLabeledBar(LeftBox, TEXT("ShotPowerBar"), FText::FromString(TEXT("POWER")), true, ShotPowerValueText);
 	ShotPowerText = ShotPowerValueText;
-	UTextBlock* MoveBudgetValueText = nullptr;
-	MoveBudgetBar = AddLabeledBar(LeftBox, TEXT("MoveBudgetBar"), FText::FromString(TEXT("MOVE")), MoveBudgetValueText);
+	UCommonNumericTextBlock* MoveBudgetValueText = nullptr;
+	MoveBudgetBar = AddLabeledBar(LeftBox, TEXT("MoveBudgetBar"), FText::FromString(TEXT("MOVE")), false, MoveBudgetValueText);
 	MoveBudgetText = MoveBudgetValueText;
 
 	UBorder* BottomPanel = WidgetTree->ConstructWidget<UCommonBorder>(UCommonBorder::StaticClass(), TEXT("LoadoutPanel"));
@@ -669,13 +678,14 @@ void UFRBattleHUDWidget::RefreshDefaultHUD()
 
 	const float ShotPower = PlayerCharacter ? PlayerCharacter->GetShotPower() : 0.0f;
 	const float ShotCharge = PlayerCharacter ? PlayerCharacter->GetShotChargeAlpha() : 0.0f;
-	SetBar(ShotPowerBar, PlayerCharacter && PlayerCharacter->IsChargingShot() ? ShotCharge : ShotPower, PowerColor);
-	SetText(ShotPowerText, PercentText(PlayerCharacter && PlayerCharacter->IsChargingShot() ? ShotCharge : ShotPower));
+	const float DisplayedShotPower = PlayerCharacter && PlayerCharacter->IsChargingShot() ? ShotCharge : ShotPower;
+	SetBar(ShotPowerBar, DisplayedShotPower, PowerColor);
+	SetNumericText(ShotPowerText, DisplayedShotPower);
 
 	const float MoveBudget = PlayerCharacter ? PlayerCharacter->GetMoveBudget() : 0.0f;
 	const float MaxMoveBudget = PlayerCharacter ? PlayerCharacter->GetMaxMoveBudget() : 0.0f;
 	SetBar(MoveBudgetBar, SafePercent(MoveBudget, MaxMoveBudget), MoveColor);
-	SetText(MoveBudgetText, FText::FromString(FString::Printf(TEXT("%.0f / %.0f"), MoveBudget, MaxMoveBudget)));
+	SetNumericText(MoveBudgetText, MoveBudget);
 }
 
 void UFRBattleHUDWidget::RefreshCharacterBars(AFRBattleCharacter* PlayerCharacter, AFRBattleCharacter* EnemyCharacter)
@@ -683,14 +693,12 @@ void UFRBattleHUDWidget::RefreshCharacterBars(AFRBattleCharacter* PlayerCharacte
 	const float PlayerHealth = PlayerCharacter ? PlayerCharacter->GetHealth() : 0.0f;
 	const float PlayerMaxHealth = PlayerCharacter ? PlayerCharacter->GetMaxHealth() : 0.0f;
 	SetBar(PlayerHealthBar, SafePercent(PlayerHealth, PlayerMaxHealth), PlayerColor);
-	SetText(PlayerHealthText, FText::FromString(FString::Printf(TEXT("%.0f / %.0f"), PlayerHealth, PlayerMaxHealth)));
+	SetNumericText(PlayerHealthText, PlayerHealth);
 
 	const float EnemyHealth = EnemyCharacter ? EnemyCharacter->GetHealth() : 0.0f;
 	const float EnemyMaxHealth = EnemyCharacter ? EnemyCharacter->GetMaxHealth() : 0.0f;
 	SetBar(EnemyHealthBar, SafePercent(EnemyHealth, EnemyMaxHealth), EnemyColor);
-	SetText(EnemyHealthText, EnemyCharacter
-		? FText::FromString(FString::Printf(TEXT("%.0f / %.0f"), EnemyHealth, EnemyMaxHealth))
-		: FText::FromString(TEXT("-")));
+	SetNumericText(EnemyHealthText, EnemyCharacter ? EnemyHealth : 0.0f);
 }
 
 void UFRBattleHUDWidget::RefreshWeaponSlots(AFRBattleCharacter* PlayerCharacter)
@@ -827,7 +835,35 @@ UTextBlock* UFRBattleHUDWidget::AddText(UWidget* Parent, FName WidgetName, const
 	return Text;
 }
 
-UProgressBar* UFRBattleHUDWidget::AddLabeledBar(UVerticalBox* Parent, FName WidgetName, const FText& LabelText, UTextBlock*& OutValueText)
+UCommonNumericTextBlock* UFRBattleHUDWidget::AddNumericText(UWidget* Parent, FName WidgetName, float InitialValue, bool bPercentage, float FontSize, const FLinearColor& Color)
+{
+	UCommonNumericTextBlock* Text = WidgetTree->ConstructWidget<UCommonNumericTextBlock>(UCommonNumericTextBlock::StaticClass(), WidgetName);
+	Text->SetNumericType(bPercentage ? ECommonNumericType::Percentage : ECommonNumericType::Number);
+	Text->SetCurrentValue(InitialValue);
+	Text->SetColorAndOpacity(FSlateColor(Color));
+
+	FSlateFontInfo FontInfo = Text->GetFont();
+	FontInfo.Size = FMath::RoundToInt(FontSize);
+	Text->SetFont(FontInfo);
+
+	if (UBorder* Border = Cast<UBorder>(Parent))
+	{
+		Border->SetContent(Text);
+	}
+	else if (UHorizontalBox* HorizontalBox = Cast<UHorizontalBox>(Parent))
+	{
+		if (UHorizontalBoxSlot* TextSlot = HorizontalBox->AddChildToHorizontalBox(Text))
+		{
+			TextSlot->SetPadding(FMargin(10.0f, 10.0f, 10.0f, 10.0f));
+			TextSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+			TextSlot->SetVerticalAlignment(VAlign_Center);
+		}
+	}
+
+	return Text;
+}
+
+UProgressBar* UFRBattleHUDWidget::AddLabeledBar(UVerticalBox* Parent, FName WidgetName, const FText& LabelText, bool bPercentage, UCommonNumericTextBlock*& OutValueText)
 {
 	UVerticalBox* BarBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), *FString::Printf(TEXT("%s_Box"), *WidgetName.ToString()));
 	if (UVerticalBoxSlot* BarBoxSlot = Parent->AddChildToVerticalBox(BarBox))
@@ -838,7 +874,7 @@ UProgressBar* UFRBattleHUDWidget::AddLabeledBar(UVerticalBox* Parent, FName Widg
 	UHorizontalBox* LabelBox = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), *FString::Printf(TEXT("%s_LabelBox"), *WidgetName.ToString()));
 	BarBox->AddChildToVerticalBox(LabelBox);
 	AddText(LabelBox, *FString::Printf(TEXT("%s_Label"), *WidgetName.ToString()), LabelText, 13.0f, MutedTextColor);
-	OutValueText = AddText(LabelBox, *FString::Printf(TEXT("%s_Value"), *WidgetName.ToString()), FText::FromString(TEXT("-")), 13.0f, TextColor);
+	OutValueText = AddNumericText(LabelBox, *FString::Printf(TEXT("%s_Value"), *WidgetName.ToString()), 0.0f, bPercentage, 13.0f, TextColor);
 
 	UProgressBar* Bar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), WidgetName);
 	Bar->SetPercent(0.0f);

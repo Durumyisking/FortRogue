@@ -12,6 +12,7 @@
 
 class UFRAbilitySet;
 class UBorder;
+class UCommonNumericTextBlock;
 class UHorizontalBox;
 class UOverlay;
 class UProgressBar;
@@ -215,7 +216,8 @@ private:
 	void RefreshAimIndicator(float AimAngle);
 
 	UTextBlock* AddText(UWidget* Parent, FName WidgetName, const FText& InitialText, float FontSize, const FLinearColor& Color);
-	UProgressBar* AddLabeledBar(UVerticalBox* Parent, FName WidgetName, const FText& LabelText, UTextBlock*& OutValueText);
+	UCommonNumericTextBlock* AddNumericText(UWidget* Parent, FName WidgetName, float InitialValue, bool bPercentage, float FontSize, const FLinearColor& Color);
+	UProgressBar* AddLabeledBar(UVerticalBox* Parent, FName WidgetName, const FText& LabelText, bool bPercentage, UCommonNumericTextBlock*& OutValueText);
 	UBorder* AddSlot(UHorizontalBox* Parent, FName WidgetName, const FVector2D& Size);
 
 	UPROPERTY(Transient)
@@ -258,13 +260,13 @@ private:
 	TObjectPtr<UProgressBar> PlayerHealthBar;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UTextBlock> PlayerHealthText;
+	TObjectPtr<UCommonNumericTextBlock> PlayerHealthText;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UProgressBar> EnemyHealthBar;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UTextBlock> EnemyHealthText;
+	TObjectPtr<UCommonNumericTextBlock> EnemyHealthText;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UTextBlock> WindText;
@@ -279,13 +281,13 @@ private:
 	TObjectPtr<UProgressBar> ShotPowerBar;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UTextBlock> ShotPowerText;
+	TObjectPtr<UCommonNumericTextBlock> ShotPowerText;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UProgressBar> MoveBudgetBar;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UTextBlock> MoveBudgetText;
+	TObjectPtr<UCommonNumericTextBlock> MoveBudgetText;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UTextBlock> CurrentWeaponText;
