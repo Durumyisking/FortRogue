@@ -43,6 +43,7 @@
 - Loadout weapon/item slots now have per-slot ViewModels and a CommonButton-based slot adapter for selected, enabled, empty, and locked states.
 - Reward screen choices now have per-choice ViewModels and a CommonButton-based choice adapter for title, summary, condition feedback, enabled state, and selection.
 - Main menu, options, pause, and confirmation dialog now have CommonActivatableWidget adapter classes with CommonButton request events.
+- Options menu now has a runtime `UFROptionsMenuViewModel` and optional CommonTextBlock/CommonNumericTextBlock display fields for editor-authored option rows.
 
 ## Key Problems
 
@@ -135,6 +136,7 @@
 - `UFRUIRootWidget` expects authored CommonUI stacks named `HUDLayer`, `MenuLayer`, and `ModalLayer`; `WBP_UIRoot` still needs its base class and layer widgets saved in the editor.
 - `UFRMainMenuWidget`, `UFROptionsMenuWidget`, `UFRPauseMenuWidget`, and `UFRConfirmDialogWidget` expose optional named CommonButton children and BlueprintAssignable request events.
 - `AFRPlayerController` binds menu adapter request events and uses `Escape` as a fallback for pause/back/cancel while Enhanced Input actions are not yet authored.
+- `UFROptionsMenuWidget` creates and injects `UFROptionsMenuViewModel`; default option labels and numeric values are editable on the widget class.
 - Next implementation step: restart the editor/MCP session, then bind and save each module widget directly to the injected ViewModel.
 
 ## Recommended Widget Modules
@@ -267,6 +269,7 @@
 - [x] Route Battle HUD and Reward screen through a CommonUI root layer adapter.
 - [x] Add CommonUI adapter classes for menu and confirmation dialog screens.
 - [x] Connect menu, options, pause, and confirmation adapters to the CommonUI root layers.
+- [x] Add Options menu ViewModel and CommonUI display adapter fields.
 - [ ] Replace prototype MVVM with module/domain ViewModels and real module-level bindings.
 - [x] Compile and save created UMG assets.
 

@@ -3,7 +3,9 @@
 #include "UI/FRMenuWidgets.h"
 
 #include "CommonButtonBase.h"
+#include "CommonNumericTextBlock.h"
 #include "CommonTextBlock.h"
+#include "MVVMBlueprintLibrary.h"
 
 namespace
 {
@@ -23,6 +25,49 @@ namespace
 			TextBlock->SetText(Text);
 		}
 	}
+
+	void SetMenuNumber(UCommonNumericTextBlock* TextBlock, float Value)
+	{
+		if (TextBlock)
+		{
+			TextBlock->SetCurrentValue(Value);
+		}
+	}
+}
+
+void UFROptionsMenuViewModel::SetTitleText(const FText& InTitleText)
+{
+	UE_MVVM_SET_PROPERTY_VALUE(TitleText, InTitleText);
+}
+
+void UFROptionsMenuViewModel::SetMasterVolumePercent(float InMasterVolumePercent)
+{
+	UE_MVVM_SET_PROPERTY_VALUE(MasterVolumePercent, InMasterVolumePercent);
+}
+
+void UFROptionsMenuViewModel::SetUIScalePercent(float InUIScalePercent)
+{
+	UE_MVVM_SET_PROPERTY_VALUE(UIScalePercent, InUIScalePercent);
+}
+
+void UFROptionsMenuViewModel::SetWindowModeText(const FText& InWindowModeText)
+{
+	UE_MVVM_SET_PROPERTY_VALUE(WindowModeText, InWindowModeText);
+}
+
+void UFROptionsMenuViewModel::SetResolutionText(const FText& InResolutionText)
+{
+	UE_MVVM_SET_PROPERTY_VALUE(ResolutionText, InResolutionText);
+}
+
+void UFROptionsMenuViewModel::SetInputHintsText(const FText& InInputHintsText)
+{
+	UE_MVVM_SET_PROPERTY_VALUE(InputHintsText, InInputHintsText);
+}
+
+void UFROptionsMenuViewModel::SetAccessibilityText(const FText& InAccessibilityText)
+{
+	UE_MVVM_SET_PROPERTY_VALUE(AccessibilityText, InAccessibilityText);
 }
 
 void UFRMainMenuWidget::NativeOnInitialized()
@@ -53,9 +98,66 @@ void UFROptionsMenuWidget::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 
+	CreateOptionsMenuViewModel();
+	if (OptionsMenuViewModel)
+	{
+		TScriptInterface<INotifyFieldValueChanged> ViewModelInterface;
+		ViewModelInterface.SetObject(OptionsMenuViewModel);
+		ViewModelInterface.SetInterface(Cast<INotifyFieldValueChanged>(OptionsMenuViewModel));
+		UMVVMBlueprintLibrary::SetViewModelByClass(this, ViewModelInterface);
+	}
+	RefreshOptionsMenu();
+
 	BindMenuButton(ApplyButton, this, &UFROptionsMenuWidget::HandleApplyClicked);
 	BindMenuButton(ResetButton, this, &UFROptionsMenuWidget::HandleResetClicked);
 	BindMenuButton(BackButton, this, &UFROptionsMenuWidget::HandleBackClicked);
+}
+
+void UFROptionsMenuWidget::RefreshOptionsMenu()
+{
+	RefreshOptionsViewModel();
+	RefreshFromViewModel();
+}
+
+void UFROptionsMenuWidget::CreateOptionsMenuViewModel()
+{
+	if (!OptionsMenuViewModel)
+	{
+		OptionsMenuViewModel = NewObject<UFROptionsMenuViewModel>(this);
+	}
+}
+
+void UFROptionsMenuWidget::RefreshOptionsViewModel()
+{
+	CreateOptionsMenuViewModel();
+	if (!OptionsMenuViewModel)
+	{
+		return;
+	}
+
+	OptionsMenuViewModel->SetTitleText(DefaultTitleText);
+	OptionsMenuViewModel->SetMasterVolumePercent(DefaultMasterVolumePercent);
+	OptionsMenuViewModel->SetUIScalePercent(DefaultUIScalePercent);
+	OptionsMenuViewModel->SetWindowModeText(DefaultWindowModeText);
+	OptionsMenuViewModel->SetResolutionText(DefaultResolutionText);
+	OptionsMenuViewModel->SetInputHintsText(DefaultInputHintsText);
+	OptionsMenuViewModel->SetAccessibilityText(DefaultAccessibilityText);
+}
+
+void UFROptionsMenuWidget::RefreshFromViewModel()
+{
+	if (!OptionsMenuViewModel)
+	{
+		return;
+	}
+
+	SetMenuText(TitleText, OptionsMenuViewModel->GetTitleText());
+	SetMenuNumber(MasterVolumeText, OptionsMenuViewModel->GetMasterVolumePercent());
+	SetMenuNumber(UIScaleText, OptionsMenuViewModel->GetUIScalePercent());
+	SetMenuText(WindowModeText, OptionsMenuViewModel->GetWindowModeText());
+	SetMenuText(ResolutionText, OptionsMenuViewModel->GetResolutionText());
+	SetMenuText(InputHintsText, OptionsMenuViewModel->GetInputHintsText());
+	SetMenuText(AccessibilityText, OptionsMenuViewModel->GetAccessibilityText());
 }
 
 void UFROptionsMenuWidget::HandleApplyClicked()
@@ -65,6 +167,7 @@ void UFROptionsMenuWidget::HandleApplyClicked()
 
 void UFROptionsMenuWidget::HandleResetClicked()
 {
+	RefreshOptionsMenu();
 	OnResetRequested.Broadcast();
 }
 
