@@ -14,12 +14,19 @@
 #include "Items/FRItemDefinition.h"
 #include "UI/FRBattleHUDWidget.h"
 #include "UI/FRRewardScreenWidget.h"
+#include "UI/FRUIRootWidget.h"
 #include "UObject/ConstructorHelpers.h"
 
 AFRPlayerController::AFRPlayerController()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	bShowMouseCursor = false;
+
+	static ConstructorHelpers::FClassFinder<UFRUIRootWidget> UIRootClassFinder(TEXT("/Game/FortRogue/Widget/Global/WBP_UIRoot"));
+	if (UIRootClassFinder.Succeeded())
+	{
+		UIRootWidgetClass = UIRootClassFinder.Class;
+	}
 
 	static ConstructorHelpers::FClassFinder<UFRBattleHUDWidget> BattleHUDClassFinder(TEXT("/Game/FortRogue/Widget/MainGame/WBP_BattleHUD"));
 	if (BattleHUDClassFinder.Succeeded())
@@ -43,6 +50,37 @@ void AFRPlayerController::BeginPlay()
 		}
 	}
 
+	CreateRootWidget();
+	CreateBattleHUDWidget();
+}
+
+void AFRPlayerController::CreateRootWidget()
+{
+	if (UIRootWidget)
+	{
+		return;
+	}
+
+	TSubclassOf<UFRUIRootWidget> RootClass = UIRootWidgetClass;
+	if (!RootClass)
+	{
+		RootClass = UFRUIRootWidget::StaticClass();
+	}
+
+	UIRootWidget = CreateWidget<UFRUIRootWidget>(this, RootClass);
+	if (UIRootWidget)
+	{
+		UIRootWidget->AddToViewport(0);
+	}
+}
+
+void AFRPlayerController::CreateBattleHUDWidget()
+{
+	if (!UIRootWidget || BattleHUDWidget)
+	{
+		return;
+	}
+
 	TSubclassOf<UFRBattleHUDWidget> HUDClass = BattleHUDWidgetClass;
 	if (!HUDClass)
 	{
@@ -50,23 +88,35 @@ void AFRPlayerController::BeginPlay()
 	}
 	if (HUDClass)
 	{
-		BattleHUDWidget = CreateWidget<UFRBattleHUDWidget>(this, HUDClass);
+		BattleHUDWidget = Cast<UFRBattleHUDWidget>(UIRootWidget->SetWidgetInLayer(EFRUILayer::HUD, HUDClass));
 		if (BattleHUDWidget)
 		{
-			BattleHUDWidget->AddToViewport(0);
 			BattleHUDWidget->ActivateWidget();
 		}
 	}
+}
 
-	if (RewardScreenWidgetClass)
+void AFRPlayerController::CreateRewardScreenWidget()
+{
+	if (!UIRootWidget || RewardScreenWidget || !RewardScreenWidgetClass)
 	{
-		RewardScreenWidget = CreateWidget<UFRRewardScreenWidget>(this, RewardScreenWidgetClass);
-		if (RewardScreenWidget)
-		{
-			RewardScreenWidget->AddToViewport(10);
-			RewardScreenWidget->SetVisibility(ESlateVisibility::Collapsed);
-		}
+		return;
 	}
+
+	RewardScreenWidget = Cast<UFRRewardScreenWidget>(UIRootWidget->PushWidgetToLayer(EFRUILayer::Menu, RewardScreenWidgetClass));
+	if (RewardScreenWidget)
+	{
+		RewardScreenWidget->ActivateWidget();
+	}
+}
+
+void AFRPlayerController::ClearRewardScreenWidget()
+{
+	if (RewardScreenWidget && UIRootWidget)
+	{
+		UIRootWidget->RemoveWidgetFromLayer(RewardScreenWidget);
+	}
+	RewardScreenWidget = nullptr;
 }
 
 void AFRPlayerController::SetupInputComponent()
@@ -298,10 +348,18 @@ void AFRPlayerController::UpdateOptionalWidgets()
 		BattleHUDWidget->SetVisibility(GameMode->GetBattleState() == EFRBattleState::Reward ? ESlateVisibility::Collapsed : ESlateVisibility::Visible);
 		BattleHUDWidget->RefreshBattleHUD();
 	}
-	if (RewardScreenWidget)
+
+	if (GameMode->GetBattleState() == EFRBattleState::Reward)
 	{
-		RewardScreenWidget->SetVisibility(GameMode->GetBattleState() == EFRBattleState::Reward ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
-		RewardScreenWidget->RefreshRewardScreen();
+		CreateRewardScreenWidget();
+		if (RewardScreenWidget)
+		{
+			RewardScreenWidget->RefreshRewardScreen();
+		}
+	}
+	else
+	{
+		ClearRewardScreenWidget();
 	}
 }
 

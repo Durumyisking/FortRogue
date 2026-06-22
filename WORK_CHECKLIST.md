@@ -11,3 +11,4 @@ UI 체크리스트
 - 전투 HUD 모듈 adapter 위젯 클래스 추가 [v]
 - Loadout 슬롯 CommonButton MVVM 기반 추가 [v]
 - Reward 화면 CommonButton MVVM 기반 추가 [v]
+- CommonUI Root layer 화면 라우팅 추가 [v]

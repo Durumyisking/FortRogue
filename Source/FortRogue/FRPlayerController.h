@@ -9,6 +9,7 @@
 
 class UFRBattleHUDWidget;
 class UFRRewardScreenWidget;
+class UFRUIRootWidget;
 class UFRAbilitySystemComponent;
 class UInputAction;
 class UInputMappingContext;
@@ -33,6 +34,10 @@ private:
 	void TickKeyboardWeaponInput();
 	void TickKeyboardItemInput();
 	void TickRewardInput();
+	void CreateRootWidget();
+	void CreateBattleHUDWidget();
+	void CreateRewardScreenWidget();
+	void ClearRewardScreenWidget();
 	void UpdateOptionalWidgets();
 	UFRAbilitySystemComponent* GetPlayerAbilitySystemComponent() const;
 	void ProcessPlayerAbilityInput(float DeltaSeconds);
@@ -118,11 +123,17 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Input", meta = (ToolTip = "보상 화면에서 5번 선택지를 고르는 Input Action입니다."))
 	TObjectPtr<UInputAction> Reward5Action;
 
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI", meta = (ToolTip = "게임 UI 레이어를 소유할 CommonUI Root 위젯 클래스입니다."))
+	TSubclassOf<UFRUIRootWidget> UIRootWidgetClass;
+
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI", meta = (ToolTip = "전투 중 표시할 HUD 위젯 클래스입니다. 체력, 무기, 조준, 파워, 바람 정보를 보여줍니다."))
 	TSubclassOf<UFRBattleHUDWidget> BattleHUDWidgetClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI", meta = (ToolTip = "스테이지 클리어 후 보상 선택에 사용할 위젯 클래스입니다."))
 	TSubclassOf<UFRRewardScreenWidget> RewardScreenWidgetClass;
+
+	UPROPERTY()
+	TObjectPtr<UFRUIRootWidget> UIRootWidget;
 
 	UPROPERTY()
 	TObjectPtr<UFRBattleHUDWidget> BattleHUDWidget;

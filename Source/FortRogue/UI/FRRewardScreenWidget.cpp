@@ -10,7 +10,7 @@
 
 namespace
 {
-	void SetText(UCommonTextBlock* TextBlock, const FText& Text)
+	void SetRewardText(UCommonTextBlock* TextBlock, const FText& Text)
 	{
 		if (TextBlock)
 		{
@@ -123,9 +123,9 @@ void UFRRewardChoiceButtonWidget::RefreshFromViewModel()
 {
 	if (!RewardChoiceViewModel)
 	{
-		SetText(TitleText, FText::FromString(TEXT("-")));
-		SetText(SummaryText, FText::GetEmpty());
-		SetText(ConditionText, FText::FromString(TEXT("UNAVAILABLE")));
+		SetRewardText(TitleText, FText::FromString(TEXT("-")));
+		SetRewardText(SummaryText, FText::GetEmpty());
+		SetRewardText(ConditionText, FText::FromString(TEXT("UNAVAILABLE")));
 		if (ChoiceIndexText)
 		{
 			ChoiceIndexText->SetCurrentValue(0.0f);
@@ -134,9 +134,9 @@ void UFRRewardChoiceButtonWidget::RefreshFromViewModel()
 		return;
 	}
 
-	SetText(TitleText, RewardChoiceViewModel->GetTitleText());
-	SetText(SummaryText, RewardChoiceViewModel->GetSummaryText());
-	SetText(ConditionText, RewardChoiceViewModel->GetConditionText());
+	SetRewardText(TitleText, RewardChoiceViewModel->GetTitleText());
+	SetRewardText(SummaryText, RewardChoiceViewModel->GetSummaryText());
+	SetRewardText(ConditionText, RewardChoiceViewModel->GetConditionText());
 	if (ChoiceIndexText)
 	{
 		ChoiceIndexText->SetCurrentValue(static_cast<float>(RewardChoiceViewModel->GetChoiceIndex() + 1));
