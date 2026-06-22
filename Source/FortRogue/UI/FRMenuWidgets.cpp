@@ -33,6 +33,34 @@ namespace
 			TextBlock->SetCurrentValue(Value);
 		}
 	}
+
+	void ApplyMenuViewModel(UUserWidget* Widget, UMVVMViewModelBase* ViewModel)
+	{
+		if (!Widget || !ViewModel)
+		{
+			return;
+		}
+
+		TScriptInterface<INotifyFieldValueChanged> ViewModelInterface;
+		ViewModelInterface.SetObject(ViewModel);
+		ViewModelInterface.SetInterface(Cast<INotifyFieldValueChanged>(ViewModel));
+		UMVVMBlueprintLibrary::SetViewModelByClass(Widget, ViewModelInterface);
+	}
+}
+
+void UFRMenuScreenViewModel::SetTitleText(const FText& InTitleText)
+{
+	UE_MVVM_SET_PROPERTY_VALUE(TitleText, InTitleText);
+}
+
+void UFRMenuScreenViewModel::SetBodyText(const FText& InBodyText)
+{
+	UE_MVVM_SET_PROPERTY_VALUE(BodyText, InBodyText);
+}
+
+void UFRMenuScreenViewModel::SetStatusText(const FText& InStatusText)
+{
+	UE_MVVM_SET_PROPERTY_VALUE(StatusText, InStatusText);
 }
 
 void UFROptionsMenuViewModel::SetTitleText(const FText& InTitleText)
@@ -74,9 +102,52 @@ void UFRMainMenuWidget::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 
+	CreateMenuScreenViewModel();
+	ApplyMenuViewModel(this, MenuScreenViewModel);
+	RefreshMainMenu();
+
 	BindMenuButton(StartRunButton, this, &UFRMainMenuWidget::HandleStartRunClicked);
 	BindMenuButton(OptionsButton, this, &UFRMainMenuWidget::HandleOptionsClicked);
 	BindMenuButton(QuitButton, this, &UFRMainMenuWidget::HandleQuitClicked);
+}
+
+void UFRMainMenuWidget::RefreshMainMenu()
+{
+	RefreshMenuViewModel();
+	RefreshFromMenuViewModel();
+}
+
+void UFRMainMenuWidget::CreateMenuScreenViewModel()
+{
+	if (!MenuScreenViewModel)
+	{
+		MenuScreenViewModel = NewObject<UFRMenuScreenViewModel>(this);
+	}
+}
+
+void UFRMainMenuWidget::RefreshMenuViewModel()
+{
+	CreateMenuScreenViewModel();
+	if (!MenuScreenViewModel)
+	{
+		return;
+	}
+
+	MenuScreenViewModel->SetTitleText(DefaultTitleText);
+	MenuScreenViewModel->SetBodyText(DefaultBodyText);
+	MenuScreenViewModel->SetStatusText(DefaultStatusText);
+}
+
+void UFRMainMenuWidget::RefreshFromMenuViewModel()
+{
+	if (!MenuScreenViewModel)
+	{
+		return;
+	}
+
+	SetMenuText(TitleText, MenuScreenViewModel->GetTitleText());
+	SetMenuText(BodyText, MenuScreenViewModel->GetBodyText());
+	SetMenuText(StatusText, MenuScreenViewModel->GetStatusText());
 }
 
 void UFRMainMenuWidget::HandleStartRunClicked()
@@ -101,10 +172,7 @@ void UFROptionsMenuWidget::NativeOnInitialized()
 	CreateOptionsMenuViewModel();
 	if (OptionsMenuViewModel)
 	{
-		TScriptInterface<INotifyFieldValueChanged> ViewModelInterface;
-		ViewModelInterface.SetObject(OptionsMenuViewModel);
-		ViewModelInterface.SetInterface(Cast<INotifyFieldValueChanged>(OptionsMenuViewModel));
-		UMVVMBlueprintLibrary::SetViewModelByClass(this, ViewModelInterface);
+		ApplyMenuViewModel(this, OptionsMenuViewModel);
 	}
 	RefreshOptionsMenu();
 
@@ -180,11 +248,54 @@ void UFRPauseMenuWidget::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 
+	CreateMenuScreenViewModel();
+	ApplyMenuViewModel(this, MenuScreenViewModel);
+	RefreshPauseMenu();
+
 	BindMenuButton(ResumeButton, this, &UFRPauseMenuWidget::HandleResumeClicked);
 	BindMenuButton(OptionsButton, this, &UFRPauseMenuWidget::HandleOptionsClicked);
 	BindMenuButton(RestartButton, this, &UFRPauseMenuWidget::HandleRestartClicked);
 	BindMenuButton(MainMenuButton, this, &UFRPauseMenuWidget::HandleMainMenuClicked);
 	BindMenuButton(QuitButton, this, &UFRPauseMenuWidget::HandleQuitClicked);
+}
+
+void UFRPauseMenuWidget::RefreshPauseMenu()
+{
+	RefreshMenuViewModel();
+	RefreshFromMenuViewModel();
+}
+
+void UFRPauseMenuWidget::CreateMenuScreenViewModel()
+{
+	if (!MenuScreenViewModel)
+	{
+		MenuScreenViewModel = NewObject<UFRMenuScreenViewModel>(this);
+	}
+}
+
+void UFRPauseMenuWidget::RefreshMenuViewModel()
+{
+	CreateMenuScreenViewModel();
+	if (!MenuScreenViewModel)
+	{
+		return;
+	}
+
+	MenuScreenViewModel->SetTitleText(DefaultTitleText);
+	MenuScreenViewModel->SetBodyText(DefaultBodyText);
+	MenuScreenViewModel->SetStatusText(DefaultStatusText);
+}
+
+void UFRPauseMenuWidget::RefreshFromMenuViewModel()
+{
+	if (!MenuScreenViewModel)
+	{
+		return;
+	}
+
+	SetMenuText(TitleText, MenuScreenViewModel->GetTitleText());
+	SetMenuText(BodyText, MenuScreenViewModel->GetBodyText());
+	SetMenuText(StatusText, MenuScreenViewModel->GetStatusText());
 }
 
 void UFRPauseMenuWidget::HandleResumeClicked()
@@ -214,16 +325,45 @@ void UFRPauseMenuWidget::HandleQuitClicked()
 
 void UFRConfirmDialogWidget::SetDialogText(const FText& InTitleText, const FText& InMessageText)
 {
-	SetMenuText(TitleText, InTitleText);
-	SetMenuText(MessageText, InMessageText);
+	CreateDialogViewModel();
+	if (DialogViewModel)
+	{
+		DialogViewModel->SetTitleText(InTitleText);
+		DialogViewModel->SetBodyText(InMessageText);
+		DialogViewModel->SetStatusText(FText::GetEmpty());
+	}
+	RefreshFromDialogViewModel();
 }
 
 void UFRConfirmDialogWidget::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 
+	CreateDialogViewModel();
+	ApplyMenuViewModel(this, DialogViewModel);
+	RefreshFromDialogViewModel();
+
 	BindMenuButton(ConfirmButton, this, &UFRConfirmDialogWidget::HandleConfirmClicked);
 	BindMenuButton(CancelButton, this, &UFRConfirmDialogWidget::HandleCancelClicked);
+}
+
+void UFRConfirmDialogWidget::CreateDialogViewModel()
+{
+	if (!DialogViewModel)
+	{
+		DialogViewModel = NewObject<UFRMenuScreenViewModel>(this);
+	}
+}
+
+void UFRConfirmDialogWidget::RefreshFromDialogViewModel()
+{
+	if (!DialogViewModel)
+	{
+		return;
+	}
+
+	SetMenuText(TitleText, DialogViewModel->GetTitleText());
+	SetMenuText(MessageText, DialogViewModel->GetBodyText());
 }
 
 void UFRConfirmDialogWidget::HandleConfirmClicked()

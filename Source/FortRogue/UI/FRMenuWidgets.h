@@ -13,6 +13,35 @@ class UCommonTextBlock;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FFRMenuActionRequested);
 
 UCLASS(BlueprintType)
+class FORTROGUE_API UFRMenuScreenViewModel : public UMVVMViewModelBase
+{
+	GENERATED_BODY()
+
+public:
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|Menu")
+	const FText& GetTitleText() const { return TitleText; }
+	void SetTitleText(const FText& InTitleText);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|Menu")
+	const FText& GetBodyText() const { return BodyText; }
+	void SetBodyText(const FText& InBodyText);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|Menu")
+	const FText& GetStatusText() const { return StatusText; }
+	void SetStatusText(const FText& InStatusText);
+
+private:
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|Menu", meta = (AllowPrivateAccess = "true"))
+	FText TitleText;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|Menu", meta = (AllowPrivateAccess = "true"))
+	FText BodyText;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|Menu", meta = (AllowPrivateAccess = "true"))
+	FText StatusText;
+};
+
+UCLASS(BlueprintType)
 class FORTROGUE_API UFROptionsMenuViewModel : public UMVVMViewModelBase
 {
 	GENERATED_BODY()
@@ -75,6 +104,12 @@ class FORTROGUE_API UFRMainMenuWidget : public UCommonActivatableWidget
 	GENERATED_BODY()
 
 public:
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|Menu")
+	UFRMenuScreenViewModel* GetMenuScreenViewModel() const { return MenuScreenViewModel; }
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|UI|Menu")
+	void RefreshMainMenu();
+
 	UPROPERTY(BlueprintAssignable, Category = "FortRogue|UI|Menu")
 	FFRMenuActionRequested OnStartRunRequested;
 
@@ -88,9 +123,30 @@ protected:
 	virtual void NativeOnInitialized() override;
 
 private:
+	void CreateMenuScreenViewModel();
+	void RefreshMenuViewModel();
+	void RefreshFromMenuViewModel();
 	void HandleStartRunClicked();
 	void HandleOptionsClicked();
 	void HandleQuitClicked();
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Menu")
+	FText DefaultTitleText = FText::FromString(TEXT("FortRogue"));
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Menu")
+	FText DefaultBodyText = FText::FromString(TEXT("Tank tactics. One clean shot at a time."));
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Menu")
+	FText DefaultStatusText = FText::GetEmpty();
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCommonTextBlock> TitleText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCommonTextBlock> BodyText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCommonTextBlock> StatusText;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCommonButtonBase> StartRunButton;
@@ -100,6 +156,9 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCommonButtonBase> QuitButton;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UFRMenuScreenViewModel> MenuScreenViewModel;
 };
 
 UCLASS(Abstract, Blueprintable)
@@ -195,6 +254,12 @@ class FORTROGUE_API UFRPauseMenuWidget : public UCommonActivatableWidget
 	GENERATED_BODY()
 
 public:
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|Menu")
+	UFRMenuScreenViewModel* GetMenuScreenViewModel() const { return MenuScreenViewModel; }
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|UI|Menu")
+	void RefreshPauseMenu();
+
 	UPROPERTY(BlueprintAssignable, Category = "FortRogue|UI|Menu")
 	FFRMenuActionRequested OnResumeRequested;
 
@@ -214,11 +279,32 @@ protected:
 	virtual void NativeOnInitialized() override;
 
 private:
+	void CreateMenuScreenViewModel();
+	void RefreshMenuViewModel();
+	void RefreshFromMenuViewModel();
 	void HandleResumeClicked();
 	void HandleOptionsClicked();
 	void HandleRestartClicked();
 	void HandleMainMenuClicked();
 	void HandleQuitClicked();
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Menu")
+	FText DefaultTitleText = FText::FromString(TEXT("Paused"));
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Menu")
+	FText DefaultBodyText = FText::FromString(TEXT("Run suspended."));
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Menu")
+	FText DefaultStatusText = FText::GetEmpty();
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCommonTextBlock> TitleText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCommonTextBlock> BodyText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCommonTextBlock> StatusText;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCommonButtonBase> ResumeButton;
@@ -234,6 +320,9 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCommonButtonBase> QuitButton;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UFRMenuScreenViewModel> MenuScreenViewModel;
 };
 
 UCLASS(Abstract, Blueprintable)
@@ -242,6 +331,9 @@ class FORTROGUE_API UFRConfirmDialogWidget : public UCommonActivatableWidget
 	GENERATED_BODY()
 
 public:
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|Dialog")
+	UFRMenuScreenViewModel* GetDialogViewModel() const { return DialogViewModel; }
+
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|UI|Dialog")
 	void SetDialogText(const FText& InTitleText, const FText& InMessageText);
 
@@ -255,6 +347,8 @@ protected:
 	virtual void NativeOnInitialized() override;
 
 private:
+	void CreateDialogViewModel();
+	void RefreshFromDialogViewModel();
 	void HandleConfirmClicked();
 	void HandleCancelClicked();
 
@@ -269,4 +363,7 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCommonButtonBase> CancelButton;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UFRMenuScreenViewModel> DialogViewModel;
 };
