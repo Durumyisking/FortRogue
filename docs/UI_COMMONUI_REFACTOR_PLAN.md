@@ -223,7 +223,7 @@
 - [x] Create modular battle HUD widgets.
 - [x] Create missing main menu and options screen widgets.
 - [x] Convert generated TextBlock/Border widgets to CommonUI primitives.
-- [ ] Rebuild remaining menu/dialog buttons as CommonButtonBase widgets.
+- [x] Rebuild remaining menu/dialog buttons as CommonButtonBase widgets.
 - [ ] Convert world health/floating combat UI to authored UMG assets.
 - [ ] Replace prototype MVVM with domain ViewModels.
 - [x] Compile and save created UMG assets.
