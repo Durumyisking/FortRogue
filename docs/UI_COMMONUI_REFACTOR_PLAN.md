@@ -242,6 +242,7 @@
 - [x] Convert world health/floating combat UI to authored UMG assets.
 - [x] Add runtime-fed `UFRBattleHUDViewModel` and attach it to `WBP_BattleHUD`.
 - [x] Add module/domain ViewModel classes for battle HUD modules.
+- [x] Add numeric binding fields for CommonNumericTextBlock-ready battle HUD modules.
 - [x] Inject module/domain ViewModels into battle HUD module widgets.
 - [ ] Replace prototype MVVM with module/domain ViewModels and real module-level bindings.
 - [x] Compile and save created UMG assets.

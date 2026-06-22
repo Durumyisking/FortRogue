@@ -343,6 +343,8 @@ void UFRBattleHUDWidget::RefreshViewModel()
 	BattleHUDViewModel->SetPlayerHealthPercent(PlayerHealthPercent);
 	BattleHUDViewModel->SetPlayerHealthText(PlayerHealthTextValue);
 	PlayerStatusViewModel->SetTitleText(FText::FromString(TEXT("PLAYER ARMOR")));
+	PlayerStatusViewModel->SetCurrentHealthValue(PlayerHealth);
+	PlayerStatusViewModel->SetMaxHealthValue(PlayerMaxHealth);
 	PlayerStatusViewModel->SetHealthPercent(PlayerHealthPercent);
 	PlayerStatusViewModel->SetHealthText(PlayerHealthTextValue);
 
@@ -358,11 +360,14 @@ void UFRBattleHUDWidget::RefreshViewModel()
 	const FText WindTextValue = FText::FromString(FString::Printf(TEXT("Wind %s %.0f"), *WindArrow, FMath::Abs(Wind)));
 	BattleHUDViewModel->SetWindText(WindTextValue);
 	AimWindViewModel->SetWindText(WindTextValue);
+	AimWindViewModel->SetWindValue(Wind);
+	AimWindViewModel->SetAbsoluteWindValue(FMath::Abs(Wind));
 
 	const float AimAngle = PlayerCharacter ? PlayerCharacter->GetAimAngle() : 0.0f;
 	const FText AimTextValue = FText::FromString(FString::Printf(TEXT("Aim %.0f deg"), AimAngle));
 	BattleHUDViewModel->SetAimText(AimTextValue);
 	AimWindViewModel->SetAimText(AimTextValue);
+	AimWindViewModel->SetAimAngleValue(AimAngle);
 
 	const float ShotPower = PlayerCharacter ? PlayerCharacter->GetShotPower() : 0.0f;
 	const float ShotCharge = PlayerCharacter ? PlayerCharacter->GetShotChargeAlpha() : 0.0f;
@@ -379,6 +384,8 @@ void UFRBattleHUDWidget::RefreshViewModel()
 	const FText MoveBudgetTextValue = FText::FromString(FString::Printf(TEXT("%.0f / %.0f"), MoveBudget, MaxMoveBudget));
 	BattleHUDViewModel->SetMoveBudgetPercent(MoveBudgetPercent);
 	BattleHUDViewModel->SetMoveBudgetText(MoveBudgetTextValue);
+	PlayerStatusViewModel->SetMoveBudgetValue(MoveBudget);
+	PlayerStatusViewModel->SetMaxMoveBudgetValue(MaxMoveBudget);
 	PlayerStatusViewModel->SetMoveBudgetPercent(MoveBudgetPercent);
 	PlayerStatusViewModel->SetMoveBudgetText(MoveBudgetTextValue);
 
@@ -418,6 +425,13 @@ void UFRBattleHUDWidget::RefreshViewModel()
 	BattleHUDViewModel->SetShotSecondaryText(ShotSecondaryTextValue);
 	ShotPreviewViewModel->SetPrimaryText(ShotPrimaryTextValue);
 	ShotPreviewViewModel->SetSecondaryText(ShotSecondaryTextValue);
+	ShotPreviewViewModel->SetDamageValue(ShotSpec.Damage);
+	ShotPreviewViewModel->SetBlastRadiusValue(ShotSpec.BlastRadius);
+	ShotPreviewViewModel->SetProjectileCountValue(ShotSpec.ProjectileCount);
+	ShotPreviewViewModel->SetLaunchSpeedValue(ShotSpec.LaunchSpeed);
+	ShotPreviewViewModel->SetGravityValue(ShotSpec.Gravity);
+	ShotPreviewViewModel->SetTerrainDamageValue(ShotSpec.TerrainDamage);
+	ShotPreviewViewModel->SetTerrainFillRadiusValue(ShotSpec.TerrainFillRadius);
 
 	const FText GrantedModifierSummary = PlayerCharacter
 		? GetModifierSummary(PlayerCharacter->GetGrantedShotModifiersForBlueprint())
