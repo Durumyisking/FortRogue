@@ -32,7 +32,7 @@
 ## Current State
 
 - `UFRBattleHUDWidget` and `UFRRewardScreenWidget` already inherit from `UCommonActivatableWidget`.
-- The active battle HUD is still mostly generated in C++ through `WidgetTree` in `UFRBattleHUDWidget::BuildDefaultHUD`.
+- The battle HUD no longer builds a C++ fallback widget tree; `UFRBattleHUDWidget` now expects authored UMG modules and only owns ViewModel creation, injection, and refresh.
 - `AFRPlayerController` creates widgets directly with `CreateWidget`, adds them to the viewport, and refreshes the HUD every tick.
 - Character health bars and floating combat text are `UUserWidget` classes, but their widget trees are created in C++ rather than from reusable UMG assets.
 - `Content/FortRogue/Widget` now has CommonUI root, menu, HUD, world health, floating text, style, and component assets.
@@ -54,7 +54,7 @@
 - It does not model the game domains: battle state, player status, enemy status, loadout, shot preview, rewards, or menu state.
 - It is not fed by runtime gameplay state and should not become the production path.
 - `UFRBattleHUDViewModel` is the current runtime-fed ViewModel surface for the production HUD.
-- The current prototype WBP has MVVM bindings, but `UFRBattleHUDWidget::RefreshDefaultHUD` exits early because C++ private widget pointers are not populated by that WBP.
+- The current prototype WBP has MVVM bindings, but production bindings should move into module widgets because the C++ fallback path has been removed.
 - Direct parent HUD bindings into nested module widget internals, such as `TurnBanner.TurnText.Text`, currently fail WBP compilation. Bindings should move into each module widget or into module-specific C++ adapter widgets instead.
 
 ### HUD Layout
@@ -122,7 +122,7 @@
 
 - Runtime HUD, world health, and floating combat text now default to authored WBP assets.
 - `UFRCharacterHealthBarWidget` and `UFRFloatingCombatTextWidget` now prefer named widgets from authored WBP assets and only construct fallback widget trees if no authored widget exists.
-- `UFRBattleHUDWidget::BuildDefaultHUD` still exists as a fallback for missing authored layouts.
+- `UFRBattleHUDWidget` no longer constructs a fallback HUD layout in C++; missing authored HUD modules will surface as missing UI instead of silently showing generated panels.
 - `UFRBattleHUDWidget` now injects module-specific runtime ViewModels into known child module widgets so modules can own their own MVVM bindings.
 - Next implementation step: restart the editor/MCP session, then bind and save each module widget directly to the injected ViewModel.
 
@@ -187,9 +187,9 @@
    - Route `AFRPlayerController` through the root instead of direct `AddToViewport` per screen.
 
 2. Replace C++ HUD layout with modular UMG.
-   - Keep C++ base classes thin.
-   - Move layout to WBP modules.
-   - Delete or gate `BuildDefaultHUD` after production assets are assigned.
+	- Keep C++ base classes thin.
+	- Move layout to WBP modules.
+	- Keep the removed `BuildDefaultHUD` path out of the production HUD.
 
 3. Rebuild battle HUD modules.
    - Build `WBP_BattleHUD` from reusable child widgets.
@@ -238,6 +238,7 @@
 - [x] Convert generated TextBlock/Border widgets to CommonUI primitives.
 - [x] Convert C++ fallback HUD TextBlock/Border construction to CommonUI primitives.
 - [x] Convert C++ fallback HUD numeric value displays to CommonNumericTextBlock.
+- [x] Remove C++ battle HUD fallback layout construction.
 - [x] Convert floating combat text fallback construction to CommonTextBlock.
 - [x] Convert remaining C++ gameplay widget bases to CommonUserWidget/CommonActivatableWidget.
 - [x] Rebuild remaining menu/dialog buttons as CommonButtonBase widgets.

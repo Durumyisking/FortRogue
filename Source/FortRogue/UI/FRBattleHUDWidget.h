@@ -11,17 +11,7 @@
 #include "FRBattleHUDWidget.generated.h"
 
 class UFRAbilitySet;
-class UBorder;
-class UCommonBorderStyle;
-class UCommonNumericTextBlock;
-class UCommonTextStyle;
-class UHorizontalBox;
-class UOverlay;
-class UProgressBar;
-class UTextBlock;
 class UUserWidget;
-class UVerticalBox;
-class UWidget;
 class UMVVMViewModelBase;
 class UFRAimWindViewModel;
 class UFRBattleHUDViewModel;
@@ -204,25 +194,11 @@ protected:
 	virtual void NativeOnInitialized() override;
 
 private:
-	void BuildDefaultHUD();
 	void CreateViewModels();
 	void ApplyViewModel(UUserWidget* Widget, UMVVMViewModelBase* ViewModel) const;
 	void ApplyViewModelToChild(FName WidgetName, UMVVMViewModelBase* ViewModel) const;
 	void ApplyBattleHUDViewModel(UUserWidget* Widget) const;
 	void RefreshViewModel();
-	void RefreshDefaultHUD();
-	void RefreshCharacterBars(class AFRBattleCharacter* PlayerCharacter, class AFRBattleCharacter* EnemyCharacter);
-	void RefreshWeaponSlots(class AFRBattleCharacter* PlayerCharacter);
-	void RefreshItemSlots(class AFRBattleCharacter* PlayerCharacter);
-	void RefreshModifierSummaries(class AFRBattleCharacter* PlayerCharacter);
-	void RefreshAimIndicator(float AimAngle);
-	void ApplyTextPresentation(UTextBlock* Text, TSubclassOf<UCommonTextStyle> Style, float FontSize, const FLinearColor& Color) const;
-	void ApplyBorderPresentation(UBorder* Border, TSubclassOf<UCommonBorderStyle> Style, const FLinearColor& Color) const;
-
-	UTextBlock* AddText(UWidget* Parent, FName WidgetName, const FText& InitialText, float FontSize, const FLinearColor& Color);
-	UCommonNumericTextBlock* AddNumericText(UWidget* Parent, FName WidgetName, float InitialValue, bool bPercentage, float FontSize, const FLinearColor& Color);
-	UProgressBar* AddLabeledBar(UVerticalBox* Parent, FName WidgetName, const FText& LabelText, bool bPercentage, UCommonNumericTextBlock*& OutValueText);
-	UBorder* AddSlot(UHorizontalBox* Parent, FName WidgetName, const FVector2D& Size);
 
 	UPROPERTY(Transient)
 	TObjectPtr<UFRBattleHUDViewModel> BattleHUDViewModel;
@@ -247,91 +223,4 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UFRModifierSummaryViewModel> ModifierSummaryViewModel;
-
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Fallback Style")
-	TSubclassOf<UCommonTextStyle> FallbackTextStyle;
-
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Fallback Style")
-	TSubclassOf<UCommonTextStyle> FallbackNumericTextStyle;
-
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Fallback Style")
-	TSubclassOf<UCommonBorderStyle> FallbackPanelBorderStyle;
-
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Fallback Style")
-	TSubclassOf<UCommonBorderStyle> FallbackSlotBorderStyle;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UTextBlock> RunProgressText;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UTextBlock> TurnText;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UBorder> TurnBadge;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UTextBlock> StatusText;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UProgressBar> PlayerHealthBar;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UCommonNumericTextBlock> PlayerHealthText;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UProgressBar> EnemyHealthBar;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UCommonNumericTextBlock> EnemyHealthText;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UTextBlock> WindText;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UTextBlock> AimText;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UBorder> AimBarrel;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UProgressBar> ShotPowerBar;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UCommonNumericTextBlock> ShotPowerText;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UProgressBar> MoveBudgetBar;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UCommonNumericTextBlock> MoveBudgetText;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UTextBlock> CurrentWeaponText;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UTextBlock> AttackTypeText;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UTextBlock> ShotInfoText;
-
-	UPROPERTY(Transient)
-	TArray<TObjectPtr<UBorder>> WeaponSlots;
-
-	UPROPERTY(Transient)
-	TArray<TObjectPtr<UTextBlock>> WeaponSlotTexts;
-
-	UPROPERTY(Transient)
-	TArray<TObjectPtr<UBorder>> ItemSlots;
-
-	UPROPERTY(Transient)
-	TArray<TObjectPtr<UTextBlock>> ItemSlotTexts;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UTextBlock> GrantedModifierText;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UTextBlock> PendingModifierText;
-
-	UPROPERTY(Transient)
-	TObjectPtr<UTextBlock> AbilitySetText;
 };
