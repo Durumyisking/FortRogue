@@ -220,7 +220,7 @@
 - [x] Apply the reference direction to the FortRogue UI plan.
 - [x] Create CommonUI root and layer widgets.
 - [x] Create modular battle HUD widgets.
-- [ ] Create missing main menu and options screen widgets.
+- [x] Create missing main menu and options screen widgets.
 - [ ] Convert world health/floating combat UI to authored UMG assets.
 - [ ] Replace prototype MVVM with domain ViewModels.
 - [ ] Compile and save created UMG assets.
