@@ -18,6 +18,7 @@ class UProgressBar;
 class UTextBlock;
 class UVerticalBox;
 class UWidget;
+class UFRBattleHUDViewModel;
 
 UCLASS(Blueprintable)
 class FORTROGUE_API UFRBattleHUDWidget : public UCommonActivatableWidget
@@ -160,6 +161,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI")
 	bool CanBeginPlayerShotCharge() const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|MVVM")
+	UFRBattleHUDViewModel* GetBattleHUDViewModel() const { return BattleHUDViewModel; }
+
 	UFUNCTION(BlueprintNativeEvent, Category = "FortRogue|UI")
 	void RefreshBattleHUD();
 
@@ -168,6 +172,7 @@ protected:
 
 private:
 	void BuildDefaultHUD();
+	void RefreshViewModel();
 	void RefreshDefaultHUD();
 	void RefreshCharacterBars(class AFRBattleCharacter* PlayerCharacter, class AFRBattleCharacter* EnemyCharacter);
 	void RefreshWeaponSlots(class AFRBattleCharacter* PlayerCharacter);
@@ -178,6 +183,9 @@ private:
 	UTextBlock* AddText(UWidget* Parent, FName WidgetName, const FText& InitialText, float FontSize, const FLinearColor& Color);
 	UProgressBar* AddLabeledBar(UVerticalBox* Parent, FName WidgetName, const FText& LabelText, UTextBlock*& OutValueText);
 	UBorder* AddSlot(UHorizontalBox* Parent, FName WidgetName, const FVector2D& Size);
+
+	UPROPERTY(Transient)
+	TObjectPtr<UFRBattleHUDViewModel> BattleHUDViewModel;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UTextBlock> RunProgressText;

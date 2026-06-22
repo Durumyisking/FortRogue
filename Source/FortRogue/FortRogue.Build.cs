@@ -24,6 +24,8 @@ public class FortRogue : ModuleRules
 			"GameplayTasks",
 			"CommonUI",
 			"CommonInput",
+			"ModelViewViewModel",
+			"FieldNotification",
 			"UMG",
 			"Slate",
 			"SlateCore",
