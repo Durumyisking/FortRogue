@@ -12,7 +12,9 @@
 
 class UFRAbilitySet;
 class UBorder;
+class UCommonBorderStyle;
 class UCommonNumericTextBlock;
+class UCommonTextStyle;
 class UHorizontalBox;
 class UOverlay;
 class UProgressBar;
@@ -214,6 +216,8 @@ private:
 	void RefreshItemSlots(class AFRBattleCharacter* PlayerCharacter);
 	void RefreshModifierSummaries(class AFRBattleCharacter* PlayerCharacter);
 	void RefreshAimIndicator(float AimAngle);
+	void ApplyTextPresentation(UTextBlock* Text, TSubclassOf<UCommonTextStyle> Style, float FontSize, const FLinearColor& Color) const;
+	void ApplyBorderPresentation(UBorder* Border, TSubclassOf<UCommonBorderStyle> Style, const FLinearColor& Color) const;
 
 	UTextBlock* AddText(UWidget* Parent, FName WidgetName, const FText& InitialText, float FontSize, const FLinearColor& Color);
 	UCommonNumericTextBlock* AddNumericText(UWidget* Parent, FName WidgetName, float InitialValue, bool bPercentage, float FontSize, const FLinearColor& Color);
@@ -243,6 +247,18 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UFRModifierSummaryViewModel> ModifierSummaryViewModel;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Fallback Style")
+	TSubclassOf<UCommonTextStyle> FallbackTextStyle;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Fallback Style")
+	TSubclassOf<UCommonTextStyle> FallbackNumericTextStyle;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Fallback Style")
+	TSubclassOf<UCommonBorderStyle> FallbackPanelBorderStyle;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Fallback Style")
+	TSubclassOf<UCommonBorderStyle> FallbackSlotBorderStyle;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UTextBlock> RunProgressText;

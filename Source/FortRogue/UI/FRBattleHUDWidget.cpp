@@ -477,7 +477,7 @@ void UFRBattleHUDWidget::BuildDefaultHUD()
 	WidgetTree->RootWidget = RootCanvas;
 
 	UBorder* HeaderPanel = WidgetTree->ConstructWidget<UCommonBorder>(UCommonBorder::StaticClass(), TEXT("HeaderPanel"));
-	HeaderPanel->SetBrushColor(PanelColor);
+	ApplyBorderPresentation(HeaderPanel, FallbackPanelBorderStyle, PanelColor);
 	UHorizontalBox* HeaderBox = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("HeaderBox"));
 	HeaderPanel->SetContent(HeaderBox);
 	if (UCanvasPanelSlot* HeaderSlot = RootCanvas->AddChildToCanvas(HeaderPanel))
@@ -489,7 +489,7 @@ void UFRBattleHUDWidget::BuildDefaultHUD()
 	}
 
 	TurnBadge = WidgetTree->ConstructWidget<UCommonBorder>(UCommonBorder::StaticClass(), TEXT("TurnBadge"));
-	TurnBadge->SetBrushColor(ReadyColor);
+	ApplyBorderPresentation(TurnBadge, FallbackSlotBorderStyle, ReadyColor);
 	TurnText = AddText(TurnBadge, TEXT("TurnText"), FText::FromString(TEXT("PLAYER TURN")), 18.0f, FLinearColor::Black);
 	if (UHorizontalBoxSlot* TurnSlot = HeaderBox->AddChildToHorizontalBox(TurnBadge))
 	{
@@ -501,7 +501,7 @@ void UFRBattleHUDWidget::BuildDefaultHUD()
 	StatusText = AddText(HeaderBox, TEXT("StatusText"), FText::GetEmpty(), 16.0f, MutedTextColor);
 
 	UBorder* LeftPanel = WidgetTree->ConstructWidget<UCommonBorder>(UCommonBorder::StaticClass(), TEXT("CombatPanel"));
-	LeftPanel->SetBrushColor(PanelColor);
+	ApplyBorderPresentation(LeftPanel, FallbackPanelBorderStyle, PanelColor);
 	UVerticalBox* LeftBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("CombatBox"));
 	LeftPanel->SetContent(LeftBox);
 	if (UCanvasPanelSlot* LeftSlot = RootCanvas->AddChildToCanvas(LeftPanel))
@@ -533,7 +533,7 @@ void UFRBattleHUDWidget::BuildDefaultHUD()
 	}
 
 	UBorder* AimBase = WidgetTree->ConstructWidget<UCommonBorder>(UCommonBorder::StaticClass(), TEXT("AimBase"));
-	AimBase->SetBrushColor(PanelAccentColor);
+	ApplyBorderPresentation(AimBase, FallbackSlotBorderStyle, PanelAccentColor);
 	if (UCanvasPanelSlot* BaseSlot = AimCanvas->AddChildToCanvas(AimBase))
 	{
 		BaseSlot->SetPosition(FVector2D(24.0f, 52.0f));
@@ -541,7 +541,7 @@ void UFRBattleHUDWidget::BuildDefaultHUD()
 	}
 
 	AimBarrel = WidgetTree->ConstructWidget<UCommonBorder>(UCommonBorder::StaticClass(), TEXT("AimBarrel"));
-	AimBarrel->SetBrushColor(PowerColor);
+	ApplyBorderPresentation(AimBarrel, FallbackSlotBorderStyle, PowerColor);
 	AimBarrel->SetRenderTransformPivot(FVector2D(0.0f, 0.5f));
 	if (UCanvasPanelSlot* BarrelSlot = AimCanvas->AddChildToCanvas(AimBarrel))
 	{
@@ -558,7 +558,7 @@ void UFRBattleHUDWidget::BuildDefaultHUD()
 	MoveBudgetText = MoveBudgetValueText;
 
 	UBorder* BottomPanel = WidgetTree->ConstructWidget<UCommonBorder>(UCommonBorder::StaticClass(), TEXT("LoadoutPanel"));
-	BottomPanel->SetBrushColor(PanelColor);
+	ApplyBorderPresentation(BottomPanel, FallbackPanelBorderStyle, PanelColor);
 	UVerticalBox* BottomBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("LoadoutBox"));
 	BottomPanel->SetContent(BottomBox);
 	if (UCanvasPanelSlot* BottomSlot = RootCanvas->AddChildToCanvas(BottomPanel))
@@ -604,7 +604,7 @@ void UFRBattleHUDWidget::BuildDefaultHUD()
 	}
 
 	UBorder* RightPanel = WidgetTree->ConstructWidget<UCommonBorder>(UCommonBorder::StaticClass(), TEXT("ShotPanel"));
-	RightPanel->SetBrushColor(PanelColor);
+	ApplyBorderPresentation(RightPanel, FallbackPanelBorderStyle, PanelColor);
 	UVerticalBox* RightBox = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("ShotBox"));
 	RightPanel->SetContent(RightBox);
 	if (UCanvasPanelSlot* RightSlot = RootCanvas->AddChildToCanvas(RightPanel))
@@ -796,16 +796,53 @@ void UFRBattleHUDWidget::RefreshAimIndicator(float AimAngle)
 	AimBarrel->SetRenderTransform(Transform);
 }
 
+void UFRBattleHUDWidget::ApplyTextPresentation(UTextBlock* Text, TSubclassOf<UCommonTextStyle> Style, float FontSize, const FLinearColor& Color) const
+{
+	if (!Text)
+	{
+		return;
+	}
+
+	if (UCommonTextBlock* CommonText = Cast<UCommonTextBlock>(Text))
+	{
+		if (Style)
+		{
+			CommonText->SetStyle(Style);
+			return;
+		}
+	}
+
+	Text->SetColorAndOpacity(FSlateColor(Color));
+	FSlateFontInfo FontInfo = Text->GetFont();
+	FontInfo.Size = FMath::RoundToInt(FontSize);
+	Text->SetFont(FontInfo);
+}
+
+void UFRBattleHUDWidget::ApplyBorderPresentation(UBorder* Border, TSubclassOf<UCommonBorderStyle> Style, const FLinearColor& Color) const
+{
+	if (!Border)
+	{
+		return;
+	}
+
+	if (UCommonBorder* CommonBorder = Cast<UCommonBorder>(Border))
+	{
+		if (Style)
+		{
+			CommonBorder->SetStyle(Style);
+			return;
+		}
+	}
+
+	Border->SetBrushColor(Color);
+}
+
 UTextBlock* UFRBattleHUDWidget::AddText(UWidget* Parent, FName WidgetName, const FText& InitialText, float FontSize, const FLinearColor& Color)
 {
 	UTextBlock* Text = WidgetTree->ConstructWidget<UCommonTextBlock>(UCommonTextBlock::StaticClass(), WidgetName);
 	Text->SetText(InitialText);
-	Text->SetColorAndOpacity(FSlateColor(Color));
 	Text->SetAutoWrapText(true);
-
-	FSlateFontInfo FontInfo = Text->GetFont();
-	FontInfo.Size = FMath::RoundToInt(FontSize);
-	Text->SetFont(FontInfo);
+	ApplyTextPresentation(Text, FallbackTextStyle, FontSize, Color);
 
 	if (UBorder* Border = Cast<UBorder>(Parent))
 	{
@@ -840,11 +877,7 @@ UCommonNumericTextBlock* UFRBattleHUDWidget::AddNumericText(UWidget* Parent, FNa
 	UCommonNumericTextBlock* Text = WidgetTree->ConstructWidget<UCommonNumericTextBlock>(UCommonNumericTextBlock::StaticClass(), WidgetName);
 	Text->SetNumericType(bPercentage ? ECommonNumericType::Percentage : ECommonNumericType::Number);
 	Text->SetCurrentValue(InitialValue);
-	Text->SetColorAndOpacity(FSlateColor(Color));
-
-	FSlateFontInfo FontInfo = Text->GetFont();
-	FontInfo.Size = FMath::RoundToInt(FontSize);
-	Text->SetFont(FontInfo);
+	ApplyTextPresentation(Text, FallbackNumericTextStyle, FontSize, Color);
 
 	if (UBorder* Border = Cast<UBorder>(Parent))
 	{
@@ -892,7 +925,7 @@ UBorder* UFRBattleHUDWidget::AddSlot(UHorizontalBox* Parent, FName WidgetName, c
 	SlotSize->SetHeightOverride(Size.Y);
 
 	UBorder* SlotBorder = WidgetTree->ConstructWidget<UCommonBorder>(UCommonBorder::StaticClass(), WidgetName);
-	SlotBorder->SetBrushColor(DisabledColor);
+	ApplyBorderPresentation(SlotBorder, FallbackSlotBorderStyle, DisabledColor);
 	SlotSize->SetContent(SlotBorder);
 
 	if (UHorizontalBoxSlot* HSlot = Parent->AddChildToHorizontalBox(SlotSize))

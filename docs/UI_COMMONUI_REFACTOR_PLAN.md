@@ -231,6 +231,7 @@
 - [x] Apply the reference direction to the FortRogue UI plan.
 - [x] Create CommonUI root and layer widgets.
 - [x] Create CommonUI style assets and common primitive components.
+- [x] Expose fallback HUD CommonUI style classes for editor control.
 - [x] Create modular battle HUD widgets.
 - [x] Create missing main menu and options screen widgets.
 - [x] Convert generated TextBlock/Border widgets to CommonUI primitives.
