@@ -21,3 +21,4 @@ UI 체크리스트
 - HUD 모듈 CommonUI 스타일 override 표면 추가 [v]
 - Reward 화면 CommonUI 스타일 override 표면 추가 [v]
 - Floating combat text CommonTextBlock 전환 [v]
+- World health bar MVVM 숫자 표시 표면 추가 [v]
