@@ -10,3 +10,4 @@ UI 체크리스트
 - 월드 UI C++ fallback 레이아웃 제거 [v]
 - 전투 HUD 모듈 adapter 위젯 클래스 추가 [v]
 - Loadout 슬롯 CommonButton MVVM 기반 추가 [v]
+- Reward 화면 CommonButton MVVM 기반 추가 [v]
