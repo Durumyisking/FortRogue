@@ -16,6 +16,7 @@ class UHorizontalBox;
 class UOverlay;
 class UProgressBar;
 class UTextBlock;
+class UUserWidget;
 class UVerticalBox;
 class UWidget;
 class UFRBattleHUDViewModel;
@@ -172,6 +173,8 @@ protected:
 
 private:
 	void BuildDefaultHUD();
+	void ApplyBattleHUDViewModel(UUserWidget* Widget) const;
+	void ApplyBattleHUDViewModelToChild(FName WidgetName) const;
 	void RefreshViewModel();
 	void RefreshDefaultHUD();
 	void RefreshCharacterBars(class AFRBattleCharacter* PlayerCharacter, class AFRBattleCharacter* EnemyCharacter);

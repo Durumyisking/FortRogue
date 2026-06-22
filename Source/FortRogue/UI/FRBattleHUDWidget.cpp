@@ -3,6 +3,7 @@
 #include "UI/FRBattleHUDWidget.h"
 
 #include "AbilitySystem/FRAbilitySet.h"
+#include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetTree.h"
 #include "Combat/FRBattleCharacter.h"
 #include "Components/Border.h"
@@ -212,21 +213,45 @@ void UFRBattleHUDWidget::NativeOnInitialized()
 	{
 		BattleHUDViewModel = NewObject<UFRBattleHUDViewModel>(this);
 	}
-	if (BattleHUDViewModel)
-	{
-		TScriptInterface<INotifyFieldValueChanged> ViewModelInterface;
-		ViewModelInterface.SetObject(BattleHUDViewModel);
-		ViewModelInterface.SetInterface(Cast<INotifyFieldValueChanged>(BattleHUDViewModel));
-		UMVVMBlueprintLibrary::SetViewModelByClass(this, ViewModelInterface);
-	}
+	ApplyBattleHUDViewModel(this);
 
 	BuildDefaultHUD();
+	ApplyBattleHUDViewModelToChild(TEXT("TurnBanner"));
+	ApplyBattleHUDViewModelToChild(TEXT("PlayerStatusPanel"));
+	ApplyBattleHUDViewModelToChild(TEXT("AimWindIndicator"));
+	ApplyBattleHUDViewModelToChild(TEXT("ShotPowerMeter"));
+	ApplyBattleHUDViewModelToChild(TEXT("LoadoutBar"));
+	ApplyBattleHUDViewModelToChild(TEXT("ShotInfoPanel"));
+	ApplyBattleHUDViewModelToChild(TEXT("ModifierSummary"));
 }
 
 void UFRBattleHUDWidget::RefreshBattleHUD_Implementation()
 {
 	RefreshViewModel();
 	RefreshDefaultHUD();
+}
+
+void UFRBattleHUDWidget::ApplyBattleHUDViewModel(UUserWidget* Widget) const
+{
+	if (!Widget || !BattleHUDViewModel)
+	{
+		return;
+	}
+
+	TScriptInterface<INotifyFieldValueChanged> ViewModelInterface;
+	ViewModelInterface.SetObject(BattleHUDViewModel);
+	ViewModelInterface.SetInterface(Cast<INotifyFieldValueChanged>(BattleHUDViewModel));
+	UMVVMBlueprintLibrary::SetViewModelByClass(Widget, ViewModelInterface);
+}
+
+void UFRBattleHUDWidget::ApplyBattleHUDViewModelToChild(FName WidgetName) const
+{
+	if (!WidgetTree)
+	{
+		return;
+	}
+
+	ApplyBattleHUDViewModel(Cast<UUserWidget>(WidgetTree->FindWidget(WidgetName)));
 }
 
 void UFRBattleHUDWidget::RefreshViewModel()
@@ -298,26 +323,47 @@ void UFRBattleHUDWidget::RefreshViewModel()
 		: CurrentWeapon.DisplayName);
 
 	const FFRShotSpec ShotSpec = PlayerCharacter ? PlayerCharacter->GetCurrentShotSpec() : FFRShotSpec();
+	const FText ShotEffectSummary = GetShotEffectSummary(ShotSpec.EffectTags);
 	BattleHUDViewModel->SetShotInfoText(FText::FromString(FString::Printf(
 		TEXT("Damage %.0f  Blast %.0f\nProjectiles x%d\nEffects %s\nSpeed %.0f  Gravity %.0f\nTerrain %.0f  Fill %.0f"),
 		ShotSpec.Damage,
 		ShotSpec.BlastRadius,
 		ShotSpec.ProjectileCount,
-		*GetShotEffectSummary(ShotSpec.EffectTags).ToString(),
+		*ShotEffectSummary.ToString(),
+		ShotSpec.LaunchSpeed,
+		ShotSpec.Gravity,
+		ShotSpec.TerrainDamage,
+		ShotSpec.TerrainFillRadius)));
+	BattleHUDViewModel->SetShotPrimaryText(FText::FromString(FString::Printf(
+		TEXT("Damage %.0f  Blast %.0f\nProjectiles x%d\nEffects %s"),
+		ShotSpec.Damage,
+		ShotSpec.BlastRadius,
+		ShotSpec.ProjectileCount,
+		*ShotEffectSummary.ToString())));
+	BattleHUDViewModel->SetShotSecondaryText(FText::FromString(FString::Printf(
+		TEXT("Speed %.0f  Gravity %.0f\nTerrain %.0f  Fill %.0f"),
 		ShotSpec.LaunchSpeed,
 		ShotSpec.Gravity,
 		ShotSpec.TerrainDamage,
 		ShotSpec.TerrainFillRadius)));
 
-	BattleHUDViewModel->SetGrantedModifierText(PlayerCharacter
+	const FText GrantedModifierSummary = PlayerCharacter
 		? GetModifierSummary(PlayerCharacter->GetGrantedShotModifiersForBlueprint())
-		: FText::FromString(TEXT("None")));
-	BattleHUDViewModel->SetPendingModifierText(PlayerCharacter
+		: FText::FromString(TEXT("None"));
+	const FText PendingModifierSummary = PlayerCharacter
 		? GetModifierSummary(PlayerCharacter->GetPendingShotModifiersForBlueprint())
-		: FText::FromString(TEXT("None")));
-	BattleHUDViewModel->SetAbilitySetText(PlayerCharacter
+		: FText::FromString(TEXT("None"));
+	const FText AbilitySetSummary = PlayerCharacter
 		? GetAbilitySetSummary(PlayerCharacter->GetGrantedAbilitySetsForBlueprint())
-		: FText::FromString(TEXT("None")));
+		: FText::FromString(TEXT("None"));
+	BattleHUDViewModel->SetGrantedModifierText(GrantedModifierSummary);
+	BattleHUDViewModel->SetPendingModifierText(PendingModifierSummary);
+	BattleHUDViewModel->SetAbilitySetText(AbilitySetSummary);
+	BattleHUDViewModel->SetModifierSummaryText(FText::FromString(FString::Printf(
+		TEXT("Active: %s\nNext: %s\nTraits: %s"),
+		*GrantedModifierSummary.ToString(),
+		*PendingModifierSummary.ToString(),
+		*AbilitySetSummary.ToString())));
 }
 
 void UFRBattleHUDWidget::BuildDefaultHUD()

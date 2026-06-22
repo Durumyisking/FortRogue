@@ -73,6 +73,14 @@ public:
 	void SetShotInfoText(const FText& InShotInfoText);
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD")
+	const FText& GetShotPrimaryText() const { return ShotPrimaryText; }
+	void SetShotPrimaryText(const FText& InShotPrimaryText);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD")
+	const FText& GetShotSecondaryText() const { return ShotSecondaryText; }
+	void SetShotSecondaryText(const FText& InShotSecondaryText);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD")
 	const FText& GetGrantedModifierText() const { return GrantedModifierText; }
 	void SetGrantedModifierText(const FText& InGrantedModifierText);
 
@@ -83,6 +91,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD")
 	const FText& GetAbilitySetText() const { return AbilitySetText; }
 	void SetAbilitySetText(const FText& InAbilitySetText);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD")
+	const FText& GetModifierSummaryText() const { return ModifierSummaryText; }
+	void SetModifierSummaryText(const FText& InModifierSummaryText);
 
 private:
 	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD", meta = (AllowPrivateAccess = "true"))
@@ -131,6 +143,12 @@ private:
 	FText ShotInfoText;
 
 	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD", meta = (AllowPrivateAccess = "true"))
+	FText ShotPrimaryText;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD", meta = (AllowPrivateAccess = "true"))
+	FText ShotSecondaryText;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD", meta = (AllowPrivateAccess = "true"))
 	FText GrantedModifierText;
 
 	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD", meta = (AllowPrivateAccess = "true"))
@@ -138,4 +156,7 @@ private:
 
 	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD", meta = (AllowPrivateAccess = "true"))
 	FText AbilitySetText;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD", meta = (AllowPrivateAccess = "true"))
+	FText ModifierSummaryText;
 };

@@ -77,6 +77,16 @@ void UFRBattleHUDViewModel::SetShotInfoText(const FText& InShotInfoText)
 	UE_MVVM_SET_PROPERTY_VALUE(ShotInfoText, InShotInfoText);
 }
 
+void UFRBattleHUDViewModel::SetShotPrimaryText(const FText& InShotPrimaryText)
+{
+	UE_MVVM_SET_PROPERTY_VALUE(ShotPrimaryText, InShotPrimaryText);
+}
+
+void UFRBattleHUDViewModel::SetShotSecondaryText(const FText& InShotSecondaryText)
+{
+	UE_MVVM_SET_PROPERTY_VALUE(ShotSecondaryText, InShotSecondaryText);
+}
+
 void UFRBattleHUDViewModel::SetGrantedModifierText(const FText& InGrantedModifierText)
 {
 	UE_MVVM_SET_PROPERTY_VALUE(GrantedModifierText, InGrantedModifierText);
@@ -90,4 +100,9 @@ void UFRBattleHUDViewModel::SetPendingModifierText(const FText& InPendingModifie
 void UFRBattleHUDViewModel::SetAbilitySetText(const FText& InAbilitySetText)
 {
 	UE_MVVM_SET_PROPERTY_VALUE(AbilitySetText, InAbilitySetText);
+}
+
+void UFRBattleHUDViewModel::SetModifierSummaryText(const FText& InModifierSummaryText)
+{
+	UE_MVVM_SET_PROPERTY_VALUE(ModifierSummaryText, InModifierSummaryText);
 }
