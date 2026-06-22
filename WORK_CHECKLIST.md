@@ -15,3 +15,4 @@ UI 체크리스트
 - 메뉴/다이얼로그 CommonUI adapter 추가 [v]
 - 메뉴/옵션/확인 화면 Root layer 라우팅 연결 [v]
 - Options 화면 MVVM 표시 표면 추가 [v]
+- UI Root layer 상태 ViewModel 추가 [v]
