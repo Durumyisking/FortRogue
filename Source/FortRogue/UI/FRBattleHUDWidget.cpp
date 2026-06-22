@@ -122,6 +122,24 @@ namespace
 			? FText::FromString(FString::Join(Names, TEXT(" / ")))
 			: FText::FromString(TEXT("None"));
 	}
+
+	FText GetWeaponSlotLabel(int32 Index)
+	{
+		if (Index == 0)
+		{
+			return FText::FromString(TEXT("Basic"));
+		}
+		if (Index == 1)
+		{
+			return FText::FromString(TEXT("Special"));
+		}
+		return FText::FromString(FString::Printf(TEXT("%d"), Index + 1));
+	}
+
+	FText GetItemSlotLabel(int32 Index)
+	{
+		return FText::FromString(FString::Printf(TEXT("Item %d"), Index + 1));
+	}
 }
 
 void UFRBattleHUDWidget::NativeOnInitialized()
@@ -342,6 +360,57 @@ void UFRBattleHUDWidget::RefreshViewModel()
 		: CurrentWeapon.DisplayName;
 	BattleHUDViewModel->SetCurrentWeaponText(CurrentWeaponTextValue);
 	LoadoutViewModel->SetCurrentWeaponText(CurrentWeaponTextValue);
+
+	const TArray<FFRWeaponSpec> WeaponLoadout = PlayerCharacter ? PlayerCharacter->GetWeaponLoadoutForBlueprint() : TArray<FFRWeaponSpec>();
+	const int32 SelectedWeaponIndex = PlayerCharacter ? PlayerCharacter->GetSelectedWeaponIndex() : INDEX_NONE;
+	const int32 WeaponSlotCount = FMath::Max(VisibleWeaponSlotCount, WeaponLoadout.Num());
+	LoadoutViewModel->SetWeaponSlotCount(WeaponSlotCount);
+	for (int32 Index = 0; Index < WeaponSlotCount; ++Index)
+	{
+		UFRLoadoutSlotViewModel* SlotViewModel = LoadoutViewModel->GetOrCreateWeaponSlotViewModel(Index);
+		if (!SlotViewModel)
+		{
+			continue;
+		}
+
+		const bool bHasWeapon = WeaponLoadout.IsValidIndex(Index);
+		const bool bCanSelectWeapon = bHasWeapon && PlayerCharacter && PlayerCharacter->CanSelectWeapon(Index);
+		SlotViewModel->SetSlotLabelText(GetWeaponSlotLabel(Index));
+		SlotViewModel->SetDisplayText(bHasWeapon ? WeaponLoadout[Index].DisplayName : FText::FromString(TEXT("-")));
+		SlotViewModel->SetCountValue(0.0f);
+		SlotViewModel->SetShowCount(false);
+		SlotViewModel->SetOccupied(bHasWeapon);
+		SlotViewModel->SetSelected(Index == SelectedWeaponIndex);
+		SlotViewModel->SetEnabled(bCanSelectWeapon);
+		SlotViewModel->SetStatusText(!bHasWeapon
+			? FText::FromString(TEXT("EMPTY"))
+			: bCanSelectWeapon ? FText::GetEmpty() : FText::FromString(TEXT("LOCKED")));
+	}
+
+	const TArray<FFRItemStack> ItemLoadout = PlayerCharacter ? PlayerCharacter->GetItemLoadoutForBlueprint() : TArray<FFRItemStack>();
+	const int32 ItemSlotCount = FMath::Max(VisibleItemSlotCount, ItemLoadout.Num());
+	LoadoutViewModel->SetItemSlotCount(ItemSlotCount);
+	for (int32 Index = 0; Index < ItemSlotCount; ++Index)
+	{
+		UFRLoadoutSlotViewModel* SlotViewModel = LoadoutViewModel->GetOrCreateItemSlotViewModel(Index);
+		if (!SlotViewModel)
+		{
+			continue;
+		}
+
+		const bool bHasItem = ItemLoadout.IsValidIndex(Index) && ItemLoadout[Index].ItemDefinition;
+		const bool bCanUseItem = bHasItem && PlayerCharacter && PlayerCharacter->CanUseItemByIndex(Index);
+		SlotViewModel->SetSlotLabelText(GetItemSlotLabel(Index));
+		SlotViewModel->SetDisplayText(bHasItem ? ItemLoadout[Index].ItemDefinition->DisplayName : FText::FromString(TEXT("-")));
+		SlotViewModel->SetCountValue(bHasItem ? static_cast<float>(ItemLoadout[Index].Charges) : 0.0f);
+		SlotViewModel->SetShowCount(bHasItem);
+		SlotViewModel->SetOccupied(bHasItem);
+		SlotViewModel->SetSelected(false);
+		SlotViewModel->SetEnabled(bCanUseItem);
+		SlotViewModel->SetStatusText(!bHasItem
+			? FText::FromString(TEXT("EMPTY"))
+			: bCanUseItem ? FText::GetEmpty() : FText::FromString(TEXT("LOCKED")));
+	}
 
 	const FFRShotSpec ShotSpec = PlayerCharacter ? PlayerCharacter->GetCurrentShotSpec() : FFRShotSpec();
 	const FText ShotEffectSummary = GetShotEffectSummary(ShotSpec.EffectTags);

@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "CommonButtonBase.h"
 #include "CommonUserWidget.h"
 #include "CoreMinimal.h"
 #include "FRBattleHUDModuleWidgets.generated.h"
@@ -12,10 +13,12 @@ class UFRAimWindViewModel;
 class UFRBattleStateViewModel;
 class UFRCombatantStatusViewModel;
 class UFRLoadoutViewModel;
+class UFRLoadoutSlotViewModel;
 class UFRModifierSummaryViewModel;
 class UFRShotPowerViewModel;
 class UFRShotPreviewViewModel;
 class UMVVMViewModelBase;
+class UPanelWidget;
 class UProgressBar;
 
 UCLASS(Abstract, Blueprintable)
@@ -167,6 +170,40 @@ private:
 };
 
 UCLASS(Blueprintable)
+class FORTROGUE_API UFRLoadoutSlotWidget : public UCommonButtonBase
+{
+	GENERATED_BODY()
+
+public:
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|UI|HUD")
+	void SetViewModel(UFRLoadoutSlotViewModel* InViewModel);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD")
+	UFRLoadoutSlotViewModel* GetViewModel() const { return SlotViewModel; }
+
+	void RefreshFromViewModel();
+
+protected:
+	virtual void NativeOnInitialized() override;
+
+private:
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCommonTextBlock> SlotLabelText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCommonTextBlock> DisplayText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCommonNumericTextBlock> CountValueText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCommonTextBlock> StatusText;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UFRLoadoutSlotViewModel> SlotViewModel;
+};
+
+UCLASS(Blueprintable)
 class FORTROGUE_API UFRLoadoutBarWidget : public UFRBattleHUDModuleWidgetBase
 {
 	GENERATED_BODY()
@@ -184,6 +221,12 @@ protected:
 private:
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCommonTextBlock> CurrentWeaponText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UPanelWidget> WeaponSlotPanel;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UPanelWidget> ItemSlotPanel;
 };
 
 UCLASS(Blueprintable)

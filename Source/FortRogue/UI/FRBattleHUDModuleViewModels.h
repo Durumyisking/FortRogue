@@ -172,6 +172,70 @@ private:
 };
 
 UCLASS(BlueprintType)
+class FORTROGUE_API UFRLoadoutSlotViewModel : public UMVVMViewModelBase
+{
+	GENERATED_BODY()
+
+public:
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Loadout Slot")
+	const FText& GetSlotLabelText() const { return SlotLabelText; }
+	void SetSlotLabelText(const FText& InSlotLabelText);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Loadout Slot")
+	const FText& GetDisplayText() const { return DisplayText; }
+	void SetDisplayText(const FText& InDisplayText);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Loadout Slot")
+	float GetCountValue() const { return CountValue; }
+	void SetCountValue(float InCountValue);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Loadout Slot")
+	bool ShouldShowCount() const { return bShowCount; }
+	void SetShowCount(bool bInShowCount);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Loadout Slot")
+	bool IsOccupied() const { return bOccupied; }
+	void SetOccupied(bool bInOccupied);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Loadout Slot")
+	bool IsSelected() const { return bSelected; }
+	void SetSelected(bool bInSelected);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Loadout Slot")
+	bool IsEnabled() const { return bEnabled; }
+	void SetEnabled(bool bInEnabled);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Loadout Slot")
+	const FText& GetStatusText() const { return StatusText; }
+	void SetStatusText(const FText& InStatusText);
+
+private:
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Loadout Slot", meta = (AllowPrivateAccess = "true"))
+	FText SlotLabelText;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Loadout Slot", meta = (AllowPrivateAccess = "true"))
+	FText DisplayText;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Loadout Slot", meta = (AllowPrivateAccess = "true"))
+	float CountValue = 0.0f;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Loadout Slot", meta = (AllowPrivateAccess = "true"))
+	bool bShowCount = false;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Loadout Slot", meta = (AllowPrivateAccess = "true"))
+	bool bOccupied = false;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Loadout Slot", meta = (AllowPrivateAccess = "true"))
+	bool bSelected = false;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Loadout Slot", meta = (AllowPrivateAccess = "true"))
+	bool bEnabled = false;
+
+	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Loadout Slot", meta = (AllowPrivateAccess = "true"))
+	FText StatusText;
+};
+
+UCLASS(BlueprintType)
 class FORTROGUE_API UFRLoadoutViewModel : public UMVVMViewModelBase
 {
 	GENERATED_BODY()
@@ -181,9 +245,26 @@ public:
 	const FText& GetCurrentWeaponText() const { return CurrentWeaponText; }
 	void SetCurrentWeaponText(const FText& InCurrentWeaponText);
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Loadout")
+	UFRLoadoutSlotViewModel* GetWeaponSlotViewModel(int32 SlotIndex) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|HUD|Loadout")
+	UFRLoadoutSlotViewModel* GetItemSlotViewModel(int32 SlotIndex) const;
+
+	UFRLoadoutSlotViewModel* GetOrCreateWeaponSlotViewModel(int32 SlotIndex);
+	UFRLoadoutSlotViewModel* GetOrCreateItemSlotViewModel(int32 SlotIndex);
+	void SetWeaponSlotCount(int32 SlotCount);
+	void SetItemSlotCount(int32 SlotCount);
+
 private:
 	UPROPERTY(BlueprintReadOnly, FieldNotify, Category = "FortRogue|UI|HUD|Loadout", meta = (AllowPrivateAccess = "true"))
 	FText CurrentWeaponText;
+
+	UPROPERTY(BlueprintReadOnly, Category = "FortRogue|UI|HUD|Loadout", meta = (AllowPrivateAccess = "true"))
+	TArray<TObjectPtr<UFRLoadoutSlotViewModel>> WeaponSlotViewModels;
+
+	UPROPERTY(BlueprintReadOnly, Category = "FortRogue|UI|HUD|Loadout", meta = (AllowPrivateAccess = "true"))
+	TArray<TObjectPtr<UFRLoadoutSlotViewModel>> ItemSlotViewModels;
 };
 
 UCLASS(BlueprintType)

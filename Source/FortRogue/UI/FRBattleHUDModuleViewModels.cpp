@@ -97,9 +97,107 @@ void UFRShotPowerViewModel::SetShotPowerPercent(float InShotPowerPercent)
 	UE_MVVM_SET_PROPERTY_VALUE(ShotPowerPercent, InShotPowerPercent);
 }
 
+void UFRLoadoutSlotViewModel::SetSlotLabelText(const FText& InSlotLabelText)
+{
+	UE_MVVM_SET_PROPERTY_VALUE(SlotLabelText, InSlotLabelText);
+}
+
+void UFRLoadoutSlotViewModel::SetDisplayText(const FText& InDisplayText)
+{
+	UE_MVVM_SET_PROPERTY_VALUE(DisplayText, InDisplayText);
+}
+
+void UFRLoadoutSlotViewModel::SetCountValue(float InCountValue)
+{
+	UE_MVVM_SET_PROPERTY_VALUE(CountValue, InCountValue);
+}
+
+void UFRLoadoutSlotViewModel::SetShowCount(bool bInShowCount)
+{
+	UE_MVVM_SET_PROPERTY_VALUE(bShowCount, bInShowCount);
+}
+
+void UFRLoadoutSlotViewModel::SetOccupied(bool bInOccupied)
+{
+	UE_MVVM_SET_PROPERTY_VALUE(bOccupied, bInOccupied);
+}
+
+void UFRLoadoutSlotViewModel::SetSelected(bool bInSelected)
+{
+	UE_MVVM_SET_PROPERTY_VALUE(bSelected, bInSelected);
+}
+
+void UFRLoadoutSlotViewModel::SetEnabled(bool bInEnabled)
+{
+	UE_MVVM_SET_PROPERTY_VALUE(bEnabled, bInEnabled);
+}
+
+void UFRLoadoutSlotViewModel::SetStatusText(const FText& InStatusText)
+{
+	UE_MVVM_SET_PROPERTY_VALUE(StatusText, InStatusText);
+}
+
 void UFRLoadoutViewModel::SetCurrentWeaponText(const FText& InCurrentWeaponText)
 {
 	UE_MVVM_SET_PROPERTY_VALUE(CurrentWeaponText, InCurrentWeaponText);
+}
+
+UFRLoadoutSlotViewModel* UFRLoadoutViewModel::GetWeaponSlotViewModel(int32 SlotIndex) const
+{
+	return WeaponSlotViewModels.IsValidIndex(SlotIndex) ? WeaponSlotViewModels[SlotIndex] : nullptr;
+}
+
+UFRLoadoutSlotViewModel* UFRLoadoutViewModel::GetItemSlotViewModel(int32 SlotIndex) const
+{
+	return ItemSlotViewModels.IsValidIndex(SlotIndex) ? ItemSlotViewModels[SlotIndex] : nullptr;
+}
+
+UFRLoadoutSlotViewModel* UFRLoadoutViewModel::GetOrCreateWeaponSlotViewModel(int32 SlotIndex)
+{
+	if (SlotIndex < 0)
+	{
+		return nullptr;
+	}
+
+	SetWeaponSlotCount(SlotIndex + 1);
+	return WeaponSlotViewModels[SlotIndex];
+}
+
+UFRLoadoutSlotViewModel* UFRLoadoutViewModel::GetOrCreateItemSlotViewModel(int32 SlotIndex)
+{
+	if (SlotIndex < 0)
+	{
+		return nullptr;
+	}
+
+	SetItemSlotCount(SlotIndex + 1);
+	return ItemSlotViewModels[SlotIndex];
+}
+
+void UFRLoadoutViewModel::SetWeaponSlotCount(int32 SlotCount)
+{
+	const int32 TargetCount = FMath::Max(0, SlotCount);
+	while (WeaponSlotViewModels.Num() < TargetCount)
+	{
+		WeaponSlotViewModels.Add(NewObject<UFRLoadoutSlotViewModel>(this));
+	}
+	if (WeaponSlotViewModels.Num() > TargetCount)
+	{
+		WeaponSlotViewModels.SetNum(TargetCount);
+	}
+}
+
+void UFRLoadoutViewModel::SetItemSlotCount(int32 SlotCount)
+{
+	const int32 TargetCount = FMath::Max(0, SlotCount);
+	while (ItemSlotViewModels.Num() < TargetCount)
+	{
+		ItemSlotViewModels.Add(NewObject<UFRLoadoutSlotViewModel>(this));
+	}
+	if (ItemSlotViewModels.Num() > TargetCount)
+	{
+		ItemSlotViewModels.SetNum(TargetCount);
+	}
 }
 
 void UFRShotPreviewViewModel::SetPrimaryText(const FText& InPrimaryText)

@@ -4,6 +4,7 @@
 
 #include "CommonNumericTextBlock.h"
 #include "CommonTextBlock.h"
+#include "Components/PanelWidget.h"
 #include "Components/ProgressBar.h"
 #include "UI/FRBattleHUDModuleViewModels.h"
 
@@ -31,6 +32,24 @@ namespace
 		{
 			ProgressBar->SetPercent(FMath::Clamp(Percent, 0.0f, 1.0f));
 		}
+	}
+
+	TArray<UFRLoadoutSlotWidget*> GetLoadoutSlotChildren(UPanelWidget* Panel)
+	{
+		TArray<UFRLoadoutSlotWidget*> Slots;
+		if (!Panel)
+		{
+			return Slots;
+		}
+
+		for (int32 Index = 0; Index < Panel->GetChildrenCount(); ++Index)
+		{
+			if (UFRLoadoutSlotWidget* Slot = Cast<UFRLoadoutSlotWidget>(Panel->GetChildAt(Index)))
+			{
+				Slots.Add(Slot);
+			}
+		}
+		return Slots;
 	}
 }
 
@@ -161,6 +180,59 @@ void UFRShotPowerMeterWidget::NativeRefreshFromViewModel()
 	SetBar(ShotPowerBar, ViewModel->GetShotPowerPercent());
 }
 
+void UFRLoadoutSlotWidget::NativeOnInitialized()
+{
+	Super::NativeOnInitialized();
+
+	SetIsSelectable(true);
+	SetIsToggleable(false);
+	RefreshFromViewModel();
+}
+
+void UFRLoadoutSlotWidget::SetViewModel(UFRLoadoutSlotViewModel* InViewModel)
+{
+	if (SlotViewModel == InViewModel)
+	{
+		return;
+	}
+
+	SlotViewModel = InViewModel;
+	RefreshFromViewModel();
+}
+
+void UFRLoadoutSlotWidget::RefreshFromViewModel()
+{
+	if (!SlotViewModel)
+	{
+		SetText(SlotLabelText, FText::GetEmpty());
+		SetText(DisplayText, FText::FromString(TEXT("-")));
+		SetText(StatusText, FText::FromString(TEXT("EMPTY")));
+		if (CountValueText)
+		{
+			CountValueText->SetVisibility(ESlateVisibility::Collapsed);
+		}
+		SetIsSelected(false, false);
+		SetIsEnabled(false);
+		return;
+	}
+
+	SetText(SlotLabelText, SlotViewModel->GetSlotLabelText());
+	SetText(DisplayText, SlotViewModel->GetDisplayText());
+	SetText(StatusText, SlotViewModel->GetStatusText());
+	if (CountValueText)
+	{
+		CountValueText->SetCurrentValue(SlotViewModel->GetCountValue());
+		CountValueText->SetVisibility(SlotViewModel->ShouldShowCount() ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+	}
+	if (StatusText)
+	{
+		StatusText->SetVisibility(SlotViewModel->GetStatusText().IsEmpty() ? ESlateVisibility::Collapsed : ESlateVisibility::SelfHitTestInvisible);
+	}
+
+	SetIsSelected(SlotViewModel->IsSelected(), false);
+	SetIsEnabled(SlotViewModel->IsEnabled());
+}
+
 void UFRLoadoutBarWidget::SetViewModel(UFRLoadoutViewModel* InViewModel)
 {
 	SetRawViewModel(InViewModel);
@@ -180,6 +252,18 @@ void UFRLoadoutBarWidget::NativeRefreshFromViewModel()
 	}
 
 	SetText(CurrentWeaponText, ViewModel->GetCurrentWeaponText());
+
+	TArray<UFRLoadoutSlotWidget*> WeaponSlots = GetLoadoutSlotChildren(WeaponSlotPanel);
+	for (int32 Index = 0; Index < WeaponSlots.Num(); ++Index)
+	{
+		WeaponSlots[Index]->SetViewModel(ViewModel->GetWeaponSlotViewModel(Index));
+	}
+
+	TArray<UFRLoadoutSlotWidget*> ItemSlots = GetLoadoutSlotChildren(ItemSlotPanel);
+	for (int32 Index = 0; Index < ItemSlots.Num(); ++Index)
+	{
+		ItemSlots[Index]->SetViewModel(ViewModel->GetItemSlotViewModel(Index));
+	}
 }
 
 void UFRShotInfoPanelWidget::SetViewModel(UFRShotPreviewViewModel* InViewModel)

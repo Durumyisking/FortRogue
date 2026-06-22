@@ -224,4 +224,10 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UFRModifierSummaryViewModel> ModifierSummaryViewModel;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Loadout", meta = (ClampMin = "0"))
+	int32 VisibleWeaponSlotCount = 8;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Loadout", meta = (ClampMin = "0"))
+	int32 VisibleItemSlotCount = 4;
 };
