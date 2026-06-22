@@ -41,6 +41,7 @@
 - Battle HUD module adapter widget classes now exist so module WBPs can own their display updates without parent-to-child internal bindings.
 - Loadout weapon/item slots now have per-slot ViewModels and a CommonButton-based slot adapter for selected, enabled, empty, and locked states.
 - Reward screen choices now have per-choice ViewModels and a CommonButton-based choice adapter for title, summary, condition feedback, enabled state, and selection.
+- Main menu, options, pause, and confirmation dialog now have CommonActivatableWidget adapter classes with CommonButton request events.
 
 ## Key Problems
 
@@ -131,6 +132,7 @@
 - `UFRLoadoutSlotWidget` uses `UCommonButtonBase`; `WBP_LoadoutBar` can expose `WeaponSlotPanel` and `ItemSlotPanel` containing slot widgets in editor-defined counts.
 - `UFRRewardScreenWidget` creates a runtime `UFRRewardScreenViewModel`; `UFRRewardChoiceButtonWidget` uses `UCommonButtonBase` for editor-authored reward choice cards.
 - `UFRUIRootWidget` expects authored CommonUI stacks named `HUDLayer`, `MenuLayer`, and `ModalLayer`; `WBP_UIRoot` still needs its base class and layer widgets saved in the editor.
+- `UFRMainMenuWidget`, `UFROptionsMenuWidget`, `UFRPauseMenuWidget`, and `UFRConfirmDialogWidget` expose optional named CommonButton children and BlueprintAssignable request events.
 - Next implementation step: restart the editor/MCP session, then bind and save each module widget directly to the injected ViewModel.
 
 ## Recommended Widget Modules
@@ -261,6 +263,7 @@
 - [x] Add CommonButton-based loadout slot ViewModels and adapter widgets.
 - [x] Add CommonButton-based reward choice ViewModels and adapter widgets.
 - [x] Route Battle HUD and Reward screen through a CommonUI root layer adapter.
+- [x] Add CommonUI adapter classes for menu and confirmation dialog screens.
 - [ ] Replace prototype MVVM with module/domain ViewModels and real module-level bindings.
 - [x] Compile and save created UMG assets.
 
@@ -268,4 +271,4 @@
 
 Restart the editor/MCP session before editing MVVM bindings again. The last tool session crashed while compiling `WBP_ShotInfoPanel` after Live Coding changed `UFRBattleHUDViewModel` FieldNotify members.
 
-After restart, set `WBP_UIRoot` to `UFRUIRootWidget` and make sure it owns CommonUI stacks named `HUDLayer`, `MenuLayer`, and `ModalLayer`. Then set module WBP base classes to the matching adapter widgets or bind each module directly to its injected ViewModel: `WBP_TurnBanner` -> `UFRBattleStatePanelWidget` / `UFRBattleStateViewModel`, `WBP_CombatantStatusPanel` -> `UFRCombatantStatusPanelWidget` / `UFRCombatantStatusViewModel`, `WBP_AimWindIndicator` -> `UFRAimWindIndicatorWidget` / `UFRAimWindViewModel`, `WBP_ShotPowerMeter` -> `UFRShotPowerMeterWidget` / `UFRShotPowerViewModel`, `WBP_LoadoutBar` -> `UFRLoadoutBarWidget` / `UFRLoadoutViewModel`, `WBP_WeaponSlot` and `WBP_ItemSlot` -> `UFRLoadoutSlotWidget`, `WBP_ShotInfoPanel` -> `UFRShotInfoPanelWidget` / `UFRShotPreviewViewModel`, and `WBP_ModifierSummary` -> `UFRModifierSummaryWidget` / `UFRModifierSummaryViewModel`. Do not bind from the parent HUD into nested widget internals; that path failed compilation and should stay replaced with module-owned bindings or the adapter widgets.
+After restart, set `WBP_UIRoot` to `UFRUIRootWidget` and make sure it owns CommonUI stacks named `HUDLayer`, `MenuLayer`, and `ModalLayer`. Set menu WBPs to `UFRMainMenuWidget`, `UFROptionsMenuWidget`, `UFRPauseMenuWidget`, and `UFRConfirmDialogWidget`. Then set module WBP base classes to the matching adapter widgets or bind each module directly to its injected ViewModel: `WBP_TurnBanner` -> `UFRBattleStatePanelWidget` / `UFRBattleStateViewModel`, `WBP_CombatantStatusPanel` -> `UFRCombatantStatusPanelWidget` / `UFRCombatantStatusViewModel`, `WBP_AimWindIndicator` -> `UFRAimWindIndicatorWidget` / `UFRAimWindViewModel`, `WBP_ShotPowerMeter` -> `UFRShotPowerMeterWidget` / `UFRShotPowerViewModel`, `WBP_LoadoutBar` -> `UFRLoadoutBarWidget` / `UFRLoadoutViewModel`, `WBP_WeaponSlot` and `WBP_ItemSlot` -> `UFRLoadoutSlotWidget`, `WBP_ShotInfoPanel` -> `UFRShotInfoPanelWidget` / `UFRShotPreviewViewModel`, and `WBP_ModifierSummary` -> `UFRModifierSummaryWidget` / `UFRModifierSummaryViewModel`. Do not bind from the parent HUD into nested widget internals; that path failed compilation and should stay replaced with module-owned bindings or the adapter widgets.
