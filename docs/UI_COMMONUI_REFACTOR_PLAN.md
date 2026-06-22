@@ -36,7 +36,8 @@
 - `AFRPlayerController` creates widgets directly with `CreateWidget`, adds them to the viewport, and refreshes the HUD every tick.
 - Character health bars and floating combat text are `UUserWidget` classes, but their widget trees are created in C++ rather than from reusable UMG assets.
 - `Content/FortRogue/Widget` now has CommonUI root, menu, HUD, world health, floating text, style, and component assets.
-- Runtime widget entry points are not wired to those new assets yet.
+- `AFRPlayerController`, `AFRBattleCharacter`, and `AFRFloatingCombatText` now default to the authored HUD/world/floating WBP assets while keeping editable class overrides.
+- `WBP_BattleHUD` now has a `UFRBattleHUDViewModel` MVVM context, and `UFRBattleHUDWidget` creates, updates, and injects the same ViewModel instance at runtime.
 
 ## Key Problems
 
@@ -49,10 +50,12 @@
 
 ### MVVM
 
-- `VM_BattleHUD` is a flat bag of fields: text and percent values only.
+- `VM_BattleHUD` is a flat prototype bag of fields: text and percent values only.
 - It does not model the game domains: battle state, player status, enemy status, loadout, shot preview, rewards, or menu state.
-- It is not yet fed by runtime gameplay state.
+- It is not fed by runtime gameplay state and should not become the production path.
+- `UFRBattleHUDViewModel` is the current runtime-fed ViewModel surface for the production HUD.
 - The current prototype WBP has MVVM bindings, but `UFRBattleHUDWidget::RefreshDefaultHUD` exits early because C++ private widget pointers are not populated by that WBP.
+- Direct parent HUD bindings into nested module widget internals, such as `TurnBanner.TurnText.Text`, currently fail WBP compilation. Bindings should move into each module widget or into module-specific C++ adapter widgets instead.
 
 ### HUD Layout
 
@@ -117,11 +120,10 @@
 
 ## Runtime Integration Remaining
 
-- `AFRPlayerController` still falls back to `UFRBattleHUDWidget`, whose default layout is constructed in C++.
-- `AFRBattleCharacter` still sets `HealthBarComponent` to `UFRCharacterHealthBarWidget::StaticClass()`.
-- `AFRFloatingCombatText` still sets its widget component to `UFRFloatingCombatTextWidget::StaticClass()`.
-- `UFRCharacterHealthBarWidget` and `UFRFloatingCombatTextWidget` still construct their widget trees in C++.
-- Next implementation step: point runtime widget classes to authored UMG assets or replace these C++ fallback widgets with thin data adapters.
+- Runtime HUD, world health, and floating combat text now default to authored WBP assets.
+- `UFRCharacterHealthBarWidget` and `UFRFloatingCombatTextWidget` now prefer named widgets from authored WBP assets and only construct fallback widget trees if no authored widget exists.
+- `UFRBattleHUDWidget::BuildDefaultHUD` still exists as a fallback for missing authored layouts.
+- Next implementation step: bind module widgets to ViewModels without reaching through nested widget internals from the parent HUD.
 
 ## Recommended Widget Modules
 
@@ -233,11 +235,12 @@
 - [x] Convert generated TextBlock/Border widgets to CommonUI primitives.
 - [x] Rebuild remaining menu/dialog buttons as CommonButtonBase widgets.
 - [x] Identify remaining C++ generated runtime UI entry points.
-- [ ] Wire runtime HUD, world health, and floating combat text to authored UMG assets.
+- [x] Wire runtime HUD, world health, and floating combat text to authored UMG assets.
 - [x] Convert world health/floating combat UI to authored UMG assets.
-- [ ] Replace prototype MVVM with domain ViewModels.
+- [x] Add runtime-fed `UFRBattleHUDViewModel` and attach it to `WBP_BattleHUD`.
+- [ ] Replace prototype MVVM with module/domain ViewModels and real module-level bindings.
 - [x] Compile and save created UMG assets.
 
 ## Immediate Next Task
 
-Start with `WBP_UIRoot` and the CommonUI layer model. Without that, every new screen will repeat the current problem: independently created widgets with no shared routing, layering, or input ownership.
+Create module-level ViewModel bindings for `WBP_TurnBanner`, `WBP_CombatantStatusPanel`, `WBP_AimWindIndicator`, `WBP_ShotPowerMeter`, `WBP_LoadoutBar`, `WBP_ShotInfoPanel`, and `WBP_ModifierSummary`. Do not bind from the parent HUD into nested widget internals; that path failed compilation and should be replaced with module-owned bindings or thin C++ adapter widgets.
