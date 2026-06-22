@@ -3,7 +3,7 @@
 #include "UI/FRFloatingCombatTextWidget.h"
 
 #include "Blueprint/WidgetTree.h"
-#include "Components/TextBlock.h"
+#include "CommonTextBlock.h"
 
 void UFRFloatingCombatTextWidget::NativeOnInitialized()
 {
@@ -11,9 +11,10 @@ void UFRFloatingCombatTextWidget::NativeOnInitialized()
 
 	if (!DamageText && WidgetTree)
 	{
-		DamageText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("DamageText")));
+		DamageText = Cast<UCommonTextBlock>(WidgetTree->FindWidget(TEXT("DamageText")));
 	}
 
+	ApplyTextStyle();
 	UpdateDamageText();
 }
 
@@ -31,4 +32,12 @@ void UFRFloatingCombatTextWidget::UpdateDamageText()
 	}
 
 	DamageText->SetText(FText::FromString(FString::Printf(TEXT("-%.0f"), CachedDamageAmount)));
+}
+
+void UFRFloatingCombatTextWidget::ApplyTextStyle()
+{
+	if (DamageText && DamageTextStyle)
+	{
+		DamageText->SetStyle(DamageTextStyle);
+	}
 }

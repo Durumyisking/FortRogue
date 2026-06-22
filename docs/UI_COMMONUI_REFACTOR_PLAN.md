@@ -36,6 +36,7 @@
 - `AFRPlayerController` now creates one UI root and routes battle HUD/reward screens through CommonUI layer stacks when the authored root WBP is based on `UFRUIRootWidget`.
 - `AFRPlayerController` can route main menu, options, pause, and confirmation dialogs through the root `MenuLayer` and `ModalLayer` once those authored WBPs use their adapter base classes.
 - Character health bars and floating combat text use authored UMG assets; their C++ classes only find named widgets and push runtime values.
+- Floating combat text now expects a `CommonTextBlock` named `DamageText` and can apply an editor-selected `CommonTextStyle`.
 - `Content/FortRogue/Widget` now has CommonUI root, menu, HUD, world health, floating text, style, and component assets.
 - `AFRPlayerController`, `AFRBattleCharacter`, and `AFRFloatingCombatText` now default to the authored HUD/world/floating WBP assets while keeping editable class overrides.
 - `WBP_BattleHUD` now has a `UFRBattleHUDViewModel` MVVM context, and `UFRBattleHUDWidget` creates, updates, and injects the same ViewModel instance at runtime.
@@ -133,6 +134,7 @@
 
 - Runtime HUD, world health, and floating combat text now default to authored WBP assets.
 - `UFRCharacterHealthBarWidget` and `UFRFloatingCombatTextWidget` require named widgets from authored WBP assets and no longer construct fallback widget trees.
+- `UFRFloatingCombatTextWidget` uses `UCommonTextBlock` for authored damage text and exposes a `DamageTextStyle` override.
 - `UFRBattleHUDWidget` no longer constructs a fallback HUD layout in C++; missing authored HUD modules will surface as missing UI instead of silently showing generated panels.
 - `UFRBattleHUDWidget` now injects module-specific runtime ViewModels into known child module widgets so modules can own their own MVVM bindings.
 - `UFRBattleHUDModuleWidgetBase` and derived adapter widgets can receive injected module ViewModels and push values into optional named CommonUI widgets.
@@ -263,6 +265,7 @@
 - [x] Convert C++ fallback HUD numeric value displays to CommonNumericTextBlock.
 - [x] Remove C++ battle HUD fallback layout construction.
 - [x] Convert floating combat text authored widget path to CommonTextBlock.
+- [x] Add floating combat text CommonTextStyle override.
 - [x] Remove C++ world health/floating combat fallback layout construction.
 - [x] Convert remaining C++ gameplay widget bases to CommonUserWidget/CommonActivatableWidget.
 - [x] Rebuild remaining menu/dialog buttons as CommonButtonBase widgets.

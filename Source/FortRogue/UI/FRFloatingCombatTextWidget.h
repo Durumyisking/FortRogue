@@ -6,7 +6,8 @@
 #include "CoreMinimal.h"
 #include "FRFloatingCombatTextWidget.generated.h"
 
-class UTextBlock;
+class UCommonTextBlock;
+class UCommonTextStyle;
 
 UCLASS()
 class FORTROGUE_API UFRFloatingCombatTextWidget : public UCommonUserWidget
@@ -21,9 +22,13 @@ protected:
 
 private:
 	void UpdateDamageText();
+	void ApplyTextStyle();
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Style")
+	TSubclassOf<UCommonTextStyle> DamageTextStyle;
 
 	UPROPERTY(Transient)
-	TObjectPtr<UTextBlock> DamageText;
+	TObjectPtr<UCommonTextBlock> DamageText;
 
 	float CachedDamageAmount = 0.0f;
 };
