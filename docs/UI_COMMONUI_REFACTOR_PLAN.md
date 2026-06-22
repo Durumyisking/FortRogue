@@ -235,6 +235,7 @@
 - [x] Create missing main menu and options screen widgets.
 - [x] Convert generated TextBlock/Border widgets to CommonUI primitives.
 - [x] Convert C++ fallback HUD TextBlock/Border construction to CommonUI primitives.
+- [x] Convert floating combat text fallback construction to CommonTextBlock.
 - [x] Rebuild remaining menu/dialog buttons as CommonButtonBase widgets.
 - [x] Identify remaining C++ generated runtime UI entry points.
 - [x] Wire runtime HUD, world health, and floating combat text to authored UMG assets.

@@ -3,6 +3,7 @@
 #include "UI/FRFloatingCombatTextWidget.h"
 
 #include "Blueprint/WidgetTree.h"
+#include "CommonTextBlock.h"
 #include "Components/TextBlock.h"
 
 void UFRFloatingCombatTextWidget::NativeOnInitialized()
@@ -16,7 +17,7 @@ void UFRFloatingCombatTextWidget::NativeOnInitialized()
 
 	if (!DamageText && WidgetTree)
 	{
-		DamageText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("DamageText"));
+		DamageText = WidgetTree->ConstructWidget<UCommonTextBlock>(UCommonTextBlock::StaticClass(), TEXT("DamageText"));
 		FSlateFontInfo Font = DamageText->GetFont();
 		Font.Size = 24;
 		DamageText->SetFont(Font);
