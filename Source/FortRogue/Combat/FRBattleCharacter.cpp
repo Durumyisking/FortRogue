@@ -92,7 +92,13 @@ AFRBattleCharacter::AFRBattleCharacter()
 	HealthBarComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBar"));
 	HealthBarComponent->SetupAttachment(Root);
 	HealthBarComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	HealthBarComponent->SetWidgetClass(UFRCharacterHealthBarWidget::StaticClass());
+	static ConstructorHelpers::FClassFinder<UFRCharacterHealthBarWidget> HealthBarWidgetClassFinder(TEXT("/Game/FortRogue/Widget/MainGame/Components/WBP_WorldHealthBar"));
+	HealthBarWidgetClass = UFRCharacterHealthBarWidget::StaticClass();
+	if (HealthBarWidgetClassFinder.Succeeded())
+	{
+		HealthBarWidgetClass = HealthBarWidgetClassFinder.Class;
+	}
+	HealthBarComponent->SetWidgetClass(HealthBarWidgetClass);
 	HealthBarComponent->SetWidgetSpace(EWidgetSpace::Screen);
 	HealthBarComponent->SetDrawSize(FVector2D(92.0f, 14.0f));
 	HealthBarComponent->SetRelativeLocation(FVector(0.0f, 0.0f, -FootOffsetZ - 18.0f));
@@ -108,6 +114,11 @@ AFRBattleCharacter::AFRBattleCharacter()
 void AFRBattleCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (HealthBarComponent && HealthBarWidgetClass)
+	{
+		HealthBarComponent->SetWidgetClass(HealthBarWidgetClass);
+	}
 
 	AbilitySystemComponent->InitAbilityActorInfo(this, this);
 	AbilitySystemComponent->AddAttributeSetSubobject(CombatSet.Get());

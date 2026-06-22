@@ -4,6 +4,7 @@
 
 #include "Components/WidgetComponent.h"
 #include "UI/FRFloatingCombatTextWidget.h"
+#include "UObject/ConstructorHelpers.h"
 
 AFRFloatingCombatText::AFRFloatingCombatText()
 {
@@ -12,7 +13,13 @@ AFRFloatingCombatText::AFRFloatingCombatText()
 	WidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("Widget"));
 	SetRootComponent(WidgetComponent);
 	WidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	WidgetComponent->SetWidgetClass(UFRFloatingCombatTextWidget::StaticClass());
+	static ConstructorHelpers::FClassFinder<UFRFloatingCombatTextWidget> DamageTextWidgetClassFinder(TEXT("/Game/FortRogue/Widget/MainGame/Components/WBP_FloatingCombatText"));
+	FloatingCombatTextWidgetClass = UFRFloatingCombatTextWidget::StaticClass();
+	if (DamageTextWidgetClassFinder.Succeeded())
+	{
+		FloatingCombatTextWidgetClass = DamageTextWidgetClassFinder.Class;
+	}
+	WidgetComponent->SetWidgetClass(FloatingCombatTextWidgetClass);
 	WidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
 	WidgetComponent->SetDrawSize(FVector2D(96.0f, 36.0f));
 	WidgetComponent->SetTwoSided(true);
@@ -21,6 +28,12 @@ AFRFloatingCombatText::AFRFloatingCombatText()
 void AFRFloatingCombatText::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (WidgetComponent && FloatingCombatTextWidgetClass)
+	{
+		WidgetComponent->SetWidgetClass(FloatingCombatTextWidgetClass);
+	}
+
 	UpdateDamageWidget();
 }
 

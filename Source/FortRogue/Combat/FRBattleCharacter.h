@@ -16,6 +16,7 @@ class UFRAbilitySet;
 class UFRAbilitySystemComponent;
 class UFRCombatSet;
 class UFRDefaultLoadoutDefinition;
+class UFRCharacterHealthBarWidget;
 class UPaperFlipbookComponent;
 class UStaticMeshComponent;
 class UFRItemDefinition;
@@ -398,6 +399,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue|UI")
 	TObjectPtr<UWidgetComponent> HealthBarComponent;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI", meta = (ToolTip = "캐릭터 위에 표시할 월드 체력바 위젯 클래스입니다."))
+	TSubclassOf<UFRCharacterHealthBarWidget> HealthBarWidgetClass;
 
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue|Abilities")
 	TObjectPtr<UFRAbilitySystemComponent> AbilitySystemComponent;

@@ -12,6 +12,11 @@ void UFRCharacterHealthBarWidget::NativeOnInitialized()
 
 	if (!HealthBar && WidgetTree)
 	{
+		HealthBar = Cast<UProgressBar>(WidgetTree->FindWidget(TEXT("HealthBar")));
+	}
+
+	if (!HealthBar && WidgetTree)
+	{
 		USizeBox* RootBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("HealthBarRoot"));
 		RootBox->SetWidthOverride(86.0f);
 		RootBox->SetHeightOverride(9.0f);

@@ -14,11 +14,18 @@
 #include "Items/FRItemDefinition.h"
 #include "UI/FRBattleHUDWidget.h"
 #include "UI/FRRewardScreenWidget.h"
+#include "UObject/ConstructorHelpers.h"
 
 AFRPlayerController::AFRPlayerController()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	bShowMouseCursor = false;
+
+	static ConstructorHelpers::FClassFinder<UFRBattleHUDWidget> BattleHUDClassFinder(TEXT("/Game/FortRogue/Widget/MainGame/WBP_BattleHUD"));
+	if (BattleHUDClassFinder.Succeeded())
+	{
+		BattleHUDWidgetClass = BattleHUDClassFinder.Class;
+	}
 }
 
 void AFRPlayerController::BeginPlay()

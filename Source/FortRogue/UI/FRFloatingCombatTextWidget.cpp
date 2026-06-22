@@ -11,6 +11,11 @@ void UFRFloatingCombatTextWidget::NativeOnInitialized()
 
 	if (!DamageText && WidgetTree)
 	{
+		DamageText = Cast<UTextBlock>(WidgetTree->FindWidget(TEXT("DamageText")));
+	}
+
+	if (!DamageText && WidgetTree)
+	{
 		DamageText = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), TEXT("DamageText"));
 		FSlateFontInfo Font = DamageText->GetFont();
 		Font.Size = 24;

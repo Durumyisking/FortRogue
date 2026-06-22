@@ -7,6 +7,7 @@
 #include "FRFloatingCombatText.generated.h"
 
 class UWidgetComponent;
+class UFRFloatingCombatTextWidget;
 
 UCLASS()
 class FORTROGUE_API AFRFloatingCombatText : public AActor
@@ -26,6 +27,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue|UI")
 	TObjectPtr<UWidgetComponent> WidgetComponent;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI", meta = (ToolTip = "데미지 숫자를 표시할 위젯 클래스입니다."))
+	TSubclassOf<UFRFloatingCombatTextWidget> FloatingCombatTextWidgetClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI", meta = (ClampMin = "0.1"))
 	float LifeSeconds = 0.85f;
