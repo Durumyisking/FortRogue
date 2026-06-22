@@ -7,8 +7,10 @@
 #include "CoreMinimal.h"
 #include "FRBattleHUDModuleWidgets.generated.h"
 
+class UCommonButtonStyle;
 class UCommonNumericTextBlock;
 class UCommonTextBlock;
+class UCommonTextStyle;
 class UFRAimWindViewModel;
 class UFRBattleStateViewModel;
 class UFRCombatantStatusViewModel;
@@ -20,6 +22,21 @@ class UFRShotPreviewViewModel;
 class UMVVMViewModelBase;
 class UPanelWidget;
 class UProgressBar;
+
+USTRUCT(BlueprintType)
+struct FFRHUDModuleStyleSet
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|UI|Style")
+	TSubclassOf<UCommonTextStyle> TextStyle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|UI|Style")
+	TSubclassOf<UCommonTextStyle> NumericTextStyle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|UI|Style")
+	TSubclassOf<UCommonButtonStyle> ButtonStyle;
+};
 
 UCLASS(Abstract, Blueprintable)
 class FORTROGUE_API UFRBattleHUDModuleWidgetBase : public UCommonUserWidget
@@ -33,10 +50,14 @@ public:
 protected:
 	virtual void NativeOnInitialized() override;
 	virtual void NativeRefreshFromViewModel();
+	void ApplyHUDModuleStyleSet();
 
 	UMVVMViewModelBase* GetRawViewModel() const { return RawViewModel; }
 
 private:
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Style")
+	FFRHUDModuleStyleSet HUDModuleStyleSet;
+
 	UPROPERTY(Transient)
 	TObjectPtr<UMVVMViewModelBase> RawViewModel;
 };
@@ -187,6 +208,11 @@ protected:
 	virtual void NativeOnInitialized() override;
 
 private:
+	void ApplySlotStyleSet();
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Style")
+	FFRHUDModuleStyleSet SlotStyleSet;
+
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCommonTextBlock> SlotLabelText;
 

@@ -2,9 +2,11 @@
 
 #include "UI/FRBattleHUDModuleWidgets.h"
 
+#include "Blueprint/WidgetTree.h"
 #include "CommonNumericTextBlock.h"
 #include "CommonTextBlock.h"
 #include "Components/PanelWidget.h"
+#include "Components/Widget.h"
 #include "Components/ProgressBar.h"
 #include "UI/FRBattleHUDModuleViewModels.h"
 
@@ -51,12 +53,41 @@ namespace
 		}
 		return Slots;
 	}
+
+	void ApplyTextStyle(UCommonTextBlock* TextBlock, TSubclassOf<UCommonTextStyle> TextStyle)
+	{
+		if (TextBlock && TextStyle)
+		{
+			TextBlock->SetStyle(TextStyle);
+		}
+	}
+
+	void ApplyHUDStyleToWidgetTree(UUserWidget* Widget, const FFRHUDModuleStyleSet& StyleSet)
+	{
+		if (!Widget || !Widget->WidgetTree)
+		{
+			return;
+		}
+
+		Widget->WidgetTree->ForEachWidget([&StyleSet](UWidget* ChildWidget)
+		{
+			if (UCommonNumericTextBlock* NumericTextBlock = Cast<UCommonNumericTextBlock>(ChildWidget))
+			{
+				ApplyTextStyle(NumericTextBlock, StyleSet.NumericTextStyle ? StyleSet.NumericTextStyle : StyleSet.TextStyle);
+			}
+			else if (UCommonTextBlock* TextBlock = Cast<UCommonTextBlock>(ChildWidget))
+			{
+				ApplyTextStyle(TextBlock, StyleSet.TextStyle);
+			}
+		});
+	}
 }
 
 void UFRBattleHUDModuleWidgetBase::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 
+	ApplyHUDModuleStyleSet();
 	RefreshFromViewModel();
 }
 
@@ -78,6 +109,11 @@ void UFRBattleHUDModuleWidgetBase::RefreshFromViewModel()
 
 void UFRBattleHUDModuleWidgetBase::NativeRefreshFromViewModel()
 {
+}
+
+void UFRBattleHUDModuleWidgetBase::ApplyHUDModuleStyleSet()
+{
+	ApplyHUDStyleToWidgetTree(this, HUDModuleStyleSet);
 }
 
 void UFRBattleStatePanelWidget::SetViewModel(UFRBattleStateViewModel* InViewModel)
@@ -186,7 +222,17 @@ void UFRLoadoutSlotWidget::NativeOnInitialized()
 
 	SetIsSelectable(true);
 	SetIsToggleable(false);
+	ApplySlotStyleSet();
 	RefreshFromViewModel();
+}
+
+void UFRLoadoutSlotWidget::ApplySlotStyleSet()
+{
+	ApplyHUDStyleToWidgetTree(this, SlotStyleSet);
+	if (SlotStyleSet.ButtonStyle)
+	{
+		SetStyle(SlotStyleSet.ButtonStyle);
+	}
 }
 
 void UFRLoadoutSlotWidget::SetViewModel(UFRLoadoutSlotViewModel* InViewModel)
