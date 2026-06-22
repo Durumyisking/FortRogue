@@ -35,8 +35,8 @@
 - The active battle HUD is still mostly generated in C++ through `WidgetTree` in `UFRBattleHUDWidget::BuildDefaultHUD`.
 - `AFRPlayerController` creates widgets directly with `CreateWidget`, adds them to the viewport, and refreshes the HUD every tick.
 - Character health bars and floating combat text are `UUserWidget` classes, but their widget trees are created in C++ rather than from reusable UMG assets.
-- `Content/FortRogue/Widget` contains folders for `Global`, `MainGame`, `MainMenu`, and `Components`, but only the battle HUD prototype assets currently exist.
-- Main menu, options, pause menu, and production reward screen assets are missing.
+- `Content/FortRogue/Widget` now has CommonUI root, menu, HUD, world health, floating text, style, and component assets.
+- Runtime widget entry points are not wired to those new assets yet.
 
 ## Key Problems
 
@@ -114,6 +114,14 @@
 - Demote full side-panel HP if world health bars are visible and readable; side panel can show player HP and target HP only when tactically useful.
 - Replace large empty weapon/item blocks with compact disabled/locked slots.
 - Remove C++ fallback layout once production UMG assets exist.
+
+## Runtime Integration Remaining
+
+- `AFRPlayerController` still falls back to `UFRBattleHUDWidget`, whose default layout is constructed in C++.
+- `AFRBattleCharacter` still sets `HealthBarComponent` to `UFRCharacterHealthBarWidget::StaticClass()`.
+- `AFRFloatingCombatText` still sets its widget component to `UFRFloatingCombatTextWidget::StaticClass()`.
+- `UFRCharacterHealthBarWidget` and `UFRFloatingCombatTextWidget` still construct their widget trees in C++.
+- Next implementation step: point runtime widget classes to authored UMG assets or replace these C++ fallback widgets with thin data adapters.
 
 ## Recommended Widget Modules
 
@@ -224,7 +232,9 @@
 - [x] Create missing main menu and options screen widgets.
 - [x] Convert generated TextBlock/Border widgets to CommonUI primitives.
 - [x] Rebuild remaining menu/dialog buttons as CommonButtonBase widgets.
-- [ ] Convert world health/floating combat UI to authored UMG assets.
+- [x] Identify remaining C++ generated runtime UI entry points.
+- [ ] Wire runtime HUD, world health, and floating combat text to authored UMG assets.
+- [x] Convert world health/floating combat UI to authored UMG assets.
 - [ ] Replace prototype MVVM with domain ViewModels.
 - [x] Compile and save created UMG assets.
 
