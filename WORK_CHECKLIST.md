@@ -13,3 +13,4 @@ UI 체크리스트
 - Reward 화면 CommonButton MVVM 기반 추가 [v]
 - CommonUI Root layer 화면 라우팅 추가 [v]
 - 메뉴/다이얼로그 CommonUI adapter 추가 [v]
+- 메뉴/옵션/확인 화면 Root layer 라우팅 연결 [v]

@@ -34,6 +34,7 @@
 - `UFRBattleHUDWidget` and `UFRRewardScreenWidget` already inherit from `UCommonActivatableWidget`.
 - The battle HUD no longer builds a C++ fallback widget tree; `UFRBattleHUDWidget` now expects authored UMG modules and only owns ViewModel creation, injection, and refresh.
 - `AFRPlayerController` now creates one UI root and routes battle HUD/reward screens through CommonUI layer stacks when the authored root WBP is based on `UFRUIRootWidget`.
+- `AFRPlayerController` can route main menu, options, pause, and confirmation dialogs through the root `MenuLayer` and `ModalLayer` once those authored WBPs use their adapter base classes.
 - Character health bars and floating combat text use authored UMG assets; their C++ classes only find named widgets and push runtime values.
 - `Content/FortRogue/Widget` now has CommonUI root, menu, HUD, world health, floating text, style, and component assets.
 - `AFRPlayerController`, `AFRBattleCharacter`, and `AFRFloatingCombatText` now default to the authored HUD/world/floating WBP assets while keeping editable class overrides.
@@ -133,6 +134,7 @@
 - `UFRRewardScreenWidget` creates a runtime `UFRRewardScreenViewModel`; `UFRRewardChoiceButtonWidget` uses `UCommonButtonBase` for editor-authored reward choice cards.
 - `UFRUIRootWidget` expects authored CommonUI stacks named `HUDLayer`, `MenuLayer`, and `ModalLayer`; `WBP_UIRoot` still needs its base class and layer widgets saved in the editor.
 - `UFRMainMenuWidget`, `UFROptionsMenuWidget`, `UFRPauseMenuWidget`, and `UFRConfirmDialogWidget` expose optional named CommonButton children and BlueprintAssignable request events.
+- `AFRPlayerController` binds menu adapter request events and uses `Escape` as a fallback for pause/back/cancel while Enhanced Input actions are not yet authored.
 - Next implementation step: restart the editor/MCP session, then bind and save each module widget directly to the injected ViewModel.
 
 ## Recommended Widget Modules
@@ -264,6 +266,7 @@
 - [x] Add CommonButton-based reward choice ViewModels and adapter widgets.
 - [x] Route Battle HUD and Reward screen through a CommonUI root layer adapter.
 - [x] Add CommonUI adapter classes for menu and confirmation dialog screens.
+- [x] Connect menu, options, pause, and confirmation adapters to the CommonUI root layers.
 - [ ] Replace prototype MVVM with module/domain ViewModels and real module-level bindings.
 - [x] Compile and save created UMG assets.
 

@@ -13,9 +13,19 @@
 #include "InputActionValue.h"
 #include "Items/FRItemDefinition.h"
 #include "UI/FRBattleHUDWidget.h"
+#include "UI/FRMenuWidgets.h"
 #include "UI/FRRewardScreenWidget.h"
 #include "UI/FRUIRootWidget.h"
+#include "Kismet/GameplayStatics.h"
 #include "UObject/ConstructorHelpers.h"
+
+namespace
+{
+	constexpr int32 ConfirmActionNone = 0;
+	constexpr int32 ConfirmActionQuit = 1;
+	constexpr int32 ConfirmActionRestart = 2;
+	constexpr int32 ConfirmActionMainMenu = 3;
+}
 
 AFRPlayerController::AFRPlayerController()
 {
@@ -32,6 +42,30 @@ AFRPlayerController::AFRPlayerController()
 	if (BattleHUDClassFinder.Succeeded())
 	{
 		BattleHUDWidgetClass = BattleHUDClassFinder.Class;
+	}
+
+	static ConstructorHelpers::FClassFinder<UFRMainMenuWidget> MainMenuClassFinder(TEXT("/Game/FortRogue/Widget/MainMenu/WBP_MainMenu"));
+	if (MainMenuClassFinder.Succeeded())
+	{
+		MainMenuWidgetClass = MainMenuClassFinder.Class;
+	}
+
+	static ConstructorHelpers::FClassFinder<UFROptionsMenuWidget> OptionsMenuClassFinder(TEXT("/Game/FortRogue/Widget/MainMenu/WBP_OptionsMenu"));
+	if (OptionsMenuClassFinder.Succeeded())
+	{
+		OptionsMenuWidgetClass = OptionsMenuClassFinder.Class;
+	}
+
+	static ConstructorHelpers::FClassFinder<UFRPauseMenuWidget> PauseMenuClassFinder(TEXT("/Game/FortRogue/Widget/MainMenu/WBP_PauseMenu"));
+	if (PauseMenuClassFinder.Succeeded())
+	{
+		PauseMenuWidgetClass = PauseMenuClassFinder.Class;
+	}
+
+	static ConstructorHelpers::FClassFinder<UFRConfirmDialogWidget> ConfirmDialogClassFinder(TEXT("/Game/FortRogue/Widget/Global/WBP_ConfirmDialog"));
+	if (ConfirmDialogClassFinder.Succeeded())
+	{
+		ConfirmDialogWidgetClass = ConfirmDialogClassFinder.Class;
 	}
 }
 
@@ -52,6 +86,7 @@ void AFRPlayerController::BeginPlay()
 
 	CreateRootWidget();
 	CreateBattleHUDWidget();
+	ShowMainMenuWidget();
 }
 
 void AFRPlayerController::CreateRootWidget()
@@ -117,6 +152,131 @@ void AFRPlayerController::ClearRewardScreenWidget()
 		UIRootWidget->RemoveWidgetFromLayer(RewardScreenWidget);
 	}
 	RewardScreenWidget = nullptr;
+}
+
+void AFRPlayerController::ShowMainMenuWidget()
+{
+	if (!UIRootWidget || !MainMenuWidgetClass)
+	{
+		return;
+	}
+
+	ClearMenuLayer();
+	MainMenuWidget = Cast<UFRMainMenuWidget>(UIRootWidget->SetWidgetInLayer(EFRUILayer::Menu, MainMenuWidgetClass));
+	if (MainMenuWidget)
+	{
+		MainMenuWidget->OnStartRunRequested.AddUniqueDynamic(this, &AFRPlayerController::HandleMainMenuStartRunRequested);
+		MainMenuWidget->OnOptionsRequested.AddUniqueDynamic(this, &AFRPlayerController::HandleMainMenuOptionsRequested);
+		MainMenuWidget->OnQuitRequested.AddUniqueDynamic(this, &AFRPlayerController::HandleMainMenuQuitRequested);
+		MainMenuWidget->ActivateWidget();
+		bShowMouseCursor = true;
+	}
+}
+
+void AFRPlayerController::ShowOptionsMenuWidget(bool bReturnToPauseMenu)
+{
+	if (!UIRootWidget || !OptionsMenuWidgetClass)
+	{
+		return;
+	}
+
+	ClearMenuLayer();
+	bReturnToPauseMenuAfterOptions = bReturnToPauseMenu;
+	OptionsMenuWidget = Cast<UFROptionsMenuWidget>(UIRootWidget->SetWidgetInLayer(EFRUILayer::Menu, OptionsMenuWidgetClass));
+	if (OptionsMenuWidget)
+	{
+		OptionsMenuWidget->OnBackRequested.AddUniqueDynamic(this, &AFRPlayerController::HandleOptionsBackRequested);
+		OptionsMenuWidget->ActivateWidget();
+		bShowMouseCursor = true;
+	}
+}
+
+void AFRPlayerController::ShowPauseMenuWidget()
+{
+	if (!UIRootWidget || !PauseMenuWidgetClass || MainMenuWidget || RewardScreenWidget)
+	{
+		return;
+	}
+
+	SetPause(true);
+	ClearMenuLayer();
+	PauseMenuWidget = Cast<UFRPauseMenuWidget>(UIRootWidget->SetWidgetInLayer(EFRUILayer::Menu, PauseMenuWidgetClass));
+	if (PauseMenuWidget)
+	{
+		PauseMenuWidget->OnResumeRequested.AddUniqueDynamic(this, &AFRPlayerController::HandlePauseResumeRequested);
+		PauseMenuWidget->OnOptionsRequested.AddUniqueDynamic(this, &AFRPlayerController::HandlePauseOptionsRequested);
+		PauseMenuWidget->OnRestartRequested.AddUniqueDynamic(this, &AFRPlayerController::HandlePauseRestartRequested);
+		PauseMenuWidget->OnMainMenuRequested.AddUniqueDynamic(this, &AFRPlayerController::HandlePauseMainMenuRequested);
+		PauseMenuWidget->OnQuitRequested.AddUniqueDynamic(this, &AFRPlayerController::HandlePauseQuitRequested);
+		PauseMenuWidget->ActivateWidget();
+		bShowMouseCursor = true;
+	}
+}
+
+void AFRPlayerController::ClearMenuLayer()
+{
+	if (UIRootWidget)
+	{
+		UIRootWidget->ClearLayer(EFRUILayer::Menu);
+	}
+
+	MainMenuWidget = nullptr;
+	OptionsMenuWidget = nullptr;
+	PauseMenuWidget = nullptr;
+	RewardScreenWidget = nullptr;
+}
+
+void AFRPlayerController::ShowConfirmDialog(const FText& TitleText, const FText& MessageText, int32 ConfirmAction)
+{
+	if (!UIRootWidget || !ConfirmDialogWidgetClass)
+	{
+		return;
+	}
+
+	ClearConfirmDialogWidget();
+	PendingConfirmAction = ConfirmAction;
+	ConfirmDialogWidget = Cast<UFRConfirmDialogWidget>(UIRootWidget->PushWidgetToLayer(EFRUILayer::Modal, ConfirmDialogWidgetClass));
+	if (ConfirmDialogWidget)
+	{
+		ConfirmDialogWidget->SetDialogText(TitleText, MessageText);
+		ConfirmDialogWidget->OnConfirmRequested.AddUniqueDynamic(this, &AFRPlayerController::HandleConfirmRequested);
+		ConfirmDialogWidget->OnCancelRequested.AddUniqueDynamic(this, &AFRPlayerController::HandleConfirmCanceled);
+		ConfirmDialogWidget->ActivateWidget();
+		bShowMouseCursor = true;
+	}
+}
+
+void AFRPlayerController::ClearConfirmDialogWidget()
+{
+	if (ConfirmDialogWidget && UIRootWidget)
+	{
+		UIRootWidget->RemoveWidgetFromLayer(ConfirmDialogWidget);
+	}
+	ConfirmDialogWidget = nullptr;
+	PendingConfirmAction = ConfirmActionNone;
+}
+
+void AFRPlayerController::ExecutePendingConfirmAction()
+{
+	const int32 ConfirmAction = PendingConfirmAction;
+	ClearConfirmDialogWidget();
+
+	if (ConfirmAction == ConfirmActionQuit)
+	{
+		ConsoleCommand(TEXT("quit"));
+	}
+	else if (ConfirmAction == ConfirmActionRestart)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			UGameplayStatics::OpenLevel(this, FName(*World->GetName()), false);
+		}
+	}
+	else if (ConfirmAction == ConfirmActionMainMenu)
+	{
+		SetPause(false);
+		ShowMainMenuWidget();
+	}
 }
 
 void AFRPlayerController::SetupInputComponent()
@@ -199,6 +359,7 @@ void AFRPlayerController::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
+	TickMenuInput();
 	UpdateOptionalWidgets();
 	TickRewardInput();
 
@@ -332,6 +493,31 @@ void AFRPlayerController::TickRewardInput()
 	else if (WasInputKeyJustPressed(EKeys::Five))
 	{
 		ChooseReward(4);
+	}
+}
+
+void AFRPlayerController::TickMenuInput()
+{
+	if (!WasInputKeyJustPressed(EKeys::Escape))
+	{
+		return;
+	}
+
+	if (ConfirmDialogWidget)
+	{
+		HandleConfirmCanceled();
+	}
+	else if (OptionsMenuWidget)
+	{
+		HandleOptionsBackRequested();
+	}
+	else if (PauseMenuWidget)
+	{
+		HandlePauseResumeRequested();
+	}
+	else if (!MainMenuWidget && !RewardScreenWidget)
+	{
+		ShowPauseMenuWidget();
 	}
 }
 
@@ -528,6 +714,83 @@ void AFRPlayerController::HandleReward4()
 void AFRPlayerController::HandleReward5()
 {
 	ChooseReward(4);
+}
+
+void AFRPlayerController::HandleMainMenuStartRunRequested()
+{
+	ClearMenuLayer();
+	bShowMouseCursor = false;
+}
+
+void AFRPlayerController::HandleMainMenuOptionsRequested()
+{
+	ShowOptionsMenuWidget(false);
+}
+
+void AFRPlayerController::HandleMainMenuQuitRequested()
+{
+	ShowConfirmDialog(
+		FText::FromString(TEXT("Quit Game")),
+		FText::FromString(TEXT("Quit FortRogue?")),
+		ConfirmActionQuit);
+}
+
+void AFRPlayerController::HandleOptionsBackRequested()
+{
+	if (bReturnToPauseMenuAfterOptions)
+	{
+		ShowPauseMenuWidget();
+	}
+	else
+	{
+		ShowMainMenuWidget();
+	}
+}
+
+void AFRPlayerController::HandlePauseResumeRequested()
+{
+	SetPause(false);
+	ClearMenuLayer();
+	bShowMouseCursor = false;
+}
+
+void AFRPlayerController::HandlePauseOptionsRequested()
+{
+	ShowOptionsMenuWidget(true);
+}
+
+void AFRPlayerController::HandlePauseRestartRequested()
+{
+	ShowConfirmDialog(
+		FText::FromString(TEXT("Restart Run")),
+		FText::FromString(TEXT("Restart the current run?")),
+		ConfirmActionRestart);
+}
+
+void AFRPlayerController::HandlePauseMainMenuRequested()
+{
+	ShowConfirmDialog(
+		FText::FromString(TEXT("Return to Main Menu")),
+		FText::FromString(TEXT("Leave the current run and return to the main menu?")),
+		ConfirmActionMainMenu);
+}
+
+void AFRPlayerController::HandlePauseQuitRequested()
+{
+	ShowConfirmDialog(
+		FText::FromString(TEXT("Quit Game")),
+		FText::FromString(TEXT("Quit FortRogue?")),
+		ConfirmActionQuit);
+}
+
+void AFRPlayerController::HandleConfirmRequested()
+{
+	ExecutePendingConfirmAction();
+}
+
+void AFRPlayerController::HandleConfirmCanceled()
+{
+	ClearConfirmDialogWidget();
 }
 
 void AFRPlayerController::ApplyMoveAxis(float Axis, float DeltaSeconds)
