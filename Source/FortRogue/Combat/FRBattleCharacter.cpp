@@ -15,6 +15,7 @@
 #include "Run/FRDefaultLoadoutDefinition.h"
 #include "UI/FRCharacterHealthBarWidget.h"
 #include "UI/FRFloatingCombatText.h"
+#include "UI/FRWorldStatusMarkerWidget.h"
 #include "Weapons/FRWeaponDefinition.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/WidgetComponent.h"
@@ -104,6 +105,22 @@ AFRBattleCharacter::AFRBattleCharacter()
 	HealthBarComponent->SetRelativeLocation(FVector(0.0f, 0.0f, -FootOffsetZ - 18.0f));
 	HealthBarComponent->SetTwoSided(true);
 
+	StatusMarkerComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("StatusMarker"));
+	StatusMarkerComponent->SetupAttachment(Root);
+	StatusMarkerComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	static ConstructorHelpers::FClassFinder<UFRWorldStatusMarkerWidget> StatusMarkerWidgetClassFinder(TEXT("/Game/FortRogue/Widget/MainGame/Components/WBP_WorldStatusMarker"));
+	StatusMarkerWidgetClass = UFRWorldStatusMarkerWidget::StaticClass();
+	if (StatusMarkerWidgetClassFinder.Succeeded())
+	{
+		StatusMarkerWidgetClass = StatusMarkerWidgetClassFinder.Class;
+	}
+	StatusMarkerComponent->SetWidgetClass(StatusMarkerWidgetClass);
+	StatusMarkerComponent->SetWidgetSpace(EWidgetSpace::Screen);
+	StatusMarkerComponent->SetDrawSize(FVector2D(128.0f, 28.0f));
+	StatusMarkerComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 54.0f));
+	StatusMarkerComponent->SetTwoSided(true);
+	StatusMarkerComponent->SetVisibility(false);
+
 	AbilitySystemComponent = CreateDefaultSubobject<UFRAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	CombatSet = CreateDefaultSubobject<UFRCombatSet>(TEXT("CombatSet"));
 
@@ -118,6 +135,10 @@ void AFRBattleCharacter::BeginPlay()
 	if (HealthBarComponent && HealthBarWidgetClass)
 	{
 		HealthBarComponent->SetWidgetClass(HealthBarWidgetClass);
+	}
+	if (StatusMarkerComponent && StatusMarkerWidgetClass)
+	{
+		StatusMarkerComponent->SetWidgetClass(StatusMarkerWidgetClass);
 	}
 
 	AbilitySystemComponent->InitAbilityActorInfo(this, this);
@@ -1888,22 +1909,37 @@ void AFRBattleCharacter::DrawProjectileTrajectory() const
 
 void AFRBattleCharacter::UpdateCharacterWorldIndicators()
 {
-	if (!HealthBarComponent)
+	const bool bShowCharacterUI = !IsDefeated();
+	if (HealthBarComponent)
 	{
-		return;
+		const bool bShowHealthBar = bShowCharacterUI && GetMaxHealth() > 0.0f;
+		HealthBarComponent->SetVisibility(bShowHealthBar);
+		if (bShowHealthBar)
+		{
+			HealthBarComponent->InitWidget();
+			if (UFRCharacterHealthBarWidget* HealthWidget = Cast<UFRCharacterHealthBarWidget>(HealthBarComponent->GetUserWidgetObject()))
+			{
+				HealthWidget->SetHealth(GetHealth(), GetMaxHealth(), IsEnemy());
+			}
+		}
 	}
 
-	const bool bShowHealthBar = !IsDefeated() && GetMaxHealth() > 0.0f;
-	HealthBarComponent->SetVisibility(bShowHealthBar);
-	if (!bShowHealthBar)
+	if (StatusMarkerComponent)
 	{
-		return;
-	}
-
-	HealthBarComponent->InitWidget();
-	if (UFRCharacterHealthBarWidget* HealthWidget = Cast<UFRCharacterHealthBarWidget>(HealthBarComponent->GetUserWidgetObject()))
-	{
-		HealthWidget->SetHealth(GetHealth(), GetMaxHealth(), IsEnemy());
+		const AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
+		const EFRBattleState BattleState = GameMode ? GameMode->GetBattleState() : EFRBattleState::PlayerTurn;
+		const bool bTargetMarker = (BattleState == EFRBattleState::PlayerTurn && IsEnemy())
+			|| (BattleState == EFRBattleState::EnemyTurn && !IsEnemy());
+		const bool bShowStatusMarker = bShowCharacterUI && (IsActiveTurn() || bTargetMarker);
+		StatusMarkerComponent->SetVisibility(bShowStatusMarker);
+		if (bShowStatusMarker)
+		{
+			StatusMarkerComponent->InitWidget();
+			if (UFRWorldStatusMarkerWidget* StatusMarkerWidget = Cast<UFRWorldStatusMarkerWidget>(StatusMarkerComponent->GetUserWidgetObject()))
+			{
+				StatusMarkerWidget->SetMarkerState(IsActiveTurn() ? ActiveTurnMarkerText : TargetMarkerText, true, IsActiveTurn(), bTargetMarker, IsEnemy());
+			}
+		}
 	}
 }
 

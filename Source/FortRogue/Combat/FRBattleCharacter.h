@@ -17,6 +17,7 @@ class UFRAbilitySystemComponent;
 class UFRCombatSet;
 class UFRDefaultLoadoutDefinition;
 class UFRCharacterHealthBarWidget;
+class UFRWorldStatusMarkerWidget;
 class UPaperFlipbookComponent;
 class UStaticMeshComponent;
 class UFRItemDefinition;
@@ -402,6 +403,18 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI", meta = (ToolTip = "캐릭터 위에 표시할 월드 체력바 위젯 클래스입니다."))
 	TSubclassOf<UFRCharacterHealthBarWidget> HealthBarWidgetClass;
+
+	UPROPERTY(VisibleAnywhere, Category = "FortRogue|UI")
+	TObjectPtr<UWidgetComponent> StatusMarkerComponent;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI", meta = (ToolTip = "캐릭터 위에 표시할 선택/타겟 마커 위젯 클래스입니다."))
+	TSubclassOf<UFRWorldStatusMarkerWidget> StatusMarkerWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI", meta = (ToolTip = "활성 턴 캐릭터에 표시할 월드 마커 텍스트입니다."))
+	FText ActiveTurnMarkerText = FText::FromString(TEXT("ACTIVE"));
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI", meta = (ToolTip = "현재 공격 대상 캐릭터에 표시할 월드 마커 텍스트입니다."))
+	FText TargetMarkerText = FText::FromString(TEXT("TARGET"));
 
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue|Abilities")
 	TObjectPtr<UFRAbilitySystemComponent> AbilitySystemComponent;
