@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include "Blueprint/UserWidget.h"
+#include "CommonUserWidget.h"
 #include "CoreMinimal.h"
 #include "FRCharacterHealthBarWidget.generated.h"
 
 class UProgressBar;
 
 UCLASS()
-class FORTROGUE_API UFRCharacterHealthBarWidget : public UUserWidget
+class FORTROGUE_API UFRCharacterHealthBarWidget : public UCommonUserWidget
 {
 	GENERATED_BODY()
 

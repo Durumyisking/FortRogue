@@ -2,14 +2,14 @@
 
 #pragma once
 
-#include "Blueprint/UserWidget.h"
+#include "CommonUserWidget.h"
 #include "CoreMinimal.h"
 #include "FRFloatingCombatTextWidget.generated.h"
 
 class UTextBlock;
 
 UCLASS()
-class FORTROGUE_API UFRFloatingCombatTextWidget : public UUserWidget
+class FORTROGUE_API UFRFloatingCombatTextWidget : public UCommonUserWidget
 {
 	GENERATED_BODY()
 

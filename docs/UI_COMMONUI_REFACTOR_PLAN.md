@@ -237,6 +237,7 @@
 - [x] Convert C++ fallback HUD TextBlock/Border construction to CommonUI primitives.
 - [x] Convert C++ fallback HUD numeric value displays to CommonNumericTextBlock.
 - [x] Convert floating combat text fallback construction to CommonTextBlock.
+- [x] Convert remaining C++ gameplay widget bases to CommonUserWidget/CommonActivatableWidget.
 - [x] Rebuild remaining menu/dialog buttons as CommonButtonBase widgets.
 - [x] Identify remaining C++ generated runtime UI entry points.
 - [x] Wire runtime HUD, world health, and floating combat text to authored UMG assets.
