@@ -38,6 +38,7 @@
 - `Content/FortRogue/Widget` now has CommonUI root, menu, HUD, world health, floating text, style, and component assets.
 - `AFRPlayerController`, `AFRBattleCharacter`, and `AFRFloatingCombatText` now default to the authored HUD/world/floating WBP assets while keeping editable class overrides.
 - `WBP_BattleHUD` now has a `UFRBattleHUDViewModel` MVVM context, and `UFRBattleHUDWidget` creates, updates, and injects the same ViewModel instance at runtime.
+- Battle HUD module adapter widget classes now exist so module WBPs can own their display updates without parent-to-child internal bindings.
 
 ## Key Problems
 
@@ -124,6 +125,7 @@
 - `UFRCharacterHealthBarWidget` and `UFRFloatingCombatTextWidget` require named widgets from authored WBP assets and no longer construct fallback widget trees.
 - `UFRBattleHUDWidget` no longer constructs a fallback HUD layout in C++; missing authored HUD modules will surface as missing UI instead of silently showing generated panels.
 - `UFRBattleHUDWidget` now injects module-specific runtime ViewModels into known child module widgets so modules can own their own MVVM bindings.
+- `UFRBattleHUDModuleWidgetBase` and derived adapter widgets can receive injected module ViewModels and push values into optional named CommonUI widgets.
 - Next implementation step: restart the editor/MCP session, then bind and save each module widget directly to the injected ViewModel.
 
 ## Recommended Widget Modules
@@ -250,6 +252,7 @@
 - [x] Add module/domain ViewModel classes for battle HUD modules.
 - [x] Add numeric binding fields for CommonNumericTextBlock-ready battle HUD modules.
 - [x] Inject module/domain ViewModels into battle HUD module widgets.
+- [x] Add battle HUD module adapter widget classes for injected ViewModels.
 - [ ] Replace prototype MVVM with module/domain ViewModels and real module-level bindings.
 - [x] Compile and save created UMG assets.
 
@@ -257,4 +260,4 @@
 
 Restart the editor/MCP session before editing MVVM bindings again. The last tool session crashed while compiling `WBP_ShotInfoPanel` after Live Coding changed `UFRBattleHUDViewModel` FieldNotify members.
 
-After restart, bind `WBP_TurnBanner` to `UFRBattleStateViewModel`, `WBP_CombatantStatusPanel` to `UFRCombatantStatusViewModel`, `WBP_AimWindIndicator` to `UFRAimWindViewModel`, `WBP_ShotPowerMeter` to `UFRShotPowerViewModel`, `WBP_LoadoutBar` to `UFRLoadoutViewModel`, `WBP_ShotInfoPanel` to `UFRShotPreviewViewModel`, and `WBP_ModifierSummary` to `UFRModifierSummaryViewModel`. Do not bind from the parent HUD into nested widget internals; that path failed compilation and should be replaced with module-owned bindings or thin C++ adapter widgets.
+After restart, set module WBP base classes to the matching adapter widgets or bind each module directly to its injected ViewModel: `WBP_TurnBanner` -> `UFRBattleStatePanelWidget` / `UFRBattleStateViewModel`, `WBP_CombatantStatusPanel` -> `UFRCombatantStatusPanelWidget` / `UFRCombatantStatusViewModel`, `WBP_AimWindIndicator` -> `UFRAimWindIndicatorWidget` / `UFRAimWindViewModel`, `WBP_ShotPowerMeter` -> `UFRShotPowerMeterWidget` / `UFRShotPowerViewModel`, `WBP_LoadoutBar` -> `UFRLoadoutBarWidget` / `UFRLoadoutViewModel`, `WBP_ShotInfoPanel` -> `UFRShotInfoPanelWidget` / `UFRShotPreviewViewModel`, and `WBP_ModifierSummary` -> `UFRModifierSummaryWidget` / `UFRModifierSummaryViewModel`. Do not bind from the parent HUD into nested widget internals; that path failed compilation and should stay replaced with module-owned bindings or the adapter widgets.

@@ -199,6 +199,7 @@ private:
 	void ApplyViewModelToChild(FName WidgetName, UMVVMViewModelBase* ViewModel) const;
 	void ApplyBattleHUDViewModel(UUserWidget* Widget) const;
 	void RefreshViewModel();
+	void RefreshModuleWidgets() const;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UFRBattleHUDViewModel> BattleHUDViewModel;

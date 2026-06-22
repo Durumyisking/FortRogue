@@ -10,6 +10,7 @@
 #include "Items/FRItemDefinition.h"
 #include "MVVMBlueprintLibrary.h"
 #include "UI/FRBattleHUDModuleViewModels.h"
+#include "UI/FRBattleHUDModuleWidgets.h"
 #include "UI/FRBattleHUDViewModel.h"
 
 namespace
@@ -142,6 +143,7 @@ void UFRBattleHUDWidget::NativeOnInitialized()
 void UFRBattleHUDWidget::RefreshBattleHUD_Implementation()
 {
 	RefreshViewModel();
+	RefreshModuleWidgets();
 }
 
 void UFRBattleHUDWidget::CreateViewModels()
@@ -191,6 +193,11 @@ void UFRBattleHUDWidget::ApplyViewModel(UUserWidget* Widget, UMVVMViewModelBase*
 	ViewModelInterface.SetObject(ViewModel);
 	ViewModelInterface.SetInterface(Cast<INotifyFieldValueChanged>(ViewModel));
 	UMVVMBlueprintLibrary::SetViewModelByClass(Widget, ViewModelInterface);
+
+	if (UFRBattleHUDModuleWidgetBase* ModuleWidget = Cast<UFRBattleHUDModuleWidgetBase>(Widget))
+	{
+		ModuleWidget->SetRawViewModel(ViewModel);
+	}
 }
 
 void UFRBattleHUDWidget::ApplyViewModelToChild(FName WidgetName, UMVVMViewModelBase* ViewModel) const
@@ -206,6 +213,33 @@ void UFRBattleHUDWidget::ApplyViewModelToChild(FName WidgetName, UMVVMViewModelB
 void UFRBattleHUDWidget::ApplyBattleHUDViewModel(UUserWidget* Widget) const
 {
 	ApplyViewModel(Widget, BattleHUDViewModel);
+}
+
+void UFRBattleHUDWidget::RefreshModuleWidgets() const
+{
+	if (!WidgetTree)
+	{
+		return;
+	}
+
+	const FName ModuleWidgetNames[] =
+	{
+		TEXT("TurnBanner"),
+		TEXT("PlayerStatusPanel"),
+		TEXT("AimWindIndicator"),
+		TEXT("ShotPowerMeter"),
+		TEXT("LoadoutBar"),
+		TEXT("ShotInfoPanel"),
+		TEXT("ModifierSummary")
+	};
+
+	for (const FName WidgetName : ModuleWidgetNames)
+	{
+		if (UFRBattleHUDModuleWidgetBase* ModuleWidget = Cast<UFRBattleHUDModuleWidgetBase>(WidgetTree->FindWidget(WidgetName)))
+		{
+			ModuleWidget->RefreshFromViewModel();
+		}
+	}
 }
 
 void UFRBattleHUDWidget::RefreshViewModel()
