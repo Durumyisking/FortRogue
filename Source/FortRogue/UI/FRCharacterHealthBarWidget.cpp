@@ -18,11 +18,11 @@ void UFRCharacterHealthBarWidget::NativeOnInitialized()
 	if (!HealthBar && WidgetTree)
 	{
 		USizeBox* RootBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("HealthBarRoot"));
-		RootBox->SetWidthOverride(86.0f);
-		RootBox->SetHeightOverride(9.0f);
+		RootBox->SetWidthOverride(FallbackBarSize.X);
+		RootBox->SetHeightOverride(FallbackBarSize.Y);
 
 		HealthBar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), TEXT("HealthBar"));
-		HealthBar->SetFillColorAndOpacity(FLinearColor(0.18f, 0.82f, 0.32f, 1.0f));
+		HealthBar->SetFillColorAndOpacity(PlayerFillColor);
 		RootBox->SetContent(HealthBar);
 		WidgetTree->RootWidget = RootBox;
 	}
@@ -47,7 +47,5 @@ void UFRCharacterHealthBarWidget::UpdateHealthBar()
 
 	const float HealthPercent = FMath::Clamp(CachedCurrentHealth / CachedMaxHealth, 0.0f, 1.0f);
 	HealthBar->SetPercent(HealthPercent);
-	HealthBar->SetFillColorAndOpacity(bCachedEnemy
-		? FLinearColor(0.95f, 0.2f, 0.16f, 1.0f)
-		: FLinearColor(0.18f, 0.82f, 0.32f, 1.0f));
+	HealthBar->SetFillColorAndOpacity(bCachedEnemy ? EnemyFillColor : PlayerFillColor);
 }

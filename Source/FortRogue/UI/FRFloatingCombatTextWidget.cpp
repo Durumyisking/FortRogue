@@ -18,13 +18,23 @@ void UFRFloatingCombatTextWidget::NativeOnInitialized()
 	if (!DamageText && WidgetTree)
 	{
 		DamageText = WidgetTree->ConstructWidget<UCommonTextBlock>(UCommonTextBlock::StaticClass(), TEXT("DamageText"));
-		FSlateFontInfo Font = DamageText->GetFont();
-		Font.Size = 24;
-		DamageText->SetFont(Font);
-		DamageText->SetColorAndOpacity(FSlateColor(FLinearColor(1.0f, 0.9f, 0.12f, 1.0f)));
+		if (UCommonTextBlock* CommonDamageText = Cast<UCommonTextBlock>(DamageText))
+		{
+			if (FallbackTextStyle)
+			{
+				CommonDamageText->SetStyle(FallbackTextStyle);
+			}
+		}
+		if (!FallbackTextStyle)
+		{
+			FSlateFontInfo Font = DamageText->GetFont();
+			Font.Size = FMath::RoundToInt(FallbackFontSize);
+			DamageText->SetFont(Font);
+			DamageText->SetColorAndOpacity(FSlateColor(FallbackTextColor));
+		}
 		DamageText->SetJustification(ETextJustify::Center);
-		DamageText->SetShadowOffset(FVector2D(1.0f, 1.0f));
-		DamageText->SetShadowColorAndOpacity(FLinearColor::Black);
+		DamageText->SetShadowOffset(FallbackShadowOffset);
+		DamageText->SetShadowColorAndOpacity(FallbackShadowColor);
 		WidgetTree->RootWidget = DamageText;
 	}
 

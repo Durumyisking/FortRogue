@@ -6,6 +6,7 @@
 #include "CoreMinimal.h"
 #include "FRFloatingCombatTextWidget.generated.h"
 
+class UCommonTextStyle;
 class UTextBlock;
 
 UCLASS()
@@ -21,6 +22,21 @@ protected:
 
 private:
 	void UpdateDamageText();
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Fallback Style")
+	TSubclassOf<UCommonTextStyle> FallbackTextStyle;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Fallback Style")
+	float FallbackFontSize = 24.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Fallback Style")
+	FLinearColor FallbackTextColor = FLinearColor(1.0f, 0.9f, 0.12f, 1.0f);
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Fallback Style")
+	FVector2D FallbackShadowOffset = FVector2D(1.0f, 1.0f);
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Fallback Style")
+	FLinearColor FallbackShadowColor = FLinearColor::Black;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UTextBlock> DamageText;
