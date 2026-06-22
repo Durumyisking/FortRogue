@@ -34,7 +34,7 @@ namespace
 		}
 	}
 
-	void ApplyTextStyle(UCommonTextBlock* TextBlock, TSubclassOf<UCommonTextStyle> TextStyle)
+	void ApplyMenuTextStyle(UCommonTextBlock* TextBlock, TSubclassOf<UCommonTextStyle> TextStyle)
 	{
 		if (TextBlock && TextStyle)
 		{
@@ -42,7 +42,7 @@ namespace
 		}
 	}
 
-	void ApplyButtonStyle(UCommonButtonBase* Button, TSubclassOf<UCommonButtonStyle> ButtonStyle)
+	void ApplyMenuButtonStyle(UCommonButtonBase* Button, TSubclassOf<UCommonButtonStyle> ButtonStyle)
 	{
 		if (Button && ButtonStyle)
 		{
@@ -52,9 +52,9 @@ namespace
 
 	void ApplyMenuTextStyles(const FFRMenuStyleSet& StyleSet, UCommonTextBlock* TitleText, UCommonTextBlock* BodyText, UCommonTextBlock* StatusText)
 	{
-		ApplyTextStyle(TitleText, StyleSet.TitleTextStyle);
-		ApplyTextStyle(BodyText, StyleSet.BodyTextStyle);
-		ApplyTextStyle(StatusText, StyleSet.StatusTextStyle);
+		ApplyMenuTextStyle(TitleText, StyleSet.TitleTextStyle);
+		ApplyMenuTextStyle(BodyText, StyleSet.BodyTextStyle);
+		ApplyMenuTextStyle(StatusText, StyleSet.StatusTextStyle);
 	}
 
 	void ApplyMenuViewModel(UUserWidget* Widget, UMVVMViewModelBase* ViewModel)
@@ -177,9 +177,9 @@ void UFRMainMenuWidget::RefreshFromMenuViewModel()
 void UFRMainMenuWidget::ApplyMenuStyleSet()
 {
 	ApplyMenuTextStyles(MenuStyleSet, TitleText, BodyText, StatusText);
-	ApplyButtonStyle(StartRunButton, MenuStyleSet.PrimaryButtonStyle);
-	ApplyButtonStyle(OptionsButton, MenuStyleSet.SecondaryButtonStyle);
-	ApplyButtonStyle(QuitButton, MenuStyleSet.SecondaryButtonStyle);
+	ApplyMenuButtonStyle(StartRunButton, MenuStyleSet.PrimaryButtonStyle);
+	ApplyMenuButtonStyle(OptionsButton, MenuStyleSet.SecondaryButtonStyle);
+	ApplyMenuButtonStyle(QuitButton, MenuStyleSet.SecondaryButtonStyle);
 }
 
 void UFRMainMenuWidget::HandleStartRunClicked()
@@ -264,9 +264,9 @@ void UFROptionsMenuWidget::RefreshFromViewModel()
 void UFROptionsMenuWidget::ApplyMenuStyleSet()
 {
 	ApplyMenuTextStyles(MenuStyleSet, TitleText, nullptr, nullptr);
-	ApplyButtonStyle(ApplyButton, MenuStyleSet.PrimaryButtonStyle);
-	ApplyButtonStyle(ResetButton, MenuStyleSet.SecondaryButtonStyle);
-	ApplyButtonStyle(BackButton, MenuStyleSet.SecondaryButtonStyle);
+	ApplyMenuButtonStyle(ApplyButton, MenuStyleSet.PrimaryButtonStyle);
+	ApplyMenuButtonStyle(ResetButton, MenuStyleSet.SecondaryButtonStyle);
+	ApplyMenuButtonStyle(BackButton, MenuStyleSet.SecondaryButtonStyle);
 }
 
 void UFROptionsMenuWidget::HandleApplyClicked()
@@ -343,11 +343,11 @@ void UFRPauseMenuWidget::RefreshFromMenuViewModel()
 void UFRPauseMenuWidget::ApplyMenuStyleSet()
 {
 	ApplyMenuTextStyles(MenuStyleSet, TitleText, BodyText, StatusText);
-	ApplyButtonStyle(ResumeButton, MenuStyleSet.PrimaryButtonStyle);
-	ApplyButtonStyle(OptionsButton, MenuStyleSet.SecondaryButtonStyle);
-	ApplyButtonStyle(RestartButton, MenuStyleSet.SecondaryButtonStyle);
-	ApplyButtonStyle(MainMenuButton, MenuStyleSet.SecondaryButtonStyle);
-	ApplyButtonStyle(QuitButton, MenuStyleSet.SecondaryButtonStyle);
+	ApplyMenuButtonStyle(ResumeButton, MenuStyleSet.PrimaryButtonStyle);
+	ApplyMenuButtonStyle(OptionsButton, MenuStyleSet.SecondaryButtonStyle);
+	ApplyMenuButtonStyle(RestartButton, MenuStyleSet.SecondaryButtonStyle);
+	ApplyMenuButtonStyle(MainMenuButton, MenuStyleSet.SecondaryButtonStyle);
+	ApplyMenuButtonStyle(QuitButton, MenuStyleSet.SecondaryButtonStyle);
 }
 
 void UFRPauseMenuWidget::HandleResumeClicked()
@@ -422,8 +422,8 @@ void UFRConfirmDialogWidget::RefreshFromDialogViewModel()
 void UFRConfirmDialogWidget::ApplyMenuStyleSet()
 {
 	ApplyMenuTextStyles(MenuStyleSet, TitleText, MessageText, nullptr);
-	ApplyButtonStyle(ConfirmButton, MenuStyleSet.PrimaryButtonStyle);
-	ApplyButtonStyle(CancelButton, MenuStyleSet.SecondaryButtonStyle);
+	ApplyMenuButtonStyle(ConfirmButton, MenuStyleSet.PrimaryButtonStyle);
+	ApplyMenuButtonStyle(CancelButton, MenuStyleSet.SecondaryButtonStyle);
 }
 
 void UFRConfirmDialogWidget::HandleConfirmClicked()

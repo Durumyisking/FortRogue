@@ -8,10 +8,36 @@
 #include "Rewards/FRRewardTypes.h"
 #include "FRRewardScreenWidget.generated.h"
 
+class UCommonButtonStyle;
 class UCommonNumericTextBlock;
 class UCommonTextBlock;
+class UCommonTextStyle;
 class UPanelWidget;
 class UFRRewardScreenWidget;
+
+USTRUCT(BlueprintType)
+struct FFRRewardStyleSet
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|UI|Style")
+	TSubclassOf<UCommonTextStyle> ScreenTitleTextStyle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|UI|Style")
+	TSubclassOf<UCommonTextStyle> ChoiceIndexTextStyle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|UI|Style")
+	TSubclassOf<UCommonTextStyle> ChoiceTitleTextStyle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|UI|Style")
+	TSubclassOf<UCommonTextStyle> ChoiceSummaryTextStyle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|UI|Style")
+	TSubclassOf<UCommonTextStyle> ChoiceConditionTextStyle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|UI|Style")
+	TSubclassOf<UCommonButtonStyle> ChoiceButtonStyle;
+};
 
 UCLASS(BlueprintType)
 class FORTROGUE_API UFRRewardChoiceViewModel : public UMVVMViewModelBase
@@ -100,6 +126,11 @@ protected:
 	virtual void NativeOnClicked() override;
 
 private:
+	void ApplyRewardStyleSet();
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Style")
+	FFRRewardStyleSet RewardStyleSet;
+
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCommonNumericTextBlock> ChoiceIndexText;
 
@@ -165,6 +196,14 @@ private:
 	void CreateViewModel();
 	void RefreshViewModel();
 	void RefreshRewardChoiceButtons();
+	void RefreshFromViewModel();
+	void ApplyRewardScreenStyleSet();
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Style")
+	FFRRewardStyleSet RewardStyleSet;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCommonTextBlock> TitleText;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UPanelWidget> RewardChoicePanel;

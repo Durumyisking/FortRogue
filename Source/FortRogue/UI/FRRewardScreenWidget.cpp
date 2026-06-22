@@ -18,6 +18,14 @@ namespace
 		}
 	}
 
+	void ApplyRewardTextStyle(UCommonTextBlock* TextBlock, TSubclassOf<UCommonTextStyle> TextStyle)
+	{
+		if (TextBlock && TextStyle)
+		{
+			TextBlock->SetStyle(TextStyle);
+		}
+	}
+
 	TArray<UFRRewardChoiceButtonWidget*> GetRewardChoiceButtons(UPanelWidget* Panel)
 	{
 		TArray<UFRRewardChoiceButtonWidget*> Buttons;
@@ -100,7 +108,20 @@ void UFRRewardChoiceButtonWidget::NativeOnInitialized()
 {
 	Super::NativeOnInitialized();
 
+	ApplyRewardStyleSet();
 	RefreshFromViewModel();
+}
+
+void UFRRewardChoiceButtonWidget::ApplyRewardStyleSet()
+{
+	ApplyRewardTextStyle(ChoiceIndexText, RewardStyleSet.ChoiceIndexTextStyle);
+	ApplyRewardTextStyle(TitleText, RewardStyleSet.ChoiceTitleTextStyle);
+	ApplyRewardTextStyle(SummaryText, RewardStyleSet.ChoiceSummaryTextStyle);
+	ApplyRewardTextStyle(ConditionText, RewardStyleSet.ChoiceConditionTextStyle);
+	if (RewardStyleSet.ChoiceButtonStyle)
+	{
+		SetStyle(RewardStyleSet.ChoiceButtonStyle);
+	}
 }
 
 void UFRRewardChoiceButtonWidget::SetRewardScreen(UFRRewardScreenWidget* InRewardScreen)
@@ -184,7 +205,9 @@ void UFRRewardScreenWidget::CreateViewModel()
 void UFRRewardScreenWidget::RefreshRewardScreen_Implementation()
 {
 	RefreshViewModel();
+	RefreshFromViewModel();
 	RefreshRewardChoiceButtons();
+	ApplyRewardScreenStyleSet();
 }
 
 void UFRRewardScreenWidget::RefreshViewModel()
@@ -218,6 +241,21 @@ void UFRRewardScreenWidget::RefreshViewModel()
 		ChoiceViewModel->SetConditionText(bCanChoose ? FText::GetEmpty() : GameMode->GetRewardChoiceConditionFailureSummary(Index));
 		ChoiceViewModel->SetCanChoose(bCanChoose);
 	}
+}
+
+void UFRRewardScreenWidget::RefreshFromViewModel()
+{
+	if (!RewardScreenViewModel)
+	{
+		return;
+	}
+
+	SetRewardText(TitleText, RewardScreenViewModel->GetTitleText());
+}
+
+void UFRRewardScreenWidget::ApplyRewardScreenStyleSet()
+{
+	ApplyRewardTextStyle(TitleText, RewardStyleSet.ScreenTitleTextStyle);
 }
 
 void UFRRewardScreenWidget::RefreshRewardChoiceButtons()
