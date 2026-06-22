@@ -190,9 +190,6 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup", meta = (ToolTip = "플레이어에게 적용할 캐릭터 데이터입니다. 비워두면 캐릭터 클래스 기본값을 사용합니다."))
 	TObjectPtr<UFRCharacterDefinition> PlayerDefinition;
 
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup", meta = (ToolTip = "StageRunDefinition의 적 풀을 쓰지 않을 때 사용할 기본 적 캐릭터 데이터입니다."))
-	TObjectPtr<UFRCharacterDefinition> EnemyDefinition;
-
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Run", meta = (ToolTip = "스테이지 수, 적 풀, 보상 풀, 기본 로드아웃을 정의하는 런 데이터입니다."))
 	TObjectPtr<UFRStageRunDefinition> StageRunDefinition;
 

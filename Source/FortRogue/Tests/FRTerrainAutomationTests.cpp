@@ -34,6 +34,7 @@
 #include "Run/FRDefaultLoadoutDefinition.h"
 #include "Run/FRStageRunDefinition.h"
 #include "UI/FRBattleHUDWidget.h"
+#include "UI/FRFloatingCombatText.h"
 #include "Weapons/FRWeaponDefinition.h"
 #include "UObject/UnrealType.h"
 
@@ -279,6 +280,9 @@ bool FFRGameModeEnemyTurnContinuationTest::RunTest(const FString& Parameters)
 	UFRStageRunDefinition* StageRunDefinition = NewObject<UFRStageRunDefinition>(GameMode);
 	StageRunDefinition->StageCount = 1;
 	StageRunDefinition->NormalizeStageData();
+	UFRCharacterDefinition* FirstEnemyDefinition = NewObject<UFRCharacterDefinition>(StageRunDefinition);
+	FirstEnemyDefinition->BasicAttackDefinition = CreateTestWeaponDefinition(FirstEnemyDefinition);
+	StageRunDefinition->EnemyDefinitionPool = { FirstEnemyDefinition };
 	GameMode->StageRunDefinition = StageRunDefinition;
 
 	World->InitializeActorsForPlay(URL);
@@ -477,6 +481,8 @@ bool FFRTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	TestFunctionParamGameplayTagCategories(*this, AFRBattleCharacter::StaticClass(), GET_FUNCTION_NAME_CHECKED(AFRBattleCharacter, TryGetCombatAttributeValueByTag), TEXT("AttributeTag"), TEXT("Attribute"));
 	TestFunctionParamGameplayTagCategories(*this, AFRBattleCharacter::StaticClass(), GET_FUNCTION_NAME_CHECKED(AFRBattleCharacter, SelectWeaponByTag), TEXT("WeaponTag"), TEXT("Weapon"));
 	TestFunctionParamGameplayTagCategories(*this, UFRBattleHUDWidget::StaticClass(), GET_FUNCTION_NAME_CHECKED(UFRBattleHUDWidget, GetPlayerItemIndexByTag), TEXT("ItemTag"), TEXT("Item"));
+	TestNull(TEXT("Game mode no longer exposes a fallback enemy definition property"), FindFProperty<FObjectProperty>(AFRGameMode::StaticClass(), TEXT("EnemyDefinition")));
+	TestNull(TEXT("Character definition no longer exposes a map definition property"), FindFProperty<FObjectProperty>(UFRCharacterDefinition::StaticClass(), TEXT("BattleMapDefinition")));
 
 	UFRAbilitySet* NamedAbilitySet = NewObject<UFRAbilitySet>();
 	NamedAbilitySet->DisplayName = FText::FromString(TEXT("Wind Split"));
@@ -1145,7 +1151,8 @@ bool FFRTerrainGameModeMapDefinitionTest::RunTest(const FString& Parameters)
 	TestStageRunDefinition->StageCount = 2;
 	TestStageRunDefinition->NormalizeStageData();
 	UFRCharacterDefinition* TestEnemyDefinition = NewObject<UFRCharacterDefinition>(TestStageRunDefinition);
-	TestEnemyDefinition->BattleMapDefinition = Map;
+	TestEnemyDefinition->BasicAttackDefinition = CreateTestWeaponDefinition(TestEnemyDefinition);
+	TestStageRunDefinition->DefaultTerrainMapDefinition = Map;
 	TestStageRunDefinition->EnemyDefinitionPool = { TestEnemyDefinition };
 	GameMode->StageRunDefinition = TestStageRunDefinition;
 
@@ -1180,6 +1187,9 @@ bool FFRTerrainGameModeMapDefinitionTest::RunTest(const FString& Parameters)
 	}
 	TestNotNull(TEXT("Game mode spawns the player character"), GameMode->GetPlayerCharacter());
 	TestNotNull(TEXT("Game mode spawns the enemy character"), GameMode->GetEnemyCharacter());
+	const int32 EnemyCountBeforeNullDefinitionSpawn = GameMode->GetEnemyCharacters().Num();
+	TestNull(TEXT("Game mode skips enemy spawns without a character definition"), GameMode->SpawnEnemyCharacter(World, FVector::ZeroVector, nullptr, false, false));
+	TestEqual(TEXT("Null enemy definitions do not add placeholder cube enemies"), GameMode->GetEnemyCharacters().Num(), EnemyCountBeforeNullDefinitionSpawn);
 	TestEqual(TEXT("Game mode turn wind can be fixed for deterministic projectile tests"), GameMode->GetWind(), 120.0f);
 	TestTrue(TEXT("Game mode wind summary includes signed wind"), GameMode->GetWindSummary().ToString().Contains(TEXT("Wind +120")));
 	TestTrue(TEXT("Game mode run progress summary includes stage progress"), GameMode->GetRunProgressSummary().ToString().Contains(TEXT("Stage 1/2")));
@@ -1311,6 +1321,7 @@ bool FFRTerrainGameModeMapDefinitionTest::RunTest(const FString& Parameters)
 	{
 		const FVector EnemyLocation = GameMode->GetEnemyCharacter()->GetActorLocation();
 		SpawnedTerrain->CarveCircle(FVector(EnemyLocation.X, EnemyLocation.Y, 5.0f), 40.0f);
+		GameMode->GetEnemyCharacter()->SetActorLocation(EnemyLocation + FVector(0.0f, 0.0f, 500.0f));
 		GameMode->GetEnemyCharacter()->ReevaluateTerrainSupport();
 
 		GameMode->StartEnemyTurn();
@@ -1339,23 +1350,27 @@ bool FFRTerrainGameModeMapDefinitionTest::RunTest(const FString& Parameters)
 
 	UFRCharacterDefinition* NextStageEnemyDefinition = NewObject<UFRCharacterDefinition>();
 	NextStageEnemyDefinition->DisplayName = FText::FromString(TEXT("Map Carrier"));
-	NextStageEnemyDefinition->BattleMapDefinition = NextStageMap;
+	NextStageEnemyDefinition->BasicAttackDefinition = CreateTestWeaponDefinition(NextStageEnemyDefinition);
 
+	TestStageRunDefinition->DefaultTerrainMapDefinition = NextStageMap;
 	TestStageRunDefinition->EnemyDefinitionPool = { NextStageEnemyDefinition };
-	TestEqual(TEXT("Game mode begins on the first stage before enemy defeat transition"), GameMode->GetCurrentStage(), 1);
+	const int32 StageBeforeEnemyDefeat = GameMode->GetCurrentStage();
+	TestStageRunDefinition->StageCount = StageBeforeEnemyDefeat + 1;
+	TestStageRunDefinition->NormalizeStageData();
+	TestEqual(TEXT("Game mode has one more stage before enemy defeat transition"), GameMode->GetMaxStages(), StageBeforeEnemyDefeat + 1);
 	TestNotNull(TEXT("Game mode has an enemy before stage transition"), GameMode->GetEnemyCharacter());
 	if (GameMode->GetEnemyCharacter())
 	{
 		GameMode->GetEnemyCharacter()->ApplyDamage(100000.0f);
 		GameMode->CheckTurnDefeatState();
-		TestEqual(TEXT("Defeating an enemy advances to the next stage without entering rewards"), GameMode->GetCurrentStage(), 2);
+		TestEqual(TEXT("Defeating an enemy advances to the next stage without entering rewards"), GameMode->GetCurrentStage(), StageBeforeEnemyDefeat + 1);
 		TestEqual(TEXT("Next stage starts on the player turn"), GameMode->GetBattleState(), EFRBattleState::PlayerTurn);
 		TestTrue(TEXT("Next stage uses the encountered enemy character definition"), GameMode->CurrentEnemyDefinition == NextStageEnemyDefinition);
 		TestNotNull(TEXT("Next stage respawns terrain"), GameMode->Terrain.Get());
 		if (GameMode->Terrain)
 		{
-			TestEqual(TEXT("Next stage terrain follows the selected enemy map definition"), GameMode->Terrain->MapDefinition.Get(), NextStageMap);
-			TestEqual(TEXT("Next stage terrain width follows the selected enemy map definition"), GameMode->Terrain->Width, 192.0f);
+			TestEqual(TEXT("Next stage terrain follows the stage run map definition"), GameMode->Terrain->MapDefinition.Get(), NextStageMap);
+			TestEqual(TEXT("Next stage terrain width follows the stage run map definition"), GameMode->Terrain->Width, 192.0f);
 		}
 	}
 
@@ -1756,6 +1771,16 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		return Count;
 	};
 
+	auto CountFloatingTexts = [&World]()
+	{
+		int32 Count = 0;
+		for (TActorIterator<AFRFloatingCombatText> It(World); It; ++It)
+		{
+			++Count;
+		}
+		return Count;
+	};
+
 	FFRProjectileEffectDrillParams RuntimeSplitChildDrillParams;
 	RuntimeSplitChildDrillParams.RadiusBonus = 28.0f;
 	FFRProjectileEffectSpec RuntimeSplitChildDrillEffect;
@@ -2095,6 +2120,14 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		TestEqual(TEXT("Exhausted movement budget still leaves the budget at zero"), ExhaustedTurnCharacter->GetMoveBudget(), 0.0f);
 		TestTrue(TEXT("Battle character reports selected weapon fireable before firing"), ExhaustedTurnCharacter->CanFireSelectedWeapon());
 		TestTrue(TEXT("Battle character reports shot charge can begin before firing"), ExhaustedTurnCharacter->CanBeginShotCharge());
+		TestEqual(TEXT("Shot power gauge starts empty at the beginning of a turn"), ExhaustedTurnCharacter->GetShotPower(), 0.0f);
+		TestEqual(TEXT("Shot charge alpha starts empty at the beginning of a turn"), ExhaustedTurnCharacter->GetShotChargeAlpha(), 0.0f);
+		TestEqual(TEXT("Empty shot power gauge still uses the minimum launch speed"), ExhaustedTurnCharacter->GetCurrentShotSpec().LaunchSpeed, 295.0f);
+		ExhaustedTurnCharacter->BeginShotCharge();
+		TestTrue(TEXT("Shot charge can start from an empty gauge"), ExhaustedTurnCharacter->IsChargingShot());
+		TestEqual(TEXT("Shot charge begins at zero percent"), ExhaustedTurnCharacter->GetShotChargeAlpha(), 0.0f);
+		ExhaustedTurnCharacter->UpdateShotCharge(10.0f);
+		TestEqual(TEXT("Shot charge can fill to one hundred percent"), ExhaustedTurnCharacter->GetShotChargeAlpha(), 1.0f);
 		TestEqual(TEXT("Facing change with exhausted movement budget fires to the requested side"), ExhaustedTurnCharacter->FireSelectedWeapon(), 1);
 		TestFalse(TEXT("Battle character reports selected weapon not fireable after firing"), ExhaustedTurnCharacter->CanFireSelectedWeapon());
 		AFRProjectile* ExhaustedTurnProjectile = nullptr;
@@ -2262,6 +2295,7 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		{
 			FastProjectileTarget->SetActorLocation(FVector(260.0f, 500.0f, 35.0f));
 			const float TargetHealthBeforeHit = FastProjectileTarget->GetHealth();
+			const int32 FloatingTextCountBeforeHit = CountFloatingTexts();
 			AFRProjectile* FastCharacterProjectile = World->SpawnActor<AFRProjectile>(AFRProjectile::StaticClass(), FVector(203.0f, 0.0f, 35.0f), FRotator::ZeroRotator, SpawnParams);
 			TestNotNull(TEXT("Fast character projectile is spawned"), FastCharacterProjectile);
 			if (FastCharacterProjectile)
@@ -2269,9 +2303,39 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 				FastCharacterProjectile->InitializeProjectile(nullptr, FastProjectileTerrain, FVector(1940.0f, 0.0f, 0.0f), 20.0f, 30.0f, 50.0f, 20.0f, 0.0f);
 				FastCharacterProjectile->Tick(0.1f);
 				TestEqual(TEXT("Direct hit applies hit plus full explosion damage"), FastProjectileTarget->GetHealth(), TargetHealthBeforeHit - 50.0f);
+				TestEqual(TEXT("Damage spawns one floating combat text actor"), CountFloatingTexts(), FloatingTextCountBeforeHit + 1);
 				TestTrue(TEXT("Later terrain remains solid when the earlier character is hit"), FastProjectileTerrain->IsSolidAtWorldLocation(FVector(305.0f, 0.0f, 35.0f)));
 			}
 			FastProjectileTarget->Destroy();
+		}
+
+		AFRBattleCharacter* ProjectileOwner = World->SpawnActor<AFRBattleCharacter>(AFRBattleCharacter::StaticClass(), FVector(9000.0f, 0.0f, 2000.0f), FRotator::ZeroRotator, SpawnParams);
+		AFRBattleCharacter* FriendlyTarget = World->SpawnActor<AFRBattleCharacter>(AFRBattleCharacter::StaticClass(), FVector(9060.0f, 0.0f, 2000.0f), FRotator::ZeroRotator, SpawnParams);
+		AFRBattleCharacter* EnemyTarget = World->SpawnActor<AFRBattleCharacter>(AFRBattleCharacter::StaticClass(), FVector(9120.0f, 0.0f, 2000.0f), FRotator::ZeroRotator, SpawnParams);
+		TestNotNull(TEXT("Projectile owner is spawned for team filtering"), ProjectileOwner);
+		TestNotNull(TEXT("Friendly target is spawned for team filtering"), FriendlyTarget);
+		TestNotNull(TEXT("Enemy target is spawned for team filtering"), EnemyTarget);
+		if (ProjectileOwner && FriendlyTarget && EnemyTarget)
+		{
+			ProjectileOwner->ConfigureAsEnemy(false);
+			FriendlyTarget->ConfigureAsEnemy(false);
+			EnemyTarget->ConfigureAsEnemy(true);
+			ProjectileOwner->SetActorLocation(FVector(9000.0f, 0.0f, 2000.0f));
+			FriendlyTarget->SetActorLocation(FVector(9060.0f, 0.0f, 2000.0f));
+			EnemyTarget->SetActorLocation(FVector(9120.0f, 0.0f, 2000.0f));
+			const float OwnerHealthBeforeTeamShot = ProjectileOwner->GetHealth();
+			const float FriendlyHealthBeforeTeamShot = FriendlyTarget->GetHealth();
+			const float EnemyHealthBeforeTeamShot = EnemyTarget->GetHealth();
+			AFRProjectile* TeamFilteredProjectile = World->SpawnActor<AFRProjectile>(AFRProjectile::StaticClass(), FVector(9000.0f, 0.0f, 2000.0f), FRotator::ZeroRotator, SpawnParams);
+			TestNotNull(TEXT("Team-filtered projectile is spawned"), TeamFilteredProjectile);
+			if (TeamFilteredProjectile)
+			{
+				TeamFilteredProjectile->InitializeProjectile(ProjectileOwner, nullptr, FVector(1200.0f, 0.0f, 0.0f), 20.0f, 30.0f, 70.0f, 70.0f, 0.0f);
+				TeamFilteredProjectile->Tick(0.11f);
+				TestEqual(TEXT("Projectile does not damage its owner"), ProjectileOwner->GetHealth(), OwnerHealthBeforeTeamShot);
+				TestEqual(TEXT("Projectile ignores friendly characters in its path"), FriendlyTarget->GetHealth(), FriendlyHealthBeforeTeamShot);
+				TestEqual(TEXT("Projectile damages enemy characters with hit plus blast damage"), EnemyTarget->GetHealth(), EnemyHealthBeforeTeamShot - 50.0f);
+			}
 		}
 
 		AFRBattleCharacter* ExplosionFalloffTarget = World->SpawnActor<AFRBattleCharacter>(AFRBattleCharacter::StaticClass(), FVector(340.0f, 500.0f, 35.0f), FRotator::ZeroRotator, SpawnParams);

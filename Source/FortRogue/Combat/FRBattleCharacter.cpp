@@ -13,8 +13,11 @@
 #include "Perks/FRPerkDefinition.h"
 #include "Rewards/FRRewardBlueprintLibrary.h"
 #include "Run/FRDefaultLoadoutDefinition.h"
+#include "UI/FRCharacterHealthBarWidget.h"
+#include "UI/FRFloatingCombatText.h"
 #include "Weapons/FRWeaponDefinition.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/WidgetComponent.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/StaticMesh.h"
 #include "EngineUtils.h"
@@ -86,10 +89,20 @@ AFRBattleCharacter::AFRBattleCharacter()
 	BodySprite->SetVisibility(false);
 	UpdateCharacterRotation(0.0f);
 
+	HealthBarComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBar"));
+	HealthBarComponent->SetupAttachment(Root);
+	HealthBarComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	HealthBarComponent->SetWidgetClass(UFRCharacterHealthBarWidget::StaticClass());
+	HealthBarComponent->SetWidgetSpace(EWidgetSpace::Screen);
+	HealthBarComponent->SetDrawSize(FVector2D(92.0f, 14.0f));
+	HealthBarComponent->SetRelativeLocation(FVector(0.0f, 0.0f, -FootOffsetZ - 18.0f));
+	HealthBarComponent->SetTwoSided(true);
+
 	AbilitySystemComponent = CreateDefaultSubobject<UFRAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	CombatSet = CreateDefaultSubobject<UFRCombatSet>(TEXT("CombatSet"));
 
 	CharacterDisplayName = FText::FromString(TEXT("Rookie Tank"));
+	FloatingCombatTextClass = AFRFloatingCombatText::StaticClass();
 }
 
 void AFRBattleCharacter::BeginPlay()
@@ -103,6 +116,7 @@ void AFRBattleCharacter::BeginPlay()
 	GrantStartupAbilitySets();
 	UpdateCharacterRotation(GetActorPitchDegrees());
 	SnapToTerrain();
+	UpdateCharacterWorldIndicators();
 }
 
 void AFRBattleCharacter::Tick(float DeltaSeconds)
@@ -110,6 +124,7 @@ void AFRBattleCharacter::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 
 	ApplyTerrainGravity(DeltaSeconds);
+	UpdateCharacterWorldIndicators();
 	DrawProjectileTrajectory();
 }
 
@@ -190,6 +205,7 @@ void AFRBattleCharacter::BeginTurn()
 	bFiredThisTurn = false;
 	bChargingShot = false;
 	ShotChargeElapsed = 0.0f;
+	ShotPower = 0.0f;
 	CombatSet->ResetTurnBudget();
 }
 
@@ -247,7 +263,7 @@ void AFRBattleCharacter::MoveHorizontal(float Axis, float DeltaSeconds)
 				}
 
 				StepLocation.Z = SurfaceZ + FootOffsetZ;
-				if (IsFootprintBlocked(*Terrain, StepLocation, SurfaceZ))
+				if (!TryResolveFootprintBlock(*Terrain, StepLocation, SurfaceZ))
 				{
 					break;
 				}
@@ -309,7 +325,7 @@ void AFRBattleCharacter::AdjustPower(float Axis, float DeltaSeconds)
 		return;
 	}
 
-	ShotPower = FMath::Clamp(ShotPower + Axis * 0.75f * DeltaSeconds, FMath::Min(MinShotPower, MaxShotPower), FMath::Max(MinShotPower, MaxShotPower));
+	ShotPower = FMath::Clamp(ShotPower + Axis * 0.75f * DeltaSeconds, 0.0f, 1.0f);
 }
 
 void AFRBattleCharacter::BeginShotCharge()
@@ -321,7 +337,7 @@ void AFRBattleCharacter::BeginShotCharge()
 
 	bChargingShot = true;
 	ShotChargeElapsed = 0.0f;
-	ShotPower = FMath::Min(MinShotPower, MaxShotPower);
+	ShotPower = 0.0f;
 }
 
 bool AFRBattleCharacter::CanBeginShotCharge() const
@@ -338,8 +354,7 @@ void AFRBattleCharacter::UpdateShotCharge(float DeltaSeconds)
 
 	ShotChargeElapsed += DeltaSeconds;
 	const float ChargeDuration = FMath::Max(ShotChargeSeconds, KINDA_SMALL_NUMBER);
-	const float ChargeAlpha = FMath::Clamp(ShotChargeElapsed / ChargeDuration, 0.0f, 1.0f);
-	ShotPower = FMath::Lerp(FMath::Min(MinShotPower, MaxShotPower), FMath::Max(MinShotPower, MaxShotPower), ChargeAlpha);
+	ShotPower = FMath::Clamp(ShotChargeElapsed / ChargeDuration, 0.0f, 1.0f);
 }
 
 int32 AFRBattleCharacter::ReleaseShotCharge()
@@ -561,7 +576,14 @@ void AFRBattleCharacter::FireAtTarget(AFRBattleCharacter* Target, const FFRStage
 
 void AFRBattleCharacter::ApplyDamage(float DamageAmount)
 {
+	const float HealthBeforeDamage = GetHealth();
 	CombatSet->ApplyDamage(DamageAmount);
+	const float ActualDamage = FMath::Max(0.0f, HealthBeforeDamage - GetHealth());
+	if (ActualDamage > 0.0f)
+	{
+		SpawnFloatingDamageText(ActualDamage);
+	}
+	UpdateCharacterWorldIndicators();
 }
 
 void AFRBattleCharacter::ReevaluateTerrainSupport()
@@ -1201,14 +1223,7 @@ float AFRBattleCharacter::GetShotPower() const
 
 float AFRBattleCharacter::GetShotChargeAlpha() const
 {
-	const float MinPower = FMath::Min(MinShotPower, MaxShotPower);
-	const float MaxPower = FMath::Max(MinShotPower, MaxShotPower);
-	if (FMath::IsNearlyEqual(MinPower, MaxPower))
-	{
-		return 1.0f;
-	}
-
-	return FMath::Clamp((ShotPower - MinPower) / (MaxPower - MinPower), 0.0f, 1.0f);
+	return FMath::Clamp(ShotPower, 0.0f, 1.0f);
 }
 
 bool AFRBattleCharacter::IsChargingShot() const
@@ -1486,6 +1501,30 @@ bool AFRBattleCharacter::IsFootprintBlocked(const AFRDestructibleTerrain& Terrai
 	return false;
 }
 
+bool AFRBattleCharacter::TryResolveFootprintBlock(const AFRDestructibleTerrain& Terrain, FVector& InOutCenterLocation, float& InOutFootWorldZ) const
+{
+	if (!IsFootprintBlocked(Terrain, InOutCenterLocation, InOutFootWorldZ))
+	{
+		return true;
+	}
+
+	const float LiftStep = FMath::Max(1.0f, Terrain.CellSize);
+	for (float Lift = LiftStep; Lift <= MaxStepUp + KINDA_SMALL_NUMBER; Lift += LiftStep)
+	{
+		const float CandidateFootWorldZ = InOutFootWorldZ + Lift;
+		FVector CandidateLocation = InOutCenterLocation;
+		CandidateLocation.Z = CandidateFootWorldZ + FootOffsetZ;
+		if (!IsFootprintBlocked(Terrain, CandidateLocation, CandidateFootWorldZ))
+		{
+			InOutCenterLocation = CandidateLocation;
+			InOutFootWorldZ = CandidateFootWorldZ;
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool AFRBattleCharacter::IsSlopeTraversable(float CurrentFootWorldZ, float NextSurfaceWorldZ, float HorizontalDistance, float TerrainCellSize) const
 {
 	if (NextSurfaceWorldZ <= CurrentFootWorldZ)
@@ -1668,6 +1707,13 @@ FVector AFRBattleCharacter::GetProjectileSpawnLocation(const FVector& LaunchDire
 	return GetActorLocation() + LaunchDirection * 70.0f + FVector(0.0f, 0.0f, 35.0f);
 }
 
+float AFRBattleCharacter::GetEffectiveShotPower() const
+{
+	const float MinPower = FMath::Clamp(FMath::Min(MinShotPower, MaxShotPower), 0.0f, 1.0f);
+	const float MaxPower = FMath::Clamp(FMath::Max(MinShotPower, MaxShotPower), 0.0f, 1.0f);
+	return FMath::Clamp(FMath::Max(ShotPower, MinPower), MinPower, MaxPower);
+}
+
 int32 AFRBattleCharacter::SpawnShotSpecProjectiles(const FFRShotSpec& ShotSpec, bool bIncreasePendingProjectileCount)
 {
 	if (!GetWorld())
@@ -1716,7 +1762,7 @@ FFRShotSpec AFRBattleCharacter::BuildShotSpec(const FFRWeaponSpec& Weapon) const
 	ShotSpec.ExplosionFullDamageRadius = FMath::Clamp(Weapon.ExplosionFullDamageRadius, 0.0f, ShotSpec.BlastRadius);
 	ShotSpec.TerrainDamage = FMath::Max(0.0f, Weapon.TerrainDamage);
 	ShotSpec.TerrainFillRadius = 0.0f;
-	ShotSpec.LaunchSpeed = FMath::Max(0.0f, Weapon.ProjectileSpeed * ShotPower * CombatSet->GetShotPowerMultiplier());
+	ShotSpec.LaunchSpeed = FMath::Max(0.0f, Weapon.ProjectileSpeed * GetEffectiveShotPower() * CombatSet->GetShotPowerMultiplier());
 	ShotSpec.Gravity = FMath::Max(0.0f, Weapon.Gravity);
 	ShotSpec.ProjectileCount = FMath::Max(1, Weapon.ProjectilesPerShot + FMath::RoundToInt(CombatSet->GetProjectileCount()) - 1);
 	ShotSpec.ProjectileClass = Weapon.ProjectileClass ? Weapon.ProjectileClass : TSubclassOf<AFRProjectile>(AFRProjectile::StaticClass());
@@ -1760,15 +1806,19 @@ void AFRBattleCharacter::DrawProjectileTrajectory() const
 
 	const FFRWeaponSpec& Weapon = GetCurrentWeapon();
 	const FFRShotSpec ShotSpec = BuildShotSpec(Weapon);
-	FVector Velocity = GetProjectileLaunchDirection(0.0f) * ShotSpec.LaunchSpeed;
-	FVector Location = GetProjectileSpawnLocation(Velocity.GetSafeNormal());
+	const FVector LaunchDirection = GetProjectileLaunchDirection(0.0f);
+	FVector Velocity = LaunchDirection * ShotSpec.LaunchSpeed;
+	FVector Location = GetProjectileSpawnLocation(LaunchDirection);
 	// Keep the preview validated from the orthographic battle camera, not only a free 3D viewport.
 	// Side-view camera depth/projection can make a physically correct 3D debug path look wrong in-game.
+	const FVector PreviewRenderOffset(0.0f, TrajectoryPreviewCameraYOffset, 0.0f);
 	const float StepSeconds = FMath::Max(TrajectoryDebugTimeStep, KINDA_SMALL_NUMBER);
 	const int32 StepCount = FMath::Max(1, TrajectoryDebugSteps);
 	const AFRGameMode* GameMode = GetWorld()->GetAuthGameMode<AFRGameMode>();
 	const float Wind = GameMode ? GameMode->GetWind() : 0.0f;
 	const AFRDestructibleTerrain* Terrain = FindTerrain();
+
+	DrawDebugLine(GetWorld(), Location + PreviewRenderOffset, Location + LaunchDirection * 150.0f + PreviewRenderOffset, FColor::Cyan, false, 0.0f, 1, 3.0f);
 
 	for (int32 Step = 0; Step < StepCount; ++Step)
 	{
@@ -1803,7 +1853,7 @@ void AFRBattleCharacter::DrawProjectileTrajectory() const
 		for (TActorIterator<AFRBattleCharacter> It(GetWorld()); It; ++It)
 		{
 			AFRBattleCharacter* Character = *It;
-			if (!Character || Character->IsDefeated())
+			if (!Character || Character == this || Character->IsDefeated() || Character->IsEnemy() == IsEnemy())
 			{
 				continue;
 			}
@@ -1815,13 +1865,52 @@ void AFRBattleCharacter::DrawProjectileTrajectory() const
 			}
 		}
 
-		DrawDebugLine(GetWorld(), PreviousLocation, bHasImpact ? BestImpactLocation : Location, FColor::Yellow, false, 0.0f, 0, 2.0f);
+		DrawDebugLine(GetWorld(), PreviousLocation + PreviewRenderOffset, (bHasImpact ? BestImpactLocation : Location) + PreviewRenderOffset, FColor::Yellow, false, 0.0f, 1, 2.5f);
 
 		if (bHasImpact)
 		{
-			DrawDebugSphere(GetWorld(), BestImpactLocation, 16.0f, 12, FColor::Red, false, 0.0f, 0, 2.0f);
+			DrawDebugSphere(GetWorld(), BestImpactLocation + PreviewRenderOffset, 16.0f, 12, FColor::Red, false, 0.0f, 1, 2.0f);
 			break;
 		}
+	}
+}
+
+void AFRBattleCharacter::UpdateCharacterWorldIndicators()
+{
+	if (!HealthBarComponent)
+	{
+		return;
+	}
+
+	const bool bShowHealthBar = !IsDefeated() && GetMaxHealth() > 0.0f;
+	HealthBarComponent->SetVisibility(bShowHealthBar);
+	if (!bShowHealthBar)
+	{
+		return;
+	}
+
+	HealthBarComponent->InitWidget();
+	if (UFRCharacterHealthBarWidget* HealthWidget = Cast<UFRCharacterHealthBarWidget>(HealthBarComponent->GetUserWidgetObject()))
+	{
+		HealthWidget->SetHealth(GetHealth(), GetMaxHealth(), IsEnemy());
+	}
+}
+
+void AFRBattleCharacter::SpawnFloatingDamageText(float DamageAmount)
+{
+	if (!GetWorld() || DamageAmount <= 0.0f)
+	{
+		return;
+	}
+
+	const TSubclassOf<AFRFloatingCombatText> ActualTextClass = FloatingCombatTextClass
+		? FloatingCombatTextClass
+		: TSubclassOf<AFRFloatingCombatText>(AFRFloatingCombatText::StaticClass());
+	const FVector SpawnLocation = GetActorLocation() + FVector(0.0f, 0.0f, 72.0f);
+	AFRFloatingCombatText* FloatingText = GetWorld()->SpawnActor<AFRFloatingCombatText>(ActualTextClass, SpawnLocation, FRotator::ZeroRotator);
+	if (FloatingText)
+	{
+		FloatingText->InitializeDamageText(DamageAmount);
 	}
 }
 

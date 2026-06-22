@@ -182,7 +182,7 @@ void AFRProjectile::Tick(float DeltaSeconds)
 	for (TActorIterator<AFRBattleCharacter> It(GetWorld()); It; ++It)
 	{
 		AFRBattleCharacter* Character = *It;
-		if (!Character || Character->IsDefeated())
+		if (!CanAffectCharacter(Character))
 		{
 			continue;
 		}
@@ -292,7 +292,7 @@ void AFRProjectile::ResolveImpact(const FVector& ImpactLocation, AFRBattleCharac
 	for (TActorIterator<AFRBattleCharacter> It(GetWorld()); It; ++It)
 	{
 		AFRBattleCharacter* Character = *It;
-		if (!Character || Character->IsDefeated())
+		if (!CanAffectCharacter(Character))
 		{
 			continue;
 		}
@@ -369,6 +369,21 @@ float AFRProjectile::CalculateExplosionDamage(float Distance) const
 	const float FalloffRange = FMath::Max(KINDA_SMALL_NUMBER, BlastRadius - ExplosionFullDamageRadius);
 	const float FalloffAlpha = FMath::Clamp((Distance - ExplosionFullDamageRadius) / FalloffRange, 0.0f, 1.0f);
 	return FMath::Lerp(Damage, 0.0f, FalloffAlpha);
+}
+
+bool AFRProjectile::CanAffectCharacter(const AFRBattleCharacter* Character) const
+{
+	if (!Character || Character->IsDefeated())
+	{
+		return false;
+	}
+
+	if (!OwnerCharacter)
+	{
+		return true;
+	}
+
+	return Character != OwnerCharacter && Character->IsEnemy() != OwnerCharacter->IsEnemy();
 }
 
 void AFRProjectile::ApplyProjectileEffects(const FVector& ImpactLocation)

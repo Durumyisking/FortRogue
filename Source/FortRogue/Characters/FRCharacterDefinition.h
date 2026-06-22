@@ -8,7 +8,6 @@
 
 class UFRAbilitySet;
 class UPaperFlipbook;
-class UFRTerrainMapDefinition;
 class UFRWeaponDefinition;
 
 UCLASS(BlueprintType)
@@ -19,9 +18,6 @@ class FORTROGUE_API UFRCharacterDefinition : public UPrimaryDataAsset
 public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Character", meta = (ToolTip = "에디터와 UI에 표시할 캐릭터 이름입니다."))
 	FText DisplayName = FText::FromString(TEXT("Rookie Tank"));
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Character", meta = (ToolTip = "이 캐릭터가 전투에 사용할 전용 맵 데이터입니다. 비워두면 런/스테이지 기본 맵을 사용합니다."))
-	TObjectPtr<UFRTerrainMapDefinition> BattleMapDefinition;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visual", meta = (ToolTip = "전투에서 캐릭터 몸체로 표시할 Paper2D flipbook입니다."))
 	TObjectPtr<UPaperFlipbook> BodyFlipbook;

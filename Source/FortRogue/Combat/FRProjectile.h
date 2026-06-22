@@ -35,6 +35,7 @@ private:
 	void ApplyDefaultTerrainImpact(const FVector& ImpactLocation);
 	void ApplyProjectileEffects(const FVector& ImpactLocation);
 	float CalculateExplosionDamage(float Distance) const;
+	bool CanAffectCharacter(const AFRBattleCharacter* Character) const;
 	bool UsesCustomTerrainImpact() const;
 
 	UPROPERTY(VisibleAnywhere, Category = "Projectile")

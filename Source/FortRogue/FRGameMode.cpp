@@ -316,7 +316,7 @@ void AFRGameMode::SpawnMVPBattle()
 
 	EnemyCharacters.Reset();
 	EnemyCharacter = nullptr;
-	UFRCharacterDefinition* DefaultEnemyDefinition = CurrentEnemyDefinition ? CurrentEnemyDefinition.Get() : EnemyDefinition.Get();
+	UFRCharacterDefinition* DefaultEnemyDefinition = CurrentEnemyDefinition.Get();
 	const UFRTerrainMapDefinition* ActiveMapDefinition = Terrain ? Terrain->MapDefinition.Get() : nullptr;
 	if (Terrain && ActiveMapDefinition && ActiveMapDefinition->EnemyPlacements.Num() > 0)
 	{
@@ -354,7 +354,7 @@ void AFRGameMode::SpawnMVPBattle()
 
 AFRBattleCharacter* AFRGameMode::SpawnEnemyCharacter(UWorld* World, const FVector& SpawnLocation, UFRCharacterDefinition* CharacterDefinition, bool bOverrideSpecialAttack, bool bUseSpecialAttack)
 {
-	if (!World)
+	if (!World || !CharacterDefinition)
 	{
 		return nullptr;
 	}
@@ -463,17 +463,12 @@ void AFRGameMode::SelectNextEnemyDefinition()
 	}
 	else
 	{
-		CurrentEnemyDefinition = EnemyDefinition;
+		CurrentEnemyDefinition = nullptr;
 	}
 }
 
 UFRTerrainMapDefinition* AFRGameMode::GetStageTerrainMapDefinition() const
 {
-	if (CurrentEnemyDefinition && CurrentEnemyDefinition->BattleMapDefinition)
-	{
-		return CurrentEnemyDefinition->BattleMapDefinition;
-	}
-
 	if (StageRunDefinition && StageRunDefinition->DefaultTerrainMapDefinition)
 	{
 		return StageRunDefinition->DefaultTerrainMapDefinition;

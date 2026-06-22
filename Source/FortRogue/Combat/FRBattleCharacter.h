@@ -20,6 +20,8 @@ class UPaperFlipbookComponent;
 class UStaticMeshComponent;
 class UFRItemDefinition;
 class UFRPerkDefinition;
+class UWidgetComponent;
+class AFRFloatingCombatText;
 class AFRDestructibleTerrain;
 
 USTRUCT()
@@ -363,6 +365,7 @@ private:
 	bool IsSupportedByTerrain() const;
 	bool FindFootprintSurfaceZ(const AFRDestructibleTerrain& Terrain, float CenterWorldX, float StartWorldZ, float SearchDistance, float& OutSurfaceZ) const;
 	bool IsFootprintBlocked(const AFRDestructibleTerrain& Terrain, const FVector& CenterLocation, float FootWorldZ) const;
+	bool TryResolveFootprintBlock(const AFRDestructibleTerrain& Terrain, FVector& InOutCenterLocation, float& InOutFootWorldZ) const;
 	bool IsSlopeTraversable(float CurrentFootWorldZ, float NextSurfaceWorldZ, float HorizontalDistance, float TerrainCellSize) const;
 	float ClampWorldXToTerrainBounds(const AFRDestructibleTerrain& Terrain, float WorldX) const;
 	void UpdateBodyTerrainAlignment(const AFRDestructibleTerrain* Terrain);
@@ -375,9 +378,12 @@ private:
 	float GetActorPitchDegrees() const;
 	FVector GetProjectileLaunchDirection(float SpreadDegrees) const;
 	FVector GetProjectileSpawnLocation(const FVector& LaunchDirection) const;
+	float GetEffectiveShotPower() const;
 	FFRShotSpec BuildShotSpec(const FFRWeaponSpec& Weapon) const;
 	int32 SpawnShotSpecProjectiles(const FFRShotSpec& ShotSpec, bool bIncreasePendingProjectileCount);
 	void DrawProjectileTrajectory() const;
+	void UpdateCharacterWorldIndicators();
+	void SpawnFloatingDamageText(float DamageAmount);
 	void GrantStartupAbilitySets();
 	void EnsureDefaultLoadout();
 
@@ -389,6 +395,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue")
 	TObjectPtr<UPaperFlipbookComponent> BodySprite;
+
+	UPROPERTY(VisibleAnywhere, Category = "FortRogue|UI")
+	TObjectPtr<UWidgetComponent> HealthBarComponent;
 
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue|Abilities")
 	TObjectPtr<UFRAbilitySystemComponent> AbilitySystemComponent;
@@ -410,8 +419,8 @@ private:
 	bool bSpecialAttackEnabled = true;
 	bool bFacingRight = true;
 	float AimAngle = 45.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Charge", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ClampMax = "1.0", ToolTip = "현재 발사 파워입니다. 차지 중 MinShotPower와 MaxShotPower 사이에서 갱신됩니다."))
-	float ShotPower = 0.25f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Charge", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ClampMax = "1.0", ToolTip = "UI에 표시되는 현재 발사 게이지입니다. 0이어도 실제 발사는 MinShotPower를 사용합니다."))
+	float ShotPower = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "턴 중 좌우 이동 속도입니다. 월드 단위/초 기준입니다."))
 	float MoveSpeed = 260.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "캐릭터 위치에서 발 접지점을 찾을 때 아래로 내리는 Z 오프셋입니다."))
@@ -442,6 +451,10 @@ private:
 	int32 TrajectoryDebugSteps = 50;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Debug", meta = (AllowPrivateAccess = "true", ClampMin = "0.01", ToolTip = "예상 탄도 디버그 계산에서 한 스텝이 의미하는 시간입니다. 초 단위입니다."))
 	float TrajectoryDebugTimeStep = 0.08f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Debug", meta = (AllowPrivateAccess = "true", ToolTip = "직교 카메라에서 탄도 프리뷰가 캐릭터/지형에 파묻혀 보이지 않도록 카메라 쪽으로 당기는 거리입니다."))
+	float TrajectoryPreviewCameraYOffset = 80.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|UI", meta = (AllowPrivateAccess = "true", ToolTip = "데미지를 입었을 때 표시할 플로팅 텍스트 액터 클래스입니다."))
+	TSubclassOf<AFRFloatingCombatText> FloatingCombatTextClass;
 	float ShotChargeElapsed = 0.0f;
 	float VerticalVelocity = 0.0f;
 	bool bChargingShot = false;
