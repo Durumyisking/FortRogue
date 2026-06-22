@@ -4,7 +4,6 @@
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/ProgressBar.h"
-#include "Components/SizeBox.h"
 
 void UFRCharacterHealthBarWidget::NativeOnInitialized()
 {
@@ -13,18 +12,6 @@ void UFRCharacterHealthBarWidget::NativeOnInitialized()
 	if (!HealthBar && WidgetTree)
 	{
 		HealthBar = Cast<UProgressBar>(WidgetTree->FindWidget(TEXT("HealthBar")));
-	}
-
-	if (!HealthBar && WidgetTree)
-	{
-		USizeBox* RootBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("HealthBarRoot"));
-		RootBox->SetWidthOverride(FallbackBarSize.X);
-		RootBox->SetHeightOverride(FallbackBarSize.Y);
-
-		HealthBar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), TEXT("HealthBar"));
-		HealthBar->SetFillColorAndOpacity(PlayerFillColor);
-		RootBox->SetContent(HealthBar);
-		WidgetTree->RootWidget = RootBox;
 	}
 
 	UpdateHealthBar();

@@ -34,7 +34,7 @@
 - `UFRBattleHUDWidget` and `UFRRewardScreenWidget` already inherit from `UCommonActivatableWidget`.
 - The battle HUD no longer builds a C++ fallback widget tree; `UFRBattleHUDWidget` now expects authored UMG modules and only owns ViewModel creation, injection, and refresh.
 - `AFRPlayerController` creates widgets directly with `CreateWidget`, adds them to the viewport, and refreshes the HUD every tick.
-- Character health bars and floating combat text are `UUserWidget` classes, but their widget trees are created in C++ rather than from reusable UMG assets.
+- Character health bars and floating combat text use authored UMG assets; their C++ classes only find named widgets and push runtime values.
 - `Content/FortRogue/Widget` now has CommonUI root, menu, HUD, world health, floating text, style, and component assets.
 - `AFRPlayerController`, `AFRBattleCharacter`, and `AFRFloatingCombatText` now default to the authored HUD/world/floating WBP assets while keeping editable class overrides.
 - `WBP_BattleHUD` now has a `UFRBattleHUDViewModel` MVVM context, and `UFRBattleHUDWidget` creates, updates, and injects the same ViewModel instance at runtime.
@@ -121,7 +121,7 @@
 ## Runtime Integration Remaining
 
 - Runtime HUD, world health, and floating combat text now default to authored WBP assets.
-- `UFRCharacterHealthBarWidget` and `UFRFloatingCombatTextWidget` now prefer named widgets from authored WBP assets and only construct fallback widget trees if no authored widget exists.
+- `UFRCharacterHealthBarWidget` and `UFRFloatingCombatTextWidget` require named widgets from authored WBP assets and no longer construct fallback widget trees.
 - `UFRBattleHUDWidget` no longer constructs a fallback HUD layout in C++; missing authored HUD modules will surface as missing UI instead of silently showing generated panels.
 - `UFRBattleHUDWidget` now injects module-specific runtime ViewModels into known child module widgets so modules can own their own MVVM bindings.
 - Next implementation step: restart the editor/MCP session, then bind and save each module widget directly to the injected ViewModel.
@@ -232,14 +232,15 @@
 - [x] Create CommonUI root and layer widgets.
 - [x] Create CommonUI style assets and common primitive components.
 - [x] Expose fallback HUD CommonUI style classes for editor control.
-- [x] Expose fallback world UI style values for editor control.
+- [x] Expose world health bar presentation colors for editor control.
 - [x] Create modular battle HUD widgets.
 - [x] Create missing main menu and options screen widgets.
 - [x] Convert generated TextBlock/Border widgets to CommonUI primitives.
 - [x] Convert C++ fallback HUD TextBlock/Border construction to CommonUI primitives.
 - [x] Convert C++ fallback HUD numeric value displays to CommonNumericTextBlock.
 - [x] Remove C++ battle HUD fallback layout construction.
-- [x] Convert floating combat text fallback construction to CommonTextBlock.
+- [x] Convert floating combat text authored widget path to CommonTextBlock.
+- [x] Remove C++ world health/floating combat fallback layout construction.
 - [x] Convert remaining C++ gameplay widget bases to CommonUserWidget/CommonActivatableWidget.
 - [x] Rebuild remaining menu/dialog buttons as CommonButtonBase widgets.
 - [x] Identify remaining C++ generated runtime UI entry points.
