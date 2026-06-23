@@ -33,6 +33,7 @@
 #include "UI/FRBattleHUDModuleWidgets.h"
 #include "UI/FRTrajectoryPreviewPointWidget.h"
 #include "UI/FRMenuWidgets.h"
+#include "UI/FRRewardScreenWidget.h"
 #include "UI/FRUIRootWidget.h"
 #include "UI/FRWorldStatusMarkerWidget.h"
 #include "UObject/SavePackage.h"
@@ -48,6 +49,7 @@ static const TCHAR* CommonUIGlobalPath = TEXT("/Game/FortRogue/Widget/Global");
 static const TCHAR* CommonUIGlobalComponentsPath = TEXT("/Game/FortRogue/Widget/Global/Components");
 static const TCHAR* CommonUIButtonsPath = TEXT("/Game/FortRogue/Widget/Global/Components/Buttons");
 static const TCHAR* CommonUIMainMenuPath = TEXT("/Game/FortRogue/Widget/MainMenu");
+static const TCHAR* CommonUIRewardPath = TEXT("/Game/FortRogue/Widget/Reward");
 static const TCHAR* BodyTextStylePath = TEXT("/Game/FortRogue/Widget/Styles/BP_UI_Text_Body.BP_UI_Text_Body_C");
 static const TCHAR* TitleTextStylePath = TEXT("/Game/FortRogue/Widget/Styles/BP_UI_Text_Title.BP_UI_Text_Title_C");
 static const TCHAR* NumberTextStylePath = TEXT("/Game/FortRogue/Widget/Styles/BP_UI_Text_Number.BP_UI_Text_Number_C");
@@ -61,6 +63,7 @@ static const TCHAR* ConfirmButtonClassPath = TEXT("/Game/FortRogue/Widget/Global
 static const TCHAR* CancelButtonClassPath = TEXT("/Game/FortRogue/Widget/Global/Components/Buttons/WBP_Button_Cancel.WBP_Button_Cancel_C");
 static const TCHAR* ResumeButtonClassPath = TEXT("/Game/FortRogue/Widget/Global/Components/Buttons/WBP_Button_Resume.WBP_Button_Resume_C");
 static const TCHAR* MainMenuButtonClassPath = TEXT("/Game/FortRogue/Widget/Global/Components/Buttons/WBP_Button_MainMenu.WBP_Button_MainMenu_C");
+static const TCHAR* RewardChoiceButtonClassPath = TEXT("/Game/FortRogue/Widget/Reward/WBP_RewardChoiceButton.WBP_RewardChoiceButton_C");
 
 template <typename StyleType>
 static TSubclassOf<StyleType> LoadStyleClass(const TCHAR* ClassPath)
@@ -164,9 +167,10 @@ static void EnsureManualMVVMViewModelContext(UWidgetBlueprint* WidgetBlueprint, 
 		return;
 	}
 
+	const FName DefaultViewModelName(*UMVVMEditorSubsystem::GetDefaultViewModelName(ViewModelClass));
 	for (const FMVVMBlueprintViewModelContext& ViewModelContext : BlueprintView->GetViewModels())
 	{
-		if (ViewModelContext.GetViewModelClass() == ViewModelClass)
+		if (ViewModelContext.GetViewModelClass() == ViewModelClass || ViewModelContext.GetViewModelName() == DefaultViewModelName)
 		{
 			return;
 		}
@@ -265,18 +269,27 @@ static UProgressBar* ConstructProgressBar(UWidgetBlueprint* WidgetBlueprint, con
 	return ProgressBar;
 }
 
-static UCommonButtonBase* ConstructButton(UWidgetBlueprint* WidgetBlueprint, const TCHAR* WidgetName, const TCHAR* ButtonClassPath)
+static UCommonButtonBase* ConstructButton(UWidgetBlueprint* WidgetBlueprint, const TCHAR* WidgetName, TSubclassOf<UCommonButtonBase> ButtonClass)
 {
-	TSubclassOf<UCommonButtonBase> ButtonClass = LoadClass<UCommonButtonBase>(nullptr, ButtonClassPath);
 	if (!ButtonClass)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Could not load button class for %s: %s"), WidgetName, ButtonClassPath);
+		UE_LOG(LogTemp, Warning, TEXT("Could not construct button %s because its class is missing"), WidgetName);
 		return nullptr;
 	}
 
 	return WidgetBlueprint && WidgetBlueprint->WidgetTree
 		? WidgetBlueprint->WidgetTree->ConstructWidget<UCommonButtonBase>(ButtonClass, WidgetName)
 		: nullptr;
+}
+
+static UCommonButtonBase* ConstructButton(UWidgetBlueprint* WidgetBlueprint, const TCHAR* WidgetName, const TCHAR* ButtonClassPath)
+{
+	TSubclassOf<UCommonButtonBase> ButtonClass = LoadClass<UCommonButtonBase>(nullptr, ButtonClassPath);
+	if (!ButtonClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Could not load button class for %s: %s"), WidgetName, ButtonClassPath);
+	}
+	return ConstructButton(WidgetBlueprint, WidgetName, ButtonClass);
 }
 
 static void AddVerticalChild(UVerticalBox* Parent, UWidget* Child, const FMargin& Padding = FMargin(0.0f, 0.0f, 0.0f, 8.0f))
@@ -538,6 +551,67 @@ static void ConfigureConfirmDialog(UWidgetBlueprint* WidgetBlueprint)
 	WidgetBlueprint->MarkPackageDirty();
 }
 
+static void ConfigureRewardChoiceButton(UWidgetBlueprint* WidgetBlueprint)
+{
+	if (!WidgetBlueprint || !WidgetBlueprint->WidgetTree || WidgetBlueprint->WidgetTree->RootWidget)
+	{
+		return;
+	}
+
+	WidgetBlueprint->Modify();
+	WidgetBlueprint->WidgetTree->Modify();
+
+	UCommonBorder* RootBorder = WidgetBlueprint->WidgetTree->ConstructWidget<UCommonBorder>(UCommonBorder::StaticClass(), TEXT("ChoiceRoot"));
+	UVerticalBox* RootBox = WidgetBlueprint->WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("ContentBox"));
+	if (!RootBorder || !RootBox)
+	{
+		return;
+	}
+
+	RootBorder->SetStyle(LoadStyleClass<UCommonBorderStyle>(SlotBorderStylePath));
+	RootBorder->SetContent(RootBox);
+	AddVerticalChild(RootBox, ConstructNumber(WidgetBlueprint, TEXT("ChoiceIndexText"), 1.0f));
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("TitleText"), FText::FromString(TEXT("Reward")), LoadStyleClass<UCommonTextStyle>(TitleTextStylePath)));
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("SummaryText"), FText::FromString(TEXT("Reward effect summary")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("ConditionText"), FText::GetEmpty(), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	WidgetBlueprint->WidgetTree->RootWidget = RootBorder;
+	WidgetBlueprint->MarkPackageDirty();
+}
+
+static void ConfigureRewardScreen(UWidgetBlueprint* WidgetBlueprint, TSubclassOf<UCommonButtonBase> RewardChoiceButtonClass)
+{
+	if (!WidgetBlueprint || !WidgetBlueprint->WidgetTree || WidgetBlueprint->WidgetTree->RootWidget)
+	{
+		return;
+	}
+
+	WidgetBlueprint->Modify();
+	WidgetBlueprint->WidgetTree->Modify();
+
+	UVerticalBox* RootBox = CreateMenuPanel(WidgetBlueprint, TEXT("RewardPanel"));
+	if (!RootBox)
+	{
+		return;
+	}
+
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("TitleText"), FText::FromString(TEXT("Choose Reward")), LoadStyleClass<UCommonTextStyle>(TitleTextStylePath)));
+
+	UVerticalBox* RewardChoicePanel = WidgetBlueprint->WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("RewardChoicePanel"));
+	if (!RewardChoicePanel)
+	{
+		return;
+	}
+
+	for (int32 ChoiceIndex = 0; ChoiceIndex < 5; ++ChoiceIndex)
+	{
+		const FString ChoiceName = FString::Printf(TEXT("RewardChoiceButton%d"), ChoiceIndex + 1);
+		AddVerticalChild(RewardChoicePanel, ConstructButton(WidgetBlueprint, *ChoiceName, RewardChoiceButtonClass), FMargin(0.0f, 0.0f, 0.0f, 6.0f));
+	}
+
+	AddVerticalChild(RootBox, RewardChoicePanel);
+	WidgetBlueprint->MarkPackageDirty();
+}
+
 static UVerticalBox* CreateHUDModuleRoot(UWidgetBlueprint* WidgetBlueprint, const TCHAR* RootName)
 {
 	if (!WidgetBlueprint || !WidgetBlueprint->WidgetTree)
@@ -793,6 +867,7 @@ int32 GenerateCommonUIWidgets()
 		ConfigureUIRoot(UIRoot);
 	}
 	RepairUIRootLayerNames(UIRoot);
+	EnsureManualMVVMViewModelContext(UIRoot, UFRUIRootViewModel::StaticClass());
 	WidgetBlueprints.Add(UIRoot);
 
 	UWidgetBlueprint* MainMenu = CreateWidgetBlueprint(CommonUIMainMenuPath, TEXT("WBP_MainMenu"), UFRMainMenuWidget::StaticClass(), bNeedsConfigure);
@@ -800,6 +875,7 @@ int32 GenerateCommonUIWidgets()
 	{
 		ConfigureMainMenu(MainMenu);
 	}
+	EnsureManualMVVMViewModelContext(MainMenu, UFRMenuScreenViewModel::StaticClass());
 	WidgetBlueprints.Add(MainMenu);
 
 	UWidgetBlueprint* OptionsMenu = CreateWidgetBlueprint(CommonUIMainMenuPath, TEXT("WBP_OptionsMenu"), UFROptionsMenuWidget::StaticClass(), bNeedsConfigure);
@@ -807,6 +883,7 @@ int32 GenerateCommonUIWidgets()
 	{
 		ConfigureOptionsMenu(OptionsMenu);
 	}
+	EnsureManualMVVMViewModelContext(OptionsMenu, UFROptionsMenuViewModel::StaticClass());
 	WidgetBlueprints.Add(OptionsMenu);
 
 	UWidgetBlueprint* PauseMenu = CreateWidgetBlueprint(CommonUIMainMenuPath, TEXT("WBP_PauseMenu"), UFRPauseMenuWidget::StaticClass(), bNeedsConfigure);
@@ -814,6 +891,7 @@ int32 GenerateCommonUIWidgets()
 	{
 		ConfigurePauseMenu(PauseMenu);
 	}
+	EnsureManualMVVMViewModelContext(PauseMenu, UFRMenuScreenViewModel::StaticClass());
 	WidgetBlueprints.Add(PauseMenu);
 
 	UWidgetBlueprint* ConfirmDialog = CreateWidgetBlueprint(CommonUIGlobalPath, TEXT("WBP_ConfirmDialog"), UFRConfirmDialogWidget::StaticClass(), bNeedsConfigure);
@@ -821,7 +899,28 @@ int32 GenerateCommonUIWidgets()
 	{
 		ConfigureConfirmDialog(ConfirmDialog);
 	}
+	EnsureManualMVVMViewModelContext(ConfirmDialog, UFRMenuScreenViewModel::StaticClass());
 	WidgetBlueprints.Add(ConfirmDialog);
+
+	UWidgetBlueprint* RewardChoiceButton = CreateWidgetBlueprint(CommonUIRewardPath, TEXT("WBP_RewardChoiceButton"), UFRRewardChoiceButtonWidget::StaticClass(), bNeedsConfigure);
+	if (bNeedsConfigure)
+	{
+		ConfigureRewardChoiceButton(RewardChoiceButton);
+	}
+	EnsureManualMVVMViewModelContext(RewardChoiceButton, UFRRewardChoiceViewModel::StaticClass());
+	WidgetBlueprints.Add(RewardChoiceButton);
+	if (RewardChoiceButton)
+	{
+		FKismetEditorUtilities::CompileBlueprint(RewardChoiceButton);
+	}
+
+	UWidgetBlueprint* RewardScreen = CreateWidgetBlueprint(CommonUIRewardPath, TEXT("WBP_RewardScreen"), UFRRewardScreenWidget::StaticClass(), bNeedsConfigure);
+	if (bNeedsConfigure)
+	{
+		ConfigureRewardScreen(RewardScreen, RewardChoiceButton ? Cast<UClass>(RewardChoiceButton->GeneratedClass) : LoadClass<UCommonButtonBase>(nullptr, RewardChoiceButtonClassPath));
+	}
+	EnsureManualMVVMViewModelContext(RewardScreen, UFRRewardScreenViewModel::StaticClass());
+	WidgetBlueprints.Add(RewardScreen);
 
 	UWidgetBlueprint* BattleHUD = LoadWidgetBlueprint(CommonUIMainGamePath, TEXT("WBP_BattleHUD"));
 	RemovePrototypeMVVMBlueprintExtension(BattleHUD);
@@ -940,6 +1039,7 @@ int32 GenerateCommonUIWidgets()
 	{
 		ConfigureWorldStatusMarker(WorldStatusMarker);
 	}
+	EnsureManualMVVMViewModelContext(WorldStatusMarker, UFRWorldStatusMarkerViewModel::StaticClass());
 	WidgetBlueprints.Add(WorldStatusMarker);
 
 	UWidgetBlueprint* TrajectoryPreviewPoint = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_TrajectoryPreviewPoint"), UFRTrajectoryPreviewPointWidget::StaticClass(), bNeedsConfigure);
@@ -947,6 +1047,7 @@ int32 GenerateCommonUIWidgets()
 	{
 		ConfigureTrajectoryPreviewPoint(TrajectoryPreviewPoint);
 	}
+	EnsureManualMVVMViewModelContext(TrajectoryPreviewPoint, UFRTrajectoryPreviewPointViewModel::StaticClass());
 	WidgetBlueprints.Add(TrajectoryPreviewPoint);
 
 	bool bSavedAll = true;

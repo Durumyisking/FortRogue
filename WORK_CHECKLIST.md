@@ -33,3 +33,4 @@ UI 체크리스트
 - CommonUI prototype MVVM import warning 정리 [v]
 - Battle HUD 모듈 WBP MVVM context 추가 [v]
 - Battle HUD turn banner 중복 stage 텍스트 정리 [v]
+- Reward 화면 CommonUI WBP 생성 및 MVVM context 추가 [v]

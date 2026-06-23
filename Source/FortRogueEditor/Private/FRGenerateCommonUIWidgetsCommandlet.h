@@ -6,7 +6,7 @@
 #include "FRGenerateCommonUIWidgetsCommandlet.generated.h"
 
 UCLASS()
-class UFRGenerateCommonUIWidgetsCommandlet : public UCommandlet
+class FORTROGUEEDITOR_API UFRGenerateCommonUIWidgetsCommandlet : public UCommandlet
 {
 	GENERATED_BODY()
 

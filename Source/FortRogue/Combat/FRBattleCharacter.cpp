@@ -29,6 +29,25 @@
 namespace
 {
 constexpr float TrajectoryPreviewCharacterHitRadius = 34.0f;
+constexpr const TCHAR* DefaultHealthBarWidgetClassPath = TEXT("/Game/FortRogue/Widget/MainGame/Components/WBP_WorldHealthBar.WBP_WorldHealthBar_C");
+constexpr const TCHAR* DefaultStatusMarkerWidgetClassPath = TEXT("/Game/FortRogue/Widget/MainGame/Components/WBP_WorldStatusMarker.WBP_WorldStatusMarker_C");
+constexpr const TCHAR* DefaultTrajectoryPreviewPointWidgetClassPath = TEXT("/Game/FortRogue/Widget/MainGame/Components/WBP_TrajectoryPreviewPoint.WBP_TrajectoryPreviewPoint_C");
+
+template <typename WidgetType>
+TSubclassOf<WidgetType> ResolveDefaultWidgetClass(TSubclassOf<WidgetType> CurrentClass, const TCHAR* DefaultClassPath)
+{
+	if (CurrentClass.Get() && CurrentClass.Get() != WidgetType::StaticClass())
+	{
+		return CurrentClass;
+	}
+
+	if (TSubclassOf<WidgetType> LoadedClass = LoadClass<WidgetType>(nullptr, DefaultClassPath))
+	{
+		return LoadedClass;
+	}
+
+	return WidgetType::StaticClass();
+}
 
 bool DoesShotModifierMatchTag(const FFRShotModifierSpec& Modifier, FGameplayTag ModifierTag)
 {
@@ -93,12 +112,7 @@ AFRBattleCharacter::AFRBattleCharacter()
 	HealthBarComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBar"));
 	HealthBarComponent->SetupAttachment(Root);
 	HealthBarComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	static ConstructorHelpers::FClassFinder<UFRCharacterHealthBarWidget> HealthBarWidgetClassFinder(TEXT("/Game/FortRogue/Widget/MainGame/Components/WBP_WorldHealthBar"));
 	HealthBarWidgetClass = UFRCharacterHealthBarWidget::StaticClass();
-	if (HealthBarWidgetClassFinder.Succeeded())
-	{
-		HealthBarWidgetClass = HealthBarWidgetClassFinder.Class;
-	}
 	HealthBarComponent->SetWidgetClass(HealthBarWidgetClass);
 	HealthBarComponent->SetWidgetSpace(EWidgetSpace::Screen);
 	HealthBarComponent->SetDrawSize(FVector2D(92.0f, 14.0f));
@@ -108,12 +122,7 @@ AFRBattleCharacter::AFRBattleCharacter()
 	StatusMarkerComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("StatusMarker"));
 	StatusMarkerComponent->SetupAttachment(Root);
 	StatusMarkerComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	static ConstructorHelpers::FClassFinder<UFRWorldStatusMarkerWidget> StatusMarkerWidgetClassFinder(TEXT("/Game/FortRogue/Widget/MainGame/Components/WBP_WorldStatusMarker"));
 	StatusMarkerWidgetClass = UFRWorldStatusMarkerWidget::StaticClass();
-	if (StatusMarkerWidgetClassFinder.Succeeded())
-	{
-		StatusMarkerWidgetClass = StatusMarkerWidgetClassFinder.Class;
-	}
 	StatusMarkerComponent->SetWidgetClass(StatusMarkerWidgetClass);
 	StatusMarkerComponent->SetWidgetSpace(EWidgetSpace::Screen);
 	StatusMarkerComponent->SetDrawSize(FVector2D(128.0f, 28.0f));
@@ -121,12 +130,7 @@ AFRBattleCharacter::AFRBattleCharacter()
 	StatusMarkerComponent->SetTwoSided(true);
 	StatusMarkerComponent->SetVisibility(false);
 
-	static ConstructorHelpers::FClassFinder<UFRTrajectoryPreviewPointWidget> TrajectoryPreviewPointWidgetClassFinder(TEXT("/Game/FortRogue/Widget/MainGame/Components/WBP_TrajectoryPreviewPoint"));
 	TrajectoryPreviewPointWidgetClass = UFRTrajectoryPreviewPointWidget::StaticClass();
-	if (TrajectoryPreviewPointWidgetClassFinder.Succeeded())
-	{
-		TrajectoryPreviewPointWidgetClass = TrajectoryPreviewPointWidgetClassFinder.Class;
-	}
 
 	AbilitySystemComponent = CreateDefaultSubobject<UFRAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	CombatSet = CreateDefaultSubobject<UFRCombatSet>(TEXT("CombatSet"));
@@ -139,6 +143,7 @@ void AFRBattleCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	ResolveDefaultWorldUIWidgetClasses();
 	if (HealthBarComponent && HealthBarWidgetClass)
 	{
 		HealthBarComponent->SetWidgetClass(HealthBarWidgetClass);
@@ -156,6 +161,13 @@ void AFRBattleCharacter::BeginPlay()
 	UpdateCharacterRotation(GetActorPitchDegrees());
 	SnapToTerrain();
 	UpdateCharacterWorldIndicators();
+}
+
+void AFRBattleCharacter::ResolveDefaultWorldUIWidgetClasses()
+{
+	HealthBarWidgetClass = ResolveDefaultWidgetClass(HealthBarWidgetClass, DefaultHealthBarWidgetClassPath);
+	StatusMarkerWidgetClass = ResolveDefaultWidgetClass(StatusMarkerWidgetClass, DefaultStatusMarkerWidgetClassPath);
+	TrajectoryPreviewPointWidgetClass = ResolveDefaultWidgetClass(TrajectoryPreviewPointWidgetClass, DefaultTrajectoryPreviewPointWidgetClassPath);
 }
 
 void AFRBattleCharacter::Tick(float DeltaSeconds)

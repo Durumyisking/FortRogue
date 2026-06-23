@@ -391,6 +391,7 @@ private:
 	void SpawnFloatingDamageText(float DamageAmount);
 	void GrantStartupAbilitySets();
 	void EnsureDefaultLoadout();
+	void ResolveDefaultWorldUIWidgetClasses();
 
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue")
 	TObjectPtr<USceneComponent> Root;

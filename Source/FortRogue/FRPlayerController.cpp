@@ -26,6 +26,7 @@ namespace
 	constexpr int32 ConfirmActionMainMenu = 3;
 	const TCHAR* UIRootWidgetClassPath = TEXT("/Game/FortRogue/Widget/Global/WBP_UIRoot.WBP_UIRoot_C");
 	const TCHAR* BattleHUDWidgetClassPath = TEXT("/Game/FortRogue/Widget/MainGame/WBP_BattleHUD.WBP_BattleHUD_C");
+	const TCHAR* RewardScreenWidgetClassPath = TEXT("/Game/FortRogue/Widget/Reward/WBP_RewardScreen.WBP_RewardScreen_C");
 	const TCHAR* MainMenuWidgetClassPath = TEXT("/Game/FortRogue/Widget/MainMenu/WBP_MainMenu.WBP_MainMenu_C");
 	const TCHAR* OptionsMenuWidgetClassPath = TEXT("/Game/FortRogue/Widget/MainMenu/WBP_OptionsMenu.WBP_OptionsMenu_C");
 	const TCHAR* PauseMenuWidgetClassPath = TEXT("/Game/FortRogue/Widget/MainMenu/WBP_PauseMenu.WBP_PauseMenu_C");
@@ -112,12 +113,18 @@ void AFRPlayerController::CreateBattleHUDWidget()
 
 void AFRPlayerController::CreateRewardScreenWidget()
 {
-	if (!UIRootWidget || RewardScreenWidget || !RewardScreenWidgetClass)
+	if (!UIRootWidget || RewardScreenWidget)
 	{
 		return;
 	}
 
-	RewardScreenWidget = Cast<UFRRewardScreenWidget>(UIRootWidget->PushWidgetToLayer(EFRUILayer::Menu, RewardScreenWidgetClass));
+	TSubclassOf<UFRRewardScreenWidget> RewardClass = LoadDefaultWidgetClass(RewardScreenWidgetClass, RewardScreenWidgetClassPath);
+	if (!RewardClass)
+	{
+		return;
+	}
+
+	RewardScreenWidget = Cast<UFRRewardScreenWidget>(UIRootWidget->PushWidgetToLayer(EFRUILayer::Menu, RewardClass));
 	if (RewardScreenWidget)
 	{
 		RewardScreenWidget->ActivateWidget();

@@ -55,6 +55,7 @@
 - Main menu, options, pause, and confirmation dialog now have CommonActivatableWidget adapter classes with CommonButton request events.
 - `WBP_UIRoot` is based on `UFRUIRootWidget` and owns CommonUI stacks named `HUDLayer`, `MenuLayer`, and `ModalLayer`.
 - `WBP_MainMenu`, `WBP_OptionsMenu`, `WBP_PauseMenu`, and `WBP_ConfirmDialog` are based on their CommonUI adapter classes and have minimal authored CommonUI layouts.
+- `WBP_RewardScreen` and `WBP_RewardChoiceButton` now exist under `Content/FortRogue/Widget/Reward`, are based on their CommonUI adapter classes, and carry matching MVVM ViewModel contexts.
 - Options menu now has a runtime `UFROptionsMenuViewModel` and optional CommonTextBlock/CommonNumericTextBlock display fields for editor-authored option rows.
 - UI root now has a runtime `UFRUIRootViewModel` that exposes active HUD, menu, and modal layer state.
 - Main menu, pause menu, and confirmation dialog now share a runtime `UFRMenuScreenViewModel` for title/body/status display.
@@ -148,6 +149,7 @@
 - `UFRCharacterHealthBarWidget` and `UFRFloatingCombatTextWidget` require named widgets from authored WBP assets and no longer construct fallback widget trees.
 - `UFRCharacterHealthBarWidget` updates `UFRCharacterHealthBarViewModel` and can drive optional `HealthText`, `CurrentHealthValueText`, and `MaxHealthValueText` CommonUI widgets.
 - `AFRBattleCharacter` now owns a `StatusMarkerComponent` that points to `/Game/FortRogue/Widget/MainGame/Components/WBP_WorldStatusMarker` when that authored WBP exists, then falls back to the C++ adapter class.
+- `AFRBattleCharacter` resolves the default world health, status marker, and trajectory preview WBP classes during `BeginPlay` instead of constructor-loading them, so MVVM Blueprint extensions are not loaded before the editor MVVM module is ready.
 - `UFRWorldStatusMarkerWidget` can drive optional `MarkerText` and `MarkerBorder` CommonUI widgets and exposes CommonTextStyle/CommonBorderStyle overrides.
 - `AFRBattleCharacter` now samples trajectory preview points into screen-space WidgetComponents using `/Game/FortRogue/Widget/MainGame/Components/WBP_TrajectoryPreviewPoint` when that authored WBP exists instead of drawing debug lines and spheres.
 - `UFRTrajectoryPreviewPointWidget` can drive optional `PointText`, `PointIndexText`, and `PointBorder` CommonUI widgets and exposes text, number, trajectory border, and impact border style overrides.
@@ -161,6 +163,7 @@
 - Those Battle HUD module WBPs now have matching manual MVVM ViewModel contexts for `UFRBattleStateViewModel`, `UFRCombatantStatusViewModel`, `UFRAimWindViewModel`, `UFRShotPowerViewModel`, `UFRLoadoutViewModel`, `UFRLoadoutSlotViewModel`, `UFRShotPreviewViewModel`, and `UFRModifierSummaryViewModel`.
 - `UFRLoadoutSlotWidget` uses `UCommonButtonBase`; `WBP_LoadoutBar` can expose `WeaponSlotPanel` and `ItemSlotPanel` containing slot widgets in editor-defined counts.
 - `UFRRewardScreenWidget` creates a runtime `UFRRewardScreenViewModel`; `UFRRewardChoiceButtonWidget` uses `UCommonButtonBase` for editor-authored reward choice cards.
+- `AFRPlayerController` now lazy-loads `/Game/FortRogue/Widget/Reward/WBP_RewardScreen` as the default reward screen when no editable override is set.
 - `UFRUIRootWidget` expects authored CommonUI stacks named `HUDLayer`, `MenuLayer`, and `ModalLayer`; `WBP_UIRoot` now provides those stacks.
 - `UFRMainMenuWidget`, `UFROptionsMenuWidget`, `UFRPauseMenuWidget`, and `UFRConfirmDialogWidget` expose optional named CommonButton children and BlueprintAssignable request events.
 - `AFRPlayerController` binds menu adapter request events and uses `Escape` as a fallback for pause/back/cancel while Enhanced Input actions are not yet authored.
@@ -317,10 +320,12 @@
 - [x] Add trajectory preview CommonUI/MVVM point adapter and runtime widget components.
 - [x] Create authored UMG assets for world status marker and trajectory preview point.
 - [x] Add an editor/commandlet generator for missing world marker and trajectory CommonUI component WBPs.
+- [x] Defer world UI WBP default loads until runtime so MVVM extension assets are not loaded too early.
 - [x] Parent root, menu, and confirmation WBPs to their CommonUI adapter classes.
 - [x] Parent Battle HUD module WBPs to adapter classes and support legacy authored child widget names.
 - [x] Remove prototype MVVM Blueprint extensions/import warnings from generated CommonUI HUD/button WBPs.
 - [x] Add module-owned MVVM ViewModel contexts to Battle HUD module WBPs.
+- [x] Create authored Reward screen and Reward choice CommonUI WBP assets.
 - [ ] Replace prototype MVVM with module/domain ViewModels and real module-level bindings.
 - [x] Compile and save created UMG assets.
 
