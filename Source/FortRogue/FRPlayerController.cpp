@@ -17,7 +17,6 @@
 #include "UI/FRRewardScreenWidget.h"
 #include "UI/FRUIRootWidget.h"
 #include "Kismet/GameplayStatics.h"
-#include "UObject/ConstructorHelpers.h"
 
 namespace
 {
@@ -25,48 +24,28 @@ namespace
 	constexpr int32 ConfirmActionQuit = 1;
 	constexpr int32 ConfirmActionRestart = 2;
 	constexpr int32 ConfirmActionMainMenu = 3;
+	const TCHAR* UIRootWidgetClassPath = TEXT("/Game/FortRogue/Widget/Global/WBP_UIRoot.WBP_UIRoot_C");
+	const TCHAR* BattleHUDWidgetClassPath = TEXT("/Game/FortRogue/Widget/MainGame/WBP_BattleHUD.WBP_BattleHUD_C");
+	const TCHAR* MainMenuWidgetClassPath = TEXT("/Game/FortRogue/Widget/MainMenu/WBP_MainMenu.WBP_MainMenu_C");
+	const TCHAR* OptionsMenuWidgetClassPath = TEXT("/Game/FortRogue/Widget/MainMenu/WBP_OptionsMenu.WBP_OptionsMenu_C");
+	const TCHAR* PauseMenuWidgetClassPath = TEXT("/Game/FortRogue/Widget/MainMenu/WBP_PauseMenu.WBP_PauseMenu_C");
+	const TCHAR* ConfirmDialogWidgetClassPath = TEXT("/Game/FortRogue/Widget/Global/WBP_ConfirmDialog.WBP_ConfirmDialog_C");
+
+	template <typename WidgetType>
+	TSubclassOf<WidgetType> LoadDefaultWidgetClass(TSubclassOf<WidgetType>& WidgetClass, const TCHAR* ClassPath)
+	{
+		if (!WidgetClass)
+		{
+			WidgetClass = LoadClass<WidgetType>(nullptr, ClassPath);
+		}
+		return WidgetClass;
+	}
 }
 
 AFRPlayerController::AFRPlayerController()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	bShowMouseCursor = false;
-
-	static ConstructorHelpers::FClassFinder<UFRUIRootWidget> UIRootClassFinder(TEXT("/Game/FortRogue/Widget/Global/WBP_UIRoot"));
-	if (UIRootClassFinder.Succeeded())
-	{
-		UIRootWidgetClass = UIRootClassFinder.Class;
-	}
-
-	static ConstructorHelpers::FClassFinder<UFRBattleHUDWidget> BattleHUDClassFinder(TEXT("/Game/FortRogue/Widget/MainGame/WBP_BattleHUD"));
-	if (BattleHUDClassFinder.Succeeded())
-	{
-		BattleHUDWidgetClass = BattleHUDClassFinder.Class;
-	}
-
-	static ConstructorHelpers::FClassFinder<UFRMainMenuWidget> MainMenuClassFinder(TEXT("/Game/FortRogue/Widget/MainMenu/WBP_MainMenu"));
-	if (MainMenuClassFinder.Succeeded())
-	{
-		MainMenuWidgetClass = MainMenuClassFinder.Class;
-	}
-
-	static ConstructorHelpers::FClassFinder<UFROptionsMenuWidget> OptionsMenuClassFinder(TEXT("/Game/FortRogue/Widget/MainMenu/WBP_OptionsMenu"));
-	if (OptionsMenuClassFinder.Succeeded())
-	{
-		OptionsMenuWidgetClass = OptionsMenuClassFinder.Class;
-	}
-
-	static ConstructorHelpers::FClassFinder<UFRPauseMenuWidget> PauseMenuClassFinder(TEXT("/Game/FortRogue/Widget/MainMenu/WBP_PauseMenu"));
-	if (PauseMenuClassFinder.Succeeded())
-	{
-		PauseMenuWidgetClass = PauseMenuClassFinder.Class;
-	}
-
-	static ConstructorHelpers::FClassFinder<UFRConfirmDialogWidget> ConfirmDialogClassFinder(TEXT("/Game/FortRogue/Widget/Global/WBP_ConfirmDialog"));
-	if (ConfirmDialogClassFinder.Succeeded())
-	{
-		ConfirmDialogWidgetClass = ConfirmDialogClassFinder.Class;
-	}
 }
 
 void AFRPlayerController::BeginPlay()
@@ -96,7 +75,7 @@ void AFRPlayerController::CreateRootWidget()
 		return;
 	}
 
-	TSubclassOf<UFRUIRootWidget> RootClass = UIRootWidgetClass;
+	TSubclassOf<UFRUIRootWidget> RootClass = LoadDefaultWidgetClass(UIRootWidgetClass, UIRootWidgetClassPath);
 	if (!RootClass)
 	{
 		RootClass = UFRUIRootWidget::StaticClass();
@@ -116,7 +95,7 @@ void AFRPlayerController::CreateBattleHUDWidget()
 		return;
 	}
 
-	TSubclassOf<UFRBattleHUDWidget> HUDClass = BattleHUDWidgetClass;
+	TSubclassOf<UFRBattleHUDWidget> HUDClass = LoadDefaultWidgetClass(BattleHUDWidgetClass, BattleHUDWidgetClassPath);
 	if (!HUDClass)
 	{
 		HUDClass = UFRBattleHUDWidget::StaticClass();
@@ -156,13 +135,14 @@ void AFRPlayerController::ClearRewardScreenWidget()
 
 void AFRPlayerController::ShowMainMenuWidget()
 {
-	if (!UIRootWidget || !MainMenuWidgetClass)
+	TSubclassOf<UFRMainMenuWidget> MenuClass = LoadDefaultWidgetClass(MainMenuWidgetClass, MainMenuWidgetClassPath);
+	if (!UIRootWidget || !MenuClass)
 	{
 		return;
 	}
 
 	ClearMenuLayer();
-	MainMenuWidget = Cast<UFRMainMenuWidget>(UIRootWidget->SetWidgetInLayer(EFRUILayer::Menu, MainMenuWidgetClass));
+	MainMenuWidget = Cast<UFRMainMenuWidget>(UIRootWidget->SetWidgetInLayer(EFRUILayer::Menu, MenuClass));
 	if (MainMenuWidget)
 	{
 		MainMenuWidget->OnStartRunRequested.AddUniqueDynamic(this, &AFRPlayerController::HandleMainMenuStartRunRequested);
@@ -175,14 +155,15 @@ void AFRPlayerController::ShowMainMenuWidget()
 
 void AFRPlayerController::ShowOptionsMenuWidget(bool bReturnToPauseMenu)
 {
-	if (!UIRootWidget || !OptionsMenuWidgetClass)
+	TSubclassOf<UFROptionsMenuWidget> MenuClass = LoadDefaultWidgetClass(OptionsMenuWidgetClass, OptionsMenuWidgetClassPath);
+	if (!UIRootWidget || !MenuClass)
 	{
 		return;
 	}
 
 	ClearMenuLayer();
 	bReturnToPauseMenuAfterOptions = bReturnToPauseMenu;
-	OptionsMenuWidget = Cast<UFROptionsMenuWidget>(UIRootWidget->SetWidgetInLayer(EFRUILayer::Menu, OptionsMenuWidgetClass));
+	OptionsMenuWidget = Cast<UFROptionsMenuWidget>(UIRootWidget->SetWidgetInLayer(EFRUILayer::Menu, MenuClass));
 	if (OptionsMenuWidget)
 	{
 		OptionsMenuWidget->OnBackRequested.AddUniqueDynamic(this, &AFRPlayerController::HandleOptionsBackRequested);
@@ -193,14 +174,15 @@ void AFRPlayerController::ShowOptionsMenuWidget(bool bReturnToPauseMenu)
 
 void AFRPlayerController::ShowPauseMenuWidget()
 {
-	if (!UIRootWidget || !PauseMenuWidgetClass || MainMenuWidget || RewardScreenWidget)
+	TSubclassOf<UFRPauseMenuWidget> MenuClass = LoadDefaultWidgetClass(PauseMenuWidgetClass, PauseMenuWidgetClassPath);
+	if (!UIRootWidget || !MenuClass || MainMenuWidget || RewardScreenWidget)
 	{
 		return;
 	}
 
 	SetPause(true);
 	ClearMenuLayer();
-	PauseMenuWidget = Cast<UFRPauseMenuWidget>(UIRootWidget->SetWidgetInLayer(EFRUILayer::Menu, PauseMenuWidgetClass));
+	PauseMenuWidget = Cast<UFRPauseMenuWidget>(UIRootWidget->SetWidgetInLayer(EFRUILayer::Menu, MenuClass));
 	if (PauseMenuWidget)
 	{
 		PauseMenuWidget->OnResumeRequested.AddUniqueDynamic(this, &AFRPlayerController::HandlePauseResumeRequested);
@@ -228,14 +210,15 @@ void AFRPlayerController::ClearMenuLayer()
 
 void AFRPlayerController::ShowConfirmDialog(const FText& TitleText, const FText& MessageText, int32 ConfirmAction)
 {
-	if (!UIRootWidget || !ConfirmDialogWidgetClass)
+	TSubclassOf<UFRConfirmDialogWidget> DialogClass = LoadDefaultWidgetClass(ConfirmDialogWidgetClass, ConfirmDialogWidgetClassPath);
+	if (!UIRootWidget || !DialogClass)
 	{
 		return;
 	}
 
 	ClearConfirmDialogWidget();
 	PendingConfirmAction = ConfirmAction;
-	ConfirmDialogWidget = Cast<UFRConfirmDialogWidget>(UIRootWidget->PushWidgetToLayer(EFRUILayer::Modal, ConfirmDialogWidgetClass));
+	ConfirmDialogWidget = Cast<UFRConfirmDialogWidget>(UIRootWidget->PushWidgetToLayer(EFRUILayer::Modal, DialogClass));
 	if (ConfirmDialogWidget)
 	{
 		ConfirmDialogWidget->SetDialogText(TitleText, MessageText);

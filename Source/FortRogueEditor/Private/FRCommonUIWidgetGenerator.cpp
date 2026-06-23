@@ -6,6 +6,7 @@
 #include "AssetToolsModule.h"
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetTree.h"
+#include "Blueprint/BlueprintExtension.h"
 #include "CommonBorder.h"
 #include "CommonButtonBase.h"
 #include "CommonNumericTextBlock.h"
@@ -24,6 +25,7 @@
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
+#include "MVVMWidgetBlueprintExtension_View.h"
 #include "UI/FRBattleHUDModuleWidgets.h"
 #include "UI/FRTrajectoryPreviewPointWidget.h"
 #include "UI/FRMenuWidgets.h"
@@ -37,7 +39,10 @@
 namespace FREditor
 {
 static const TCHAR* CommonUIComponentsPath = TEXT("/Game/FortRogue/Widget/MainGame/Components");
+static const TCHAR* CommonUIMainGamePath = TEXT("/Game/FortRogue/Widget/MainGame");
 static const TCHAR* CommonUIGlobalPath = TEXT("/Game/FortRogue/Widget/Global");
+static const TCHAR* CommonUIGlobalComponentsPath = TEXT("/Game/FortRogue/Widget/Global/Components");
+static const TCHAR* CommonUIButtonsPath = TEXT("/Game/FortRogue/Widget/Global/Components/Buttons");
 static const TCHAR* CommonUIMainMenuPath = TEXT("/Game/FortRogue/Widget/MainMenu");
 static const TCHAR* BodyTextStylePath = TEXT("/Game/FortRogue/Widget/Styles/BP_UI_Text_Body.BP_UI_Text_Body_C");
 static const TCHAR* TitleTextStylePath = TEXT("/Game/FortRogue/Widget/Styles/BP_UI_Text_Title.BP_UI_Text_Title_C");
@@ -112,6 +117,28 @@ static void RepairUIRootLayerNames(UWidgetBlueprint* WidgetBlueprint)
 	RenameWidgetTemplate(WidgetBlueprint, TEXT("HUDLayerStack"), TEXT("HUDLayer"));
 	RenameWidgetTemplate(WidgetBlueprint, TEXT("MenuLayerStack"), TEXT("MenuLayer"));
 	RenameWidgetTemplate(WidgetBlueprint, TEXT("ModalLayerStack"), TEXT("ModalLayer"));
+}
+
+static void RemovePrototypeMVVMBlueprintExtension(UWidgetBlueprint* WidgetBlueprint)
+{
+	if (!WidgetBlueprint)
+	{
+		return;
+	}
+
+	const int32 RemovedCount = WidgetBlueprint->RemoveAllExtension([](UBlueprintExtension* Extension)
+	{
+		return Extension && Extension->IsA<UMVVMWidgetBlueprintExtension_View>();
+	});
+	if (RemovedCount <= 0)
+	{
+		return;
+	}
+
+	WidgetBlueprint->Modify();
+	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(WidgetBlueprint);
+	WidgetBlueprint->MarkPackageDirty();
+	UE_LOG(LogTemp, Display, TEXT("Removed prototype MVVM Blueprint extension from %s"), *WidgetBlueprint->GetPathName());
 }
 
 static UWidgetBlueprint* CreateWidgetBlueprint(const TCHAR* AssetPath, const TCHAR* AssetName, TSubclassOf<UUserWidget> ParentClass, bool& bOutNeedsConfigure)
@@ -714,6 +741,8 @@ static void ConfigureTrajectoryPreviewPoint(UWidgetBlueprint* WidgetBlueprint)
 
 int32 GenerateCommonUIWidgets()
 {
+	FModuleManager::Get().LoadModule(TEXT("ModelViewViewModelBlueprint"));
+
 	TArray<UWidgetBlueprint*> WidgetBlueprints;
 	bool bNeedsConfigure = false;
 
@@ -752,6 +781,19 @@ int32 GenerateCommonUIWidgets()
 		ConfigureConfirmDialog(ConfirmDialog);
 	}
 	WidgetBlueprints.Add(ConfirmDialog);
+
+	UWidgetBlueprint* BattleHUD = LoadWidgetBlueprint(CommonUIMainGamePath, TEXT("WBP_BattleHUD"));
+	WidgetBlueprints.Add(BattleHUD);
+
+	WidgetBlueprints.Add(LoadWidgetBlueprint(CommonUIGlobalComponentsPath, TEXT("WBP_CommonTextButton")));
+	WidgetBlueprints.Add(LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_StartRun")));
+	WidgetBlueprints.Add(LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_Options")));
+	WidgetBlueprints.Add(LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_Quit")));
+	WidgetBlueprints.Add(LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_Back")));
+	WidgetBlueprints.Add(LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_Confirm")));
+	WidgetBlueprints.Add(LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_Cancel")));
+	WidgetBlueprints.Add(LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_Resume")));
+	WidgetBlueprints.Add(LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_MainMenu")));
 
 	UWidgetBlueprint* TurnBanner = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_TurnBanner"), UFRBattleStatePanelWidget::StaticClass(), bNeedsConfigure);
 	if (bNeedsConfigure)
@@ -839,6 +881,7 @@ int32 GenerateCommonUIWidgets()
 			continue;
 		}
 
+		RemovePrototypeMVVMBlueprintExtension(WidgetBlueprint);
 		if (WidgetBlueprint->GetOutermost()->IsDirty())
 		{
 			FKismetEditorUtilities::CompileBlueprint(WidgetBlueprint);

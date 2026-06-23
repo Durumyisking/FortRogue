@@ -12,6 +12,7 @@
 #include "UI/FRBattleHUDModuleViewModels.h"
 #include "UI/FRBattleHUDModuleWidgets.h"
 #include "UI/FRBattleHUDViewModel.h"
+#include "View/MVVMView.h"
 
 namespace
 {
@@ -207,10 +208,13 @@ void UFRBattleHUDWidget::ApplyViewModel(UUserWidget* Widget, UMVVMViewModelBase*
 		return;
 	}
 
-	TScriptInterface<INotifyFieldValueChanged> ViewModelInterface;
-	ViewModelInterface.SetObject(ViewModel);
-	ViewModelInterface.SetInterface(Cast<INotifyFieldValueChanged>(ViewModel));
-	UMVVMBlueprintLibrary::SetViewModelByClass(Widget, ViewModelInterface);
+	if (Widget->GetExtension<UMVVMView>())
+	{
+		TScriptInterface<INotifyFieldValueChanged> ViewModelInterface;
+		ViewModelInterface.SetObject(ViewModel);
+		ViewModelInterface.SetInterface(Cast<INotifyFieldValueChanged>(ViewModel));
+		UMVVMBlueprintLibrary::SetViewModelByClass(Widget, ViewModelInterface);
+	}
 
 	if (UFRBattleHUDModuleWidgetBase* ModuleWidget = Cast<UFRBattleHUDModuleWidgetBase>(Widget))
 	{

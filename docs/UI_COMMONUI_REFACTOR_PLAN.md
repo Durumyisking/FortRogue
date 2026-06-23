@@ -45,9 +45,10 @@
 - Floating combat text now expects a `CommonTextBlock` named `DamageText` and can apply an editor-selected `CommonTextStyle`.
 - `Content/FortRogue/Widget` now has CommonUI root, menu, HUD, world health, floating text, style, and component assets.
 - `AFRPlayerController`, `AFRBattleCharacter`, and `AFRFloatingCombatText` now default to the authored HUD/world/floating WBP assets while keeping editable class overrides.
-- `WBP_BattleHUD` now has a `UFRBattleHUDViewModel` MVVM context, and `UFRBattleHUDWidget` creates, updates, and injects the same ViewModel instance at runtime.
+- `WBP_BattleHUD` no longer carries the broken parent-level prototype MVVM Blueprint extension; `UFRBattleHUDWidget` owns runtime ViewModel creation, update, and module injection.
 - Battle HUD module adapter widget classes now exist so module WBPs can own their display updates without parent-to-child internal bindings.
 - Battle HUD module WBPs are now parented to their CommonUI adapter classes, and the adapters support the existing authored child widget names as compatibility aliases.
+- Generated CommonUI HUD/button WBPs have had empty prototype MVVM Blueprint extensions removed so they no longer produce `/Script/ModelViewViewModelBlueprint` import warnings on commandlet load.
 - Loadout weapon/item slots now have per-slot ViewModels and a CommonButton-based slot adapter for selected, enabled, empty, and locked states.
 - Reward screen choices now have per-choice ViewModels and a CommonButton-based choice adapter for title, summary, condition feedback, enabled state, and selection.
 - Main menu, options, pause, and confirmation dialog now have CommonActivatableWidget adapter classes with CommonButton request events.
@@ -166,7 +167,7 @@
 - `FFRMenuStyleSet` lets main menu, options, pause, and confirmation adapters apply title/body/status text styles and primary/secondary button styles in C++.
 - `FFRHUDModuleStyleSet` lets battle HUD modules apply CommonTextStyle/CommonNumericTextBlock styling by walking their authored widget trees; loadout slots can also apply a CommonButtonStyle override.
 - `FFRRewardStyleSet` lets reward screen titles and reward choice cards apply CommonTextStyle/CommonButtonStyle overrides in C++.
-- Next implementation step: clean up the prototype `WBP_BattleHUD` / `WBP_BattleHUD_MVVM` MVVM import warning and move any remaining Blueprint MVVM bindings into module-owned contexts where the C++ adapters are not sufficient.
+- Next implementation step: decide whether the untracked prototype `WBP_BattleHUD_MVVM` / `VM_BattleHUD` assets should be deleted, regenerated, or kept only as reference, then add formal module-owned Blueprint MVVM bindings only where the C++ adapters are not sufficient.
 
 ## Recommended Widget Modules
 
@@ -315,11 +316,12 @@
 - [x] Add an editor/commandlet generator for missing world marker and trajectory CommonUI component WBPs.
 - [x] Parent root, menu, and confirmation WBPs to their CommonUI adapter classes.
 - [x] Parent Battle HUD module WBPs to adapter classes and support legacy authored child widget names.
+- [x] Remove prototype MVVM Blueprint extensions/import warnings from generated CommonUI HUD/button WBPs.
 - [ ] Replace prototype MVVM with module/domain ViewModels and real module-level bindings.
 - [x] Compile and save created UMG assets.
 
 ## Immediate Next Task
 
-Inspect and clean `WBP_BattleHUD` and `WBP_BattleHUD_MVVM` import warnings for `/Script/ModelViewViewModelBlueprint`, then decide whether the prototype MVVM asset should be deleted, regenerated, or kept only as a reference. The module widgets now receive injected ViewModels through their adapter parents; the remaining production gap is formal module-owned Blueprint MVVM contexts/bindings only where the C++ adapter refresh path is not enough.
+Decide the fate of the untracked prototype `WBP_BattleHUD_MVVM` and `VM_BattleHUD` assets: delete them, regenerate them as module-level examples, or keep them only as reference. Production `WBP_BattleHUD` now uses module adapter injection instead of parent-to-child prototype bindings.
 
-Do not bind from the parent HUD into nested widget internals; that path failed compilation and should stay replaced with module-owned bindings or the adapter widgets. Also inspect `WBP_BattleHUD` and `WBP_BattleHUD_MVVM` import warnings for `/Script/ModelViewViewModelBlueprint` before treating the prototype MVVM asset as production-ready.
+Do not bind from the parent HUD into nested widget internals; that path failed compilation and should stay replaced with module-owned bindings or the adapter widgets. The remaining production gap is formal module-owned Blueprint MVVM contexts/bindings only where the C++ adapter refresh path is not enough.
