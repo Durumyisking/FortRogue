@@ -46,6 +46,7 @@
 - `Content/FortRogue/Widget` now has CommonUI root, menu, HUD, world health, floating text, style, and component assets.
 - `AFRPlayerController`, `AFRBattleCharacter`, and `AFRFloatingCombatText` now default to the authored HUD/world/floating WBP assets while keeping editable class overrides.
 - `WBP_BattleHUD` no longer carries the broken parent-level prototype MVVM Blueprint extension; `UFRBattleHUDWidget` owns runtime ViewModel creation, update, and module injection.
+- Production `WBP_BattleHUD` now includes `EnemyStatusPanel`, and `UFRBattleHUDWidget` owns a separate runtime enemy/target status ViewModel for it.
 - Battle HUD module adapter widget classes now exist so module WBPs can own their display updates without parent-to-child internal bindings.
 - Battle HUD module WBPs are now parented to their CommonUI adapter classes, and the adapters support the existing authored child widget names as compatibility aliases.
 - Battle HUD module WBPs now carry module-owned MVVM ViewModel contexts so future Blueprint bindings can bind at the module level instead of reaching into nested widgets from the parent HUD.
@@ -157,6 +158,7 @@
 - `UFRFloatingCombatTextWidget` uses `UCommonTextBlock` for authored damage text and exposes a `DamageTextStyle` override.
 - `UFRBattleHUDWidget` no longer constructs a fallback HUD layout in C++; missing authored HUD modules will surface as missing UI instead of silently showing generated panels.
 - `UFRBattleHUDWidget` now injects module-specific runtime ViewModels into known child module widgets so modules can own their own MVVM bindings.
+- `EnemyStatusPanel` and `TargetStatusPanel` receive the runtime enemy status ViewModel, and the combatant status panel hides movement budget fields when no move budget text is present.
 - `UFRBattleHUDModuleWidgetBase` and derived adapter widgets can receive injected module ViewModels and push values into optional named CommonUI widgets.
 - `UFRBattleHUDModuleWidgetBase` and `UFRLoadoutSlotWidget` now forward injected ViewModels into their own MVVM view extension when the authored WBP has a matching manual ViewModel context.
 - `WBP_TurnBanner`, `WBP_CombatantStatusPanel`, `WBP_AimWindIndicator`, `WBP_ShotPowerMeter`, `WBP_LoadoutBar`, `WBP_WeaponSlot`, `WBP_ItemSlot`, `WBP_ShotInfoPanel`, and `WBP_ModifierSummary` now use the matching Battle HUD adapter parent classes.
@@ -325,6 +327,7 @@
 - [x] Parent Battle HUD module WBPs to adapter classes and support legacy authored child widget names.
 - [x] Remove prototype MVVM Blueprint extensions/import warnings from generated CommonUI HUD/button WBPs.
 - [x] Add module-owned MVVM ViewModel contexts to Battle HUD module WBPs.
+- [x] Connect enemy/target status panel to the production HUD ViewModel path.
 - [x] Create authored Reward screen and Reward choice CommonUI WBP assets.
 - [ ] Replace prototype MVVM with module/domain ViewModels and real module-level bindings.
 - [x] Compile and save created UMG assets.

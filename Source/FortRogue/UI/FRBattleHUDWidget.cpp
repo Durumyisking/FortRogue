@@ -152,6 +152,8 @@ void UFRBattleHUDWidget::NativeOnInitialized()
 
 	ApplyViewModelToChild(TEXT("TurnBanner"), BattleStateViewModel);
 	ApplyViewModelToChild(TEXT("PlayerStatusPanel"), PlayerStatusViewModel);
+	ApplyViewModelToChild(TEXT("EnemyStatusPanel"), EnemyStatusViewModel);
+	ApplyViewModelToChild(TEXT("TargetStatusPanel"), EnemyStatusViewModel);
 	ApplyViewModelToChild(TEXT("AimWindIndicator"), AimWindViewModel);
 	ApplyViewModelToChild(TEXT("ShotPowerMeter"), ShotPowerViewModel);
 	ApplyViewModelToChild(TEXT("LoadoutBar"), LoadoutViewModel);
@@ -178,6 +180,10 @@ void UFRBattleHUDWidget::CreateViewModels()
 	if (!PlayerStatusViewModel)
 	{
 		PlayerStatusViewModel = NewObject<UFRCombatantStatusViewModel>(this);
+	}
+	if (!EnemyStatusViewModel)
+	{
+		EnemyStatusViewModel = NewObject<UFRCombatantStatusViewModel>(this);
 	}
 	if (!AimWindViewModel)
 	{
@@ -249,6 +255,8 @@ void UFRBattleHUDWidget::RefreshModuleWidgets() const
 	{
 		TEXT("TurnBanner"),
 		TEXT("PlayerStatusPanel"),
+		TEXT("EnemyStatusPanel"),
+		TEXT("TargetStatusPanel"),
 		TEXT("AimWindIndicator"),
 		TEXT("ShotPowerMeter"),
 		TEXT("LoadoutBar"),
@@ -268,7 +276,7 @@ void UFRBattleHUDWidget::RefreshModuleWidgets() const
 void UFRBattleHUDWidget::RefreshViewModel()
 {
 	CreateViewModels();
-	if (!BattleHUDViewModel || !BattleStateViewModel || !PlayerStatusViewModel || !AimWindViewModel ||
+	if (!BattleHUDViewModel || !BattleStateViewModel || !PlayerStatusViewModel || !EnemyStatusViewModel || !AimWindViewModel ||
 		!ShotPowerViewModel || !LoadoutViewModel || !ShotPreviewViewModel || !ModifierSummaryViewModel)
 	{
 		return;
@@ -324,6 +332,17 @@ void UFRBattleHUDWidget::RefreshViewModel()
 	BattleHUDViewModel->SetEnemyHealthText(EnemyCharacter
 		? FText::FromString(FString::Printf(TEXT("%.0f / %.0f"), EnemyHealth, EnemyMaxHealth))
 		: FText::FromString(TEXT("-")));
+	EnemyStatusViewModel->SetTitleText(FText::FromString(TEXT("ENEMY ARMOR")));
+	EnemyStatusViewModel->SetCurrentHealthValue(EnemyHealth);
+	EnemyStatusViewModel->SetMaxHealthValue(EnemyMaxHealth);
+	EnemyStatusViewModel->SetHealthPercent(SafePercent(EnemyHealth, EnemyMaxHealth));
+	EnemyStatusViewModel->SetHealthText(EnemyCharacter
+		? FText::FromString(FString::Printf(TEXT("%.0f / %.0f"), EnemyHealth, EnemyMaxHealth))
+		: FText::FromString(TEXT("-")));
+	EnemyStatusViewModel->SetMoveBudgetText(FText::GetEmpty());
+	EnemyStatusViewModel->SetMoveBudgetValue(0.0f);
+	EnemyStatusViewModel->SetMaxMoveBudgetValue(0.0f);
+	EnemyStatusViewModel->SetMoveBudgetPercent(0.0f);
 
 	const float Wind = GameMode ? GameMode->GetWind() : 0.0f;
 	const FString WindArrow = Wind > 1.0f ? TEXT("->") : Wind < -1.0f ? TEXT("<-") : TEXT("--");

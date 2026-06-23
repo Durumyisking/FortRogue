@@ -173,6 +173,9 @@ public:
 	UFRCombatantStatusViewModel* GetPlayerStatusViewModel() const { return PlayerStatusViewModel; }
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|MVVM")
+	UFRCombatantStatusViewModel* GetEnemyStatusViewModel() const { return EnemyStatusViewModel; }
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|MVVM")
 	UFRAimWindViewModel* GetAimWindViewModel() const { return AimWindViewModel; }
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|UI|MVVM")
@@ -209,6 +212,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UFRCombatantStatusViewModel> PlayerStatusViewModel;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UFRCombatantStatusViewModel> EnemyStatusViewModel;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UFRAimWindViewModel> AimWindViewModel;

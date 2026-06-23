@@ -38,6 +38,14 @@ namespace
 		}
 	}
 
+	void SetWidgetVisible(UWidget* Widget, bool bVisible)
+	{
+		if (Widget)
+		{
+			Widget->SetVisibility(bVisible ? ESlateVisibility::SelfHitTestInvisible : ESlateVisibility::Collapsed);
+		}
+	}
+
 	TArray<UFRLoadoutSlotWidget*> GetLoadoutSlotChildren(UPanelWidget* Panel)
 	{
 		TArray<UFRLoadoutSlotWidget*> Slots;
@@ -181,6 +189,12 @@ void UFRCombatantStatusPanelWidget::NativeRefreshFromViewModel()
 	SetNumericText(CurrentHealthValueText, ViewModel->GetCurrentHealthValue());
 	SetNumericText(MaxHealthValueText, ViewModel->GetMaxHealthValue());
 	SetBar(HealthBar, ViewModel->GetHealthPercent());
+
+	const bool bShowMoveBudget = !ViewModel->GetMoveBudgetText().IsEmpty();
+	SetWidgetVisible(MoveBudgetText, bShowMoveBudget);
+	SetWidgetVisible(MoveBudgetValueText, bShowMoveBudget);
+	SetWidgetVisible(MaxMoveBudgetValueText, bShowMoveBudget);
+	SetWidgetVisible(MoveBudgetBar, bShowMoveBudget);
 	SetText(MoveBudgetText, ViewModel->GetMoveBudgetText());
 	SetNumericText(MoveBudgetValueText, ViewModel->GetMoveBudgetValue());
 	SetNumericText(MaxMoveBudgetValueText, ViewModel->GetMaxMoveBudgetValue());

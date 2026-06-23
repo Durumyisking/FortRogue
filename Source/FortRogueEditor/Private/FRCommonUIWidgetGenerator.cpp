@@ -11,6 +11,8 @@
 #include "CommonButtonBase.h"
 #include "CommonNumericTextBlock.h"
 #include "CommonTextBlock.h"
+#include "Components/CanvasPanel.h"
+#include "Components/CanvasPanelSlot.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/Overlay.h"
@@ -64,6 +66,7 @@ static const TCHAR* CancelButtonClassPath = TEXT("/Game/FortRogue/Widget/Global/
 static const TCHAR* ResumeButtonClassPath = TEXT("/Game/FortRogue/Widget/Global/Components/Buttons/WBP_Button_Resume.WBP_Button_Resume_C");
 static const TCHAR* MainMenuButtonClassPath = TEXT("/Game/FortRogue/Widget/Global/Components/Buttons/WBP_Button_MainMenu.WBP_Button_MainMenu_C");
 static const TCHAR* RewardChoiceButtonClassPath = TEXT("/Game/FortRogue/Widget/Reward/WBP_RewardChoiceButton.WBP_RewardChoiceButton_C");
+static const TCHAR* CombatantStatusPanelClassPath = TEXT("/Game/FortRogue/Widget/MainGame/Components/WBP_CombatantStatusPanel.WBP_CombatantStatusPanel_C");
 
 template <typename StyleType>
 static TSubclassOf<StyleType> LoadStyleClass(const TCHAR* ClassPath)
@@ -117,6 +120,25 @@ static void RenameWidgetTemplate(UWidgetBlueprint* WidgetBlueprint, const FName&
 
 	Widget->Rename(*NewName.ToString(), WidgetBlueprint->WidgetTree, REN_DontCreateRedirectors);
 	WidgetBlueprint->MarkPackageDirty();
+}
+
+static bool EnsureWidgetGuid(UWidgetBlueprint* WidgetBlueprint, UWidget* Widget)
+{
+	if (!WidgetBlueprint || !Widget)
+	{
+		return false;
+	}
+
+	if (WidgetBlueprint->WidgetVariableNameToGuidMap.Contains(Widget->GetFName()))
+	{
+		return false;
+	}
+
+	WidgetBlueprint->Modify();
+	Widget->Modify();
+	WidgetBlueprint->WidgetVariableNameToGuidMap.Add(Widget->GetFName(), FGuid::NewGuid());
+	WidgetBlueprint->MarkPackageDirty();
+	return true;
 }
 
 static void RepairUIRootLayerNames(UWidgetBlueprint* WidgetBlueprint)
@@ -819,6 +841,48 @@ static void ConfigureModifierSummary(UWidgetBlueprint* WidgetBlueprint)
 	WidgetBlueprint->MarkPackageDirty();
 }
 
+static void EnsureBattleHUDEnemyStatusPanel(UWidgetBlueprint* BattleHUD, TSubclassOf<UUserWidget> CombatantStatusPanelClass)
+{
+	if (!BattleHUD || !BattleHUD->WidgetTree)
+	{
+		return;
+	}
+
+	if (UWidget* ExistingEnemyStatusPanel = BattleHUD->WidgetTree->FindWidget(TEXT("EnemyStatusPanel")))
+	{
+		EnsureWidgetGuid(BattleHUD, ExistingEnemyStatusPanel);
+		return;
+	}
+
+	UCanvasPanel* RootCanvas = Cast<UCanvasPanel>(BattleHUD->WidgetTree->RootWidget);
+	if (!RootCanvas || !CombatantStatusPanelClass)
+	{
+		return;
+	}
+
+	BattleHUD->Modify();
+	BattleHUD->WidgetTree->Modify();
+
+	UUserWidget* EnemyStatusPanel = BattleHUD->WidgetTree->ConstructWidget<UUserWidget>(CombatantStatusPanelClass, TEXT("EnemyStatusPanel"));
+	if (!EnemyStatusPanel)
+	{
+		return;
+	}
+	EnsureWidgetGuid(BattleHUD, EnemyStatusPanel);
+
+	UCanvasPanelSlot* EnemyPanelSlot = RootCanvas->AddChildToCanvas(EnemyStatusPanel);
+	if (EnemyPanelSlot)
+	{
+		EnemyPanelSlot->SetAnchors(FAnchors(0.0f, 0.0f));
+		EnemyPanelSlot->SetAlignment(FVector2D::ZeroVector);
+		EnemyPanelSlot->SetPosition(FVector2D(16.0f, 230.0f));
+		EnemyPanelSlot->SetSize(FVector2D(224.0f, 96.0f));
+	}
+
+	BattleHUD->MarkPackageDirty();
+	UE_LOG(LogTemp, Display, TEXT("Added EnemyStatusPanel to %s"), *BattleHUD->GetPathName());
+}
+
 static void ConfigureTrajectoryPreviewPoint(UWidgetBlueprint* WidgetBlueprint)
 {
 	if (!WidgetBlueprint || !WidgetBlueprint->WidgetTree || WidgetBlueprint->WidgetTree->RootWidget)
@@ -977,6 +1041,13 @@ int32 GenerateCommonUIWidgets()
 	}
 	EnsureManualMVVMViewModelContext(CombatantStatusPanel, UFRCombatantStatusViewModel::StaticClass());
 	WidgetBlueprints.Add(CombatantStatusPanel);
+	if (CombatantStatusPanel)
+	{
+		FKismetEditorUtilities::CompileBlueprint(CombatantStatusPanel);
+	}
+	EnsureBattleHUDEnemyStatusPanel(BattleHUD, CombatantStatusPanel && CombatantStatusPanel->GeneratedClass
+		? Cast<UClass>(CombatantStatusPanel->GeneratedClass)
+		: LoadClass<UUserWidget>(nullptr, CombatantStatusPanelClassPath));
 
 	UWidgetBlueprint* AimWindIndicator = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_AimWindIndicator"), UFRAimWindIndicatorWidget::StaticClass(), bNeedsConfigure);
 	if (bNeedsConfigure)
