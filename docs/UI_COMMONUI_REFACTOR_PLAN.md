@@ -48,6 +48,7 @@
 - `WBP_BattleHUD` no longer carries the broken parent-level prototype MVVM Blueprint extension; `UFRBattleHUDWidget` owns runtime ViewModel creation, update, and module injection.
 - Battle HUD module adapter widget classes now exist so module WBPs can own their display updates without parent-to-child internal bindings.
 - Battle HUD module WBPs are now parented to their CommonUI adapter classes, and the adapters support the existing authored child widget names as compatibility aliases.
+- Battle HUD module WBPs now carry module-owned MVVM ViewModel contexts so future Blueprint bindings can bind at the module level instead of reaching into nested widgets from the parent HUD.
 - Generated CommonUI HUD/button WBPs have had empty prototype MVVM Blueprint extensions removed so they no longer produce `/Script/ModelViewViewModelBlueprint` import warnings on commandlet load.
 - Loadout weapon/item slots now have per-slot ViewModels and a CommonButton-based slot adapter for selected, enabled, empty, and locked states.
 - Reward screen choices now have per-choice ViewModels and a CommonButton-based choice adapter for title, summary, condition feedback, enabled state, and selection.
@@ -155,7 +156,9 @@
 - `UFRBattleHUDWidget` no longer constructs a fallback HUD layout in C++; missing authored HUD modules will surface as missing UI instead of silently showing generated panels.
 - `UFRBattleHUDWidget` now injects module-specific runtime ViewModels into known child module widgets so modules can own their own MVVM bindings.
 - `UFRBattleHUDModuleWidgetBase` and derived adapter widgets can receive injected module ViewModels and push values into optional named CommonUI widgets.
+- `UFRBattleHUDModuleWidgetBase` and `UFRLoadoutSlotWidget` now forward injected ViewModels into their own MVVM view extension when the authored WBP has a matching manual ViewModel context.
 - `WBP_TurnBanner`, `WBP_CombatantStatusPanel`, `WBP_AimWindIndicator`, `WBP_ShotPowerMeter`, `WBP_LoadoutBar`, `WBP_WeaponSlot`, `WBP_ItemSlot`, `WBP_ShotInfoPanel`, and `WBP_ModifierSummary` now use the matching Battle HUD adapter parent classes.
+- Those Battle HUD module WBPs now have matching manual MVVM ViewModel contexts for `UFRBattleStateViewModel`, `UFRCombatantStatusViewModel`, `UFRAimWindViewModel`, `UFRShotPowerViewModel`, `UFRLoadoutViewModel`, `UFRLoadoutSlotViewModel`, `UFRShotPreviewViewModel`, and `UFRModifierSummaryViewModel`.
 - `UFRLoadoutSlotWidget` uses `UCommonButtonBase`; `WBP_LoadoutBar` can expose `WeaponSlotPanel` and `ItemSlotPanel` containing slot widgets in editor-defined counts.
 - `UFRRewardScreenWidget` creates a runtime `UFRRewardScreenViewModel`; `UFRRewardChoiceButtonWidget` uses `UCommonButtonBase` for editor-authored reward choice cards.
 - `UFRUIRootWidget` expects authored CommonUI stacks named `HUDLayer`, `MenuLayer`, and `ModalLayer`; `WBP_UIRoot` now provides those stacks.
@@ -317,11 +320,12 @@
 - [x] Parent root, menu, and confirmation WBPs to their CommonUI adapter classes.
 - [x] Parent Battle HUD module WBPs to adapter classes and support legacy authored child widget names.
 - [x] Remove prototype MVVM Blueprint extensions/import warnings from generated CommonUI HUD/button WBPs.
+- [x] Add module-owned MVVM ViewModel contexts to Battle HUD module WBPs.
 - [ ] Replace prototype MVVM with module/domain ViewModels and real module-level bindings.
 - [x] Compile and save created UMG assets.
 
 ## Immediate Next Task
 
-Decide the fate of the untracked prototype `WBP_BattleHUD_MVVM` and `VM_BattleHUD` assets: delete them, regenerate them as module-level examples, or keep them only as reference. Production `WBP_BattleHUD` now uses module adapter injection instead of parent-to-child prototype bindings.
+Decide the fate of the untracked prototype `WBP_BattleHUD_MVVM` and `VM_BattleHUD` assets: delete them, regenerate them as module-level examples, or keep them only as reference. Production `WBP_BattleHUD` now uses module adapter injection and module-owned MVVM contexts instead of parent-to-child prototype bindings.
 
-Do not bind from the parent HUD into nested widget internals; that path failed compilation and should stay replaced with module-owned bindings or the adapter widgets. The remaining production gap is formal module-owned Blueprint MVVM contexts/bindings only where the C++ adapter refresh path is not enough.
+Do not bind from the parent HUD into nested widget internals; that path failed compilation and should stay replaced with module-owned bindings or the adapter widgets. The remaining production gap is authoring real module-level Blueprint MVVM bindings where the C++ adapter refresh path is not enough.

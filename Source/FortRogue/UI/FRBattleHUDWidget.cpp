@@ -208,17 +208,18 @@ void UFRBattleHUDWidget::ApplyViewModel(UUserWidget* Widget, UMVVMViewModelBase*
 		return;
 	}
 
+	if (UFRBattleHUDModuleWidgetBase* ModuleWidget = Cast<UFRBattleHUDModuleWidgetBase>(Widget))
+	{
+		ModuleWidget->SetRawViewModel(ViewModel);
+		return;
+	}
+
 	if (Widget->GetExtension<UMVVMView>())
 	{
 		TScriptInterface<INotifyFieldValueChanged> ViewModelInterface;
 		ViewModelInterface.SetObject(ViewModel);
 		ViewModelInterface.SetInterface(Cast<INotifyFieldValueChanged>(ViewModel));
 		UMVVMBlueprintLibrary::SetViewModelByClass(Widget, ViewModelInterface);
-	}
-
-	if (UFRBattleHUDModuleWidgetBase* ModuleWidget = Cast<UFRBattleHUDModuleWidgetBase>(Widget))
-	{
-		ModuleWidget->SetRawViewModel(ViewModel);
 	}
 }
 

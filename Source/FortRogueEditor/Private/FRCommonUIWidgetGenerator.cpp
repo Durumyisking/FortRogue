@@ -18,6 +18,7 @@
 #include "Components/ProgressBar.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
+#include "Editor.h"
 #include "HAL/FileManager.h"
 #include "IAssetTools.h"
 #include "Kismet2/BlueprintEditorUtils.h"
@@ -25,7 +26,10 @@
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
+#include "MVVMBlueprintView.h"
+#include "MVVMEditorSubsystem.h"
 #include "MVVMWidgetBlueprintExtension_View.h"
+#include "UI/FRBattleHUDModuleViewModels.h"
 #include "UI/FRBattleHUDModuleWidgets.h"
 #include "UI/FRTrajectoryPreviewPointWidget.h"
 #include "UI/FRMenuWidgets.h"
@@ -139,6 +143,43 @@ static void RemovePrototypeMVVMBlueprintExtension(UWidgetBlueprint* WidgetBluepr
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(WidgetBlueprint);
 	WidgetBlueprint->MarkPackageDirty();
 	UE_LOG(LogTemp, Display, TEXT("Removed prototype MVVM Blueprint extension from %s"), *WidgetBlueprint->GetPathName());
+}
+
+static void EnsureManualMVVMViewModelContext(UWidgetBlueprint* WidgetBlueprint, const UClass* ViewModelClass)
+{
+	if (!WidgetBlueprint || !ViewModelClass || !GEditor)
+	{
+		return;
+	}
+
+	UMVVMEditorSubsystem* MVVMEditorSubsystem = GEditor->GetEditorSubsystem<UMVVMEditorSubsystem>();
+	if (!MVVMEditorSubsystem)
+	{
+		return;
+	}
+
+	UMVVMBlueprintView* BlueprintView = MVVMEditorSubsystem->RequestView(WidgetBlueprint);
+	if (!BlueprintView)
+	{
+		return;
+	}
+
+	for (const FMVVMBlueprintViewModelContext& ViewModelContext : BlueprintView->GetViewModels())
+	{
+		if (ViewModelContext.GetViewModelClass() == ViewModelClass)
+		{
+			return;
+		}
+	}
+
+	const FGuid ViewModelId = MVVMEditorSubsystem->AddViewModel(WidgetBlueprint, ViewModelClass);
+	if (ViewModelId.IsValid())
+	{
+		WidgetBlueprint->Modify();
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(WidgetBlueprint);
+		WidgetBlueprint->MarkPackageDirty();
+		UE_LOG(LogTemp, Display, TEXT("Added MVVM ViewModel context %s to %s"), *ViewModelClass->GetName(), *WidgetBlueprint->GetPathName());
+	}
 }
 
 static UWidgetBlueprint* CreateWidgetBlueprint(const TCHAR* AssetPath, const TCHAR* AssetName, TSubclassOf<UUserWidget> ParentClass, bool& bOutNeedsConfigure)
@@ -783,23 +824,51 @@ int32 GenerateCommonUIWidgets()
 	WidgetBlueprints.Add(ConfirmDialog);
 
 	UWidgetBlueprint* BattleHUD = LoadWidgetBlueprint(CommonUIMainGamePath, TEXT("WBP_BattleHUD"));
+	RemovePrototypeMVVMBlueprintExtension(BattleHUD);
 	WidgetBlueprints.Add(BattleHUD);
 
-	WidgetBlueprints.Add(LoadWidgetBlueprint(CommonUIGlobalComponentsPath, TEXT("WBP_CommonTextButton")));
-	WidgetBlueprints.Add(LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_StartRun")));
-	WidgetBlueprints.Add(LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_Options")));
-	WidgetBlueprints.Add(LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_Quit")));
-	WidgetBlueprints.Add(LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_Back")));
-	WidgetBlueprints.Add(LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_Confirm")));
-	WidgetBlueprints.Add(LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_Cancel")));
-	WidgetBlueprints.Add(LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_Resume")));
-	WidgetBlueprints.Add(LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_MainMenu")));
+	UWidgetBlueprint* CommonTextButton = LoadWidgetBlueprint(CommonUIGlobalComponentsPath, TEXT("WBP_CommonTextButton"));
+	RemovePrototypeMVVMBlueprintExtension(CommonTextButton);
+	WidgetBlueprints.Add(CommonTextButton);
+
+	UWidgetBlueprint* StartRunButton = LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_StartRun"));
+	RemovePrototypeMVVMBlueprintExtension(StartRunButton);
+	WidgetBlueprints.Add(StartRunButton);
+
+	UWidgetBlueprint* OptionsButton = LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_Options"));
+	RemovePrototypeMVVMBlueprintExtension(OptionsButton);
+	WidgetBlueprints.Add(OptionsButton);
+
+	UWidgetBlueprint* QuitButton = LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_Quit"));
+	RemovePrototypeMVVMBlueprintExtension(QuitButton);
+	WidgetBlueprints.Add(QuitButton);
+
+	UWidgetBlueprint* BackButton = LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_Back"));
+	RemovePrototypeMVVMBlueprintExtension(BackButton);
+	WidgetBlueprints.Add(BackButton);
+
+	UWidgetBlueprint* ConfirmButton = LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_Confirm"));
+	RemovePrototypeMVVMBlueprintExtension(ConfirmButton);
+	WidgetBlueprints.Add(ConfirmButton);
+
+	UWidgetBlueprint* CancelButton = LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_Cancel"));
+	RemovePrototypeMVVMBlueprintExtension(CancelButton);
+	WidgetBlueprints.Add(CancelButton);
+
+	UWidgetBlueprint* ResumeButton = LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_Resume"));
+	RemovePrototypeMVVMBlueprintExtension(ResumeButton);
+	WidgetBlueprints.Add(ResumeButton);
+
+	UWidgetBlueprint* MainMenuButton = LoadWidgetBlueprint(CommonUIButtonsPath, TEXT("WBP_Button_MainMenu"));
+	RemovePrototypeMVVMBlueprintExtension(MainMenuButton);
+	WidgetBlueprints.Add(MainMenuButton);
 
 	UWidgetBlueprint* TurnBanner = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_TurnBanner"), UFRBattleStatePanelWidget::StaticClass(), bNeedsConfigure);
 	if (bNeedsConfigure)
 	{
 		ConfigureTurnBanner(TurnBanner);
 	}
+	EnsureManualMVVMViewModelContext(TurnBanner, UFRBattleStateViewModel::StaticClass());
 	WidgetBlueprints.Add(TurnBanner);
 
 	UWidgetBlueprint* CombatantStatusPanel = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_CombatantStatusPanel"), UFRCombatantStatusPanelWidget::StaticClass(), bNeedsConfigure);
@@ -807,6 +876,7 @@ int32 GenerateCommonUIWidgets()
 	{
 		ConfigureCombatantStatusPanel(CombatantStatusPanel);
 	}
+	EnsureManualMVVMViewModelContext(CombatantStatusPanel, UFRCombatantStatusViewModel::StaticClass());
 	WidgetBlueprints.Add(CombatantStatusPanel);
 
 	UWidgetBlueprint* AimWindIndicator = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_AimWindIndicator"), UFRAimWindIndicatorWidget::StaticClass(), bNeedsConfigure);
@@ -814,6 +884,7 @@ int32 GenerateCommonUIWidgets()
 	{
 		ConfigureAimWindIndicator(AimWindIndicator);
 	}
+	EnsureManualMVVMViewModelContext(AimWindIndicator, UFRAimWindViewModel::StaticClass());
 	WidgetBlueprints.Add(AimWindIndicator);
 
 	UWidgetBlueprint* ShotPowerMeter = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_ShotPowerMeter"), UFRShotPowerMeterWidget::StaticClass(), bNeedsConfigure);
@@ -821,6 +892,7 @@ int32 GenerateCommonUIWidgets()
 	{
 		ConfigureShotPowerMeter(ShotPowerMeter);
 	}
+	EnsureManualMVVMViewModelContext(ShotPowerMeter, UFRShotPowerViewModel::StaticClass());
 	WidgetBlueprints.Add(ShotPowerMeter);
 
 	UWidgetBlueprint* WeaponSlot = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_WeaponSlot"), UFRLoadoutSlotWidget::StaticClass(), bNeedsConfigure);
@@ -828,6 +900,7 @@ int32 GenerateCommonUIWidgets()
 	{
 		ConfigureLoadoutSlot(WeaponSlot, FText::FromString(TEXT("Basic")), FText::FromString(TEXT("Basic Shell")));
 	}
+	EnsureManualMVVMViewModelContext(WeaponSlot, UFRLoadoutSlotViewModel::StaticClass());
 	WidgetBlueprints.Add(WeaponSlot);
 
 	UWidgetBlueprint* ItemSlot = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_ItemSlot"), UFRLoadoutSlotWidget::StaticClass(), bNeedsConfigure);
@@ -835,6 +908,7 @@ int32 GenerateCommonUIWidgets()
 	{
 		ConfigureLoadoutSlot(ItemSlot, FText::FromString(TEXT("Item")), FText::FromString(TEXT("-")));
 	}
+	EnsureManualMVVMViewModelContext(ItemSlot, UFRLoadoutSlotViewModel::StaticClass());
 	WidgetBlueprints.Add(ItemSlot);
 
 	UWidgetBlueprint* LoadoutBar = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_LoadoutBar"), UFRLoadoutBarWidget::StaticClass(), bNeedsConfigure);
@@ -842,6 +916,7 @@ int32 GenerateCommonUIWidgets()
 	{
 		ConfigureLoadoutBar(LoadoutBar);
 	}
+	EnsureManualMVVMViewModelContext(LoadoutBar, UFRLoadoutViewModel::StaticClass());
 	WidgetBlueprints.Add(LoadoutBar);
 
 	UWidgetBlueprint* ShotInfoPanel = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_ShotInfoPanel"), UFRShotInfoPanelWidget::StaticClass(), bNeedsConfigure);
@@ -849,6 +924,7 @@ int32 GenerateCommonUIWidgets()
 	{
 		ConfigureShotInfoPanel(ShotInfoPanel);
 	}
+	EnsureManualMVVMViewModelContext(ShotInfoPanel, UFRShotPreviewViewModel::StaticClass());
 	WidgetBlueprints.Add(ShotInfoPanel);
 
 	UWidgetBlueprint* ModifierSummary = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_ModifierSummary"), UFRModifierSummaryWidget::StaticClass(), bNeedsConfigure);
@@ -856,6 +932,7 @@ int32 GenerateCommonUIWidgets()
 	{
 		ConfigureModifierSummary(ModifierSummary);
 	}
+	EnsureManualMVVMViewModelContext(ModifierSummary, UFRModifierSummaryViewModel::StaticClass());
 	WidgetBlueprints.Add(ModifierSummary);
 
 	UWidgetBlueprint* WorldStatusMarker = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_WorldStatusMarker"), UFRWorldStatusMarkerWidget::StaticClass(), bNeedsConfigure);
@@ -881,7 +958,6 @@ int32 GenerateCommonUIWidgets()
 			continue;
 		}
 
-		RemovePrototypeMVVMBlueprintExtension(WidgetBlueprint);
 		if (WidgetBlueprint->GetOutermost()->IsDirty())
 		{
 			FKismetEditorUtilities::CompileBlueprint(WidgetBlueprint);

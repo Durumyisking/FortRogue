@@ -15,6 +15,7 @@ public class FortRogueEditor : ModuleRules
 			"FortRogue",
 			"CommonUI",
 			"ModelViewViewModelBlueprint",
+			"ModelViewViewModelEditor",
 			"UMG",
 			"UMGEditor",
 			"KismetCompiler",

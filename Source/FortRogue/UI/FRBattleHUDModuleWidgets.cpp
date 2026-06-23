@@ -8,7 +8,9 @@
 #include "Components/PanelWidget.h"
 #include "Components/Widget.h"
 #include "Components/ProgressBar.h"
+#include "MVVMBlueprintLibrary.h"
 #include "UI/FRBattleHUDModuleViewModels.h"
+#include "View/MVVMView.h"
 
 namespace
 {
@@ -81,6 +83,19 @@ namespace
 			}
 		});
 	}
+
+	void ApplyMVVMViewModel(UUserWidget* Widget, UMVVMViewModelBase* ViewModel)
+	{
+		if (!Widget || !ViewModel || !Widget->GetExtension<UMVVMView>())
+		{
+			return;
+		}
+
+		TScriptInterface<INotifyFieldValueChanged> ViewModelInterface;
+		ViewModelInterface.SetObject(ViewModel);
+		ViewModelInterface.SetInterface(Cast<INotifyFieldValueChanged>(ViewModel));
+		UMVVMBlueprintLibrary::SetViewModelByClass(Widget, ViewModelInterface);
+	}
 }
 
 void UFRBattleHUDModuleWidgetBase::NativeOnInitialized()
@@ -99,6 +114,7 @@ void UFRBattleHUDModuleWidgetBase::SetRawViewModel(UMVVMViewModelBase* InViewMod
 	}
 
 	RawViewModel = InViewModel;
+	ApplyMVVMViewModel(this, RawViewModel);
 	RefreshFromViewModel();
 }
 
@@ -249,6 +265,7 @@ void UFRLoadoutSlotWidget::SetViewModel(UFRLoadoutSlotViewModel* InViewModel)
 	}
 
 	SlotViewModel = InViewModel;
+	ApplyMVVMViewModel(this, SlotViewModel);
 	RefreshFromViewModel();
 }
 
