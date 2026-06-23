@@ -11,6 +11,8 @@ class UCommonButtonStyle;
 class UCommonNumericTextBlock;
 class UCommonTextBlock;
 class UCommonTextStyle;
+class UCheckBox;
+class USlider;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FFRMenuActionRequested);
 
@@ -221,6 +223,15 @@ private:
 	void HandleResetClicked();
 	void HandleBackClicked();
 
+	UFUNCTION()
+	void HandleMasterVolumeChanged(float NormalizedValue);
+
+	UFUNCTION()
+	void HandleUIScaleChanged(float NormalizedValue);
+
+	UFUNCTION()
+	void HandleInputHintsChanged(bool bIsChecked);
+
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Options")
 	FText DefaultTitleText = FText::FromString(TEXT("Options"));
 
@@ -252,7 +263,13 @@ private:
 	TObjectPtr<UCommonNumericTextBlock> MasterVolumeText;
 
 	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<USlider> MasterVolumeSlider;
+
+	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCommonNumericTextBlock> UIScaleText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<USlider> UIScaleSlider;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCommonTextBlock> WindowModeText;
@@ -262,6 +279,9 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCommonTextBlock> InputHintsText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCheckBox> InputHintsCheckBox;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCommonTextBlock> AccessibilityText;
@@ -277,6 +297,8 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UFROptionsMenuViewModel> OptionsMenuViewModel;
+
+	bool bUpdatingOptionControls = false;
 };
 
 UCLASS(Abstract, Blueprintable)

@@ -5,6 +5,8 @@
 #include "CommonButtonBase.h"
 #include "CommonNumericTextBlock.h"
 #include "CommonTextBlock.h"
+#include "Components/CheckBox.h"
+#include "Components/Slider.h"
 #include "MVVMBlueprintLibrary.h"
 
 namespace
@@ -32,6 +34,31 @@ namespace
 		{
 			TextBlock->SetCurrentValue(Value);
 		}
+	}
+
+	float MasterVolumeToSliderValue(float Percent)
+	{
+		return FMath::Clamp(Percent / 100.0f, 0.0f, 1.0f);
+	}
+
+	float SliderValueToMasterVolume(float NormalizedValue)
+	{
+		return FMath::Clamp(NormalizedValue, 0.0f, 1.0f) * 100.0f;
+	}
+
+	float UIScaleToSliderValue(float Percent)
+	{
+		return FMath::Clamp((Percent - 50.0f) / 150.0f, 0.0f, 1.0f);
+	}
+
+	float SliderValueToUIScale(float NormalizedValue)
+	{
+		return 50.0f + FMath::Clamp(NormalizedValue, 0.0f, 1.0f) * 150.0f;
+	}
+
+	bool IsOptionEnabledText(const FText& Text)
+	{
+		return !Text.ToString().Equals(TEXT("Off"), ESearchCase::IgnoreCase);
 	}
 
 	void ApplyMenuTextStyle(UCommonTextBlock* TextBlock, TSubclassOf<UCommonTextStyle> TextStyle)
@@ -212,6 +239,18 @@ void UFROptionsMenuWidget::NativeOnInitialized()
 	BindMenuButton(ApplyButton, this, &UFROptionsMenuWidget::HandleApplyClicked);
 	BindMenuButton(ResetButton, this, &UFROptionsMenuWidget::HandleResetClicked);
 	BindMenuButton(BackButton, this, &UFROptionsMenuWidget::HandleBackClicked);
+	if (MasterVolumeSlider)
+	{
+		MasterVolumeSlider->OnValueChanged.AddDynamic(this, &UFROptionsMenuWidget::HandleMasterVolumeChanged);
+	}
+	if (UIScaleSlider)
+	{
+		UIScaleSlider->OnValueChanged.AddDynamic(this, &UFROptionsMenuWidget::HandleUIScaleChanged);
+	}
+	if (InputHintsCheckBox)
+	{
+		InputHintsCheckBox->OnCheckStateChanged.AddDynamic(this, &UFROptionsMenuWidget::HandleInputHintsChanged);
+	}
 }
 
 void UFROptionsMenuWidget::RefreshOptionsMenu()
@@ -259,6 +298,21 @@ void UFROptionsMenuWidget::RefreshFromViewModel()
 	SetMenuText(ResolutionText, OptionsMenuViewModel->GetResolutionText());
 	SetMenuText(InputHintsText, OptionsMenuViewModel->GetInputHintsText());
 	SetMenuText(AccessibilityText, OptionsMenuViewModel->GetAccessibilityText());
+
+	bUpdatingOptionControls = true;
+	if (MasterVolumeSlider)
+	{
+		MasterVolumeSlider->SetValue(MasterVolumeToSliderValue(OptionsMenuViewModel->GetMasterVolumePercent()));
+	}
+	if (UIScaleSlider)
+	{
+		UIScaleSlider->SetValue(UIScaleToSliderValue(OptionsMenuViewModel->GetUIScalePercent()));
+	}
+	if (InputHintsCheckBox)
+	{
+		InputHintsCheckBox->SetIsChecked(IsOptionEnabledText(OptionsMenuViewModel->GetInputHintsText()));
+	}
+	bUpdatingOptionControls = false;
 }
 
 void UFROptionsMenuWidget::ApplyMenuStyleSet()
@@ -283,6 +337,51 @@ void UFROptionsMenuWidget::HandleResetClicked()
 void UFROptionsMenuWidget::HandleBackClicked()
 {
 	OnBackRequested.Broadcast();
+}
+
+void UFROptionsMenuWidget::HandleMasterVolumeChanged(float NormalizedValue)
+{
+	if (bUpdatingOptionControls)
+	{
+		return;
+	}
+
+	CreateOptionsMenuViewModel();
+	if (OptionsMenuViewModel)
+	{
+		OptionsMenuViewModel->SetMasterVolumePercent(SliderValueToMasterVolume(NormalizedValue));
+		SetMenuNumber(MasterVolumeText, OptionsMenuViewModel->GetMasterVolumePercent());
+	}
+}
+
+void UFROptionsMenuWidget::HandleUIScaleChanged(float NormalizedValue)
+{
+	if (bUpdatingOptionControls)
+	{
+		return;
+	}
+
+	CreateOptionsMenuViewModel();
+	if (OptionsMenuViewModel)
+	{
+		OptionsMenuViewModel->SetUIScalePercent(SliderValueToUIScale(NormalizedValue));
+		SetMenuNumber(UIScaleText, OptionsMenuViewModel->GetUIScalePercent());
+	}
+}
+
+void UFROptionsMenuWidget::HandleInputHintsChanged(bool bIsChecked)
+{
+	if (bUpdatingOptionControls)
+	{
+		return;
+	}
+
+	CreateOptionsMenuViewModel();
+	if (OptionsMenuViewModel)
+	{
+		OptionsMenuViewModel->SetInputHintsText(FText::FromString(bIsChecked ? TEXT("On") : TEXT("Off")));
+		SetMenuText(InputHintsText, OptionsMenuViewModel->GetInputHintsText());
+	}
 }
 
 void UFRPauseMenuWidget::NativeOnInitialized()

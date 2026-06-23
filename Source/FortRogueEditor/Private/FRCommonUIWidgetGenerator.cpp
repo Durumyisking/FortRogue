@@ -13,11 +13,13 @@
 #include "CommonTextBlock.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/CheckBox.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/Overlay.h"
 #include "Components/OverlaySlot.h"
 #include "Components/ProgressBar.h"
+#include "Components/Slider.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Editor.h"
@@ -262,6 +264,7 @@ static UCommonTextBlock* ConstructText(UWidgetBlueprint* WidgetBlueprint, const 
 	{
 		TextBlock->SetText(Text);
 		TextBlock->SetStyle(TextStyle);
+		EnsureWidgetGuid(WidgetBlueprint, TextBlock);
 	}
 	return TextBlock;
 }
@@ -275,6 +278,7 @@ static UCommonNumericTextBlock* ConstructNumber(UWidgetBlueprint* WidgetBlueprin
 	{
 		TextBlock->SetCurrentValue(Value);
 		TextBlock->SetStyle(LoadStyleClass<UCommonTextStyle>(NumberTextStylePath));
+		EnsureWidgetGuid(WidgetBlueprint, TextBlock);
 	}
 	return TextBlock;
 }
@@ -287,8 +291,35 @@ static UProgressBar* ConstructProgressBar(UWidgetBlueprint* WidgetBlueprint, con
 	if (ProgressBar)
 	{
 		ProgressBar->SetPercent(FMath::Clamp(Percent, 0.0f, 1.0f));
+		EnsureWidgetGuid(WidgetBlueprint, ProgressBar);
 	}
 	return ProgressBar;
+}
+
+static USlider* ConstructSlider(UWidgetBlueprint* WidgetBlueprint, const TCHAR* WidgetName, float Value)
+{
+	USlider* Slider = WidgetBlueprint && WidgetBlueprint->WidgetTree
+		? WidgetBlueprint->WidgetTree->ConstructWidget<USlider>(USlider::StaticClass(), WidgetName)
+		: nullptr;
+	if (Slider)
+	{
+		Slider->SetValue(FMath::Clamp(Value, 0.0f, 1.0f));
+		EnsureWidgetGuid(WidgetBlueprint, Slider);
+	}
+	return Slider;
+}
+
+static UCheckBox* ConstructCheckBox(UWidgetBlueprint* WidgetBlueprint, const TCHAR* WidgetName, bool bChecked)
+{
+	UCheckBox* CheckBox = WidgetBlueprint && WidgetBlueprint->WidgetTree
+		? WidgetBlueprint->WidgetTree->ConstructWidget<UCheckBox>(UCheckBox::StaticClass(), WidgetName)
+		: nullptr;
+	if (CheckBox)
+	{
+		CheckBox->SetIsChecked(bChecked);
+		EnsureWidgetGuid(WidgetBlueprint, CheckBox);
+	}
+	return CheckBox;
 }
 
 static UCommonButtonBase* ConstructButton(UWidgetBlueprint* WidgetBlueprint, const TCHAR* WidgetName, TSubclassOf<UCommonButtonBase> ButtonClass)
@@ -299,9 +330,11 @@ static UCommonButtonBase* ConstructButton(UWidgetBlueprint* WidgetBlueprint, con
 		return nullptr;
 	}
 
-	return WidgetBlueprint && WidgetBlueprint->WidgetTree
+	UCommonButtonBase* Button = WidgetBlueprint && WidgetBlueprint->WidgetTree
 		? WidgetBlueprint->WidgetTree->ConstructWidget<UCommonButtonBase>(ButtonClass, WidgetName)
 		: nullptr;
+	EnsureWidgetGuid(WidgetBlueprint, Button);
+	return Button;
 }
 
 static UCommonButtonBase* ConstructButton(UWidgetBlueprint* WidgetBlueprint, const TCHAR* WidgetName, const TCHAR* ButtonClassPath)
@@ -385,6 +418,7 @@ static void AddOptionRow(UWidgetBlueprint* WidgetBlueprint, UVerticalBox* Parent
 	{
 		return;
 	}
+	EnsureWidgetGuid(WidgetBlueprint, Row);
 
 	UCommonTextBlock* Label = ConstructText(WidgetBlueprint, LabelName, LabelText, LoadStyleClass<UCommonTextStyle>(BodyTextStylePath));
 	if (Label)
@@ -399,6 +433,38 @@ static void AddOptionRow(UWidgetBlueprint* WidgetBlueprint, UVerticalBox* Parent
 		Row->AddChildToHorizontalBox(ValueWidget);
 	}
 	AddVerticalChild(Parent, Row, FMargin(0.0f, 0.0f, 0.0f, 6.0f));
+}
+
+static UHorizontalBox* ConstructSliderNumberValue(UWidgetBlueprint* WidgetBlueprint, const TCHAR* BoxName, const TCHAR* SliderName, const TCHAR* NumberName, float SliderValue, float NumberValue)
+{
+	UHorizontalBox* ValueBox = WidgetBlueprint && WidgetBlueprint->WidgetTree
+		? WidgetBlueprint->WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), BoxName)
+		: nullptr;
+	if (!ValueBox)
+	{
+		return nullptr;
+	}
+	EnsureWidgetGuid(WidgetBlueprint, ValueBox);
+
+	AddHorizontalChild(ValueBox, ConstructSlider(WidgetBlueprint, SliderName, SliderValue));
+	AddHorizontalChild(ValueBox, ConstructNumber(WidgetBlueprint, NumberName, NumberValue), FMargin(0.0f));
+	return ValueBox;
+}
+
+static UHorizontalBox* ConstructCheckBoxTextValue(UWidgetBlueprint* WidgetBlueprint, const TCHAR* BoxName, const TCHAR* CheckBoxName, const TCHAR* TextName, const FText& Text)
+{
+	UHorizontalBox* ValueBox = WidgetBlueprint && WidgetBlueprint->WidgetTree
+		? WidgetBlueprint->WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), BoxName)
+		: nullptr;
+	if (!ValueBox)
+	{
+		return nullptr;
+	}
+	EnsureWidgetGuid(WidgetBlueprint, ValueBox);
+
+	AddHorizontalChild(ValueBox, ConstructCheckBox(WidgetBlueprint, CheckBoxName, true));
+	AddHorizontalChild(ValueBox, ConstructText(WidgetBlueprint, TextName, Text, LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)), FMargin(0.0f));
+	return ValueBox;
 }
 
 static bool SaveAsset(UObject* Asset)
@@ -511,16 +577,121 @@ static void ConfigureOptionsMenu(UWidgetBlueprint* WidgetBlueprint)
 	}
 
 	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("TitleText"), FText::FromString(TEXT("Options")), LoadStyleClass<UCommonTextStyle>(TitleTextStylePath)));
-	AddOptionRow(WidgetBlueprint, RootBox, TEXT("MasterVolumeRow"), TEXT("MasterVolumeLabel"), FText::FromString(TEXT("Master Volume")), ConstructNumber(WidgetBlueprint, TEXT("MasterVolumeText"), 100.0f));
-	AddOptionRow(WidgetBlueprint, RootBox, TEXT("UIScaleRow"), TEXT("UIScaleLabel"), FText::FromString(TEXT("UI Scale")), ConstructNumber(WidgetBlueprint, TEXT("UIScaleText"), 100.0f));
+	AddOptionRow(WidgetBlueprint, RootBox, TEXT("MasterVolumeRow"), TEXT("MasterVolumeLabel"), FText::FromString(TEXT("Master Volume")), ConstructSliderNumberValue(WidgetBlueprint, TEXT("MasterVolumeValueBox"), TEXT("MasterVolumeSlider"), TEXT("MasterVolumeText"), 1.0f, 100.0f));
+	AddOptionRow(WidgetBlueprint, RootBox, TEXT("UIScaleRow"), TEXT("UIScaleLabel"), FText::FromString(TEXT("UI Scale")), ConstructSliderNumberValue(WidgetBlueprint, TEXT("UIScaleValueBox"), TEXT("UIScaleSlider"), TEXT("UIScaleText"), 1.0f / 3.0f, 100.0f));
 	AddOptionRow(WidgetBlueprint, RootBox, TEXT("WindowModeRow"), TEXT("WindowModeLabel"), FText::FromString(TEXT("Window Mode")), ConstructText(WidgetBlueprint, TEXT("WindowModeText"), FText::FromString(TEXT("Windowed Fullscreen")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
 	AddOptionRow(WidgetBlueprint, RootBox, TEXT("ResolutionRow"), TEXT("ResolutionLabel"), FText::FromString(TEXT("Resolution")), ConstructText(WidgetBlueprint, TEXT("ResolutionText"), FText::FromString(TEXT("Native")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
-	AddOptionRow(WidgetBlueprint, RootBox, TEXT("InputHintsRow"), TEXT("InputHintsLabel"), FText::FromString(TEXT("Input Hints")), ConstructText(WidgetBlueprint, TEXT("InputHintsText"), FText::FromString(TEXT("On")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddOptionRow(WidgetBlueprint, RootBox, TEXT("InputHintsRow"), TEXT("InputHintsLabel"), FText::FromString(TEXT("Input Hints")), ConstructCheckBoxTextValue(WidgetBlueprint, TEXT("InputHintsValueBox"), TEXT("InputHintsCheckBox"), TEXT("InputHintsText"), FText::FromString(TEXT("On"))));
 	AddOptionRow(WidgetBlueprint, RootBox, TEXT("AccessibilityRow"), TEXT("AccessibilityLabel"), FText::FromString(TEXT("Accessibility")), ConstructText(WidgetBlueprint, TEXT("AccessibilityText"), FText::FromString(TEXT("Default")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
 	AddVerticalChild(RootBox, ConstructButton(WidgetBlueprint, TEXT("ApplyButton"), ConfirmButtonClassPath));
 	AddVerticalChild(RootBox, ConstructButton(WidgetBlueprint, TEXT("ResetButton"), CancelButtonClassPath));
 	AddVerticalChild(RootBox, ConstructButton(WidgetBlueprint, TEXT("BackButton"), BackButtonClassPath));
 	WidgetBlueprint->MarkPackageDirty();
+}
+
+static bool AddControlToExistingOptionRow(UWidgetBlueprint* WidgetBlueprint, const TCHAR* RowName, UWidget* ControlWidget)
+{
+	UHorizontalBox* Row = WidgetBlueprint && WidgetBlueprint->WidgetTree
+		? Cast<UHorizontalBox>(WidgetBlueprint->WidgetTree->FindWidget(RowName))
+		: nullptr;
+	if (!Row || !ControlWidget)
+	{
+		return false;
+	}
+
+	if (UHorizontalBoxSlot* Slot = Row->AddChildToHorizontalBox(ControlWidget))
+	{
+		Slot->SetPadding(FMargin(8.0f, 0.0f, 0.0f, 0.0f));
+		Slot->SetVerticalAlignment(VAlign_Center);
+	}
+	EnsureWidgetGuid(WidgetBlueprint, ControlWidget);
+	return true;
+}
+
+static void EnsureOptionsMenuControlWidgets(UWidgetBlueprint* OptionsMenu)
+{
+	if (!OptionsMenu || !OptionsMenu->WidgetTree)
+	{
+		return;
+	}
+
+	bool bChanged = false;
+	OptionsMenu->Modify();
+	OptionsMenu->WidgetTree->Modify();
+	UVerticalBox* FallbackParent = Cast<UVerticalBox>(OptionsMenu->WidgetTree->FindWidget(TEXT("ContentBox")));
+	if (!FallbackParent)
+	{
+		FallbackParent = Cast<UVerticalBox>(OptionsMenu->WidgetTree->FindWidget(TEXT("MenuPanel")));
+	}
+
+	if (!OptionsMenu->WidgetTree->FindWidget(TEXT("MasterVolumeSlider")))
+	{
+		if (OptionsMenu->WidgetTree->FindWidget(TEXT("MasterVolumeRow")))
+		{
+			AddControlToExistingOptionRow(OptionsMenu, TEXT("MasterVolumeRow"), ConstructSlider(OptionsMenu, TEXT("MasterVolumeSlider"), 1.0f));
+		}
+		else if (FallbackParent)
+		{
+			AddOptionRow(OptionsMenu, FallbackParent, TEXT("MasterVolumeControlRow"), TEXT("MasterVolumeLabel"), FText::FromString(TEXT("Master Volume")), ConstructSliderNumberValue(OptionsMenu, TEXT("MasterVolumeValueBox"), TEXT("MasterVolumeSlider"), TEXT("MasterVolumeText"), 1.0f, 100.0f));
+		}
+		bChanged = true;
+	}
+	if (!OptionsMenu->WidgetTree->FindWidget(TEXT("UIScaleSlider")))
+	{
+		if (OptionsMenu->WidgetTree->FindWidget(TEXT("UIScaleRow")))
+		{
+			AddControlToExistingOptionRow(OptionsMenu, TEXT("UIScaleRow"), ConstructSlider(OptionsMenu, TEXT("UIScaleSlider"), 1.0f / 3.0f));
+		}
+		else if (FallbackParent)
+		{
+			AddOptionRow(OptionsMenu, FallbackParent, TEXT("UIScaleControlRow"), TEXT("UIScaleLabel"), FText::FromString(TEXT("UI Scale")), ConstructSliderNumberValue(OptionsMenu, TEXT("UIScaleValueBox"), TEXT("UIScaleSlider"), TEXT("UIScaleText"), 1.0f / 3.0f, 100.0f));
+		}
+		bChanged = true;
+	}
+	if (!OptionsMenu->WidgetTree->FindWidget(TEXT("InputHintsCheckBox")))
+	{
+		if (OptionsMenu->WidgetTree->FindWidget(TEXT("InputHintsRow")))
+		{
+			AddControlToExistingOptionRow(OptionsMenu, TEXT("InputHintsRow"), ConstructCheckBox(OptionsMenu, TEXT("InputHintsCheckBox"), true));
+		}
+		else if (FallbackParent)
+		{
+			AddOptionRow(OptionsMenu, FallbackParent, TEXT("InputHintsControlRow"), TEXT("InputHintsLabel"), FText::FromString(TEXT("Input Hints")), ConstructCheckBoxTextValue(OptionsMenu, TEXT("InputHintsValueBox"), TEXT("InputHintsCheckBox"), TEXT("InputHintsText"), FText::FromString(TEXT("On"))));
+		}
+		bChanged = true;
+	}
+
+	const FName RequiredWidgetNames[] =
+	{
+		TEXT("MasterVolumeControlRow"),
+		TEXT("MasterVolumeLabel"),
+		TEXT("MasterVolumeValueBox"),
+		TEXT("MasterVolumeSlider"),
+		TEXT("MasterVolumeText"),
+		TEXT("UIScaleControlRow"),
+		TEXT("UIScaleLabel"),
+		TEXT("UIScaleValueBox"),
+		TEXT("UIScaleSlider"),
+		TEXT("UIScaleText"),
+		TEXT("InputHintsControlRow"),
+		TEXT("InputHintsLabel"),
+		TEXT("InputHintsValueBox"),
+		TEXT("InputHintsCheckBox"),
+		TEXT("InputHintsText")
+	};
+	for (const FName WidgetName : RequiredWidgetNames)
+	{
+		if (UWidget* Widget = OptionsMenu->WidgetTree->FindWidget(WidgetName))
+		{
+			bChanged |= EnsureWidgetGuid(OptionsMenu, Widget);
+		}
+	}
+
+	if (bChanged)
+	{
+		OptionsMenu->MarkPackageDirty();
+		UE_LOG(LogTemp, Display, TEXT("Added interactive Options controls to %s"), *OptionsMenu->GetPathName());
+	}
 }
 
 static void ConfigurePauseMenu(UWidgetBlueprint* WidgetBlueprint)
@@ -947,6 +1118,7 @@ int32 GenerateCommonUIWidgets()
 	{
 		ConfigureOptionsMenu(OptionsMenu);
 	}
+	EnsureOptionsMenuControlWidgets(OptionsMenu);
 	EnsureManualMVVMViewModelContext(OptionsMenu, UFROptionsMenuViewModel::StaticClass());
 	WidgetBlueprints.Add(OptionsMenu);
 

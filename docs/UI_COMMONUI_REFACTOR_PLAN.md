@@ -57,7 +57,7 @@
 - `WBP_UIRoot` is based on `UFRUIRootWidget` and owns CommonUI stacks named `HUDLayer`, `MenuLayer`, and `ModalLayer`.
 - `WBP_MainMenu`, `WBP_OptionsMenu`, `WBP_PauseMenu`, and `WBP_ConfirmDialog` are based on their CommonUI adapter classes and have minimal authored CommonUI layouts.
 - `WBP_RewardScreen` and `WBP_RewardChoiceButton` now exist under `Content/FortRogue/Widget/Reward`, are based on their CommonUI adapter classes, and carry matching MVVM ViewModel contexts.
-- Options menu now has a runtime `UFROptionsMenuViewModel` and optional CommonTextBlock/CommonNumericTextBlock display fields for editor-authored option rows.
+- Options menu now has a runtime `UFROptionsMenuViewModel`, optional display fields, and editor-authored slider/check box controls for master volume, UI scale, and input hints.
 - UI root now has a runtime `UFRUIRootViewModel` that exposes active HUD, menu, and modal layer state.
 - Main menu, pause menu, and confirmation dialog now share a runtime `UFRMenuScreenViewModel` for title/body/status display.
 - Menu adapters expose `FFRMenuStyleSet` so authored screens can apply editor-selected CommonTextStyle and CommonButtonStyle classes to their optional CommonUI children.
@@ -170,6 +170,7 @@
 - `UFRMainMenuWidget`, `UFROptionsMenuWidget`, `UFRPauseMenuWidget`, and `UFRConfirmDialogWidget` expose optional named CommonButton children and BlueprintAssignable request events.
 - `AFRPlayerController` binds menu adapter request events and uses `Escape` as a fallback for pause/back/cancel while Enhanced Input actions are not yet authored.
 - `UFROptionsMenuWidget` creates and injects `UFROptionsMenuViewModel`; default option labels and numeric values are editable on the widget class.
+- `UFROptionsMenuWidget` can bind optional `MasterVolumeSlider`, `UIScaleSlider`, and `InputHintsCheckBox` widgets so authored Options screens can update the ViewModel from real controls.
 - `UFRUIRootWidget` creates and injects `UFRUIRootViewModel`; layer push, remove, and clear operations refresh the active layer state.
 - `UFRMainMenuWidget`, `UFRPauseMenuWidget`, and `UFRConfirmDialogWidget` create and inject `UFRMenuScreenViewModel`; optional CommonTextBlock fields can display the same values without Blueprint scripting.
 - `FFRMenuStyleSet` lets main menu, options, pause, and confirmation adapters apply title/body/status text styles and primary/secondary button styles in C++.
@@ -312,6 +313,7 @@
 - [x] Add CommonUI adapter classes for menu and confirmation dialog screens.
 - [x] Connect menu, options, pause, and confirmation adapters to the CommonUI root layers.
 - [x] Add Options menu ViewModel and CommonUI display adapter fields.
+- [x] Add interactive Options menu controls for core settings ViewModel values.
 - [x] Add UI root layer state ViewModel.
 - [x] Add Main/Pause/Confirm menu screen ViewModel display surfaces.
 - [x] Add menu CommonUI style override surface.

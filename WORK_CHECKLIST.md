@@ -35,3 +35,4 @@ UI 체크리스트
 - Battle HUD turn banner 중복 stage 텍스트 정리 [v]
 - Reward 화면 CommonUI WBP 생성 및 MVVM context 추가 [v]
 - Enemy/target status panel 생산 HUD 연결 [v]
+- Options 화면 조작 컨트롤 MVVM 표면 추가 [v]
