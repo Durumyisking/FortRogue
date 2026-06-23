@@ -47,6 +47,26 @@ codex --full-auto -C D:\Project\FortRogue-combat --add-dir D:\Project\FortRogue-
 
 After launch, give the worker the appropriate role prompt from `.agents/prompts/worker-start.md`.
 
+## Agent Router
+
+For one-off role commands, use the root router:
+
+```powershell
+.\Agent.bat Flow 너 게임 플로우 점검해
+.\Agent.bat '@Flow' -5.4 -xhigh 너 게임 플로우 점검해
+.\Agent.bat Combat -dry-run 기본 공격 코드 점검해
+```
+
+PowerShell treats unquoted `@Flow` as a special token in normal command arguments. To use the exact `@Flow` syntax, run interactive mode:
+
+```powershell
+.\Agent.bat
+agent> @Flow 너 게임 플로우 점검해
+agent> @Flow -5.4 -xhigh 너 게임 플로우 점검해
+```
+
+Defaults are `gpt-5.5` and `model_reasoning_effort="high"`.
+
 ## Task Lifecycle
 
 1. Director writes or updates a task under `D:\Project\FortRogue-ops\tasks\<role>\`.
