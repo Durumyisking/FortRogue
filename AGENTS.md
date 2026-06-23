@@ -72,3 +72,23 @@ Work rules:
 - After the requested work is implemented and verified, mark the checklist entry as `[v]`.
 - If it is unclear whether a file or code path belongs to a completed checklist item, treat it as protected and ask the user before editing.
 - Do not create speculative checklist items for work that was not requested.
+
+## Parallel Codex CLI Operations
+
+FortRogue uses a one-agent, one-branch, one-worktree model for parallel Codex CLI work.
+
+- Each Codex CLI session owns exactly one worktree and one branch.
+- Shared project rules live in this `AGENTS.md`.
+- Role-specific rules live under `.agents/roles/`.
+- Runtime task state, command queues, and handoff notes live outside git in `D:\Project\FortRogue-ops`.
+- Launch role sessions with `--add-dir D:\Project\FortRogue-ops` so they can read and update the shared operations folder.
+- A worker handles one assigned task at a time, records the result, then returns to idle.
+- Only the integration/director role merges branches or edits shared operational state broadly.
+- Do not let feature workers merge other branches into their worktree unless the director explicitly asks.
+
+Editor-owned assets are single-owner:
+
+- Only the editor role may modify `Content/**/*.uasset`, `Content/**/*.umap`, UMG/WBP, MVVM assets, Niagara assets, DataAssets, levels, or editor/project settings.
+- The texture role may create source images or prompts, but Unreal import and `.uasset` creation belong to the editor role.
+- When using Unreal MCP, the running Unreal Editor must have opened the same worktree that the editor role owns, normally `D:\Project\FortRogue-editor\FortRogue.uproject`.
+- If the editor is opened from another worktree, stop and reopen the correct `.uproject` before making MCP changes.
