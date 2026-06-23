@@ -32,6 +32,7 @@
 ## Current State
 
 - `UFRBattleHUDWidget` and `UFRRewardScreenWidget` already inherit from `UCommonActivatableWidget`.
+- `DefaultEngine.ini` now uses `/Script/CommonUI.CommonGameViewportClient` so CommonUI input routing can run through the expected viewport client.
 - The battle HUD no longer builds a C++ fallback widget tree; `UFRBattleHUDWidget` now expects authored UMG modules and only owns ViewModel creation, injection, and refresh.
 - `AFRPlayerController` now creates one UI root and routes battle HUD/reward screens through CommonUI layer stacks when the authored root WBP is based on `UFRUIRootWidget`.
 - `AFRPlayerController` can route main menu, options, pause, and confirmation dialogs through the root `MenuLayer` and `ModalLayer` once those authored WBPs use their adapter base classes.
@@ -138,6 +139,7 @@
 ## Runtime Integration Remaining
 
 - Runtime HUD, world health, and floating combat text now default to authored WBP assets.
+- CommonUI viewport routing is enabled through `GameViewportClientClassName=/Script/CommonUI.CommonGameViewportClient`.
 - `UFRCharacterHealthBarWidget` and `UFRFloatingCombatTextWidget` require named widgets from authored WBP assets and no longer construct fallback widget trees.
 - `UFRCharacterHealthBarWidget` updates `UFRCharacterHealthBarViewModel` and can drive optional `HealthText`, `CurrentHealthValueText`, and `MaxHealthValueText` CommonUI widgets.
 - `AFRBattleCharacter` now owns a `StatusMarkerComponent` that points to `/Game/FortRogue/Widget/MainGame/Components/WBP_WorldStatusMarker` when that authored WBP exists, then falls back to the C++ adapter class.
@@ -293,6 +295,7 @@
 - [x] Add CommonButton-based loadout slot ViewModels and adapter widgets.
 - [x] Add CommonButton-based reward choice ViewModels and adapter widgets.
 - [x] Route Battle HUD and Reward screen through a CommonUI root layer adapter.
+- [x] Configure CommonUI GameViewportClient for input routing.
 - [x] Add CommonUI adapter classes for menu and confirmation dialog screens.
 - [x] Connect menu, options, pause, and confirmation adapters to the CommonUI root layers.
 - [x] Add Options menu ViewModel and CommonUI display adapter fields.

@@ -25,3 +25,6 @@ UI 체크리스트
 - World status marker CommonUI MVVM 추가 [v]
 - Trajectory preview CommonUI MVVM 포인트 추가 [v]
 - World marker/trajectory UMG 에셋 생성 커맨드렛 추가 [v]
+
+26 06 23
+- CommonUI GameViewportClient 설정 추가 [v]
