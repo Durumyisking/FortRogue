@@ -35,7 +35,7 @@
 - `DefaultEngine.ini` now uses `/Script/CommonUI.CommonGameViewportClient` so CommonUI input routing can run through the expected viewport client.
 - The battle HUD no longer builds a C++ fallback widget tree; `UFRBattleHUDWidget` now expects authored UMG modules and only owns ViewModel creation, injection, and refresh.
 - `AFRPlayerController` now creates one UI root and routes battle HUD/reward screens through CommonUI layer stacks when the authored root WBP is based on `UFRUIRootWidget`.
-- `AFRPlayerController` can route main menu, options, pause, and confirmation dialogs through the root `MenuLayer` and `ModalLayer` once those authored WBPs use their adapter base classes.
+- `AFRPlayerController` can route main menu, options, pause, and confirmation dialogs through the root `MenuLayer` and `ModalLayer`; the authored WBPs now use their CommonUI adapter base classes.
 - Character health bars and floating combat text use authored UMG assets; their C++ classes only find named widgets and push runtime values.
 - Character health bars now expose a runtime `UFRCharacterHealthBarViewModel` and optional CommonTextBlock/CommonNumericTextBlock display fields.
 - World status markers now have a `UFRWorldStatusMarkerWidget` CommonUI adapter with a runtime `UFRWorldStatusMarkerViewModel`, optional `CommonTextBlock`, and optional `CommonBorder`.
@@ -50,6 +50,8 @@
 - Loadout weapon/item slots now have per-slot ViewModels and a CommonButton-based slot adapter for selected, enabled, empty, and locked states.
 - Reward screen choices now have per-choice ViewModels and a CommonButton-based choice adapter for title, summary, condition feedback, enabled state, and selection.
 - Main menu, options, pause, and confirmation dialog now have CommonActivatableWidget adapter classes with CommonButton request events.
+- `WBP_UIRoot` is based on `UFRUIRootWidget` and owns CommonUI stacks named `HUDLayer`, `MenuLayer`, and `ModalLayer`.
+- `WBP_MainMenu`, `WBP_OptionsMenu`, `WBP_PauseMenu`, and `WBP_ConfirmDialog` are based on their CommonUI adapter classes and have minimal authored CommonUI layouts.
 - Options menu now has a runtime `UFROptionsMenuViewModel` and optional CommonTextBlock/CommonNumericTextBlock display fields for editor-authored option rows.
 - UI root now has a runtime `UFRUIRootViewModel` that exposes active HUD, menu, and modal layer state.
 - Main menu, pause menu, and confirmation dialog now share a runtime `UFRMenuScreenViewModel` for title/body/status display.
@@ -62,8 +64,8 @@
 ### Architecture
 
 - UI creation is split between C++ generated widgets and UMG assets, so designers cannot reliably edit the final UI in the editor.
-- CommonUI root routing exists in C++, but the authored `WBP_UIRoot` still needs its root base class and named layer stacks saved in the editor.
-- Menu, prompt, and modal flows still need to be routed through the root layer model.
+- CommonUI root routing exists in C++ and the authored `WBP_UIRoot` now has the expected root base class and named layer stacks.
+- Menu, prompt, and modal flows are routed through the root layer model, but still need interaction and navigation polish in authored assets.
 - UI refresh is polling-based instead of state/event driven.
 
 ### MVVM
@@ -153,7 +155,7 @@
 - `UFRBattleHUDModuleWidgetBase` and derived adapter widgets can receive injected module ViewModels and push values into optional named CommonUI widgets.
 - `UFRLoadoutSlotWidget` uses `UCommonButtonBase`; `WBP_LoadoutBar` can expose `WeaponSlotPanel` and `ItemSlotPanel` containing slot widgets in editor-defined counts.
 - `UFRRewardScreenWidget` creates a runtime `UFRRewardScreenViewModel`; `UFRRewardChoiceButtonWidget` uses `UCommonButtonBase` for editor-authored reward choice cards.
-- `UFRUIRootWidget` expects authored CommonUI stacks named `HUDLayer`, `MenuLayer`, and `ModalLayer`; `WBP_UIRoot` still needs its base class and layer widgets saved in the editor.
+- `UFRUIRootWidget` expects authored CommonUI stacks named `HUDLayer`, `MenuLayer`, and `ModalLayer`; `WBP_UIRoot` now provides those stacks.
 - `UFRMainMenuWidget`, `UFROptionsMenuWidget`, `UFRPauseMenuWidget`, and `UFRConfirmDialogWidget` expose optional named CommonButton children and BlueprintAssignable request events.
 - `AFRPlayerController` binds menu adapter request events and uses `Escape` as a fallback for pause/back/cancel while Enhanced Input actions are not yet authored.
 - `UFROptionsMenuWidget` creates and injects `UFROptionsMenuViewModel`; default option labels and numeric values are editable on the widget class.
@@ -162,7 +164,7 @@
 - `FFRMenuStyleSet` lets main menu, options, pause, and confirmation adapters apply title/body/status text styles and primary/secondary button styles in C++.
 - `FFRHUDModuleStyleSet` lets battle HUD modules apply CommonTextStyle/CommonNumericTextBlock styling by walking their authored widget trees; loadout slots can also apply a CommonButtonStyle override.
 - `FFRRewardStyleSet` lets reward screen titles and reward choice cards apply CommonTextStyle/CommonButtonStyle overrides in C++.
-- Next implementation step: restart the editor/MCP session, then bind and save each module widget directly to the injected ViewModel.
+- Next implementation step: bind and save each battle HUD module widget directly to the injected ViewModel.
 
 ## Recommended Widget Modules
 
@@ -309,11 +311,12 @@
 - [x] Add trajectory preview CommonUI/MVVM point adapter and runtime widget components.
 - [x] Create authored UMG assets for world status marker and trajectory preview point.
 - [x] Add an editor/commandlet generator for missing world marker and trajectory CommonUI component WBPs.
+- [x] Parent root, menu, and confirmation WBPs to their CommonUI adapter classes.
 - [ ] Replace prototype MVVM with module/domain ViewModels and real module-level bindings.
 - [x] Compile and save created UMG assets.
 
 ## Immediate Next Task
 
-Restart the editor/MCP session before editing MVVM bindings again. The last tool session crashed while compiling `WBP_ShotInfoPanel` after Live Coding changed `UFRBattleHUDViewModel` FieldNotify members.
+Bind and save each battle HUD module widget directly to the injected ViewModel: `WBP_TurnBanner` -> `UFRBattleStatePanelWidget` / `UFRBattleStateViewModel`, `WBP_CombatantStatusPanel` -> `UFRCombatantStatusPanelWidget` / `UFRCombatantStatusViewModel`, `WBP_AimWindIndicator` -> `UFRAimWindIndicatorWidget` / `UFRAimWindViewModel`, `WBP_ShotPowerMeter` -> `UFRShotPowerMeterWidget` / `UFRShotPowerViewModel`, `WBP_LoadoutBar` -> `UFRLoadoutBarWidget` / `UFRLoadoutViewModel`, `WBP_WeaponSlot` and `WBP_ItemSlot` -> `UFRLoadoutSlotWidget`, `WBP_ShotInfoPanel` -> `UFRShotInfoPanelWidget` / `UFRShotPreviewViewModel`, and `WBP_ModifierSummary` -> `UFRModifierSummaryWidget` / `UFRModifierSummaryViewModel`.
 
-After restart, set `WBP_UIRoot` to `UFRUIRootWidget` and make sure it owns CommonUI stacks named `HUDLayer`, `MenuLayer`, and `ModalLayer`. Set menu WBPs to `UFRMainMenuWidget`, `UFROptionsMenuWidget`, `UFRPauseMenuWidget`, and `UFRConfirmDialogWidget`. Then set module WBP base classes to the matching adapter widgets or bind each module directly to its injected ViewModel: `WBP_TurnBanner` -> `UFRBattleStatePanelWidget` / `UFRBattleStateViewModel`, `WBP_CombatantStatusPanel` -> `UFRCombatantStatusPanelWidget` / `UFRCombatantStatusViewModel`, `WBP_AimWindIndicator` -> `UFRAimWindIndicatorWidget` / `UFRAimWindViewModel`, `WBP_ShotPowerMeter` -> `UFRShotPowerMeterWidget` / `UFRShotPowerViewModel`, `WBP_LoadoutBar` -> `UFRLoadoutBarWidget` / `UFRLoadoutViewModel`, `WBP_WeaponSlot` and `WBP_ItemSlot` -> `UFRLoadoutSlotWidget`, `WBP_ShotInfoPanel` -> `UFRShotInfoPanelWidget` / `UFRShotPreviewViewModel`, and `WBP_ModifierSummary` -> `UFRModifierSummaryWidget` / `UFRModifierSummaryViewModel`. Do not bind from the parent HUD into nested widget internals; that path failed compilation and should stay replaced with module-owned bindings or the adapter widgets.
+Do not bind from the parent HUD into nested widget internals; that path failed compilation and should stay replaced with module-owned bindings or the adapter widgets. Also inspect `WBP_BattleHUD` and `WBP_BattleHUD_MVVM` import warnings for `/Script/ModelViewViewModelBlueprint` before treating the prototype MVVM asset as production-ready.

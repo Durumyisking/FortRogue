@@ -7,28 +7,49 @@
 #include "Blueprint/UserWidget.h"
 #include "Blueprint/WidgetTree.h"
 #include "CommonBorder.h"
+#include "CommonButtonBase.h"
 #include "CommonNumericTextBlock.h"
 #include "CommonTextBlock.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
+#include "Components/Overlay.h"
+#include "Components/OverlaySlot.h"
+#include "Components/VerticalBox.h"
+#include "Components/VerticalBoxSlot.h"
 #include "HAL/FileManager.h"
 #include "IAssetTools.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
 #include "UI/FRTrajectoryPreviewPointWidget.h"
+#include "UI/FRMenuWidgets.h"
+#include "UI/FRUIRootWidget.h"
 #include "UI/FRWorldStatusMarkerWidget.h"
 #include "UObject/SavePackage.h"
 #include "WidgetBlueprint.h"
 #include "WidgetBlueprintFactory.h"
+#include "Widgets/CommonActivatableWidgetContainer.h"
 
 namespace FREditor
 {
 static const TCHAR* CommonUIComponentsPath = TEXT("/Game/FortRogue/Widget/MainGame/Components");
+static const TCHAR* CommonUIGlobalPath = TEXT("/Game/FortRogue/Widget/Global");
+static const TCHAR* CommonUIMainMenuPath = TEXT("/Game/FortRogue/Widget/MainMenu");
 static const TCHAR* BodyTextStylePath = TEXT("/Game/FortRogue/Widget/Styles/BP_UI_Text_Body.BP_UI_Text_Body_C");
+static const TCHAR* TitleTextStylePath = TEXT("/Game/FortRogue/Widget/Styles/BP_UI_Text_Title.BP_UI_Text_Title_C");
 static const TCHAR* NumberTextStylePath = TEXT("/Game/FortRogue/Widget/Styles/BP_UI_Text_Number.BP_UI_Text_Number_C");
+static const TCHAR* PanelBorderStylePath = TEXT("/Game/FortRogue/Widget/Styles/BP_UI_Border_Panel.BP_UI_Border_Panel_C");
 static const TCHAR* SlotBorderStylePath = TEXT("/Game/FortRogue/Widget/Styles/BP_UI_Border_Slot.BP_UI_Border_Slot_C");
+static const TCHAR* StartRunButtonClassPath = TEXT("/Game/FortRogue/Widget/Global/Components/Buttons/WBP_Button_StartRun.WBP_Button_StartRun_C");
+static const TCHAR* OptionsButtonClassPath = TEXT("/Game/FortRogue/Widget/Global/Components/Buttons/WBP_Button_Options.WBP_Button_Options_C");
+static const TCHAR* QuitButtonClassPath = TEXT("/Game/FortRogue/Widget/Global/Components/Buttons/WBP_Button_Quit.WBP_Button_Quit_C");
+static const TCHAR* BackButtonClassPath = TEXT("/Game/FortRogue/Widget/Global/Components/Buttons/WBP_Button_Back.WBP_Button_Back_C");
+static const TCHAR* ConfirmButtonClassPath = TEXT("/Game/FortRogue/Widget/Global/Components/Buttons/WBP_Button_Confirm.WBP_Button_Confirm_C");
+static const TCHAR* CancelButtonClassPath = TEXT("/Game/FortRogue/Widget/Global/Components/Buttons/WBP_Button_Cancel.WBP_Button_Cancel_C");
+static const TCHAR* ResumeButtonClassPath = TEXT("/Game/FortRogue/Widget/Global/Components/Buttons/WBP_Button_Resume.WBP_Button_Resume_C");
+static const TCHAR* MainMenuButtonClassPath = TEXT("/Game/FortRogue/Widget/Global/Components/Buttons/WBP_Button_MainMenu.WBP_Button_MainMenu_C");
 
 template <typename StyleType>
 static TSubclassOf<StyleType> LoadStyleClass(const TCHAR* ClassPath)
@@ -36,20 +57,87 @@ static TSubclassOf<StyleType> LoadStyleClass(const TCHAR* ClassPath)
 	return LoadClass<StyleType>(nullptr, ClassPath);
 }
 
-static UWidgetBlueprint* LoadWidgetBlueprint(const TCHAR* AssetName)
+static UWidgetBlueprint* LoadWidgetBlueprint(const TCHAR* AssetPath, const TCHAR* AssetName)
 {
-	const FString ObjectPath = FString::Printf(TEXT("%s/%s.%s"), CommonUIComponentsPath, AssetName, AssetName);
+	const FString ObjectPath = FString::Printf(TEXT("%s/%s.%s"), AssetPath, AssetName, AssetName);
 	return LoadObject<UWidgetBlueprint>(nullptr, *ObjectPath);
 }
 
-static UWidgetBlueprint* CreateWidgetBlueprint(const TCHAR* AssetName, TSubclassOf<UUserWidget> ParentClass)
+static bool IsWidgetBlueprintParentedTo(const UWidgetBlueprint* WidgetBlueprint, UClass* ParentClass)
 {
-	if (UWidgetBlueprint* ExistingBlueprint = LoadWidgetBlueprint(AssetName))
+	if (!WidgetBlueprint || !ParentClass)
 	{
-		UE_LOG(LogTemp, Display, TEXT("CommonUI widget already exists: %s/%s"), CommonUIComponentsPath, AssetName);
+		return false;
+	}
+
+	if (WidgetBlueprint->GeneratedClass && WidgetBlueprint->GeneratedClass->IsChildOf(ParentClass))
+	{
+		return true;
+	}
+
+	return WidgetBlueprint->ParentClass && WidgetBlueprint->ParentClass->IsChildOf(ParentClass);
+}
+
+static void RenameWidgetTemplate(UWidgetBlueprint* WidgetBlueprint, const FName& OldName, const FName& NewName)
+{
+	if (!WidgetBlueprint || !WidgetBlueprint->WidgetTree || WidgetBlueprint->WidgetTree->FindWidget(NewName))
+	{
+		return;
+	}
+
+	UWidget* Widget = WidgetBlueprint->WidgetTree->FindWidget(OldName);
+	if (!Widget)
+	{
+		return;
+	}
+
+	WidgetBlueprint->Modify();
+	WidgetBlueprint->WidgetTree->Modify();
+	Widget->Modify();
+
+	FGuid VariableGuid;
+	if (WidgetBlueprint->WidgetVariableNameToGuidMap.RemoveAndCopyValue(OldName, VariableGuid))
+	{
+		WidgetBlueprint->WidgetVariableNameToGuidMap.Add(NewName, VariableGuid);
+	}
+
+	Widget->Rename(*NewName.ToString(), WidgetBlueprint->WidgetTree, REN_DontCreateRedirectors);
+	WidgetBlueprint->MarkPackageDirty();
+}
+
+static void RepairUIRootLayerNames(UWidgetBlueprint* WidgetBlueprint)
+{
+	RenameWidgetTemplate(WidgetBlueprint, TEXT("HUDLayerStack"), TEXT("HUDLayer"));
+	RenameWidgetTemplate(WidgetBlueprint, TEXT("MenuLayerStack"), TEXT("MenuLayer"));
+	RenameWidgetTemplate(WidgetBlueprint, TEXT("ModalLayerStack"), TEXT("ModalLayer"));
+}
+
+static UWidgetBlueprint* CreateWidgetBlueprint(const TCHAR* AssetPath, const TCHAR* AssetName, TSubclassOf<UUserWidget> ParentClass, bool& bOutNeedsConfigure)
+{
+	bOutNeedsConfigure = false;
+	if (UWidgetBlueprint* ExistingBlueprint = LoadWidgetBlueprint(AssetPath, AssetName))
+	{
+		const bool bParentMatches = IsWidgetBlueprintParentedTo(ExistingBlueprint, ParentClass);
+		bOutNeedsConfigure = !ExistingBlueprint->WidgetTree || !ExistingBlueprint->WidgetTree->RootWidget;
+		if (!bParentMatches || bOutNeedsConfigure)
+		{
+			UE_LOG(LogTemp, Display, TEXT("Repairing CommonUI widget: %s/%s"), AssetPath, AssetName);
+		}
+		if (!bParentMatches)
+		{
+			ExistingBlueprint->Modify();
+			ExistingBlueprint->ParentClass = ParentClass;
+			FBlueprintEditorUtils::RefreshAllNodes(ExistingBlueprint);
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(ExistingBlueprint);
+		}
+		if (!bOutNeedsConfigure)
+		{
+			UE_LOG(LogTemp, Display, TEXT("CommonUI widget already exists: %s/%s"), AssetPath, AssetName);
+		}
 		return ExistingBlueprint;
 	}
 
+	bOutNeedsConfigure = true;
 	UWidgetBlueprintFactory* Factory = NewObject<UWidgetBlueprintFactory>();
 	Factory->BlueprintType = BPTYPE_Normal;
 	Factory->ParentClass = ParentClass;
@@ -57,7 +145,7 @@ static UWidgetBlueprint* CreateWidgetBlueprint(const TCHAR* AssetName, TSubclass
 	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
 	UWidgetBlueprint* WidgetBlueprint = Cast<UWidgetBlueprint>(AssetToolsModule.Get().CreateAsset(
 		AssetName,
-		CommonUIComponentsPath,
+		AssetPath,
 		UWidgetBlueprint::StaticClass(),
 		Factory));
 
@@ -67,6 +155,119 @@ static UWidgetBlueprint* CreateWidgetBlueprint(const TCHAR* AssetName, TSubclass
 		WidgetBlueprint->MarkPackageDirty();
 	}
 	return WidgetBlueprint;
+}
+
+static UCommonTextBlock* ConstructText(UWidgetBlueprint* WidgetBlueprint, const TCHAR* WidgetName, const FText& Text, TSubclassOf<UCommonTextStyle> TextStyle)
+{
+	UCommonTextBlock* TextBlock = WidgetBlueprint && WidgetBlueprint->WidgetTree
+		? WidgetBlueprint->WidgetTree->ConstructWidget<UCommonTextBlock>(UCommonTextBlock::StaticClass(), WidgetName)
+		: nullptr;
+	if (TextBlock)
+	{
+		TextBlock->SetText(Text);
+		TextBlock->SetStyle(TextStyle);
+	}
+	return TextBlock;
+}
+
+static UCommonNumericTextBlock* ConstructNumber(UWidgetBlueprint* WidgetBlueprint, const TCHAR* WidgetName, float Value)
+{
+	UCommonNumericTextBlock* TextBlock = WidgetBlueprint && WidgetBlueprint->WidgetTree
+		? WidgetBlueprint->WidgetTree->ConstructWidget<UCommonNumericTextBlock>(UCommonNumericTextBlock::StaticClass(), WidgetName)
+		: nullptr;
+	if (TextBlock)
+	{
+		TextBlock->SetCurrentValue(Value);
+		TextBlock->SetStyle(LoadStyleClass<UCommonTextStyle>(NumberTextStylePath));
+	}
+	return TextBlock;
+}
+
+static UCommonButtonBase* ConstructButton(UWidgetBlueprint* WidgetBlueprint, const TCHAR* WidgetName, const TCHAR* ButtonClassPath)
+{
+	TSubclassOf<UCommonButtonBase> ButtonClass = LoadClass<UCommonButtonBase>(nullptr, ButtonClassPath);
+	if (!ButtonClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Could not load button class for %s: %s"), WidgetName, ButtonClassPath);
+		return nullptr;
+	}
+
+	return WidgetBlueprint && WidgetBlueprint->WidgetTree
+		? WidgetBlueprint->WidgetTree->ConstructWidget<UCommonButtonBase>(ButtonClass, WidgetName)
+		: nullptr;
+}
+
+static void AddVerticalChild(UVerticalBox* Parent, UWidget* Child, const FMargin& Padding = FMargin(0.0f, 0.0f, 0.0f, 8.0f))
+{
+	if (!Parent || !Child)
+	{
+		return;
+	}
+
+	if (UVerticalBoxSlot* Slot = Parent->AddChildToVerticalBox(Child))
+	{
+		Slot->SetPadding(Padding);
+		Slot->SetHorizontalAlignment(HAlign_Fill);
+	}
+}
+
+static void AddOverlayFillChild(UOverlay* Parent, UWidget* Child)
+{
+	if (!Parent || !Child)
+	{
+		return;
+	}
+
+	if (UOverlaySlot* Slot = Parent->AddChildToOverlay(Child))
+	{
+		Slot->SetHorizontalAlignment(HAlign_Fill);
+		Slot->SetVerticalAlignment(VAlign_Fill);
+	}
+}
+
+static UVerticalBox* CreateMenuPanel(UWidgetBlueprint* WidgetBlueprint, const TCHAR* RootName)
+{
+	if (!WidgetBlueprint || !WidgetBlueprint->WidgetTree)
+	{
+		return nullptr;
+	}
+
+	UCommonBorder* RootBorder = WidgetBlueprint->WidgetTree->ConstructWidget<UCommonBorder>(UCommonBorder::StaticClass(), RootName);
+	UVerticalBox* RootBox = WidgetBlueprint->WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("ContentBox"));
+	if (!RootBorder || !RootBox)
+	{
+		return nullptr;
+	}
+
+	RootBorder->SetStyle(LoadStyleClass<UCommonBorderStyle>(PanelBorderStylePath));
+	RootBorder->SetContent(RootBox);
+	WidgetBlueprint->WidgetTree->RootWidget = RootBorder;
+	return RootBox;
+}
+
+static void AddOptionRow(UWidgetBlueprint* WidgetBlueprint, UVerticalBox* Parent, const TCHAR* RowName, const TCHAR* LabelName, const FText& LabelText, UWidget* ValueWidget)
+{
+	UHorizontalBox* Row = WidgetBlueprint && WidgetBlueprint->WidgetTree
+		? WidgetBlueprint->WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), RowName)
+		: nullptr;
+	if (!Row)
+	{
+		return;
+	}
+
+	UCommonTextBlock* Label = ConstructText(WidgetBlueprint, LabelName, LabelText, LoadStyleClass<UCommonTextStyle>(BodyTextStylePath));
+	if (Label)
+	{
+		if (UHorizontalBoxSlot* LabelSlot = Row->AddChildToHorizontalBox(Label))
+		{
+			LabelSlot->SetPadding(FMargin(0.0f, 0.0f, 12.0f, 0.0f));
+		}
+	}
+	if (ValueWidget)
+	{
+		Row->AddChildToHorizontalBox(ValueWidget);
+	}
+	AddVerticalChild(Parent, Row, FMargin(0.0f, 0.0f, 0.0f, 6.0f));
 }
 
 static bool SaveAsset(UObject* Asset)
@@ -111,6 +312,136 @@ static void ConfigureWorldStatusMarker(UWidgetBlueprint* WidgetBlueprint)
 	WidgetBlueprint->MarkPackageDirty();
 }
 
+static void ConfigureUIRoot(UWidgetBlueprint* WidgetBlueprint)
+{
+	if (!WidgetBlueprint || !WidgetBlueprint->WidgetTree || WidgetBlueprint->WidgetTree->RootWidget)
+	{
+		return;
+	}
+
+	WidgetBlueprint->Modify();
+	WidgetBlueprint->WidgetTree->Modify();
+
+	UOverlay* RootOverlay = WidgetBlueprint->WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass(), TEXT("RootOverlay"));
+	UCommonActivatableWidgetStack* HUDLayer = WidgetBlueprint->WidgetTree->ConstructWidget<UCommonActivatableWidgetStack>(UCommonActivatableWidgetStack::StaticClass(), TEXT("HUDLayer"));
+	UCommonActivatableWidgetStack* MenuLayer = WidgetBlueprint->WidgetTree->ConstructWidget<UCommonActivatableWidgetStack>(UCommonActivatableWidgetStack::StaticClass(), TEXT("MenuLayer"));
+	UCommonActivatableWidgetStack* ModalLayer = WidgetBlueprint->WidgetTree->ConstructWidget<UCommonActivatableWidgetStack>(UCommonActivatableWidgetStack::StaticClass(), TEXT("ModalLayer"));
+	if (!RootOverlay || !HUDLayer || !MenuLayer || !ModalLayer)
+	{
+		return;
+	}
+
+	AddOverlayFillChild(RootOverlay, HUDLayer);
+	AddOverlayFillChild(RootOverlay, MenuLayer);
+	AddOverlayFillChild(RootOverlay, ModalLayer);
+	WidgetBlueprint->WidgetTree->RootWidget = RootOverlay;
+	WidgetBlueprint->MarkPackageDirty();
+}
+
+static void ConfigureMainMenu(UWidgetBlueprint* WidgetBlueprint)
+{
+	if (!WidgetBlueprint || !WidgetBlueprint->WidgetTree || WidgetBlueprint->WidgetTree->RootWidget)
+	{
+		return;
+	}
+
+	WidgetBlueprint->Modify();
+	WidgetBlueprint->WidgetTree->Modify();
+
+	UVerticalBox* RootBox = CreateMenuPanel(WidgetBlueprint, TEXT("MainMenuPanel"));
+	if (!RootBox)
+	{
+		return;
+	}
+
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("TitleText"), FText::FromString(TEXT("FortRogue")), LoadStyleClass<UCommonTextStyle>(TitleTextStylePath)));
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("BodyText"), FText::FromString(TEXT("Tank tactics. One clean shot at a time.")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("StatusText"), FText::GetEmpty(), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddVerticalChild(RootBox, ConstructButton(WidgetBlueprint, TEXT("StartRunButton"), StartRunButtonClassPath));
+	AddVerticalChild(RootBox, ConstructButton(WidgetBlueprint, TEXT("OptionsButton"), OptionsButtonClassPath));
+	AddVerticalChild(RootBox, ConstructButton(WidgetBlueprint, TEXT("QuitButton"), QuitButtonClassPath));
+	WidgetBlueprint->MarkPackageDirty();
+}
+
+static void ConfigureOptionsMenu(UWidgetBlueprint* WidgetBlueprint)
+{
+	if (!WidgetBlueprint || !WidgetBlueprint->WidgetTree || WidgetBlueprint->WidgetTree->RootWidget)
+	{
+		return;
+	}
+
+	WidgetBlueprint->Modify();
+	WidgetBlueprint->WidgetTree->Modify();
+
+	UVerticalBox* RootBox = CreateMenuPanel(WidgetBlueprint, TEXT("OptionsPanel"));
+	if (!RootBox)
+	{
+		return;
+	}
+
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("TitleText"), FText::FromString(TEXT("Options")), LoadStyleClass<UCommonTextStyle>(TitleTextStylePath)));
+	AddOptionRow(WidgetBlueprint, RootBox, TEXT("MasterVolumeRow"), TEXT("MasterVolumeLabel"), FText::FromString(TEXT("Master Volume")), ConstructNumber(WidgetBlueprint, TEXT("MasterVolumeText"), 100.0f));
+	AddOptionRow(WidgetBlueprint, RootBox, TEXT("UIScaleRow"), TEXT("UIScaleLabel"), FText::FromString(TEXT("UI Scale")), ConstructNumber(WidgetBlueprint, TEXT("UIScaleText"), 100.0f));
+	AddOptionRow(WidgetBlueprint, RootBox, TEXT("WindowModeRow"), TEXT("WindowModeLabel"), FText::FromString(TEXT("Window Mode")), ConstructText(WidgetBlueprint, TEXT("WindowModeText"), FText::FromString(TEXT("Windowed Fullscreen")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddOptionRow(WidgetBlueprint, RootBox, TEXT("ResolutionRow"), TEXT("ResolutionLabel"), FText::FromString(TEXT("Resolution")), ConstructText(WidgetBlueprint, TEXT("ResolutionText"), FText::FromString(TEXT("Native")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddOptionRow(WidgetBlueprint, RootBox, TEXT("InputHintsRow"), TEXT("InputHintsLabel"), FText::FromString(TEXT("Input Hints")), ConstructText(WidgetBlueprint, TEXT("InputHintsText"), FText::FromString(TEXT("On")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddOptionRow(WidgetBlueprint, RootBox, TEXT("AccessibilityRow"), TEXT("AccessibilityLabel"), FText::FromString(TEXT("Accessibility")), ConstructText(WidgetBlueprint, TEXT("AccessibilityText"), FText::FromString(TEXT("Default")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddVerticalChild(RootBox, ConstructButton(WidgetBlueprint, TEXT("ApplyButton"), ConfirmButtonClassPath));
+	AddVerticalChild(RootBox, ConstructButton(WidgetBlueprint, TEXT("ResetButton"), CancelButtonClassPath));
+	AddVerticalChild(RootBox, ConstructButton(WidgetBlueprint, TEXT("BackButton"), BackButtonClassPath));
+	WidgetBlueprint->MarkPackageDirty();
+}
+
+static void ConfigurePauseMenu(UWidgetBlueprint* WidgetBlueprint)
+{
+	if (!WidgetBlueprint || !WidgetBlueprint->WidgetTree || WidgetBlueprint->WidgetTree->RootWidget)
+	{
+		return;
+	}
+
+	WidgetBlueprint->Modify();
+	WidgetBlueprint->WidgetTree->Modify();
+
+	UVerticalBox* RootBox = CreateMenuPanel(WidgetBlueprint, TEXT("PausePanel"));
+	if (!RootBox)
+	{
+		return;
+	}
+
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("TitleText"), FText::FromString(TEXT("Paused")), LoadStyleClass<UCommonTextStyle>(TitleTextStylePath)));
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("BodyText"), FText::FromString(TEXT("Run suspended.")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("StatusText"), FText::GetEmpty(), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddVerticalChild(RootBox, ConstructButton(WidgetBlueprint, TEXT("ResumeButton"), ResumeButtonClassPath));
+	AddVerticalChild(RootBox, ConstructButton(WidgetBlueprint, TEXT("OptionsButton"), OptionsButtonClassPath));
+	AddVerticalChild(RootBox, ConstructButton(WidgetBlueprint, TEXT("RestartButton"), ConfirmButtonClassPath));
+	AddVerticalChild(RootBox, ConstructButton(WidgetBlueprint, TEXT("MainMenuButton"), MainMenuButtonClassPath));
+	AddVerticalChild(RootBox, ConstructButton(WidgetBlueprint, TEXT("QuitButton"), QuitButtonClassPath));
+	WidgetBlueprint->MarkPackageDirty();
+}
+
+static void ConfigureConfirmDialog(UWidgetBlueprint* WidgetBlueprint)
+{
+	if (!WidgetBlueprint || !WidgetBlueprint->WidgetTree || WidgetBlueprint->WidgetTree->RootWidget)
+	{
+		return;
+	}
+
+	WidgetBlueprint->Modify();
+	WidgetBlueprint->WidgetTree->Modify();
+
+	UVerticalBox* RootBox = CreateMenuPanel(WidgetBlueprint, TEXT("ConfirmPanel"));
+	if (!RootBox)
+	{
+		return;
+	}
+
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("TitleText"), FText::FromString(TEXT("Confirm")), LoadStyleClass<UCommonTextStyle>(TitleTextStylePath)));
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("MessageText"), FText::FromString(TEXT("Continue?")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddVerticalChild(RootBox, ConstructButton(WidgetBlueprint, TEXT("ConfirmButton"), ConfirmButtonClassPath));
+	AddVerticalChild(RootBox, ConstructButton(WidgetBlueprint, TEXT("CancelButton"), CancelButtonClassPath));
+	WidgetBlueprint->MarkPackageDirty();
+}
+
 static void ConfigureTrajectoryPreviewPoint(UWidgetBlueprint* WidgetBlueprint)
 {
 	if (!WidgetBlueprint || !WidgetBlueprint->WidgetTree || WidgetBlueprint->WidgetTree->RootWidget)
@@ -149,13 +480,56 @@ static void ConfigureTrajectoryPreviewPoint(UWidgetBlueprint* WidgetBlueprint)
 int32 GenerateCommonUIWidgets()
 {
 	TArray<UWidgetBlueprint*> WidgetBlueprints;
+	bool bNeedsConfigure = false;
 
-	UWidgetBlueprint* WorldStatusMarker = CreateWidgetBlueprint(TEXT("WBP_WorldStatusMarker"), UFRWorldStatusMarkerWidget::StaticClass());
-	ConfigureWorldStatusMarker(WorldStatusMarker);
+	UWidgetBlueprint* UIRoot = CreateWidgetBlueprint(CommonUIGlobalPath, TEXT("WBP_UIRoot"), UFRUIRootWidget::StaticClass(), bNeedsConfigure);
+	if (bNeedsConfigure)
+	{
+		ConfigureUIRoot(UIRoot);
+	}
+	RepairUIRootLayerNames(UIRoot);
+	WidgetBlueprints.Add(UIRoot);
+
+	UWidgetBlueprint* MainMenu = CreateWidgetBlueprint(CommonUIMainMenuPath, TEXT("WBP_MainMenu"), UFRMainMenuWidget::StaticClass(), bNeedsConfigure);
+	if (bNeedsConfigure)
+	{
+		ConfigureMainMenu(MainMenu);
+	}
+	WidgetBlueprints.Add(MainMenu);
+
+	UWidgetBlueprint* OptionsMenu = CreateWidgetBlueprint(CommonUIMainMenuPath, TEXT("WBP_OptionsMenu"), UFROptionsMenuWidget::StaticClass(), bNeedsConfigure);
+	if (bNeedsConfigure)
+	{
+		ConfigureOptionsMenu(OptionsMenu);
+	}
+	WidgetBlueprints.Add(OptionsMenu);
+
+	UWidgetBlueprint* PauseMenu = CreateWidgetBlueprint(CommonUIMainMenuPath, TEXT("WBP_PauseMenu"), UFRPauseMenuWidget::StaticClass(), bNeedsConfigure);
+	if (bNeedsConfigure)
+	{
+		ConfigurePauseMenu(PauseMenu);
+	}
+	WidgetBlueprints.Add(PauseMenu);
+
+	UWidgetBlueprint* ConfirmDialog = CreateWidgetBlueprint(CommonUIGlobalPath, TEXT("WBP_ConfirmDialog"), UFRConfirmDialogWidget::StaticClass(), bNeedsConfigure);
+	if (bNeedsConfigure)
+	{
+		ConfigureConfirmDialog(ConfirmDialog);
+	}
+	WidgetBlueprints.Add(ConfirmDialog);
+
+	UWidgetBlueprint* WorldStatusMarker = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_WorldStatusMarker"), UFRWorldStatusMarkerWidget::StaticClass(), bNeedsConfigure);
+	if (bNeedsConfigure)
+	{
+		ConfigureWorldStatusMarker(WorldStatusMarker);
+	}
 	WidgetBlueprints.Add(WorldStatusMarker);
 
-	UWidgetBlueprint* TrajectoryPreviewPoint = CreateWidgetBlueprint(TEXT("WBP_TrajectoryPreviewPoint"), UFRTrajectoryPreviewPointWidget::StaticClass());
-	ConfigureTrajectoryPreviewPoint(TrajectoryPreviewPoint);
+	UWidgetBlueprint* TrajectoryPreviewPoint = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_TrajectoryPreviewPoint"), UFRTrajectoryPreviewPointWidget::StaticClass(), bNeedsConfigure);
+	if (bNeedsConfigure)
+	{
+		ConfigureTrajectoryPreviewPoint(TrajectoryPreviewPoint);
+	}
 	WidgetBlueprints.Add(TrajectoryPreviewPoint);
 
 	bool bSavedAll = true;
@@ -167,8 +541,11 @@ int32 GenerateCommonUIWidgets()
 			continue;
 		}
 
-		FKismetEditorUtilities::CompileBlueprint(WidgetBlueprint);
-		bSavedAll &= SaveAsset(WidgetBlueprint);
+		if (WidgetBlueprint->GetOutermost()->IsDirty())
+		{
+			FKismetEditorUtilities::CompileBlueprint(WidgetBlueprint);
+			bSavedAll &= SaveAsset(WidgetBlueprint);
+		}
 	}
 
 	UE_LOG(LogTemp, Display, TEXT("Generated FortRogue CommonUI widget assets. SavedAll=%s"), bSavedAll ? TEXT("true") : TEXT("false"));

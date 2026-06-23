@@ -28,3 +28,4 @@ UI 체크리스트
 
 26 06 23
 - CommonUI GameViewportClient 설정 추가 [v]
+- Root/Menu CommonUI WBP 부모 및 최소 레이아웃 생성 [v]
