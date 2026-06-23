@@ -2,6 +2,7 @@
 
 #include "Characters/FRCharacterDefinition.h"
 #include "Combat/FRTerrainMapDefinition.h"
+#include "FRCommonUIWidgetGenerator.h"
 #include "FRProjectileEffectSpecCustomization.h"
 #include "FRSpriteFlipbookGenerator.h"
 #include "AssetImportTask.h"
@@ -13,6 +14,7 @@
 #include "FileHelpers.h"
 #include "Framework/Docking/TabManager.h"
 #include "HAL/FileManager.h"
+#include "HAL/IConsoleManager.h"
 #include "IAssetTools.h"
 #include "Materials/MaterialInterface.h"
 #include "Misc/PackageName.h"
@@ -2020,6 +2022,10 @@ public:
 			.SetMenuType(ETabSpawnerMenuType::Hidden);
 
 		UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FFREditorModule::RegisterMenus));
+		GenerateCommonUIWidgetsConsoleCommand = IConsoleManager::Get().RegisterConsoleCommand(
+			TEXT("FortRogue.GenerateCommonUIWidgets"),
+			TEXT("Generate FortRogue CommonUI widget blueprint assets."),
+			FConsoleCommandDelegate::CreateRaw(this, &FFREditorModule::GenerateCommonUIWidgets));
 
 		FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
 		TerrainMapAssetTypeActions = MakeShared<FFRTerrainMapAssetTypeActions>();
@@ -2040,6 +2046,11 @@ public:
 		TerrainMapAssetTypeActions.Reset();
 		FREditor::ActiveTerrainMapEditor.Reset();
 		FREditor::PendingTerrainMapAsset.Reset();
+		if (GenerateCommonUIWidgetsConsoleCommand)
+		{
+			IConsoleManager::Get().UnregisterConsoleObject(GenerateCommonUIWidgetsConsoleCommand);
+			GenerateCommonUIWidgetsConsoleCommand = nullptr;
+		}
 
 		if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
 		{
@@ -2088,6 +2099,12 @@ private:
 			LOCTEXT("GenerateSpriteFlipbooksTooltip", "Create Paper2D sprites and flipbooks from textures in /Game/GeneratedSprites."),
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateRaw(this, &FFREditorModule::GenerateSpriteFlipbooks)));
+		Section.AddMenuEntry(
+			"GenerateFortRogueCommonUIWidgets",
+			LOCTEXT("GenerateCommonUIWidgets", "Generate FortRogue CommonUI Widgets"),
+			LOCTEXT("GenerateCommonUIWidgetsTooltip", "Create CommonUI widget blueprints for world markers and trajectory preview points."),
+			FSlateIcon(),
+			FUIAction(FExecuteAction::CreateRaw(this, &FFREditorModule::GenerateCommonUIWidgets)));
 	}
 
 	void OpenTerrainMapEditor()
@@ -2100,7 +2117,13 @@ private:
 		FREditor::GenerateSpriteFlipbooks();
 	}
 
+	void GenerateCommonUIWidgets()
+	{
+		FREditor::GenerateCommonUIWidgets();
+	}
+
 	TSharedPtr<IAssetTypeActions> TerrainMapAssetTypeActions;
+	IConsoleObject* GenerateCommonUIWidgetsConsoleCommand = nullptr;
 };
 
 IMPLEMENT_MODULE(FFREditorModule, FortRogueEditor)
