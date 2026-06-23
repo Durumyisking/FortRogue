@@ -47,6 +47,7 @@
 - `AFRPlayerController`, `AFRBattleCharacter`, and `AFRFloatingCombatText` now default to the authored HUD/world/floating WBP assets while keeping editable class overrides.
 - `WBP_BattleHUD` now has a `UFRBattleHUDViewModel` MVVM context, and `UFRBattleHUDWidget` creates, updates, and injects the same ViewModel instance at runtime.
 - Battle HUD module adapter widget classes now exist so module WBPs can own their display updates without parent-to-child internal bindings.
+- Battle HUD module WBPs are now parented to their CommonUI adapter classes, and the adapters support the existing authored child widget names as compatibility aliases.
 - Loadout weapon/item slots now have per-slot ViewModels and a CommonButton-based slot adapter for selected, enabled, empty, and locked states.
 - Reward screen choices now have per-choice ViewModels and a CommonButton-based choice adapter for title, summary, condition feedback, enabled state, and selection.
 - Main menu, options, pause, and confirmation dialog now have CommonActivatableWidget adapter classes with CommonButton request events.
@@ -153,6 +154,7 @@
 - `UFRBattleHUDWidget` no longer constructs a fallback HUD layout in C++; missing authored HUD modules will surface as missing UI instead of silently showing generated panels.
 - `UFRBattleHUDWidget` now injects module-specific runtime ViewModels into known child module widgets so modules can own their own MVVM bindings.
 - `UFRBattleHUDModuleWidgetBase` and derived adapter widgets can receive injected module ViewModels and push values into optional named CommonUI widgets.
+- `WBP_TurnBanner`, `WBP_CombatantStatusPanel`, `WBP_AimWindIndicator`, `WBP_ShotPowerMeter`, `WBP_LoadoutBar`, `WBP_WeaponSlot`, `WBP_ItemSlot`, `WBP_ShotInfoPanel`, and `WBP_ModifierSummary` now use the matching Battle HUD adapter parent classes.
 - `UFRLoadoutSlotWidget` uses `UCommonButtonBase`; `WBP_LoadoutBar` can expose `WeaponSlotPanel` and `ItemSlotPanel` containing slot widgets in editor-defined counts.
 - `UFRRewardScreenWidget` creates a runtime `UFRRewardScreenViewModel`; `UFRRewardChoiceButtonWidget` uses `UCommonButtonBase` for editor-authored reward choice cards.
 - `UFRUIRootWidget` expects authored CommonUI stacks named `HUDLayer`, `MenuLayer`, and `ModalLayer`; `WBP_UIRoot` now provides those stacks.
@@ -164,7 +166,7 @@
 - `FFRMenuStyleSet` lets main menu, options, pause, and confirmation adapters apply title/body/status text styles and primary/secondary button styles in C++.
 - `FFRHUDModuleStyleSet` lets battle HUD modules apply CommonTextStyle/CommonNumericTextBlock styling by walking their authored widget trees; loadout slots can also apply a CommonButtonStyle override.
 - `FFRRewardStyleSet` lets reward screen titles and reward choice cards apply CommonTextStyle/CommonButtonStyle overrides in C++.
-- Next implementation step: bind and save each battle HUD module widget directly to the injected ViewModel.
+- Next implementation step: clean up the prototype `WBP_BattleHUD` / `WBP_BattleHUD_MVVM` MVVM import warning and move any remaining Blueprint MVVM bindings into module-owned contexts where the C++ adapters are not sufficient.
 
 ## Recommended Widget Modules
 
@@ -312,11 +314,12 @@
 - [x] Create authored UMG assets for world status marker and trajectory preview point.
 - [x] Add an editor/commandlet generator for missing world marker and trajectory CommonUI component WBPs.
 - [x] Parent root, menu, and confirmation WBPs to their CommonUI adapter classes.
+- [x] Parent Battle HUD module WBPs to adapter classes and support legacy authored child widget names.
 - [ ] Replace prototype MVVM with module/domain ViewModels and real module-level bindings.
 - [x] Compile and save created UMG assets.
 
 ## Immediate Next Task
 
-Bind and save each battle HUD module widget directly to the injected ViewModel: `WBP_TurnBanner` -> `UFRBattleStatePanelWidget` / `UFRBattleStateViewModel`, `WBP_CombatantStatusPanel` -> `UFRCombatantStatusPanelWidget` / `UFRCombatantStatusViewModel`, `WBP_AimWindIndicator` -> `UFRAimWindIndicatorWidget` / `UFRAimWindViewModel`, `WBP_ShotPowerMeter` -> `UFRShotPowerMeterWidget` / `UFRShotPowerViewModel`, `WBP_LoadoutBar` -> `UFRLoadoutBarWidget` / `UFRLoadoutViewModel`, `WBP_WeaponSlot` and `WBP_ItemSlot` -> `UFRLoadoutSlotWidget`, `WBP_ShotInfoPanel` -> `UFRShotInfoPanelWidget` / `UFRShotPreviewViewModel`, and `WBP_ModifierSummary` -> `UFRModifierSummaryWidget` / `UFRModifierSummaryViewModel`.
+Inspect and clean `WBP_BattleHUD` and `WBP_BattleHUD_MVVM` import warnings for `/Script/ModelViewViewModelBlueprint`, then decide whether the prototype MVVM asset should be deleted, regenerated, or kept only as a reference. The module widgets now receive injected ViewModels through their adapter parents; the remaining production gap is formal module-owned Blueprint MVVM contexts/bindings only where the C++ adapter refresh path is not enough.
 
 Do not bind from the parent HUD into nested widget internals; that path failed compilation and should stay replaced with module-owned bindings or the adapter widgets. Also inspect `WBP_BattleHUD` and `WBP_BattleHUD_MVVM` import warnings for `/Script/ModelViewViewModelBlueprint` before treating the prototype MVVM asset as production-ready.

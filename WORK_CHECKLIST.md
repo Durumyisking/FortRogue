@@ -29,3 +29,4 @@ UI 체크리스트
 26 06 23
 - CommonUI GameViewportClient 설정 추가 [v]
 - Root/Menu CommonUI WBP 부모 및 최소 레이아웃 생성 [v]
+- Battle HUD 모듈 WBP adapter 부모 및 기존 이름 호환 [v]

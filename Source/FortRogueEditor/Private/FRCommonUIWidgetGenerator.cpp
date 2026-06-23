@@ -14,6 +14,7 @@
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/Overlay.h"
 #include "Components/OverlaySlot.h"
+#include "Components/ProgressBar.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "HAL/FileManager.h"
@@ -23,6 +24,7 @@
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
 #include "Modules/ModuleManager.h"
+#include "UI/FRBattleHUDModuleWidgets.h"
 #include "UI/FRTrajectoryPreviewPointWidget.h"
 #include "UI/FRMenuWidgets.h"
 #include "UI/FRUIRootWidget.h"
@@ -183,6 +185,18 @@ static UCommonNumericTextBlock* ConstructNumber(UWidgetBlueprint* WidgetBlueprin
 	return TextBlock;
 }
 
+static UProgressBar* ConstructProgressBar(UWidgetBlueprint* WidgetBlueprint, const TCHAR* WidgetName, float Percent)
+{
+	UProgressBar* ProgressBar = WidgetBlueprint && WidgetBlueprint->WidgetTree
+		? WidgetBlueprint->WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), WidgetName)
+		: nullptr;
+	if (ProgressBar)
+	{
+		ProgressBar->SetPercent(FMath::Clamp(Percent, 0.0f, 1.0f));
+	}
+	return ProgressBar;
+}
+
 static UCommonButtonBase* ConstructButton(UWidgetBlueprint* WidgetBlueprint, const TCHAR* WidgetName, const TCHAR* ButtonClassPath)
 {
 	TSubclassOf<UCommonButtonBase> ButtonClass = LoadClass<UCommonButtonBase>(nullptr, ButtonClassPath);
@@ -208,6 +222,20 @@ static void AddVerticalChild(UVerticalBox* Parent, UWidget* Child, const FMargin
 	{
 		Slot->SetPadding(Padding);
 		Slot->SetHorizontalAlignment(HAlign_Fill);
+	}
+}
+
+static void AddHorizontalChild(UHorizontalBox* Parent, UWidget* Child, const FMargin& Padding = FMargin(0.0f, 0.0f, 8.0f, 0.0f))
+{
+	if (!Parent || !Child)
+	{
+		return;
+	}
+
+	if (UHorizontalBoxSlot* Slot = Parent->AddChildToHorizontalBox(Child))
+	{
+		Slot->SetPadding(Padding);
+		Slot->SetVerticalAlignment(VAlign_Center);
 	}
 }
 
@@ -442,6 +470,213 @@ static void ConfigureConfirmDialog(UWidgetBlueprint* WidgetBlueprint)
 	WidgetBlueprint->MarkPackageDirty();
 }
 
+static UVerticalBox* CreateHUDModuleRoot(UWidgetBlueprint* WidgetBlueprint, const TCHAR* RootName)
+{
+	if (!WidgetBlueprint || !WidgetBlueprint->WidgetTree)
+	{
+		return nullptr;
+	}
+
+	UCommonBorder* RootBorder = WidgetBlueprint->WidgetTree->ConstructWidget<UCommonBorder>(UCommonBorder::StaticClass(), RootName);
+	UVerticalBox* RootBox = WidgetBlueprint->WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("RootBox"));
+	if (!RootBorder || !RootBox)
+	{
+		return nullptr;
+	}
+
+	RootBorder->SetStyle(LoadStyleClass<UCommonBorderStyle>(PanelBorderStylePath));
+	RootBorder->SetContent(RootBox);
+	WidgetBlueprint->WidgetTree->RootWidget = RootBorder;
+	return RootBox;
+}
+
+static void ConfigureTurnBanner(UWidgetBlueprint* WidgetBlueprint)
+{
+	if (!WidgetBlueprint || !WidgetBlueprint->WidgetTree || WidgetBlueprint->WidgetTree->RootWidget)
+	{
+		return;
+	}
+
+	WidgetBlueprint->Modify();
+	WidgetBlueprint->WidgetTree->Modify();
+
+	UHorizontalBox* RootBox = WidgetBlueprint->WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("RootBox"));
+	if (!RootBox)
+	{
+		return;
+	}
+
+	AddHorizontalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("TurnText"), FText::FromString(TEXT("PLAYER TURN")), LoadStyleClass<UCommonTextStyle>(TitleTextStylePath)));
+	AddHorizontalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("RunProgressText"), FText::FromString(TEXT("Stage 1/7")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddHorizontalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("StatusText"), FText::FromString(TEXT("Move, aim, select shell, then hold fire")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	WidgetBlueprint->WidgetTree->RootWidget = RootBox;
+	WidgetBlueprint->MarkPackageDirty();
+}
+
+static void ConfigureCombatantStatusPanel(UWidgetBlueprint* WidgetBlueprint)
+{
+	if (!WidgetBlueprint || !WidgetBlueprint->WidgetTree || WidgetBlueprint->WidgetTree->RootWidget)
+	{
+		return;
+	}
+
+	WidgetBlueprint->Modify();
+	WidgetBlueprint->WidgetTree->Modify();
+
+	UVerticalBox* RootBox = CreateHUDModuleRoot(WidgetBlueprint, TEXT("StatusPanelRoot"));
+	if (!RootBox)
+	{
+		return;
+	}
+
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("TitleText"), FText::FromString(TEXT("PLAYER ARMOR")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("HealthText"), FText::FromString(TEXT("115 / 115")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddVerticalChild(RootBox, ConstructProgressBar(WidgetBlueprint, TEXT("HealthBar"), 1.0f));
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("MoveBudgetText"), FText::FromString(TEXT("390 / 390")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddVerticalChild(RootBox, ConstructProgressBar(WidgetBlueprint, TEXT("MoveBudgetBar"), 1.0f));
+	WidgetBlueprint->MarkPackageDirty();
+}
+
+static void ConfigureAimWindIndicator(UWidgetBlueprint* WidgetBlueprint)
+{
+	if (!WidgetBlueprint || !WidgetBlueprint->WidgetTree || WidgetBlueprint->WidgetTree->RootWidget)
+	{
+		return;
+	}
+
+	WidgetBlueprint->Modify();
+	WidgetBlueprint->WidgetTree->Modify();
+
+	UVerticalBox* RootBox = CreateHUDModuleRoot(WidgetBlueprint, TEXT("AimWindRoot"));
+	if (!RootBox)
+	{
+		return;
+	}
+
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("WindText"), FText::FromString(TEXT("Wind <- 78")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddVerticalChild(RootBox, ConstructNumber(WidgetBlueprint, TEXT("WindValueText"), -78.0f));
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("AimText"), FText::FromString(TEXT("Aim 45 deg")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddVerticalChild(RootBox, ConstructNumber(WidgetBlueprint, TEXT("AimAngleValueText"), 45.0f));
+	WidgetBlueprint->MarkPackageDirty();
+}
+
+static void ConfigureShotPowerMeter(UWidgetBlueprint* WidgetBlueprint)
+{
+	if (!WidgetBlueprint || !WidgetBlueprint->WidgetTree || WidgetBlueprint->WidgetTree->RootWidget)
+	{
+		return;
+	}
+
+	WidgetBlueprint->Modify();
+	WidgetBlueprint->WidgetTree->Modify();
+
+	UVerticalBox* RootBox = CreateHUDModuleRoot(WidgetBlueprint, TEXT("ShotPowerRoot"));
+	if (!RootBox)
+	{
+		return;
+	}
+
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("ShotPowerText"), FText::FromString(TEXT("0%")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddVerticalChild(RootBox, ConstructNumber(WidgetBlueprint, TEXT("ShotPowerValueText"), 0.0f));
+	AddVerticalChild(RootBox, ConstructProgressBar(WidgetBlueprint, TEXT("ShotPowerBar"), 0.0f));
+	WidgetBlueprint->MarkPackageDirty();
+}
+
+static void ConfigureLoadoutSlot(UWidgetBlueprint* WidgetBlueprint, const FText& SlotLabel, const FText& DisplayText)
+{
+	if (!WidgetBlueprint || !WidgetBlueprint->WidgetTree || WidgetBlueprint->WidgetTree->RootWidget)
+	{
+		return;
+	}
+
+	WidgetBlueprint->Modify();
+	WidgetBlueprint->WidgetTree->Modify();
+
+	UVerticalBox* RootBox = CreateHUDModuleRoot(WidgetBlueprint, TEXT("SlotRoot"));
+	if (!RootBox)
+	{
+		return;
+	}
+
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("SlotLabelText"), SlotLabel, LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("DisplayText"), DisplayText, LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddVerticalChild(RootBox, ConstructNumber(WidgetBlueprint, TEXT("CountValueText"), 0.0f));
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("StatusText"), FText::GetEmpty(), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	WidgetBlueprint->MarkPackageDirty();
+}
+
+static void ConfigureLoadoutBar(UWidgetBlueprint* WidgetBlueprint)
+{
+	if (!WidgetBlueprint || !WidgetBlueprint->WidgetTree || WidgetBlueprint->WidgetTree->RootWidget)
+	{
+		return;
+	}
+
+	WidgetBlueprint->Modify();
+	WidgetBlueprint->WidgetTree->Modify();
+
+	UVerticalBox* RootBox = CreateHUDModuleRoot(WidgetBlueprint, TEXT("LoadoutRoot"));
+	if (!RootBox)
+	{
+		return;
+	}
+
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("CurrentWeaponText"), FText::FromString(TEXT("Basic Shell")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+
+	UHorizontalBox* WeaponSlotPanel = WidgetBlueprint->WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("WeaponSlotPanel"));
+	UHorizontalBox* ItemSlotPanel = WidgetBlueprint->WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass(), TEXT("ItemSlotPanel"));
+	AddVerticalChild(RootBox, WeaponSlotPanel);
+	AddVerticalChild(RootBox, ItemSlotPanel);
+	WidgetBlueprint->MarkPackageDirty();
+}
+
+static void ConfigureShotInfoPanel(UWidgetBlueprint* WidgetBlueprint)
+{
+	if (!WidgetBlueprint || !WidgetBlueprint->WidgetTree || WidgetBlueprint->WidgetTree->RootWidget)
+	{
+		return;
+	}
+
+	WidgetBlueprint->Modify();
+	WidgetBlueprint->WidgetTree->Modify();
+
+	UVerticalBox* RootBox = CreateHUDModuleRoot(WidgetBlueprint, TEXT("ShotInfoRoot"));
+	if (!RootBox)
+	{
+		return;
+	}
+
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("PrimaryText"), FText::FromString(TEXT("Damage 39  Blast 135")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("SecondaryText"), FText::FromString(TEXT("Speed 300  Gravity 980")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddVerticalChild(RootBox, ConstructNumber(WidgetBlueprint, TEXT("DamageValueText"), 39.0f));
+	AddVerticalChild(RootBox, ConstructNumber(WidgetBlueprint, TEXT("BlastRadiusValueText"), 135.0f));
+	AddVerticalChild(RootBox, ConstructNumber(WidgetBlueprint, TEXT("ProjectileCountValueText"), 1.0f));
+	WidgetBlueprint->MarkPackageDirty();
+}
+
+static void ConfigureModifierSummary(UWidgetBlueprint* WidgetBlueprint)
+{
+	if (!WidgetBlueprint || !WidgetBlueprint->WidgetTree || WidgetBlueprint->WidgetTree->RootWidget)
+	{
+		return;
+	}
+
+	WidgetBlueprint->Modify();
+	WidgetBlueprint->WidgetTree->Modify();
+
+	UVerticalBox* RootBox = CreateHUDModuleRoot(WidgetBlueprint, TEXT("ModifierRoot"));
+	if (!RootBox)
+	{
+		return;
+	}
+
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("GrantedModifierText"), FText::FromString(TEXT("None")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("PendingModifierText"), FText::FromString(TEXT("None")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("AbilitySetText"), FText::FromString(TEXT("None")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	AddVerticalChild(RootBox, ConstructText(WidgetBlueprint, TEXT("SummaryText"), FText::FromString(TEXT("Active: None\nNext: None\nTraits: None")), LoadStyleClass<UCommonTextStyle>(BodyTextStylePath)));
+	WidgetBlueprint->MarkPackageDirty();
+}
+
 static void ConfigureTrajectoryPreviewPoint(UWidgetBlueprint* WidgetBlueprint)
 {
 	if (!WidgetBlueprint || !WidgetBlueprint->WidgetTree || WidgetBlueprint->WidgetTree->RootWidget)
@@ -517,6 +752,69 @@ int32 GenerateCommonUIWidgets()
 		ConfigureConfirmDialog(ConfirmDialog);
 	}
 	WidgetBlueprints.Add(ConfirmDialog);
+
+	UWidgetBlueprint* TurnBanner = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_TurnBanner"), UFRBattleStatePanelWidget::StaticClass(), bNeedsConfigure);
+	if (bNeedsConfigure)
+	{
+		ConfigureTurnBanner(TurnBanner);
+	}
+	WidgetBlueprints.Add(TurnBanner);
+
+	UWidgetBlueprint* CombatantStatusPanel = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_CombatantStatusPanel"), UFRCombatantStatusPanelWidget::StaticClass(), bNeedsConfigure);
+	if (bNeedsConfigure)
+	{
+		ConfigureCombatantStatusPanel(CombatantStatusPanel);
+	}
+	WidgetBlueprints.Add(CombatantStatusPanel);
+
+	UWidgetBlueprint* AimWindIndicator = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_AimWindIndicator"), UFRAimWindIndicatorWidget::StaticClass(), bNeedsConfigure);
+	if (bNeedsConfigure)
+	{
+		ConfigureAimWindIndicator(AimWindIndicator);
+	}
+	WidgetBlueprints.Add(AimWindIndicator);
+
+	UWidgetBlueprint* ShotPowerMeter = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_ShotPowerMeter"), UFRShotPowerMeterWidget::StaticClass(), bNeedsConfigure);
+	if (bNeedsConfigure)
+	{
+		ConfigureShotPowerMeter(ShotPowerMeter);
+	}
+	WidgetBlueprints.Add(ShotPowerMeter);
+
+	UWidgetBlueprint* WeaponSlot = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_WeaponSlot"), UFRLoadoutSlotWidget::StaticClass(), bNeedsConfigure);
+	if (bNeedsConfigure)
+	{
+		ConfigureLoadoutSlot(WeaponSlot, FText::FromString(TEXT("Basic")), FText::FromString(TEXT("Basic Shell")));
+	}
+	WidgetBlueprints.Add(WeaponSlot);
+
+	UWidgetBlueprint* ItemSlot = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_ItemSlot"), UFRLoadoutSlotWidget::StaticClass(), bNeedsConfigure);
+	if (bNeedsConfigure)
+	{
+		ConfigureLoadoutSlot(ItemSlot, FText::FromString(TEXT("Item")), FText::FromString(TEXT("-")));
+	}
+	WidgetBlueprints.Add(ItemSlot);
+
+	UWidgetBlueprint* LoadoutBar = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_LoadoutBar"), UFRLoadoutBarWidget::StaticClass(), bNeedsConfigure);
+	if (bNeedsConfigure)
+	{
+		ConfigureLoadoutBar(LoadoutBar);
+	}
+	WidgetBlueprints.Add(LoadoutBar);
+
+	UWidgetBlueprint* ShotInfoPanel = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_ShotInfoPanel"), UFRShotInfoPanelWidget::StaticClass(), bNeedsConfigure);
+	if (bNeedsConfigure)
+	{
+		ConfigureShotInfoPanel(ShotInfoPanel);
+	}
+	WidgetBlueprints.Add(ShotInfoPanel);
+
+	UWidgetBlueprint* ModifierSummary = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_ModifierSummary"), UFRModifierSummaryWidget::StaticClass(), bNeedsConfigure);
+	if (bNeedsConfigure)
+	{
+		ConfigureModifierSummary(ModifierSummary);
+	}
+	WidgetBlueprints.Add(ModifierSummary);
 
 	UWidgetBlueprint* WorldStatusMarker = CreateWidgetBlueprint(CommonUIComponentsPath, TEXT("WBP_WorldStatusMarker"), UFRWorldStatusMarkerWidget::StaticClass(), bNeedsConfigure);
 	if (bNeedsConfigure)

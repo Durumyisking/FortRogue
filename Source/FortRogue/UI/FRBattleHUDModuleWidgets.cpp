@@ -137,6 +137,8 @@ void UFRBattleStatePanelWidget::NativeRefreshFromViewModel()
 	SetText(TurnText, ViewModel->GetTurnText());
 	SetText(RunProgressText, ViewModel->GetRunProgressText());
 	SetText(StatusText, ViewModel->GetStatusText());
+	SetText(ProgressText, ViewModel->GetRunProgressText());
+	SetText(InstructionText, ViewModel->GetStatusText());
 }
 
 void UFRCombatantStatusPanelWidget::SetViewModel(UFRCombatantStatusViewModel* InViewModel)
@@ -158,6 +160,7 @@ void UFRCombatantStatusPanelWidget::NativeRefreshFromViewModel()
 	}
 
 	SetText(TitleText, ViewModel->GetTitleText());
+	SetText(NameText, ViewModel->GetTitleText());
 	SetText(HealthText, ViewModel->GetHealthText());
 	SetNumericText(CurrentHealthValueText, ViewModel->GetCurrentHealthValue());
 	SetNumericText(MaxHealthValueText, ViewModel->GetMaxHealthValue());
@@ -214,6 +217,9 @@ void UFRShotPowerMeterWidget::NativeRefreshFromViewModel()
 	SetText(ShotPowerText, ViewModel->GetShotPowerText());
 	SetNumericText(ShotPowerValueText, ViewModel->GetShotPowerPercent());
 	SetBar(ShotPowerBar, ViewModel->GetShotPowerPercent());
+	SetText(PowerLabelText, FText::FromString(TEXT("POWER")));
+	SetNumericText(PowerValueText, ViewModel->GetShotPowerPercent());
+	SetBar(PowerBar, ViewModel->GetShotPowerPercent());
 }
 
 void UFRLoadoutSlotWidget::NativeOnInitialized()
@@ -252,6 +258,7 @@ void UFRLoadoutSlotWidget::RefreshFromViewModel()
 	{
 		SetText(SlotLabelText, FText::GetEmpty());
 		SetText(DisplayText, FText::FromString(TEXT("-")));
+		SetText(SlotText, FText::FromString(TEXT("-")));
 		SetText(StatusText, FText::FromString(TEXT("EMPTY")));
 		if (CountValueText)
 		{
@@ -264,6 +271,7 @@ void UFRLoadoutSlotWidget::RefreshFromViewModel()
 
 	SetText(SlotLabelText, SlotViewModel->GetSlotLabelText());
 	SetText(DisplayText, SlotViewModel->GetDisplayText());
+	SetText(SlotText, SlotViewModel->GetDisplayText());
 	SetText(StatusText, SlotViewModel->GetStatusText());
 	if (CountValueText)
 	{
@@ -299,13 +307,13 @@ void UFRLoadoutBarWidget::NativeRefreshFromViewModel()
 
 	SetText(CurrentWeaponText, ViewModel->GetCurrentWeaponText());
 
-	TArray<UFRLoadoutSlotWidget*> WeaponSlots = GetLoadoutSlotChildren(WeaponSlotPanel);
+	TArray<UFRLoadoutSlotWidget*> WeaponSlots = GetLoadoutSlotChildren(WeaponSlotPanel ? WeaponSlotPanel.Get() : WeaponRow.Get());
 	for (int32 Index = 0; Index < WeaponSlots.Num(); ++Index)
 	{
 		WeaponSlots[Index]->SetViewModel(ViewModel->GetWeaponSlotViewModel(Index));
 	}
 
-	TArray<UFRLoadoutSlotWidget*> ItemSlots = GetLoadoutSlotChildren(ItemSlotPanel);
+	TArray<UFRLoadoutSlotWidget*> ItemSlots = GetLoadoutSlotChildren(ItemSlotPanel ? ItemSlotPanel.Get() : ItemRow.Get());
 	for (int32 Index = 0; Index < ItemSlots.Num(); ++Index)
 	{
 		ItemSlots[Index]->SetViewModel(ViewModel->GetItemSlotViewModel(Index));
@@ -332,6 +340,8 @@ void UFRShotInfoPanelWidget::NativeRefreshFromViewModel()
 
 	SetText(PrimaryText, ViewModel->GetPrimaryText());
 	SetText(SecondaryText, ViewModel->GetSecondaryText());
+	SetText(PrimaryStatsText, ViewModel->GetPrimaryText());
+	SetText(SecondaryStatsText, ViewModel->GetSecondaryText());
 	SetNumericText(DamageValueText, ViewModel->GetDamageValue());
 	SetNumericText(BlastRadiusValueText, ViewModel->GetBlastRadiusValue());
 	SetNumericText(ProjectileCountValueText, static_cast<float>(ViewModel->GetProjectileCountValue()));

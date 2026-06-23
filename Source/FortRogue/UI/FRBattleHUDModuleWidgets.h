@@ -86,6 +86,12 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCommonTextBlock> StatusText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCommonTextBlock> ProgressText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCommonTextBlock> InstructionText;
 };
 
 UCLASS(Blueprintable)
@@ -106,6 +112,9 @@ protected:
 private:
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCommonTextBlock> TitleText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCommonTextBlock> NameText;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCommonTextBlock> HealthText;
@@ -188,6 +197,15 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UProgressBar> ShotPowerBar;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCommonTextBlock> PowerLabelText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCommonNumericTextBlock> PowerValueText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UProgressBar> PowerBar;
 };
 
 UCLASS(Blueprintable)
@@ -218,6 +236,9 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCommonTextBlock> DisplayText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCommonTextBlock> SlotText;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCommonNumericTextBlock> CountValueText;
@@ -253,6 +274,12 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UPanelWidget> ItemSlotPanel;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UPanelWidget> WeaponRow;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UPanelWidget> ItemRow;
 };
 
 UCLASS(Blueprintable)
@@ -276,6 +303,12 @@ private:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCommonTextBlock> SecondaryText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCommonTextBlock> PrimaryStatsText;
+
+	UPROPERTY(meta = (BindWidgetOptional))
+	TObjectPtr<UCommonTextBlock> SecondaryStatsText;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UCommonNumericTextBlock> DamageValueText;
