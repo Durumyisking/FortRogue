@@ -39,7 +39,7 @@ struct FFRRewardStyleSet
 	TSubclassOf<UCommonButtonStyle> ChoiceButtonStyle;
 };
 
-UCLASS(BlueprintType)
+UCLASS(BlueprintType, Blueprintable)
 class FORTROGUE_API UFRRewardChoiceViewModel : public UMVVMViewModelBase
 {
 	GENERATED_BODY()
@@ -82,7 +82,7 @@ private:
 	bool bCanChoose = false;
 };
 
-UCLASS(BlueprintType)
+UCLASS(BlueprintType, Blueprintable)
 class FORTROGUE_API UFRRewardScreenViewModel : public UMVVMViewModelBase
 {
 	GENERATED_BODY()

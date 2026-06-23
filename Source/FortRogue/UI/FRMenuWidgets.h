@@ -37,7 +37,7 @@ struct FFRMenuStyleSet
 	TSubclassOf<UCommonButtonStyle> SecondaryButtonStyle;
 };
 
-UCLASS(BlueprintType)
+UCLASS(BlueprintType, Blueprintable)
 class FORTROGUE_API UFRMenuScreenViewModel : public UMVVMViewModelBase
 {
 	GENERATED_BODY()
@@ -66,7 +66,7 @@ private:
 	FText StatusText;
 };
 
-UCLASS(BlueprintType)
+UCLASS(BlueprintType, Blueprintable)
 class FORTROGUE_API UFROptionsMenuViewModel : public UMVVMViewModelBase
 {
 	GENERATED_BODY()

@@ -1,6 +1,6 @@
 # FortRogue
 
-FortRogue is an Unreal Engine 5.7 C++ project.
+FortRogue is an Unreal Engine 5.8 C++ project.
 
 ## Project Layout
 
@@ -13,7 +13,7 @@ Generated folders such as `Binaries/`, `Intermediate/`, `Saved/`, `DerivedDataCa
 
 ## Requirements
 
-- Unreal Engine 5.7
+- Unreal Engine 5.8
 - Visual Studio with C++ game development tools, or another Unreal-compatible C++ IDE
 
 Enabled plugins:
@@ -26,7 +26,7 @@ Enabled plugins:
 ## Getting Started
 
 1. Clone the repository.
-2. Open `FortRogue.uproject` with Unreal Engine 5.7.
+2. Open `FortRogue.uproject` with Unreal Engine 5.8.
 3. If needed, regenerate IDE project files from the `.uproject`.
 4. Build the `FortRogueEditor` target.
 5. Open the project in the Unreal Editor.

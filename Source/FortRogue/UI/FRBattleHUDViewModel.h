@@ -6,7 +6,7 @@
 #include "MVVMViewModelBase.h"
 #include "FRBattleHUDViewModel.generated.h"
 
-UCLASS(BlueprintType)
+UCLASS(BlueprintType, Blueprintable)
 class FORTROGUE_API UFRBattleHUDViewModel : public UMVVMViewModelBase
 {
 	GENERATED_BODY()

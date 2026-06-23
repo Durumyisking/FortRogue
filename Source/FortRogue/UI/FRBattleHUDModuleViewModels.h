@@ -6,7 +6,7 @@
 #include "MVVMViewModelBase.h"
 #include "FRBattleHUDModuleViewModels.generated.h"
 
-UCLASS(BlueprintType)
+UCLASS(BlueprintType, Blueprintable)
 class FORTROGUE_API UFRBattleStateViewModel : public UMVVMViewModelBase
 {
 	GENERATED_BODY()
@@ -35,7 +35,7 @@ private:
 	FText StatusText;
 };
 
-UCLASS(BlueprintType)
+UCLASS(BlueprintType, Blueprintable)
 class FORTROGUE_API UFRCombatantStatusViewModel : public UMVVMViewModelBase
 {
 	GENERATED_BODY()
@@ -106,7 +106,7 @@ private:
 	float MoveBudgetPercent = 0.0f;
 };
 
-UCLASS(BlueprintType)
+UCLASS(BlueprintType, Blueprintable)
 class FORTROGUE_API UFRAimWindViewModel : public UMVVMViewModelBase
 {
 	GENERATED_BODY()
@@ -149,7 +149,7 @@ private:
 	float AimAngleValue = 0.0f;
 };
 
-UCLASS(BlueprintType)
+UCLASS(BlueprintType, Blueprintable)
 class FORTROGUE_API UFRShotPowerViewModel : public UMVVMViewModelBase
 {
 	GENERATED_BODY()
@@ -171,7 +171,7 @@ private:
 	float ShotPowerPercent = 0.0f;
 };
 
-UCLASS(BlueprintType)
+UCLASS(BlueprintType, Blueprintable)
 class FORTROGUE_API UFRLoadoutSlotViewModel : public UMVVMViewModelBase
 {
 	GENERATED_BODY()
@@ -235,7 +235,7 @@ private:
 	FText StatusText;
 };
 
-UCLASS(BlueprintType)
+UCLASS(BlueprintType, Blueprintable)
 class FORTROGUE_API UFRLoadoutViewModel : public UMVVMViewModelBase
 {
 	GENERATED_BODY()
@@ -267,7 +267,7 @@ private:
 	TArray<TObjectPtr<UFRLoadoutSlotViewModel>> ItemSlotViewModels;
 };
 
-UCLASS(BlueprintType)
+UCLASS(BlueprintType, Blueprintable)
 class FORTROGUE_API UFRShotPreviewViewModel : public UMVVMViewModelBase
 {
 	GENERATED_BODY()
@@ -338,7 +338,7 @@ private:
 	float TerrainFillRadiusValue = 0.0f;
 };
 
-UCLASS(BlueprintType)
+UCLASS(BlueprintType, Blueprintable)
 class FORTROGUE_API UFRModifierSummaryViewModel : public UMVVMViewModelBase
 {
 	GENERATED_BODY()

@@ -36,3 +36,14 @@ UI 체크리스트
 - Reward 화면 CommonUI WBP 생성 및 MVVM context 추가 [v]
 - Enemy/target status panel 생산 HUD 연결 [v]
 - Options 화면 조작 컨트롤 MVVM 표면 추가 [v]
+- 위젯들이 CommonUI로만 만들어졌는지 검토 후 잘못되었으면 수정 [수정]
+- 게임에서 새로 만든 UMG 위젯을 사용하는지 검토 후 잘못되었으면 수정 [수정]
+- 메인메뉴부터 메인게임까지 프로세스가 UMG로 처리되는지 검토 후 잘못되었으면 수정 [수정]
+- 해당 UMG들이 정상적으로 작동하는지 검토 후 잘못되었으면 수정 [수정]
+- VM 구조를 HUD ViewModel 하나에 몰아넣지 않고 Character VM, Game VM, Perk VM 등 역할별로 정리 [수정]
+- 위 작업까지 완료한 뒤 작업 종료 및 테스트 인계 [수정]
+
+지침 체크리스트
+
+26 06 23
+- 에디터 수정 요청 MCP ToolSet 사용 지침 추가 [v]

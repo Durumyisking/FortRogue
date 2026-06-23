@@ -12,7 +12,7 @@ class UCommonTextBlock;
 class UCommonTextStyle;
 class UProgressBar;
 
-UCLASS(BlueprintType)
+UCLASS(BlueprintType, Blueprintable)
 class FORTROGUE_API UFRCharacterHealthBarViewModel : public UMVVMViewModelBase
 {
 	GENERATED_BODY()

@@ -13,7 +13,7 @@ class UCommonNumericTextBlock;
 class UCommonTextBlock;
 class UCommonTextStyle;
 
-UCLASS(BlueprintType)
+UCLASS(BlueprintType, Blueprintable)
 class FORTROGUE_API UFRTrajectoryPreviewPointViewModel : public UMVVMViewModelBase
 {
 	GENERATED_BODY()

@@ -17,7 +17,7 @@ enum class EFRUILayer : uint8
 	Modal
 };
 
-UCLASS(BlueprintType)
+UCLASS(BlueprintType, Blueprintable)
 class FORTROGUE_API UFRUIRootViewModel : public UMVVMViewModelBase
 {
 	GENERATED_BODY()

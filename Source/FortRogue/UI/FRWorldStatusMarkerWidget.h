@@ -12,7 +12,7 @@ class UCommonBorderStyle;
 class UCommonTextBlock;
 class UCommonTextStyle;
 
-UCLASS(BlueprintType)
+UCLASS(BlueprintType, Blueprintable)
 class FORTROGUE_API UFRWorldStatusMarkerViewModel : public UMVVMViewModelBase
 {
 	GENERATED_BODY()
