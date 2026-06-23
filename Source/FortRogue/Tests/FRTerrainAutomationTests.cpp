@@ -1193,7 +1193,7 @@ bool FFRTerrainGameModeMapDefinitionTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Game mode turn wind can be fixed for deterministic projectile tests"), GameMode->GetWind(), 120.0f);
 	TestTrue(TEXT("Game mode wind summary includes signed wind"), GameMode->GetWindSummary().ToString().Contains(TEXT("Wind +120")));
 	TestTrue(TEXT("Game mode run progress summary includes stage progress"), GameMode->GetRunProgressSummary().ToString().Contains(TEXT("Stage 1/2")));
-	TestTrue(TEXT("Game mode run progress summary includes status text"), GameMode->GetRunProgressSummary().ToString().Contains(GameMode->GetStatusText().ToString()));
+	TestFalse(TEXT("Game mode run progress summary keeps status text separate"), GameMode->GetRunProgressSummary().ToString().Contains(GameMode->GetStatusText().ToString()));
 	if (AFRBattleCharacter* PlayerCharacter = GameMode->GetPlayerCharacter())
 	{
 		const float BaseDamageBonus = PlayerCharacter->GetDamageBonus();

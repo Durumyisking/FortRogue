@@ -249,10 +249,9 @@ FText AFRGameMode::GetStatusText() const
 FText AFRGameMode::GetRunProgressSummary() const
 {
 	return FText::FromString(FString::Printf(
-		TEXT("Stage %d/%d | %s"),
+		TEXT("Stage %d/%d"),
 		GetCurrentStage(),
-		GetMaxStages(),
-		*GetStatusText().ToString()));
+		GetMaxStages()));
 }
 
 int32 AFRGameMode::GetCurrentStage() const
@@ -598,7 +597,7 @@ void AFRGameMode::StartPlayerTurn()
 	{
 		PlayerCharacter->BeginTurn();
 	}
-	SetStatus(FString::Printf(TEXT("Stage %d/%d - Player turn"), CurrentStage, GetConfiguredStageCount()));
+	SetStatus(TEXT("Player turn"));
 }
 
 void AFRGameMode::StartEnemyTurn()
@@ -614,7 +613,7 @@ void AFRGameMode::StartEnemyTurn()
 			Enemy->BeginTurn();
 		}
 	}
-	SetStatus(FString::Printf(TEXT("Stage %d/%d - Enemy turn"), CurrentStage, GetConfiguredStageCount()));
+	SetStatus(TEXT("Enemy turn"));
 
 	FTimerHandle EnemyTimerHandle;
 	GetWorldTimerManager().SetTimer(EnemyTimerHandle, this, &AFRGameMode::RunEnemyTurn, GetCurrentStageDifficulty().EnemyTurnDelaySeconds, false);

@@ -32,3 +32,4 @@ UI 체크리스트
 - Battle HUD 모듈 WBP adapter 부모 및 기존 이름 호환 [v]
 - CommonUI prototype MVVM import warning 정리 [v]
 - Battle HUD 모듈 WBP MVVM context 추가 [v]
+- Battle HUD turn banner 중복 stage 텍스트 정리 [v]
