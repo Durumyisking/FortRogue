@@ -43,10 +43,16 @@ When a request involves modifying Unreal Editor-owned assets or editor state, us
 
 ## Work Checklist
 
-Before changing project files, always check `WORK_CHECKLIST.md` in the project root.
+Checklist work is opt-in only.
 
-- If `WORK_CHECKLIST.md` does not exist yet, create it before starting the work.
-- Checklist entries are grouped by feature name first, then by date.
+- Do not create, read, or update `WORK_CHECKLIST.md` unless the user explicitly asks for checklist work.
+- Do not add or update checklist entries as a prerequisite for ordinary coding, asset, build, or verification work.
+- When the user explicitly asks to create or update checklist entries, only make the requested checklist changes.
+- Create `WORK_CHECKLIST.md` only when the user explicitly asks to create a checklist file.
+- When the user asks to perform checklist work, inspect the existing `WORK_CHECKLIST.md` and work only from entries already present there. Do not create additional checklist entries during that work.
+
+When explicitly creating or updating checklist entries, group entries by feature name first, then by date.
+
 - Dates use `YY MM DD` format.
 - Use this exact entry style:
 
@@ -66,11 +72,11 @@ Status meanings:
 
 Work rules:
 
-- Before implementing, add or update the relevant checklist entry for the current task.
-- If the current work touches an item already marked `[v]`, do not modify it unless the user explicitly asked for that item to be changed.
-- When the user explicitly asks to modify a completed item, change that checklist entry to `[수정]` before editing.
-- After the requested work is implemented and verified, mark the checklist entry as `[v]`.
-- If it is unclear whether a file or code path belongs to a completed checklist item, treat it as protected and ask the user before editing.
+- These rules apply only during explicit checklist work.
+- If requested checklist work touches an item already marked `[v]`, do not modify it unless the user explicitly asked for that item to be changed.
+- When the user explicitly asks to modify a completed checklist item, change that checklist entry to `[수정]` before editing.
+- After an explicitly requested checklist item is implemented and verified, mark that existing checklist entry as `[v]`.
+- If it is unclear whether a file or code path belongs to a completed checklist item during checklist work, treat it as protected and ask the user before editing.
 - Do not create speculative checklist items for work that was not requested.
 
 ## Parallel Codex CLI Operations

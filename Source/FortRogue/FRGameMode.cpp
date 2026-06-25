@@ -44,8 +44,10 @@ AFRGameMode::AFRGameMode()
 void AFRGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
 {
 	PlayerControllerClass = AFRPlayerController::StaticClass();
+	DefaultPawnClass = nullptr;
 	Super::InitGame(MapName, Options, ErrorMessage);
 	PlayerControllerClass = AFRPlayerController::StaticClass();
+	DefaultPawnClass = nullptr;
 }
 
 void AFRGameMode::BeginPlay()
