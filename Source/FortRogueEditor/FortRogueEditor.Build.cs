@@ -19,6 +19,8 @@ public class FortRogueEditor : ModuleRules
 			"SlateCore",
 			"ToolMenus",
 			"UnrealEd",
+			"UMG",
+			"UMGEditor",
 			"PropertyEditor",
 			"AssetTools",
 			"AssetRegistry",

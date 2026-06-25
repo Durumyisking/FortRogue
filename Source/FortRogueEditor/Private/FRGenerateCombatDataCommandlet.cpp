@@ -190,7 +190,7 @@ TArray<UObject*> ConfigureGameFlowModeDataAssets(UFRCharacterDefinition* Cannon,
 		MainGameMode->ModeName = TEXT("MainGame");
 		MainGameMode->DisplayName = FText::FromString(TEXT("Main Game"));
 		MainGameMode->Level = TSoftObjectPtr<UWorld>(FSoftObjectPath(TEXT("/Game/FortRogue/Level/GameLevel.GameLevel")));
-		MainGameMode->HUDWidgetClass = nullptr;
+		MainGameMode->HUDWidgetClass = TSoftClassPtr<UUserWidget>(FSoftObjectPath(TEXT("/Game/FortRogue/Widget/MainGame/WBP_MainGameHUD.WBP_MainGameHUD_C")));
 		MainGameMode->InputMode = EFRGameFlowInputMode::GameOnly;
 		MainGameMode->bShowMouseCursor = false;
 		MainGameMode->StartMainGameButtonName = NAME_None;

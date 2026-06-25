@@ -135,6 +135,10 @@ void AFRPlayerController::Tick(float DeltaSeconds)
 	}
 
 	TickBattleInput(DeltaSeconds);
+	if (bHUDShotChargePressed)
+	{
+		TickPlayerWeaponCharge(DeltaSeconds);
+	}
 	ProcessPlayerAbilityInput(DeltaSeconds);
 }
 
@@ -263,6 +267,45 @@ void AFRPlayerController::StartMainGame()
 		{
 			GameFlow->StartMainGame();
 		}
+	}
+}
+
+void AFRPlayerController::BeginHUDShotCharge()
+{
+	AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
+	if (!GameMode || GameMode->GetBattleState() != EFRBattleState::PlayerTurn || !GameMode->GetPlayerCharacter())
+	{
+		return;
+	}
+
+	bHUDShotChargePressed = true;
+	BeginPlayerWeaponCharge();
+}
+
+void AFRPlayerController::ReleaseHUDShotCharge()
+{
+	if (!bHUDShotChargePressed)
+	{
+		return;
+	}
+
+	bHUDShotChargePressed = false;
+	ReleasePlayerWeaponCharge();
+}
+
+void AFRPlayerController::SelectHUDWeapon(int32 WeaponIndex)
+{
+	SelectPlayerWeapon(WeaponIndex);
+}
+
+void AFRPlayerController::UseHUDItem(int32 ItemIndex)
+{
+	AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
+	if (GameMode && GameMode->GetBattleState() == EFRBattleState::PlayerTurn && GameMode->GetPlayerCharacter())
+	{
+		SetPlayerAbilityInputTag(FRGameplayTags::InputTag_UseItem, true);
+		GameMode->GetPlayerCharacter()->UseItemByIndex(ItemIndex);
+		SetPlayerAbilityInputTag(FRGameplayTags::InputTag_UseItem, false);
 	}
 }
 

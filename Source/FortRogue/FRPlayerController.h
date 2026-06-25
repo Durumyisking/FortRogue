@@ -28,6 +28,18 @@ public:
 	UFUNCTION(Exec)
 	void StartMainGame();
 
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|HUD")
+	void BeginHUDShotCharge();
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|HUD")
+	void ReleaseHUDShotCharge();
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|HUD")
+	void SelectHUDWeapon(int32 WeaponIndex);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|HUD")
+	void UseHUDItem(int32 ItemIndex);
+
 private:
 	void TickBattleInput(float DeltaSeconds);
 	void TickKeyboardFireInput();
@@ -127,4 +139,5 @@ private:
 	bool bAimUpAbilityInputPressed = false;
 	bool bAimDownAbilityInputPressed = false;
 	bool bFireAbilityInputPressed = false;
+	bool bHUDShotChargePressed = false;
 };
