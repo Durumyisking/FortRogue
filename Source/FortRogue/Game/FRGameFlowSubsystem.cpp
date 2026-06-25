@@ -173,6 +173,8 @@ void UFRGameFlowSubsystem::ApplyCurrentModeToPlayerController(APlayerController*
 			{
 				InputMode.SetWidgetToFocus(ActiveHUDWidget->TakeWidget());
 			}
+			InputMode.SetHideCursorDuringCapture(false);
+			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
 			PlayerController->SetInputMode(InputMode);
 			break;
 		}

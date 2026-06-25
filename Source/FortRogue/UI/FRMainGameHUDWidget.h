@@ -9,8 +9,10 @@
 
 class AFRGameMode;
 class UButton;
+class UImage;
 class UProgressBar;
 class UTextBlock;
+class UTexture2D;
 
 UCLASS()
 class FORTROGUE_API UFRMainGameHUDWidget : public UUserWidget
@@ -28,6 +30,9 @@ protected:
 	UPROPERTY(BlueprintReadOnly, Category = "FortRogue|HUD")
 	TObjectPtr<UFRPlayerHUDViewModel> PlayerViewModel;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "FortRogue|HUD")
+	TObjectPtr<UTexture2D> WindArrowTexture;
+
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> TurnText;
 
@@ -39,6 +44,9 @@ protected:
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> WindText;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UImage> WindArrowVisualWidget;
 
 	UPROPERTY(meta = (BindWidgetOptional))
 	TObjectPtr<UTextBlock> PlayerNameText;

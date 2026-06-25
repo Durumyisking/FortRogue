@@ -3,14 +3,18 @@
 #include "UI/FRMainGameHUDWidget.h"
 
 #include "Components/Button.h"
+#include "Components/Image.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
+#include "Engine/Texture2D.h"
 #include "FRGameMode.h"
 #include "FRPlayerController.h"
 #include "Game/FRTurnBasedGameState.h"
 
 namespace
 {
+constexpr const TCHAR* WindArrowTexturePath = TEXT("/Game/FortRogue/Widget/MainGame/T_WindArrow.T_WindArrow");
+
 void SetTextBlockText(UTextBlock* TextBlock, const FText& Text)
 {
 	if (TextBlock)
@@ -64,6 +68,7 @@ void UFRMainGameHUDWidget::NativeOnInitialized()
 	Super::NativeOnInitialized();
 
 	PlayerViewModel = NewObject<UFRPlayerHUDViewModel>(this);
+	WindArrowVisualWidget = Cast<UImage>(GetWidgetFromName(TEXT("WindArrowVisual")));
 	BindButtonEvents();
 }
 
@@ -140,6 +145,10 @@ void UFRMainGameHUDWidget::RefreshGameInfo(AFRGameMode* GameMode)
 		SetTextBlockText(ShotTimerText, FText::GetEmpty());
 		SetTextBlockText(StatusText, FText::GetEmpty());
 		SetTextBlockText(WindText, FText::GetEmpty());
+		if (WindArrowVisualWidget)
+		{
+			WindArrowVisualWidget->SetVisibility(ESlateVisibility::Hidden);
+		}
 		return;
 	}
 
@@ -147,6 +156,26 @@ void UFRMainGameHUDWidget::RefreshGameInfo(AFRGameMode* GameMode)
 	SetTextBlockText(ShotTimerText, GetBattleStateText(GameMode->GetBattleState()));
 	SetTextBlockText(StatusText, GameMode->GetStatusText());
 	SetTextBlockText(WindText, GameMode->GetWindSummary());
+	if (!WindArrowVisualWidget)
+	{
+		WindArrowVisualWidget = Cast<UImage>(GetWidgetFromName(TEXT("WindArrowVisual")));
+	}
+	if (WindArrowVisualWidget)
+	{
+		if (!WindArrowTexture)
+		{
+			WindArrowTexture = LoadObject<UTexture2D>(nullptr, WindArrowTexturePath);
+		}
+		if (WindArrowTexture)
+		{
+			WindArrowVisualWidget->SetBrushFromTexture(WindArrowTexture, true);
+		}
+
+		const float Wind = GameMode->GetWind();
+		WindArrowVisualWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
+		WindArrowVisualWidget->SetRenderScale(FVector2D(Wind < 0.0f ? -1.0f : 1.0f, 1.0f));
+		WindArrowVisualWidget->SetRenderOpacity(FMath::IsNearlyZero(Wind) ? 0.25f : 0.9f);
+	}
 }
 
 void UFRMainGameHUDWidget::RefreshPlayerInfo(AFRGameMode* GameMode)

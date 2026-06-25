@@ -9,15 +9,19 @@
 #include "Components/Button.h"
 #include "Components/CanvasPanel.h"
 #include "Components/CanvasPanelSlot.h"
+#include "Components/Image.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 #include "Engine/Font.h"
+#include "Engine/Texture2D.h"
 #include "Game/FRGameModeDataAsset.h"
 #include "HAL/FileManager.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
+#include "UI/FRBattleCharacterStatusWidget.h"
+#include "UI/FRFloatingDamageTextWidget.h"
 #include "UI/FRMainGameHUDWidget.h"
 #include "UObject/SavePackage.h"
 #include "WidgetBlueprint.h"
@@ -27,6 +31,11 @@ namespace
 {
 constexpr const TCHAR* MainGameHUDPath = TEXT("/Game/FortRogue/Widget/MainGame");
 constexpr const TCHAR* MainGameHUDName = TEXT("WBP_MainGameHUD");
+constexpr const TCHAR* WindArrowTextureName = TEXT("T_WindArrow");
+constexpr const TCHAR* WindArrowTextureObjectPath = TEXT("/Game/FortRogue/Widget/MainGame/T_WindArrow.T_WindArrow");
+constexpr const TCHAR* CharacterWidgetPath = TEXT("/Game/FortRogue/Widget/Character");
+constexpr const TCHAR* BattleCharacterStatusName = TEXT("WBP_BattleCharacterStatus");
+constexpr const TCHAR* FloatingDamageTextName = TEXT("WBP_FloatingDamageText");
 constexpr const TCHAR* MainGameModeObjectPath = TEXT("/Game/FortRogue/DataAsset/Global/DA_MainGameMode.DA_MainGameMode");
 constexpr const TCHAR* MainGameHUDClassPath = TEXT("/Game/FortRogue/Widget/MainGame/WBP_MainGameHUD.WBP_MainGameHUD_C");
 
@@ -47,20 +56,81 @@ bool SaveAsset(UObject* Asset)
 	return UPackage::SavePackage(Package, Asset, *PackageFileName, SaveArgs);
 }
 
-UWidgetBlueprint* LoadOrCreateMainGameHUD()
+UWidgetBlueprint* LoadOrCreateWidgetBlueprint(const TCHAR* FolderPath, const TCHAR* AssetName, TSubclassOf<UUserWidget> ParentClass)
 {
-	const FString LongPackageName = FString::Printf(TEXT("%s/%s"), MainGameHUDPath, MainGameHUDName);
-	const FString ObjectPath = FString::Printf(TEXT("%s.%s"), *LongPackageName, MainGameHUDName);
+	const FString LongPackageName = FString::Printf(TEXT("%s/%s"), FolderPath, AssetName);
+	const FString ObjectPath = FString::Printf(TEXT("%s.%s"), *LongPackageName, AssetName);
 	if (UWidgetBlueprint* ExistingBlueprint = LoadObject<UWidgetBlueprint>(nullptr, *ObjectPath))
 	{
 		return ExistingBlueprint;
 	}
 
 	UWidgetBlueprintFactory* Factory = NewObject<UWidgetBlueprintFactory>();
-	Factory->ParentClass = UFRMainGameHUDWidget::StaticClass();
+	Factory->ParentClass = ParentClass;
 
 	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
-	return Cast<UWidgetBlueprint>(AssetToolsModule.Get().CreateAsset(MainGameHUDName, MainGameHUDPath, UWidgetBlueprint::StaticClass(), Factory));
+	return Cast<UWidgetBlueprint>(AssetToolsModule.Get().CreateAsset(AssetName, FolderPath, UWidgetBlueprint::StaticClass(), Factory));
+}
+
+UTexture2D* LoadOrCreateWindArrowTexture()
+{
+	constexpr int32 Width = 64;
+	constexpr int32 Height = 32;
+	constexpr int32 CenterY = Height / 2;
+
+	UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, WindArrowTextureObjectPath);
+	bool bCreatedTexture = false;
+	if (!Texture)
+	{
+		const FString LongPackageName = FString::Printf(TEXT("%s/%s"), MainGameHUDPath, WindArrowTextureName);
+		UPackage* Package = CreatePackage(*LongPackageName);
+		Texture = NewObject<UTexture2D>(Package, WindArrowTextureName, RF_Public | RF_Standalone | RF_Transactional);
+		bCreatedTexture = true;
+	}
+	if (!Texture)
+	{
+		return nullptr;
+	}
+
+	Texture->Modify();
+
+	TArray<uint8> Pixels;
+	Pixels.SetNumZeroed(Width * Height * 4);
+	auto SetPixel = [&Pixels, Width](int32 X, int32 Y, const FColor& Color)
+	{
+		const int32 Index = (Y * Width + X) * 4;
+		Pixels[Index] = Color.B;
+		Pixels[Index + 1] = Color.G;
+		Pixels[Index + 2] = Color.R;
+		Pixels[Index + 3] = Color.A;
+	};
+
+	const FColor ArrowColor(245, 250, 255, 210);
+	for (int32 Y = 0; Y < Height; ++Y)
+	{
+		for (int32 X = 0; X < Width; ++X)
+		{
+			const int32 DistanceFromCenter = FMath::Abs(Y - CenterY);
+			const bool bShaft = X >= 6 && X <= 38 && DistanceFromCenter <= 4;
+			const bool bHead = X >= 34 && X <= 58 && DistanceFromCenter <= FMath::Max(1, FMath::RoundToInt((58 - X) * 0.52f));
+			if (bShaft || bHead)
+			{
+				SetPixel(X, Y, ArrowColor);
+			}
+		}
+	}
+
+	Texture->Source.Init(Width, Height, 1, 1, TSF_BGRA8, Pixels.GetData());
+	Texture->SRGB = true;
+	Texture->CompressionSettings = TC_EditorIcon;
+	Texture->MipGenSettings = TMGS_NoMipmaps;
+	Texture->UpdateResource();
+	Texture->MarkPackageDirty();
+	if (bCreatedTexture)
+	{
+		FAssetRegistryModule::AssetCreated(Texture);
+	}
+	return Texture;
 }
 
 void ConfigureCanvasSlot(UCanvasPanelSlot* Slot, const FAnchors& Anchors, const FVector2D& Position, const FVector2D& Size, const FVector2D& Alignment)
@@ -92,12 +162,24 @@ void ConfigureText(UTextBlock* TextBlock, const FText& Text, int32 FontSize, con
 	TextBlock->SetFont(Font);
 }
 
-UTextBlock* AddText(UWidgetTree* WidgetTree, UCanvasPanel* Root, const FName& Name, const FText& Text, const FAnchors& Anchors, const FVector2D& Position, const FVector2D& Size, const FVector2D& Alignment, int32 FontSize, ETextJustify::Type Justification = ETextJustify::Left)
+UTextBlock* AddText(UWidgetTree* WidgetTree, UCanvasPanel* Root, const FName& Name, const FText& Text, const FAnchors& Anchors, const FVector2D& Position, const FVector2D& Size, const FVector2D& Alignment, int32 FontSize, ETextJustify::Type Justification = ETextJustify::Left, const FLinearColor& Color = FLinearColor::White)
 {
 	UTextBlock* TextBlock = WidgetTree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), Name);
-	ConfigureText(TextBlock, Text, FontSize, FLinearColor::White, Justification);
+	ConfigureText(TextBlock, Text, FontSize, Color, Justification);
 	ConfigureCanvasSlot(Root->AddChildToCanvas(TextBlock), Anchors, Position, Size, Alignment);
 	return TextBlock;
+}
+
+UImage* AddImage(UWidgetTree* WidgetTree, UCanvasPanel* Root, const FName& Name, UTexture2D* Texture, const FAnchors& Anchors, const FVector2D& Position, const FVector2D& Size, const FVector2D& Alignment)
+{
+	UImage* Image = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), Name);
+	if (Texture)
+	{
+		Image->SetBrushFromTexture(Texture, true);
+	}
+	Image->SetColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f, 0.9f));
+	ConfigureCanvasSlot(Root->AddChildToCanvas(Image), Anchors, Position, Size, Alignment);
+	return Image;
 }
 
 UProgressBar* AddProgressBar(UWidgetTree* WidgetTree, UCanvasPanel* Root, const FName& Name, const FAnchors& Anchors, const FVector2D& Position, const FVector2D& Size, const FLinearColor& FillColor)
@@ -114,6 +196,23 @@ UButton* AddButton(UWidgetTree* WidgetTree, UCanvasPanel* Root, const FName& Nam
 	UButton* Button = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), Name);
 	ConfigureCanvasSlot(Root->AddChildToCanvas(Button), Anchors, Position, Size, Alignment);
 	return Button;
+}
+
+void ResetWidgetVariableGuids(UWidgetBlueprint* WidgetBlueprint)
+{
+	if (!WidgetBlueprint || !WidgetBlueprint->WidgetTree)
+	{
+		return;
+	}
+
+	WidgetBlueprint->WidgetVariableNameToGuidMap.Empty();
+	WidgetBlueprint->WidgetTree->ForEachWidget([WidgetBlueprint](UWidget* Widget)
+	{
+		if (Widget)
+		{
+			WidgetBlueprint->WidgetVariableNameToGuidMap.Add(Widget->GetFName(), FGuid::NewGuid());
+		}
+	});
 }
 
 void AddWeaponSlot(UWidgetTree* WidgetTree, UCanvasPanel* Root, int32 SlotIndex, float X)
@@ -140,7 +239,7 @@ void AddItemSlot(UWidgetTree* WidgetTree, UCanvasPanel* Root, int32 SlotIndex, f
 	AddText(WidgetTree, Root, ChargesText, FText::GetEmpty(), BottomCenter, FVector2D(X + 26.0f, -286.0f), FVector2D(24.0f, 22.0f), FVector2D(0.5f, 0.5f), 12, ETextJustify::Center);
 }
 
-void ConfigureMainGameHUDTree(UWidgetBlueprint* WidgetBlueprint)
+void ConfigureMainGameHUDTree(UWidgetBlueprint* WidgetBlueprint, UTexture2D* WindArrowTexture)
 {
 	if (!WidgetBlueprint)
 	{
@@ -165,7 +264,8 @@ void ConfigureMainGameHUDTree(UWidgetBlueprint* WidgetBlueprint)
 	AddText(WidgetTree, Root, TEXT("ShotTimerText"), FText::FromString(TEXT("Player turn")), FAnchors(0.5f, 0.0f), FVector2D(0.0f, 18.0f), FVector2D(360.0f, 48.0f), FVector2D(0.5f, 0.0f), 30, ETextJustify::Center);
 	AddText(WidgetTree, Root, TEXT("StatusText"), FText::FromString(TEXT("Ready")), FAnchors(0.5f, 0.0f), FVector2D(0.0f, 66.0f), FVector2D(420.0f, 34.0f), FVector2D(0.5f, 0.0f), 18, ETextJustify::Center);
 
-	AddText(WidgetTree, Root, TEXT("WindText"), FText::FromString(TEXT("Wind 0")), FAnchors(0.0f, 1.0f), FVector2D(48.0f, -116.0f), FVector2D(260.0f, 46.0f), FVector2D(0.0f, 1.0f), 28);
+	AddImage(WidgetTree, Root, TEXT("WindArrowVisual"), WindArrowTexture, FAnchors(0.0f, 1.0f), FVector2D(36.0f, -124.0f), FVector2D(48.0f, 28.0f), FVector2D(0.0f, 1.0f));
+	AddText(WidgetTree, Root, TEXT("WindText"), FText::FromString(TEXT("Wind 0")), FAnchors(0.0f, 1.0f), FVector2D(96.0f, -116.0f), FVector2D(260.0f, 46.0f), FVector2D(0.0f, 1.0f), 28);
 	AddText(WidgetTree, Root, TEXT("PlayerNameText"), FText::FromString(TEXT("Player")), FAnchors(0.5f, 1.0f), FVector2D(-560.0f, -176.0f), FVector2D(160.0f, 30.0f), FVector2D(0.0f, 1.0f), 20);
 
 	AddText(WidgetTree, Root, TEXT("CurrentWeaponText"), FText::FromString(TEXT("Weapon")), FAnchors(0.5f, 1.0f), FVector2D(-120.0f, -332.0f), FVector2D(260.0f, 28.0f), FVector2D(0.5f, 1.0f), 18, ETextJustify::Center);
@@ -191,6 +291,68 @@ void ConfigureMainGameHUDTree(UWidgetBlueprint* WidgetBlueprint)
 	AddButton(WidgetTree, Root, TEXT("FireButton"), FAnchors(1.0f, 1.0f), FVector2D(-86.0f, -112.0f), FVector2D(240.0f, 88.0f), FVector2D(1.0f, 1.0f));
 	AddText(WidgetTree, Root, TEXT("FireButtonText"), FText::FromString(TEXT("FIRE")), FAnchors(1.0f, 1.0f), FVector2D(-206.0f, -156.0f), FVector2D(220.0f, 48.0f), FVector2D(0.5f, 0.5f), 30, ETextJustify::Center);
 
+	ResetWidgetVariableGuids(WidgetBlueprint);
+	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(WidgetBlueprint);
+	FKismetEditorUtilities::CompileBlueprint(WidgetBlueprint);
+	WidgetBlueprint->MarkPackageDirty();
+}
+
+void ConfigureBattleCharacterStatusTree(UWidgetBlueprint* WidgetBlueprint)
+{
+	if (!WidgetBlueprint)
+	{
+		return;
+	}
+
+	WidgetBlueprint->Modify();
+	WidgetBlueprint->ParentClass = UFRBattleCharacterStatusWidget::StaticClass();
+
+	UWidgetTree* WidgetTree = WidgetBlueprint->WidgetTree;
+	if (!WidgetTree)
+	{
+		WidgetTree = NewObject<UWidgetTree>(WidgetBlueprint, TEXT("WidgetTree"), RF_Transactional);
+		WidgetBlueprint->WidgetTree = WidgetTree;
+	}
+	WidgetTree->Modify();
+
+	UCanvasPanel* Root = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("RootCanvas"));
+	WidgetTree->RootWidget = Root;
+
+	AddText(WidgetTree, Root, TEXT("CharacterNameText"), FText::FromString(TEXT("Character")), FAnchors(0.0f, 0.0f), FVector2D(0.0f, 0.0f), FVector2D(220.0f, 18.0f), FVector2D::ZeroVector, 12, ETextJustify::Center);
+	AddProgressBar(WidgetTree, Root, TEXT("HealthBar"), FAnchors(0.0f, 0.0f), FVector2D(22.0f, 22.0f), FVector2D(176.0f, 14.0f), FLinearColor(0.9f, 0.1f, 0.08f));
+	AddText(WidgetTree, Root, TEXT("HealthText"), FText::FromString(TEXT("100 / 100")), FAnchors(0.0f, 0.0f), FVector2D(0.0f, 38.0f), FVector2D(220.0f, 18.0f), FVector2D::ZeroVector, 11, ETextJustify::Center);
+	AddText(WidgetTree, Root, TEXT("AimText"), FText::FromString(TEXT("Aim 45 deg")), FAnchors(0.0f, 0.0f), FVector2D(0.0f, 56.0f), FVector2D(220.0f, 18.0f), FVector2D::ZeroVector, 11, ETextJustify::Center, FLinearColor(0.95f, 0.88f, 0.25f));
+
+	ResetWidgetVariableGuids(WidgetBlueprint);
+	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(WidgetBlueprint);
+	FKismetEditorUtilities::CompileBlueprint(WidgetBlueprint);
+	WidgetBlueprint->MarkPackageDirty();
+}
+
+void ConfigureFloatingDamageTextTree(UWidgetBlueprint* WidgetBlueprint)
+{
+	if (!WidgetBlueprint)
+	{
+		return;
+	}
+
+	WidgetBlueprint->Modify();
+	WidgetBlueprint->ParentClass = UFRFloatingDamageTextWidget::StaticClass();
+
+	UWidgetTree* WidgetTree = WidgetBlueprint->WidgetTree;
+	if (!WidgetTree)
+	{
+		WidgetTree = NewObject<UWidgetTree>(WidgetBlueprint, TEXT("WidgetTree"), RF_Transactional);
+		WidgetBlueprint->WidgetTree = WidgetTree;
+	}
+	WidgetTree->Modify();
+
+	UCanvasPanel* Root = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("RootCanvas"));
+	WidgetTree->RootWidget = Root;
+
+	AddText(WidgetTree, Root, TEXT("DamageText"), FText::FromString(TEXT("-25")), FAnchors(0.0f, 0.0f), FVector2D(0.0f, 0.0f), FVector2D(160.0f, 52.0f), FVector2D::ZeroVector, 34, ETextJustify::Center, FLinearColor(1.0f, 0.18f, 0.05f));
+
+	ResetWidgetVariableGuids(WidgetBlueprint);
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(WidgetBlueprint);
 	FKismetEditorUtilities::CompileBlueprint(WidgetBlueprint);
 	WidgetBlueprint->MarkPackageDirty();
@@ -206,6 +368,8 @@ UFRGameModeDataAsset* ConfigureMainGameModeHUD()
 
 	MainGameMode->Modify();
 	MainGameMode->HUDWidgetClass = TSoftClassPtr<UUserWidget>(FSoftObjectPath(MainGameHUDClassPath));
+	MainGameMode->InputMode = EFRGameFlowInputMode::GameAndUI;
+	MainGameMode->bShowMouseCursor = true;
 	MainGameMode->MarkPackageDirty();
 	return MainGameMode;
 }
@@ -221,18 +385,37 @@ UFRGenerateMainGameHUDCommandlet::UFRGenerateMainGameHUDCommandlet()
 
 int32 UFRGenerateMainGameHUDCommandlet::Main(const FString& Params)
 {
-	UWidgetBlueprint* MainGameHUD = LoadOrCreateMainGameHUD();
+	UTexture2D* WindArrowTexture = LoadOrCreateWindArrowTexture();
+	UWidgetBlueprint* MainGameHUD = LoadOrCreateWidgetBlueprint(MainGameHUDPath, MainGameHUDName, UFRMainGameHUDWidget::StaticClass());
 	if (!MainGameHUD)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Could not create %s/%s."), MainGameHUDPath, MainGameHUDName);
 		return 1;
 	}
 
-	ConfigureMainGameHUDTree(MainGameHUD);
+	UWidgetBlueprint* BattleCharacterStatus = LoadOrCreateWidgetBlueprint(CharacterWidgetPath, BattleCharacterStatusName, UFRBattleCharacterStatusWidget::StaticClass());
+	UWidgetBlueprint* FloatingDamageText = LoadOrCreateWidgetBlueprint(CharacterWidgetPath, FloatingDamageTextName, UFRFloatingDamageTextWidget::StaticClass());
+	if (!BattleCharacterStatus || !FloatingDamageText || !WindArrowTexture)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Could not create combat feedback UI assets."));
+		return 1;
+	}
+
+	ConfigureMainGameHUDTree(MainGameHUD, WindArrowTexture);
+	ConfigureBattleCharacterStatusTree(BattleCharacterStatus);
+	ConfigureFloatingDamageTextTree(FloatingDamageText);
 	UFRGameModeDataAsset* MainGameMode = ConfigureMainGameModeHUD();
 
+	const bool bSavedWindArrow = SaveAsset(WindArrowTexture);
 	const bool bSavedHUD = SaveAsset(MainGameHUD);
+	const bool bSavedStatus = SaveAsset(BattleCharacterStatus);
+	const bool bSavedDamageText = SaveAsset(FloatingDamageText);
 	const bool bSavedMode = SaveAsset(MainGameMode);
-	UE_LOG(LogTemp, Display, TEXT("Generated WBP_MainGameHUD. SavedHUD=%s SavedMode=%s"), bSavedHUD ? TEXT("true") : TEXT("false"), bSavedMode ? TEXT("true") : TEXT("false"));
-	return bSavedHUD && bSavedMode ? 0 : 1;
+	UE_LOG(LogTemp, Display, TEXT("Generated MainGame combat UI. SavedWindArrow=%s SavedHUD=%s SavedStatus=%s SavedDamageText=%s SavedMode=%s"),
+		bSavedWindArrow ? TEXT("true") : TEXT("false"),
+		bSavedHUD ? TEXT("true") : TEXT("false"),
+		bSavedStatus ? TEXT("true") : TEXT("false"),
+		bSavedDamageText ? TEXT("true") : TEXT("false"),
+		bSavedMode ? TEXT("true") : TEXT("false"));
+	return bSavedWindArrow && bSavedHUD && bSavedStatus && bSavedDamageText && bSavedMode ? 0 : 1;
 }

@@ -4,11 +4,12 @@ setlocal EnableExtensions
 set "SCRIPT_DIR=%~dp0"
 for %%I in ("%SCRIPT_DIR%.") do set "PROJECT_DIR=%%~fI"
 set "UPROJECT=%PROJECT_DIR%\FortRogue.uproject"
-set "UE58_BUILD_BAT=D:\Program Files\Epic Games\UE_5.8\Engine\Build\BatchFiles\Build.bat"
+set "UE58_BUILD_BAT=F:\UE_5.8\Engine\Build\BatchFiles\Build.bat"
 set "PROJECT_TARGET=FortRogueEditor"
 set "PROJECT_PLATFORM=Win64"
 set "PROJECT_CONFIG=DebugGame"
 
+if not "%FR_UE58_BUILD_BAT%"=="" set "UE58_BUILD_BAT=%FR_UE58_BUILD_BAT%"
 if not "%FR_UE_TARGET%"=="" set "PROJECT_TARGET=%FR_UE_TARGET%"
 if not "%FR_UE_PLATFORM%"=="" set "PROJECT_PLATFORM=%FR_UE_PLATFORM%"
 if not "%FR_UE_CONFIG%"=="" set "PROJECT_CONFIG=%FR_UE_CONFIG%"

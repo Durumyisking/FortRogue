@@ -15,10 +15,13 @@
 #include "Run/FRDefaultLoadoutDefinition.h"
 #include "Weapons/FRWeaponDefinition.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Engine/StaticMesh.h"
 #include "EngineUtils.h"
 #include "PaperFlipbook.h"
 #include "PaperFlipbookComponent.h"
+#include "UI/FRBattleCharacterStatusWidget.h"
+#include "UI/FRFloatingDamageTextActor.h"
 #include "UObject/ConstructorHelpers.h"
 
 namespace
@@ -83,6 +86,16 @@ AFRBattleCharacter::AFRBattleCharacter()
 	BodySprite->SetVisibility(false);
 	UpdateCharacterRotation(0.0f);
 
+	StatusWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("StatusWidget"));
+	StatusWidgetComponent->SetupAttachment(Root);
+	StatusWidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	StatusWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
+	StatusWidgetComponent->SetDrawAtDesiredSize(false);
+	StatusWidgetComponent->SetDrawSize(FVector2D(220.0f, 76.0f));
+	StatusWidgetComponent->SetPivot(FVector2D(0.5f, 1.0f));
+	StatusWidgetComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 118.0f));
+
+	FloatingDamageTextActorClass = AFRFloatingDamageTextActor::StaticClass();
 
 	AbilitySystemComponent = CreateDefaultSubobject<UFRAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	CombatSet = CreateDefaultSubobject<UFRCombatSet>(TEXT("CombatSet"));
@@ -101,6 +114,7 @@ void AFRBattleCharacter::BeginPlay()
 	GrantStartupAbilitySets();
 	UpdateCharacterRotation(GetActorPitchDegrees());
 	SnapToTerrain();
+	InitializeStatusWidget();
 }
 
 
@@ -559,7 +573,14 @@ void AFRBattleCharacter::FireAtTarget(AFRBattleCharacter* Target, const FFRStage
 
 void AFRBattleCharacter::ApplyDamage(float DamageAmount)
 {
+	const float HealthBeforeDamage = GetHealth();
 	CombatSet->ApplyDamage(DamageAmount);
+	const float AppliedDamage = FMath::Max(0.0f, HealthBeforeDamage - GetHealth());
+	if (AppliedDamage > KINDA_SMALL_NUMBER)
+	{
+		SpawnFloatingDamageText(AppliedDamage);
+	}
+	RefreshStatusWidget();
 }
 
 void AFRBattleCharacter::ReevaluateTerrainSupport()
@@ -1136,7 +1157,7 @@ bool AFRBattleCharacter::TryApplyCombatAttributeDeltaByTag(FGameplayTag Attribut
 		}
 		else
 		{
-			CombatSet->ApplyDamage(-DeltaValue);
+			ApplyDamage(-DeltaValue);
 		}
 		return true;
 	}
@@ -1658,6 +1679,61 @@ void AFRBattleCharacter::UpdateBodySpriteLocalTransform()
 	{
 		BodySprite->SetRelativeLocation(FVector(0.0f, 0.0f, -FootOffsetZ));
 		BodySprite->SetRelativeRotation(FRotator::ZeroRotator);
+	}
+}
+
+void AFRBattleCharacter::InitializeStatusWidget()
+{
+	if (!StatusWidgetComponent)
+	{
+		return;
+	}
+
+	if (StatusWidgetClass)
+	{
+		StatusWidgetComponent->SetWidgetClass(StatusWidgetClass);
+	}
+	else if (UClass* LoadedStatusWidgetClass = LoadClass<UFRBattleCharacterStatusWidget>(nullptr, TEXT("/Game/FortRogue/Widget/Character/WBP_BattleCharacterStatus.WBP_BattleCharacterStatus_C")))
+	{
+		StatusWidgetClass = LoadedStatusWidgetClass;
+		StatusWidgetComponent->SetWidgetClass(StatusWidgetClass);
+	}
+	StatusWidgetComponent->InitWidget();
+	RefreshStatusWidget();
+}
+
+void AFRBattleCharacter::RefreshStatusWidget()
+{
+	if (UFRBattleCharacterStatusWidget* StatusWidget = StatusWidgetComponent ? Cast<UFRBattleCharacterStatusWidget>(StatusWidgetComponent->GetUserWidgetObject()) : nullptr)
+	{
+		StatusWidget->SetBattleCharacter(this);
+	}
+}
+
+void AFRBattleCharacter::SpawnFloatingDamageText(float DamageAmount)
+{
+	if (!GetWorld())
+	{
+		return;
+	}
+
+	TSubclassOf<AFRFloatingDamageTextActor> SpawnClass = FloatingDamageTextActorClass;
+	if (!SpawnClass)
+	{
+		SpawnClass = AFRFloatingDamageTextActor::StaticClass();
+	}
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.Owner = this;
+	SpawnParams.Instigator = this;
+	AFRFloatingDamageTextActor* DamageTextActor = GetWorld()->SpawnActor<AFRFloatingDamageTextActor>(
+		SpawnClass,
+		GetActorLocation() + FVector(0.0f, 0.0f, 128.0f),
+		FRotator::ZeroRotator,
+		SpawnParams);
+	if (DamageTextActor)
+	{
+		DamageTextActor->InitializeDamageText(DamageAmount);
 	}
 }
 

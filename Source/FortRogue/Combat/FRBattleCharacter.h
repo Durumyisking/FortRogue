@@ -16,11 +16,14 @@ class UFRAbilitySet;
 class UFRAbilitySystemComponent;
 class UFRCombatSet;
 class UFRDefaultLoadoutDefinition;
+class UFRBattleCharacterStatusWidget;
+class UWidgetComponent;
 class UPaperFlipbookComponent;
 class UStaticMeshComponent;
 class UFRItemDefinition;
 class UFRPerkDefinition;
 class AFRDestructibleTerrain;
+class AFRFloatingDamageTextActor;
 
 USTRUCT()
 struct FFRGrantedAbilitySetEntry
@@ -373,6 +376,9 @@ private:
 	void SetFacingFromAxis(float Axis);
 	void UpdateCharacterRotation(float PitchDegrees);
 	void UpdateBodySpriteLocalTransform();
+	void InitializeStatusWidget();
+	void RefreshStatusWidget();
+	void SpawnFloatingDamageText(float DamageAmount);
 	float GetActorPitchDegrees() const;
 	FVector GetProjectileLaunchDirection(float SpreadDegrees) const;
 	FVector GetProjectileSpawnLocation(const FVector& LaunchDirection) const;
@@ -391,6 +397,14 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue")
 	TObjectPtr<UPaperFlipbookComponent> BodySprite;
 
+	UPROPERTY(VisibleAnywhere, Category = "FortRogue|UI")
+	TObjectPtr<UWidgetComponent> StatusWidgetComponent;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI")
+	TSubclassOf<UFRBattleCharacterStatusWidget> StatusWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI")
+	TSubclassOf<AFRFloatingDamageTextActor> FloatingDamageTextActorClass;
 
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue|Abilities")
 	TObjectPtr<UFRAbilitySystemComponent> AbilitySystemComponent;
