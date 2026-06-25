@@ -2,34 +2,14 @@
 
 #include "Game/FRGameInstance.h"
 
-#include "Engine/World.h"
+#include "Game/FRGameFlowSubsystem.h"
 
-void UFRGameInstance::Init()
+void UFRGameInstance::OnStart()
 {
-	Super::Init();
-	FWorldDelegates::OnWorldBeginTearDown.AddUObject(this, &UFRGameInstance::HandleWorldBeginTearDown);
-}
+	Super::OnStart();
 
-void UFRGameInstance::Shutdown()
-{
-	FWorldDelegates::OnWorldBeginTearDown.RemoveAll(this);
-	Super::Shutdown();
-}
-
-bool UFRGameInstance::ShouldDeferBattleStartForStartupMenu() const
-{
-	return bUseStartupMainMenu && !bStartupMainMenuCompleted;
-}
-
-void UFRGameInstance::NotifyStartupMainMenuDisplayed()
-{
-	bStartupMainMenuDisplayed = true;
-}
-
-void UFRGameInstance::HandleWorldBeginTearDown(UWorld* World)
-{
-	if (bStartupMainMenuDisplayed && !bStartupMainMenuCompleted)
+	if (UFRGameFlowSubsystem* GameFlow = GetSubsystem<UFRGameFlowSubsystem>())
 	{
-		bStartupMainMenuCompleted = true;
+		GameFlow->StartStartupMode();
 	}
 }

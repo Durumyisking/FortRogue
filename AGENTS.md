@@ -39,6 +39,8 @@ When a request involves modifying Unreal Editor-owned assets or editor state, us
 - Use `EditorToolset` for editor state, assets, selection, PIE, and screenshots. Use `UMGToolSet` for WBP/UMG structure and widget changes. Use `MVVMToolset` for MVVM/view model related editor work.
 - Do not claim editor-side work is done from source search, asset path checks, or a successful build alone.
 - Use MCP ToolSet to inspect the relevant editor state, perform the requested editor changes when possible, and verify the result.
+- Close the editor, run `.\Build-UE58.bat`, and reopen the project only when reflected C++ changes need to be loaded by the editor: new C++ files/classes, UCLASS/USTRUCT/UENUM/UPROPERTY/UFUNCTION header changes, constructor/CDO default changes, `Build.cs` module changes, or clear stale-class symptoms such as new types/properties missing in the editor or asset saves failing against old class data. This build script targets the project DebugGame editor; when validating newly reflected types after that build, reopen with `UnrealEditor-Win64-DebugGame.exe`.
+- For config-only startup settings such as `DefaultEngine.ini` `GameViewportClientClassName`, do not rebuild just for the config change. Restart the editor only if the changed setting is read at engine/editor startup and cannot be applied live.
 - Only say MCP ToolSet is unavailable after checking the project plugins, the local MCP endpoint, and the running editor state. If it is still unavailable, explain exactly which check failed before using a fallback such as a commandlet or source-only change.
 
 ## Work Checklist

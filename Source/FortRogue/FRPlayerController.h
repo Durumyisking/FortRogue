@@ -10,7 +10,6 @@
 class UFRAbilitySystemComponent;
 class UInputAction;
 class UInputMappingContext;
-class UUserWidget;
 struct FGameplayTag;
 struct FInputActionValue;
 
@@ -26,13 +25,16 @@ public:
 	virtual void SetupInputComponent() override;
 	virtual void Tick(float DeltaSeconds) override;
 
+	UFUNCTION(Exec)
+	void StartMainGame();
+
 private:
 	void TickBattleInput(float DeltaSeconds);
 	void TickKeyboardFireInput();
 	void TickKeyboardWeaponInput();
 	void TickKeyboardItemInput();
 	void TickRewardInput();
-	void ShowStartupMainMenuIfNeeded();
+	void ApplyCurrentGameFlowMode();
 	UFRAbilitySystemComponent* GetPlayerAbilitySystemComponent() const;
 	void ProcessPlayerAbilityInput(float DeltaSeconds);
 	void SetPlayerAbilityInputTag(const FGameplayTag& InputTag, bool bPressed);
@@ -117,11 +119,6 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Input", meta = (ToolTip = "보상 화면에서 5번 선택지를 고르는 Input Action입니다."))
 	TObjectPtr<UInputAction> Reward5Action;
 
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|MainMenu", meta = (ToolTip = "게임 시작 전에 표시할 메인메뉴 UMG 위젯 클래스입니다. 비워두면 기본 WBP_MainMenuHUD를 로드합니다."))
-	TSubclassOf<UUserWidget> StartupMainMenuWidgetClass;
-
-	UPROPERTY()
-	TObjectPtr<UUserWidget> StartupMainMenuWidget;
 
 	float EnhancedMoveAxis = 0.0f;
 	float EnhancedAimAxis = 0.0f;

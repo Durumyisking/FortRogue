@@ -16,6 +16,7 @@ class ACameraActor;
 class UFRCharacterDefinition;
 class UFRDefaultLoadoutDefinition;
 class UFRStageRunDefinition;
+class UFRGameModeDataAsset;
 class UFRTerrainMapDefinition;
 struct FFRStageDifficultyData;
 
@@ -36,6 +37,8 @@ public:
 	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
+
+	void EnterGameFlowMode(const UFRGameModeDataAsset* ModeData);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Battle")
 	void NotifyProjectileSpawned(AFRProjectile* Projectile, bool bIncreasePendingProjectileCount = true);
@@ -106,6 +109,8 @@ public:
 	int32 GetMaxStages() const;
 
 private:
+	void StartBattleRun();
+	void ApplyGameModeData(const UFRGameModeDataAsset* ModeData);
 	void SpawnMVPBattle();
 	void ClearBattleStage(bool bKeepPlayerCharacter);
 	void SelectNextEnemyDefinition();
@@ -224,4 +229,5 @@ private:
 	FVector LastImpactCameraLocation = FVector::ZeroVector;
 	bool bHoldingImpactCamera = false;
 	FTimerHandle ShotResolutionTimerHandle;
+	bool bBattleStarted = false;
 };

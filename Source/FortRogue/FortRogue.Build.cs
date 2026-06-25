@@ -16,6 +16,7 @@ public class FortRogue : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
+			"DeveloperSettings",
 			"InputCore",
 			"EnhancedInput",
 			"AssetRegistry",
@@ -23,6 +24,7 @@ public class FortRogue : ModuleRules
 			"GameplayTags",
 			"GameplayTasks",
 			"UMG",
+			"CommonUI",
 			"Paper2D"
 		});
 

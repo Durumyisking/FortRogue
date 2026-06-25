@@ -9,7 +9,8 @@
 #include "Combat/FRTerrainMapDefinition.h"
 #include "FortRogue.h"
 #include "FRGameplayTags.h"
-#include "Game/FRGameInstance.h"
+#include "Game/FRGameFlowSubsystem.h"
+#include "Game/FRGameModeDataAsset.h"
 #include "FRPlayerController.h"
 #include "Items/FRItemDefinition.h"
 #include "Perks/FRPerkDefinition.h"
@@ -61,15 +62,53 @@ void AFRGameMode::BeginPlay()
 	{
 		TurnState->ResetTurnState();
 	}
-	if (const UFRGameInstance* FortGameInstance = Cast<UFRGameInstance>(GetGameInstance()))
+
+	if (UGameInstance* GameInstance = GetGameInstance())
 	{
-		if (FortGameInstance->ShouldDeferBattleStartForStartupMenu())
+		if (UFRGameFlowSubsystem* GameFlow = GameInstance->GetSubsystem<UFRGameFlowSubsystem>())
 		{
-			SetStatus(TEXT("Main menu"));
-			return;
+			GameFlow->EnsureStartupMode();
+			if (const UFRGameModeDataAsset* ModeData = GameFlow->GetCurrentModeData())
+			{
+				EnterGameFlowMode(ModeData);
+				return;
+			}
 		}
 	}
 
+	StartBattleRun();
+}
+
+void AFRGameMode::EnterGameFlowMode(const UFRGameModeDataAsset* ModeData)
+{
+	ApplyGameModeData(ModeData);
+
+	if (!ModeData || ModeData->bStartBattleOnEnter)
+	{
+		StartBattleRun();
+		return;
+	}
+
+	if (bBattleStarted)
+	{
+		ClearBattleStage(false);
+		bBattleStarted = false;
+	}
+
+	const FString Status = ModeData->DisplayName.IsEmpty()
+		? FString(TEXT("Main menu"))
+		: ModeData->DisplayName.ToString();
+	SetStatus(Status);
+}
+
+void AFRGameMode::StartBattleRun()
+{
+	if (bBattleStarted)
+	{
+		return;
+	}
+
+	bBattleStarted = true;
 	CurrentStage = 1;
 	if (StageRunDefinition)
 	{
@@ -82,12 +121,64 @@ void AFRGameMode::BeginPlay()
 	StartPlayerTurn();
 }
 
+void AFRGameMode::ApplyGameModeData(const UFRGameModeDataAsset* ModeData)
+{
+	if (!ModeData || !ModeData->bStartBattleOnEnter)
+	{
+		return;
+	}
+
+	if (TSubclassOf<AFRBattleCharacter> LoadedPlayerClass = ModeData->LoadPlayerCharacterClass())
+	{
+		PlayerCharacterClass = LoadedPlayerClass;
+	}
+	if (TSubclassOf<AFRBattleCharacter> LoadedEnemyClass = ModeData->LoadEnemyCharacterClass())
+	{
+		EnemyCharacterClass = LoadedEnemyClass;
+	}
+	if (TSubclassOf<AFRDestructibleTerrain> LoadedTerrainClass = ModeData->LoadTerrainClass())
+	{
+		TerrainClass = LoadedTerrainClass;
+	}
+	if (TSubclassOf<ACameraActor> LoadedCameraClass = ModeData->LoadCameraClass())
+	{
+		CameraClass = LoadedCameraClass;
+	}
+	if (ModeData->PlayerDefinition)
+	{
+		PlayerDefinition = ModeData->PlayerDefinition;
+	}
+	if (ModeData->StageRunDefinition)
+	{
+		StageRunDefinition = ModeData->StageRunDefinition;
+	}
+	if (ModeData->TerrainMapDefinition)
+	{
+		TerrainMapDefinition = ModeData->TerrainMapDefinition;
+	}
+
+	TerrainLocation = ModeData->TerrainLocation;
+	PlayerSpawnOffset = ModeData->PlayerSpawnOffset;
+	EnemySpawnOffset = ModeData->EnemySpawnOffset;
+	CameraLocation = ModeData->CameraLocation;
+	CameraOrthoWidth = ModeData->CameraOrthoWidth;
+	CameraFollowInterpSpeed = ModeData->CameraFollowInterpSpeed;
+	CameraProjectileZOffset = ModeData->CameraProjectileZOffset;
+	CameraTurnZOffset = ModeData->CameraTurnZOffset;
+	ShotImpactCameraHoldSeconds = ModeData->ShotImpactCameraHoldSeconds;
+	MinWind = ModeData->MinWind;
+	MaxWind = ModeData->MaxWind;
+}
+
 void AFRGameMode::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
 	UpdateBattleCamera(DeltaSeconds);
-	CheckTurnDefeatState();
+	if (bBattleStarted)
+	{
+		CheckTurnDefeatState();
+	}
 }
 
 void AFRGameMode::NotifyProjectileSpawned(AFRProjectile* Projectile, bool bIncreasePendingProjectileCount)

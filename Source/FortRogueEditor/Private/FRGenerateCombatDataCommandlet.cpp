@@ -3,10 +3,16 @@
 #include "FRGenerateCombatDataCommandlet.h"
 
 #include "Characters/FRCharacterDefinition.h"
+#include "Combat/FRBattleCharacter.h"
 #include "Combat/FRTerrainMapDefinition.h"
+#include "Combat/FRDestructibleTerrain.h"
 #include "FRGameplayTags.h"
+#include "Game/FRGameModeDataAsset.h"
+#include "Blueprint/UserWidget.h"
 #include "HAL/FileManager.h"
+#include "Misc/CommandLine.h"
 #include "Misc/PackageName.h"
+#include "Misc/Parse.h"
 #include "Misc/Paths.h"
 #include "PaperFlipbook.h"
 #include "ProjectileEffects/FRProjectileEffect.h"
@@ -16,14 +22,17 @@
 #include "UObject/SavePackage.h"
 #include "Weapons/FRWeaponDefinition.h"
 #include "AssetRegistry/AssetRegistryModule.h"
+#include "Camera/CameraActor.h"
+#include "Engine/World.h"
 
 namespace
 {
 constexpr const TCHAR* WeaponPath = TEXT("/Game/FortRogue/Weapon");
-constexpr const TCHAR* CharacterPath = TEXT("/Game/FortRogue/Character");
+constexpr const TCHAR* CharacterPath = TEXT("/Game/FortRogue/DataAsset/Character");
 constexpr const TCHAR* LoadoutPath = TEXT("/Game/FortRogue/Loadout");
 constexpr const TCHAR* MapPath = TEXT("/Game/FortRogue/Map");
 constexpr const TCHAR* RunPath = TEXT("/Game/FortRogue/Run");
+constexpr const TCHAR* ModePath = TEXT("/Game/FortRogue/DataAsset/Global");
 
 template <typename AssetType>
 AssetType* LoadOrCreateDataAsset(const TCHAR* PackagePath, const TCHAR* AssetName)
@@ -156,6 +165,65 @@ FFRRewardChoice MakeWeaponReward(UFRWeaponDefinition* WeaponDefinition)
 	}
 	return Reward;
 }
+TArray<UObject*> ConfigureGameFlowModeDataAssets(UFRCharacterDefinition* Cannon, UFRStageRunDefinition* DefaultRun, UFRTerrainMapDefinition* TestMap)
+{
+	UFRGameModeDataAsset* MainMenuMode = LoadOrCreateDataAsset<UFRGameModeDataAsset>(ModePath, TEXT("DA_MainMenuMode"));
+	if (MainMenuMode)
+	{
+		MainMenuMode->Modify();
+		MainMenuMode->ModeName = TEXT("MainMenu");
+		MainMenuMode->DisplayName = FText::FromString(TEXT("Main Menu"));
+		MainMenuMode->Level = TSoftObjectPtr<UWorld>(FSoftObjectPath(TEXT("/Game/FortRogue/Level/GameLevel.GameLevel")));
+		MainMenuMode->HUDWidgetClass = TSoftClassPtr<UUserWidget>(FSoftObjectPath(TEXT("/Game/FortRogue/Widget/MainMenu/WBP_MainMenuHUD.WBP_MainMenuHUD_C")));
+		MainMenuMode->InputMode = EFRGameFlowInputMode::UIOnly;
+		MainMenuMode->bShowMouseCursor = true;
+		MainMenuMode->StartMainGameButtonName = TEXT("GameStartButton");
+		MainMenuMode->EntryPawnClass = nullptr;
+		MainMenuMode->bStartBattleOnEnter = false;
+		MainMenuMode->MarkPackageDirty();
+	}
+
+	UFRGameModeDataAsset* MainGameMode = LoadOrCreateDataAsset<UFRGameModeDataAsset>(ModePath, TEXT("DA_MainGameMode"));
+	if (MainGameMode)
+	{
+		MainGameMode->Modify();
+		MainGameMode->ModeName = TEXT("MainGame");
+		MainGameMode->DisplayName = FText::FromString(TEXT("Main Game"));
+		MainGameMode->Level = TSoftObjectPtr<UWorld>(FSoftObjectPath(TEXT("/Game/FortRogue/Level/GameLevel.GameLevel")));
+		MainGameMode->HUDWidgetClass = nullptr;
+		MainGameMode->InputMode = EFRGameFlowInputMode::GameOnly;
+		MainGameMode->bShowMouseCursor = false;
+		MainGameMode->StartMainGameButtonName = NAME_None;
+		MainGameMode->EntryPawnClass = AFRBattleCharacter::StaticClass();
+		MainGameMode->PlayerCharacterClass = AFRBattleCharacter::StaticClass();
+		MainGameMode->EnemyCharacterClass = AFRBattleCharacter::StaticClass();
+		MainGameMode->TerrainClass = AFRDestructibleTerrain::StaticClass();
+		MainGameMode->CameraClass = ACameraActor::StaticClass();
+		MainGameMode->PlayerDefinition = Cannon;
+		MainGameMode->StageRunDefinition = DefaultRun;
+		MainGameMode->TerrainMapDefinition = TestMap;
+		MainGameMode->bStartBattleOnEnter = true;
+		MainGameMode->MarkPackageDirty();
+	}
+
+	return { MainMenuMode, MainGameMode };
+}
+
+int32 GenerateGameFlowModeDataAssetsOnly()
+{
+	UFRCharacterDefinition* Cannon = LoadOrCreateDataAsset<UFRCharacterDefinition>(CharacterPath, TEXT("CD_Cannon"));
+	UFRTerrainMapDefinition* TestMap = LoadOrCreateDataAsset<UFRTerrainMapDefinition>(MapPath, TEXT("TestMapDefinition"));
+	UFRStageRunDefinition* DefaultRun = LoadOrCreateDataAsset<UFRStageRunDefinition>(RunPath, TEXT("DA_DefaultStageRun"));
+
+	bool bSavedAll = true;
+	for (UObject* Asset : ConfigureGameFlowModeDataAssets(Cannon, DefaultRun, TestMap))
+	{
+		bSavedAll &= SaveDataAsset(Asset);
+	}
+
+	UE_LOG(LogTemp, Display, TEXT("Generated FR game flow mode data assets. SavedAll=%s"), bSavedAll ? TEXT("true") : TEXT("false"));
+	return bSavedAll ? 0 : 1;
+}
 }
 
 UFRGenerateCombatDataCommandlet::UFRGenerateCombatDataCommandlet()
@@ -168,6 +236,10 @@ UFRGenerateCombatDataCommandlet::UFRGenerateCombatDataCommandlet()
 
 int32 UFRGenerateCombatDataCommandlet::Main(const FString& Params)
 {
+	if (Params.Contains(TEXT("GameFlowOnly"), ESearchCase::IgnoreCase) || FParse::Param(FCommandLine::Get(), TEXT("GameFlowOnly")))
+	{
+		return GenerateGameFlowModeDataAssetsOnly();
+	}
 	UFRWeaponDefinition* BasicShell = LoadOrCreateDataAsset<UFRWeaponDefinition>(WeaponPath, TEXT("WP_BasicShell"));
 	UFRWeaponDefinition* CannonSpecial = LoadOrCreateDataAsset<UFRWeaponDefinition>(WeaponPath, TEXT("WP_CannonSpecial"));
 	UFRWeaponDefinition* BanditSpecial = LoadOrCreateDataAsset<UFRWeaponDefinition>(WeaponPath, TEXT("WP_BanditSpecial"));
@@ -243,11 +315,13 @@ int32 UFRGenerateCombatDataCommandlet::Main(const FString& Params)
 		DefaultRun->MarkPackageDirty();
 	}
 
+	TArray<UObject*> ModeAssets = ConfigureGameFlowModeDataAssets(Cannon, DefaultRun, TestMap);
 	TArray<UObject*> AssetsToSave = {
 		BasicShell, CannonSpecial, BanditSpecial, MinerSpecial, EngineerSpecial,
 		Cannon, Bandit, Miner, Engineer, EnemyGrunt, EnemyMarauder,
 		DefaultLoadout, TestMap, DefaultRun
 	};
+	AssetsToSave.Append(ModeAssets);
 
 	bool bSavedAll = true;
 	for (UObject* Asset : AssetsToSave)
