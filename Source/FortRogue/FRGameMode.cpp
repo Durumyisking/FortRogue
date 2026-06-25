@@ -9,6 +9,7 @@
 #include "Combat/FRTerrainMapDefinition.h"
 #include "FortRogue.h"
 #include "FRGameplayTags.h"
+#include "Game/FRGameInstance.h"
 #include "FRPlayerController.h"
 #include "Items/FRItemDefinition.h"
 #include "Perks/FRPerkDefinition.h"
@@ -34,25 +35,40 @@ AFRGameMode::AFRGameMode()
 	PrimaryActorTick.bCanEverTick = true;
 	PlayerControllerClass = AFRPlayerController::StaticClass();
 	DefaultPawnClass = nullptr;
-	StatusText = FText::FromString(TEXT("Ready"));
 	PlayerCharacterClass = AFRBattleCharacter::StaticClass();
 	EnemyCharacterClass = AFRBattleCharacter::StaticClass();
 	TerrainClass = AFRDestructibleTerrain::StaticClass();
 	CameraClass = ACameraActor::StaticClass();
+	GameStateClass = AFRTurnBasedGameState::StaticClass();
 }
 
 void AFRGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
 {
 	PlayerControllerClass = AFRPlayerController::StaticClass();
 	DefaultPawnClass = nullptr;
+	GameStateClass = AFRTurnBasedGameState::StaticClass();
 	Super::InitGame(MapName, Options, ErrorMessage);
 	PlayerControllerClass = AFRPlayerController::StaticClass();
 	DefaultPawnClass = nullptr;
+	GameStateClass = AFRTurnBasedGameState::StaticClass();
 }
 
 void AFRGameMode::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (AFRTurnBasedGameState* TurnState = GetTurnBasedGameState())
+	{
+		TurnState->ResetTurnState();
+	}
+	if (const UFRGameInstance* FortGameInstance = Cast<UFRGameInstance>(GetGameInstance()))
+	{
+		if (FortGameInstance->ShouldDeferBattleStartForStartupMenu())
+		{
+			SetStatus(TEXT("Main menu"));
+			return;
+		}
+	}
 
 	CurrentStage = 1;
 	if (StageRunDefinition)
@@ -79,9 +95,9 @@ void AFRGameMode::NotifyProjectileSpawned(AFRProjectile* Projectile, bool bIncre
 	if (Projectile)
 	{
 		ActiveProjectiles.Add(Projectile);
-		if (bIncreasePendingProjectileCount && BattleState == EFRBattleState::ResolvingShot)
+		if (AFRTurnBasedGameState* TurnState = GetTurnBasedGameState())
 		{
-			++PendingProjectiles;
+			TurnState->RegisterProjectileSpawned(bIncreasePendingProjectileCount);
 		}
 	}
 }
@@ -93,22 +109,29 @@ void AFRGameMode::NotifyShotFired(AFRBattleCharacter* Shooter, int32 ProjectileC
 		return;
 	}
 
-	PendingProjectiles = ProjectileCount;
-	LastShooter = Shooter;
-	BattleState = EFRBattleState::ResolvingShot;
-	Shooter->EndTurn();
-	SetStatus(Shooter->IsEnemy() ? TEXT("Enemy shell incoming") : TEXT("Shell fired"));
+	if (AFRTurnBasedGameState* TurnState = GetTurnBasedGameState())
+	{
+		TurnState->EnterShotResolution(
+			Shooter,
+			ProjectileCount,
+			FText::FromString(Shooter->IsEnemy() ? TEXT("Enemy shell incoming") : TEXT("Shell fired")));
+	}
 }
 
 void AFRGameMode::NotifyProjectileSpawnFailed(int32 ProjectileCount)
 {
-	if (ProjectileCount <= 0 || BattleState != EFRBattleState::ResolvingShot)
+	if (ProjectileCount <= 0)
 	{
 		return;
 	}
 
-	PendingProjectiles = FMath::Max(0, PendingProjectiles - ProjectileCount);
-	if (PendingProjectiles <= 0)
+	AFRTurnBasedGameState* TurnState = GetTurnBasedGameState();
+	if (!TurnState || TurnState->GetBattleState() != EFRBattleState::ResolvingShot)
+	{
+		return;
+	}
+
+	if (TurnState->RegisterProjectileSpawnFailed(ProjectileCount) <= 0)
 	{
 		FinishShotResolution();
 	}
@@ -125,13 +148,13 @@ void AFRGameMode::NotifyProjectileResolved(AFRProjectile* Projectile)
 		});
 	}
 
-	if (BattleState != EFRBattleState::ResolvingShot)
+	AFRTurnBasedGameState* TurnState = GetTurnBasedGameState();
+	if (!TurnState || TurnState->GetBattleState() != EFRBattleState::ResolvingShot)
 	{
 		return;
 	}
 
-	PendingProjectiles = FMath::Max(0, PendingProjectiles - 1);
-	if (PendingProjectiles == 0)
+	if (TurnState->RegisterProjectileResolved() == 0)
 	{
 		bHoldingImpactCamera = true;
 		GetWorldTimerManager().SetTimer(ShotResolutionTimerHandle, this, &AFRGameMode::FinishShotResolution, ShotImpactCameraHoldSeconds, false);
@@ -159,7 +182,7 @@ void AFRGameMode::ApplyRewardChoice(int32 ChoiceIndex)
 
 bool AFRGameMode::CanApplyRewardChoice(int32 ChoiceIndex) const
 {
-	return BattleState == EFRBattleState::Reward
+	return GetBattleState() == EFRBattleState::Reward
 		&& PlayerCharacter
 		&& RewardChoices.IsValidIndex(ChoiceIndex)
 		&& RewardChoices[ChoiceIndex].MeetsRewardTagConditions(GetChosenRewardTags());
@@ -167,19 +190,25 @@ bool AFRGameMode::CanApplyRewardChoice(int32 ChoiceIndex) const
 
 float AFRGameMode::GetWind() const
 {
-	return Wind;
+	return GetTurnBasedGameState() ? GetTurnBasedGameState()->GetWind() : 0.0f;
 }
 
 FText AFRGameMode::GetWindSummary() const
 {
-	return FText::FromString(FMath::IsNearlyZero(Wind)
+	const float CurrentWind = GetWind();
+	return FText::FromString(FMath::IsNearlyZero(CurrentWind)
 		? FString(TEXT("Wind 0"))
-		: FString::Printf(TEXT("Wind %+.0f"), Wind));
+		: FString::Printf(TEXT("Wind %+.0f"), CurrentWind));
+}
+
+AFRTurnBasedGameState* AFRGameMode::GetTurnBasedGameState() const
+{
+	return GetWorld() ? GetWorld()->GetGameState<AFRTurnBasedGameState>() : nullptr;
 }
 
 EFRBattleState AFRGameMode::GetBattleState() const
 {
-	return BattleState;
+	return GetTurnBasedGameState() ? GetTurnBasedGameState()->GetBattleState() : EFRBattleState::PlayerTurn;
 }
 
 AFRBattleCharacter* AFRGameMode::GetPlayerCharacter() const
@@ -245,7 +274,7 @@ FGameplayTagContainer AFRGameMode::GetChosenRewardTags() const
 
 FText AFRGameMode::GetStatusText() const
 {
-	return StatusText;
+	return GetTurnBasedGameState() ? GetTurnBasedGameState()->GetStatusText() : FText::GetEmpty();
 }
 
 FText AFRGameMode::GetRunProgressSummary() const
@@ -396,10 +425,11 @@ void AFRGameMode::ClearBattleStage(bool bKeepPlayerCharacter)
 	}
 	ActiveProjectiles.Reset();
 	GetWorldTimerManager().ClearTimer(ShotResolutionTimerHandle);
-	PendingProjectiles = 0;
-	LastShooter.Reset();
+	if (AFRTurnBasedGameState* TurnState = GetTurnBasedGameState())
+	{
+		TurnState->ResetShotResolution();
+	}
 	bHoldingImpactCamera = false;
-
 	for (AFRBattleCharacter* Enemy : EnemyCharacters)
 	{
 		if (Enemy)
@@ -409,7 +439,6 @@ void AFRGameMode::ClearBattleStage(bool bKeepPlayerCharacter)
 	}
 	EnemyCharacters.Reset();
 	EnemyCharacter = nullptr;
-	ActiveEnemyTurnIndex = INDEX_NONE;
 
 	if (Terrain)
 	{
@@ -514,16 +543,7 @@ AFRBattleCharacter* AFRGameMode::GetFirstAliveEnemyCharacter() const
 
 AFRBattleCharacter* AFRGameMode::GetActiveEnemyTurnCharacter() const
 {
-	if (EnemyCharacters.IsValidIndex(ActiveEnemyTurnIndex))
-	{
-		AFRBattleCharacter* ActiveEnemy = EnemyCharacters[ActiveEnemyTurnIndex];
-		if (ActiveEnemy && !ActiveEnemy->IsDefeated())
-		{
-			return ActiveEnemy;
-		}
-	}
-
-	return GetFirstAliveEnemyCharacter();
+	return GetTurnBasedGameState() ? GetTurnBasedGameState()->GetActiveEnemyTurnCharacter(GetEnemyCharacters()) : GetFirstAliveEnemyCharacter();
 }
 
 bool AFRGameMode::AreAllEnemiesDefeated() const
@@ -548,8 +568,10 @@ void AFRGameMode::HandleEnemyDefeated()
 	ResetShotCameraState();
 	if (CurrentStage >= GetConfiguredStageCount())
 	{
-		BattleState = EFRBattleState::Won;
-		SetStatus(TEXT("Run complete"));
+		if (AFRTurnBasedGameState* TurnState = GetTurnBasedGameState())
+		{
+			TurnState->EnterWonState(FText::FromString(TEXT("Run complete")));
+		}
 		return;
 	}
 
@@ -593,29 +615,19 @@ void AFRGameMode::ApplyRewardToPlayer(const FFRRewardChoice& Reward)
 void AFRGameMode::StartPlayerTurn()
 {
 	ResetShotCameraState();
-	BattleState = EFRBattleState::PlayerTurn;
-	Wind = FMath::RandRange(MinWind, MaxWind);
-	if (PlayerCharacter)
+	if (AFRTurnBasedGameState* TurnState = GetTurnBasedGameState())
 	{
-		PlayerCharacter->BeginTurn();
+		TurnState->StartPlayerTurn(PlayerCharacter, FMath::RandRange(MinWind, MaxWind), FText::FromString(TEXT("Player turn")));
 	}
-	SetStatus(TEXT("Player turn"));
 }
 
 void AFRGameMode::StartEnemyTurn()
 {
 	ResetShotCameraState();
-	BattleState = EFRBattleState::EnemyTurn;
-	Wind = FMath::RandRange(MinWind, MaxWind);
-	ActiveEnemyTurnIndex = INDEX_NONE;
-	for (AFRBattleCharacter* Enemy : EnemyCharacters)
+	if (AFRTurnBasedGameState* TurnState = GetTurnBasedGameState())
 	{
-		if (Enemy && !Enemy->IsDefeated())
-		{
-			Enemy->BeginTurn();
-		}
+		TurnState->StartEnemyTurn(GetEnemyCharacters(), FMath::RandRange(MinWind, MaxWind), FText::FromString(TEXT("Enemy turn")));
 	}
-	SetStatus(TEXT("Enemy turn"));
 
 	FTimerHandle EnemyTimerHandle;
 	GetWorldTimerManager().SetTimer(EnemyTimerHandle, this, &AFRGameMode::RunEnemyTurn, GetCurrentStageDifficulty().EnemyTurnDelaySeconds, false);
@@ -623,23 +635,13 @@ void AFRGameMode::StartEnemyTurn()
 
 void AFRGameMode::RunEnemyTurn()
 {
-	if (BattleState != EFRBattleState::EnemyTurn || !PlayerCharacter)
+	AFRTurnBasedGameState* TurnState = GetTurnBasedGameState();
+	if (!TurnState || TurnState->GetBattleState() != EFRBattleState::EnemyTurn || !PlayerCharacter)
 	{
 		return;
 	}
 
-	AFRBattleCharacter* ActingEnemy = nullptr;
-	for (int32 EnemyIndex = ActiveEnemyTurnIndex + 1; EnemyIndex < EnemyCharacters.Num(); ++EnemyIndex)
-	{
-		AFRBattleCharacter* Candidate = EnemyCharacters[EnemyIndex];
-		if (Candidate && !Candidate->IsDefeated())
-		{
-			ActiveEnemyTurnIndex = EnemyIndex;
-			ActingEnemy = Candidate;
-			break;
-		}
-	}
-
+	AFRBattleCharacter* ActingEnemy = TurnState->AdvanceToNextEnemyTurnCharacter(GetEnemyCharacters());
 	if (!ActingEnemy)
 	{
 		StartPlayerTurn();
@@ -664,6 +666,12 @@ void AFRGameMode::RunEnemyTurn()
 
 void AFRGameMode::FinishShotResolution()
 {
+	AFRTurnBasedGameState* TurnState = GetTurnBasedGameState();
+	if (!TurnState)
+	{
+		return;
+	}
+
 	if (AreAllEnemiesDefeated())
 	{
 		HandleEnemyDefeated();
@@ -672,28 +680,31 @@ void AFRGameMode::FinishShotResolution()
 
 	if (PlayerCharacter && PlayerCharacter->IsDefeated())
 	{
-		BattleState = EFRBattleState::Lost;
-		SetStatus(TEXT("Defeat"));
+		TurnState->EnterLostState(FText::FromString(TEXT("Defeat")));
 		return;
 	}
 
-	if (LastShooter.IsValid() && LastShooter->IsEnemy())
+	if (AFRBattleCharacter* LastShooter = TurnState->GetLastShooter())
 	{
-		BattleState = EFRBattleState::EnemyTurn;
-		RunEnemyTurn();
+		if (LastShooter->IsEnemy())
+		{
+			TurnState->EnterEnemyTurnContinuation();
+			RunEnemyTurn();
+			return;
+		}
 	}
-	else
-	{
-		StartEnemyTurn();
-	}
+
+	StartEnemyTurn();
 }
 
 void AFRGameMode::EnterRewardState()
 {
 	ResetShotCameraState();
-	BattleState = EFRBattleState::Reward;
+	if (AFRTurnBasedGameState* TurnState = GetTurnBasedGameState())
+	{
+		TurnState->EnterRewardState(FText::FromString(TEXT("Victory - choose a reward")));
+	}
 	BuildRewardChoices();
-	SetStatus(TEXT("Victory - choose a reward"));
 }
 
 void AFRGameMode::BuildRewardChoices()
@@ -769,7 +780,8 @@ void AFRGameMode::BuildRewardChoices()
 
 void AFRGameMode::CheckTurnDefeatState()
 {
-	if (BattleState != EFRBattleState::PlayerTurn && BattleState != EFRBattleState::EnemyTurn)
+	AFRTurnBasedGameState* TurnState = GetTurnBasedGameState();
+	if (!TurnState || !TurnState->CanCheckTurnDefeatState())
 	{
 		return;
 	}
@@ -782,16 +794,17 @@ void AFRGameMode::CheckTurnDefeatState()
 
 	if (PlayerCharacter && PlayerCharacter->IsDefeated())
 	{
-		BattleState = EFRBattleState::Lost;
-		SetStatus(TEXT("Defeat"));
+		TurnState->EnterLostState(FText::FromString(TEXT("Defeat")));
 	}
 }
 
 void AFRGameMode::SetStatus(const FString& NewStatus)
 {
-	StatusText = FText::FromString(NewStatus);
+	if (AFRTurnBasedGameState* TurnState = GetTurnBasedGameState())
+	{
+		TurnState->SetStatusText(FText::FromString(NewStatus));
+	}
 }
-
 void AFRGameMode::UpdateBattleCamera(float DeltaSeconds)
 {
 	if (!BattleCamera)
@@ -811,6 +824,10 @@ void AFRGameMode::ResetShotCameraState()
 	ActiveProjectiles.Reset();
 	bHoldingImpactCamera = false;
 	GetWorldTimerManager().ClearTimer(ShotResolutionTimerHandle);
+	if (AFRTurnBasedGameState* TurnState = GetTurnBasedGameState())
+	{
+		TurnState->ResetShotResolution();
+	}
 }
 
 float AFRGameMode::GetInitialCameraOrthoWidth() const
@@ -847,7 +864,8 @@ FVector AFRGameMode::GetDesiredCameraLocation() const
 
 FVector AFRGameMode::GetCameraFocusLocation() const
 {
-	if (BattleState == EFRBattleState::ResolvingShot)
+	const EFRBattleState CurrentBattleState = GetBattleState();
+	if (CurrentBattleState == EFRBattleState::ResolvingShot)
 	{
 		for (const TWeakObjectPtr<AFRProjectile>& Projectile : ActiveProjectiles)
 		{
@@ -865,7 +883,7 @@ FVector AFRGameMode::GetCameraFocusLocation() const
 	}
 
 	const AFRBattleCharacter* FocusCharacter = nullptr;
-	if (BattleState == EFRBattleState::EnemyTurn)
+	if (CurrentBattleState == EFRBattleState::EnemyTurn)
 	{
 		FocusCharacter = GetActiveEnemyTurnCharacter();
 	}

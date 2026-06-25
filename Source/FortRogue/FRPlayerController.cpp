@@ -6,12 +6,19 @@
 #include "Combat/FRBattleCharacter.h"
 #include "FRGameMode.h"
 #include "FRGameplayTags.h"
+#include "Game/FRGameInstance.h"
+#include "Blueprint/UserWidget.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/World.h"
 #include "InputCoreTypes.h"
 #include "InputActionValue.h"
 #include "Items/FRItemDefinition.h"
+
+namespace
+{
+	const TCHAR* StartupMainMenuWidgetClassPath = TEXT("/Game/FortRogue/Widget/MainMenu/WBP_MainMenuHUD.WBP_MainMenuHUD_C");
+}
 
 AFRPlayerController::AFRPlayerController()
 {
@@ -34,6 +41,7 @@ void AFRPlayerController::BeginPlay()
 		}
 	}
 
+	ShowStartupMainMenuIfNeeded();
 }
 
 void AFRPlayerController::SetupInputComponent()
@@ -249,6 +257,42 @@ void AFRPlayerController::TickRewardInput()
 	{
 		ChooseReward(4);
 	}
+}
+
+void AFRPlayerController::ShowStartupMainMenuIfNeeded()
+{
+	UFRGameInstance* FortGameInstance = GetWorld() ? GetWorld()->GetGameInstance<UFRGameInstance>() : nullptr;
+	if (!FortGameInstance || !FortGameInstance->ShouldDeferBattleStartForStartupMenu())
+	{
+		bShowMouseCursor = false;
+		SetInputMode(FInputModeGameOnly());
+		return;
+	}
+
+	TSubclassOf<UUserWidget> MenuClass = StartupMainMenuWidgetClass;
+	if (!MenuClass)
+	{
+		MenuClass = LoadClass<UUserWidget>(nullptr, StartupMainMenuWidgetClassPath);
+	}
+	if (!MenuClass)
+	{
+		return;
+	}
+
+	StartupMainMenuWidget = CreateWidget<UUserWidget>(this, MenuClass);
+	if (!StartupMainMenuWidget)
+	{
+		return;
+	}
+
+	StartupMainMenuWidget->AddToViewport(0);
+	bShowMouseCursor = true;
+
+	FInputModeUIOnly InputMode;
+	InputMode.SetWidgetToFocus(StartupMainMenuWidget->TakeWidget());
+	SetInputMode(InputMode);
+
+	FortGameInstance->NotifyStartupMainMenuDisplayed();
 }
 
 UFRAbilitySystemComponent* AFRPlayerController::GetPlayerAbilitySystemComponent() const

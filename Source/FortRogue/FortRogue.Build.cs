@@ -22,6 +22,7 @@ public class FortRogue : ModuleRules
 			"GameplayAbilities",
 			"GameplayTags",
 			"GameplayTasks",
+			"UMG",
 			"Paper2D"
 		});
 

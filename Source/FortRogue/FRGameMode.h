@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Game/FRTurnBasedGameState.h"
 #include "GameFramework/GameModeBase.h"
 #include "Rewards/FRRewardTypes.h"
 #include "TimerManager.h"
@@ -18,16 +19,6 @@ class UFRStageRunDefinition;
 class UFRTerrainMapDefinition;
 struct FFRStageDifficultyData;
 
-UENUM(BlueprintType)
-enum class EFRBattleState : uint8
-{
-	PlayerTurn,
-	EnemyTurn,
-	ResolvingShot,
-	Reward,
-	Won,
-	Lost
-};
 
 UCLASS()
 class FORTROGUE_API AFRGameMode : public AGameModeBase
@@ -68,6 +59,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")
 	FText GetWindSummary() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")
+	AFRTurnBasedGameState* GetTurnBasedGameState() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")
 	EFRBattleState GetBattleState() const;
@@ -226,14 +220,8 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup", meta = (ToolTip = "각 스테이지에서 무작위로 뽑을 최대 바람 값입니다. 양수는 오른쪽 방향 바람입니다."))
 	float MaxWind = 180.0f;
 
-	EFRBattleState BattleState = EFRBattleState::PlayerTurn;
 	int32 CurrentStage = 1;
-	float Wind = 0.0f;
-	int32 PendingProjectiles = 0;
-	int32 ActiveEnemyTurnIndex = INDEX_NONE;
-	TWeakObjectPtr<AFRBattleCharacter> LastShooter;
 	FVector LastImpactCameraLocation = FVector::ZeroVector;
 	bool bHoldingImpactCamera = false;
 	FTimerHandle ShotResolutionTimerHandle;
-	FText StatusText;
 };

@@ -309,16 +309,23 @@ bool FFRGameModeEnemyTurnContinuationTest::RunTest(const FString& Parameters)
 	SecondEnemy->AddWeaponDefinition(CreateTestWeaponDefinition(SecondEnemy));
 	SecondEnemy->BeginTurn();
 	GameMode->EnemyCharacters.Add(SecondEnemy);
-	GameMode->ActiveEnemyTurnIndex = 0;
-	GameMode->LastShooter = FirstEnemy;
-	GameMode->BattleState = EFRBattleState::ResolvingShot;
+	AFRTurnBasedGameState* TurnState = GameMode->GetTurnBasedGameState();
+	TestNotNull(TEXT("Turn-based game state exists"), TurnState);
+	if (!TurnState)
+	{
+		CleanupWorld();
+		return false;
+	}
+	TurnState->StartEnemyTurn(GameMode->GetEnemyCharacters(), GameMode->GetWind(), FText::FromString(TEXT("Enemy turn")));
+	TurnState->AdvanceToNextEnemyTurnCharacter(GameMode->GetEnemyCharacters());
+	TurnState->EnterShotResolution(FirstEnemy, 1, FText::FromString(TEXT("Enemy shell incoming")));
 
 	GameMode->FinishShotResolution();
 
 	TestEqual(TEXT("Enemy shot resolution resumes enemy turn before selecting the next enemy"), GameMode->GetBattleState(), EFRBattleState::ResolvingShot);
 	TestTrue(TEXT("Second enemy fires after the first enemy shot resolves"), SecondEnemy->HasFiredThisTurn());
 	TestFalse(TEXT("Second enemy turn ends after firing"), SecondEnemy->IsActiveTurn());
-	TestEqual(TEXT("Second enemy becomes the last shooter"), GameMode->LastShooter.Get(), SecondEnemy);
+	TestEqual(TEXT("Second enemy becomes the last shooter"), TurnState->GetLastShooter(), SecondEnemy);
 
 	CleanupWorld();
 	return true;
@@ -1243,9 +1250,9 @@ bool FFRTerrainGameModeMapDefinitionTest::RunTest(const FString& Parameters)
 	GameMode->RewardChoices = { RequiredReward, BlockedReward };
 	TestTrue(TEXT("Game mode reward choice failure summary names missing required tags"), GameMode->GetRewardChoiceConditionFailureSummary(0).ToString().Contains(TEXT("requires reward")));
 	TestTrue(TEXT("Game mode reward choice failure summary is empty for invalid choices"), GameMode->GetRewardChoiceConditionFailureSummary(GameMode->GetRewardChoices().Num()).ToString().IsEmpty());
-	GameMode->BattleState = EFRBattleState::Reward;
+	GameMode->GetTurnBasedGameState()->EnterRewardState(FText::GetEmpty());
 	TestFalse(TEXT("Game mode rejects reward choices with unmet required tags"), GameMode->CanApplyRewardChoice(0));
-	GameMode->BattleState = EFRBattleState::PlayerTurn;
+	GameMode->GetTurnBasedGameState()->StartPlayerTurn(GameMode->GetPlayerCharacter(), GameMode->GetWind(), FText::FromString(TEXT("Player turn")));
 
 	GameMode->ChosenRewardTags = { FRGameplayTags::Trait_Damage };
 	TestTrue(TEXT("Game mode exposes chosen reward tags for UI"), GameMode->GetChosenRewardTags().HasTagExact(FRGameplayTags::Trait_Damage));
@@ -1255,10 +1262,10 @@ bool FFRTerrainGameModeMapDefinitionTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Reward condition failure summary is empty when conditions pass"), RequiredReward.GetRewardTagConditionFailureSummary(GameMode->GetChosenRewardTags()).ToString().IsEmpty());
 	TestTrue(TEXT("Game mode reward choice failure summary names blocked tags"), GameMode->GetRewardChoiceConditionFailureSummary(1).ToString().Contains(TEXT("blocked by reward")));
 	TestTrue(TEXT("Game mode reward choice failure summary is empty when conditions pass"), GameMode->GetRewardChoiceConditionFailureSummary(0).ToString().IsEmpty());
-	GameMode->BattleState = EFRBattleState::Reward;
+	GameMode->GetTurnBasedGameState()->EnterRewardState(FText::GetEmpty());
 	TestTrue(TEXT("Game mode accepts reward choices with satisfied required tags"), GameMode->CanApplyRewardChoice(0));
 	TestFalse(TEXT("Game mode rejects reward choices with blocked tags"), GameMode->CanApplyRewardChoice(1));
-	GameMode->BattleState = EFRBattleState::PlayerTurn;
+	GameMode->GetTurnBasedGameState()->StartPlayerTurn(GameMode->GetPlayerCharacter(), GameMode->GetWind(), FText::FromString(TEXT("Player turn")));
 	GameMode->BuildRewardChoices();
 	TestTrue(TEXT("Reward choices include rewards after required reward tags are chosen"), HasRewardChoiceTag(GameMode->GetRewardChoices(), FRGameplayTags::Trait_Projectiles));
 	TestFalse(TEXT("Reward choices hide rewards blocked by chosen reward tags"), HasRewardChoiceTag(GameMode->GetRewardChoices(), FRGameplayTags::Trait_Health));
@@ -1268,7 +1275,7 @@ bool FFRTerrainGameModeMapDefinitionTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Game mode rejects reward choice outside reward state"), GameMode->CanApplyRewardChoice(0));
 	TestFalse(TEXT("Game mode reward choice summary is available for valid choices"), GameMode->GetRewardChoiceSummary(0).ToString().IsEmpty());
 	TestTrue(TEXT("Game mode reward choice summary is empty for invalid choices"), GameMode->GetRewardChoiceSummary(GameMode->GetRewardChoices().Num()).ToString().IsEmpty());
-	GameMode->BattleState = EFRBattleState::Reward;
+	GameMode->GetTurnBasedGameState()->EnterRewardState(FText::GetEmpty());
 	TestTrue(TEXT("Game mode reports valid reward choices selectable"), GameMode->CanApplyRewardChoice(0));
 	TestFalse(TEXT("Game mode rejects negative reward choice indexes"), GameMode->CanApplyRewardChoice(-1));
 	TestFalse(TEXT("Game mode rejects reward choice indexes past the end"), GameMode->CanApplyRewardChoice(GameMode->GetRewardChoices().Num()));
@@ -1279,7 +1286,7 @@ bool FFRTerrainGameModeMapDefinitionTest::RunTest(const FString& Parameters)
 	TestEqual(TEXT("Game mode advances to the next stage after reward choice"), GameMode->GetCurrentStage(), StageBeforeRewardChoice + 1);
 	TestEqual(TEXT("Game mode clears reward choices after applying one"), GameMode->GetRewardChoiceCount(), 0);
 	TestEqual(TEXT("Game mode returns to player turn after reward choice"), GameMode->GetBattleState(), EFRBattleState::PlayerTurn);
-	GameMode->BattleState = EFRBattleState::PlayerTurn;
+	GameMode->GetTurnBasedGameState()->StartPlayerTurn(GameMode->GetPlayerCharacter(), GameMode->GetWind(), FText::FromString(TEXT("Player turn")));
 	TestStageRunDefinition->RewardPool.Reset();
 	GameMode->RewardChoices.Reset();
 	GameMode->ChosenRewardTags.Reset();
