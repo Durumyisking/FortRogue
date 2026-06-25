@@ -33,8 +33,6 @@
 #include "Rewards/FRRewardTypes.h"
 #include "Run/FRDefaultLoadoutDefinition.h"
 #include "Run/FRStageRunDefinition.h"
-#include "UI/FRBattleHUDWidget.h"
-#include "UI/FRFloatingCombatText.h"
 #include "Weapons/FRWeaponDefinition.h"
 #include "UObject/UnrealType.h"
 
@@ -480,7 +478,6 @@ bool FFRTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	TestPropertyMetaData(*this, FFRProjectileEffectSpec::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFRProjectileEffectSpec, EffectClass), TEXT("AllowAbstract"), TEXT("false"));
 	TestFunctionParamGameplayTagCategories(*this, AFRBattleCharacter::StaticClass(), GET_FUNCTION_NAME_CHECKED(AFRBattleCharacter, TryGetCombatAttributeValueByTag), TEXT("AttributeTag"), TEXT("Attribute"));
 	TestFunctionParamGameplayTagCategories(*this, AFRBattleCharacter::StaticClass(), GET_FUNCTION_NAME_CHECKED(AFRBattleCharacter, SelectWeaponByTag), TEXT("WeaponTag"), TEXT("Weapon"));
-	TestFunctionParamGameplayTagCategories(*this, UFRBattleHUDWidget::StaticClass(), GET_FUNCTION_NAME_CHECKED(UFRBattleHUDWidget, GetPlayerItemIndexByTag), TEXT("ItemTag"), TEXT("Item"));
 	TestNull(TEXT("Game mode no longer exposes a fallback enemy definition property"), FindFProperty<FObjectProperty>(AFRGameMode::StaticClass(), TEXT("EnemyDefinition")));
 	TestNull(TEXT("Character definition no longer exposes a map definition property"), FindFProperty<FObjectProperty>(UFRCharacterDefinition::StaticClass(), TEXT("BattleMapDefinition")));
 
@@ -1771,15 +1768,6 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		return Count;
 	};
 
-	auto CountFloatingTexts = [&World]()
-	{
-		int32 Count = 0;
-		for (TActorIterator<AFRFloatingCombatText> It(World); It; ++It)
-		{
-			++Count;
-		}
-		return Count;
-	};
 
 	FFRProjectileEffectDrillParams RuntimeSplitChildDrillParams;
 	RuntimeSplitChildDrillParams.RadiusBonus = 28.0f;
@@ -2295,7 +2283,6 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		{
 			FastProjectileTarget->SetActorLocation(FVector(260.0f, 500.0f, 35.0f));
 			const float TargetHealthBeforeHit = FastProjectileTarget->GetHealth();
-			const int32 FloatingTextCountBeforeHit = CountFloatingTexts();
 			AFRProjectile* FastCharacterProjectile = World->SpawnActor<AFRProjectile>(AFRProjectile::StaticClass(), FVector(203.0f, 0.0f, 35.0f), FRotator::ZeroRotator, SpawnParams);
 			TestNotNull(TEXT("Fast character projectile is spawned"), FastCharacterProjectile);
 			if (FastCharacterProjectile)
@@ -2303,7 +2290,6 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 				FastCharacterProjectile->InitializeProjectile(nullptr, FastProjectileTerrain, FVector(1940.0f, 0.0f, 0.0f), 20.0f, 30.0f, 50.0f, 20.0f, 0.0f);
 				FastCharacterProjectile->Tick(0.1f);
 				TestEqual(TEXT("Direct hit applies hit plus full explosion damage"), FastProjectileTarget->GetHealth(), TargetHealthBeforeHit - 50.0f);
-				TestEqual(TEXT("Damage spawns one floating combat text actor"), CountFloatingTexts(), FloatingTextCountBeforeHit + 1);
 				TestTrue(TEXT("Later terrain remains solid when the earlier character is hit"), FastProjectileTerrain->IsSolidAtWorldLocation(FVector(305.0f, 0.0f, 35.0f)));
 			}
 			FastProjectileTarget->Destroy();

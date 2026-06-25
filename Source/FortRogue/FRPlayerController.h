@@ -7,13 +7,6 @@
 #include "Items/FRItemDefinition.h"
 #include "FRPlayerController.generated.h"
 
-class UFRBattleHUDWidget;
-class UFRRewardScreenWidget;
-class UFRUIRootWidget;
-class UFRMainMenuWidget;
-class UFROptionsMenuWidget;
-class UFRPauseMenuWidget;
-class UFRConfirmDialogWidget;
 class UFRAbilitySystemComponent;
 class UInputAction;
 class UInputMappingContext;
@@ -38,19 +31,6 @@ private:
 	void TickKeyboardWeaponInput();
 	void TickKeyboardItemInput();
 	void TickRewardInput();
-	void TickMenuInput();
-	void CreateRootWidget();
-	void CreateBattleHUDWidget();
-	void CreateRewardScreenWidget();
-	void ClearRewardScreenWidget();
-	void ShowMainMenuWidget();
-	void ShowOptionsMenuWidget(bool bReturnToPauseMenu);
-	void ShowPauseMenuWidget();
-	void ClearMenuLayer();
-	void ShowConfirmDialog(const FText& TitleText, const FText& MessageText, int32 ConfirmAction);
-	void ClearConfirmDialogWidget();
-	void ExecutePendingConfirmAction();
-	void UpdateOptionalWidgets();
 	UFRAbilitySystemComponent* GetPlayerAbilitySystemComponent() const;
 	void ProcessPlayerAbilityInput(float DeltaSeconds);
 	void SetPlayerAbilityInputTag(const FGameplayTag& InputTag, bool bPressed);
@@ -75,28 +55,6 @@ private:
 	void HandleReward3();
 	void HandleReward4();
 	void HandleReward5();
-	UFUNCTION()
-	void HandleMainMenuStartRunRequested();
-	UFUNCTION()
-	void HandleMainMenuOptionsRequested();
-	UFUNCTION()
-	void HandleMainMenuQuitRequested();
-	UFUNCTION()
-	void HandleOptionsBackRequested();
-	UFUNCTION()
-	void HandlePauseResumeRequested();
-	UFUNCTION()
-	void HandlePauseOptionsRequested();
-	UFUNCTION()
-	void HandlePauseRestartRequested();
-	UFUNCTION()
-	void HandlePauseMainMenuRequested();
-	UFUNCTION()
-	void HandlePauseQuitRequested();
-	UFUNCTION()
-	void HandleConfirmRequested();
-	UFUNCTION()
-	void HandleConfirmCanceled();
 	void ApplyMoveAxis(float Axis, float DeltaSeconds);
 	void ApplyAimAxis(float Axis, float DeltaSeconds);
 	void BeginPlayerWeaponCharge();
@@ -157,52 +115,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Input", meta = (ToolTip = "보상 화면에서 5번 선택지를 고르는 Input Action입니다."))
 	TObjectPtr<UInputAction> Reward5Action;
 
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI", meta = (ToolTip = "게임 UI 레이어를 소유할 CommonUI Root 위젯 클래스입니다."))
-	TSubclassOf<UFRUIRootWidget> UIRootWidgetClass;
-
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI", meta = (ToolTip = "전투 중 표시할 HUD 위젯 클래스입니다. 체력, 무기, 조준, 파워, 바람 정보를 보여줍니다."))
-	TSubclassOf<UFRBattleHUDWidget> BattleHUDWidgetClass;
-
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI", meta = (ToolTip = "스테이지 클리어 후 보상 선택에 사용할 위젯 클래스입니다."))
-	TSubclassOf<UFRRewardScreenWidget> RewardScreenWidgetClass;
-
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Menu", meta = (ToolTip = "게임 시작 시 MenuLayer에 표시할 메인 메뉴 위젯 클래스입니다."))
-	TSubclassOf<UFRMainMenuWidget> MainMenuWidgetClass;
-
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Menu", meta = (ToolTip = "옵션 설정 화면으로 사용할 위젯 클래스입니다."))
-	TSubclassOf<UFROptionsMenuWidget> OptionsMenuWidgetClass;
-
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Menu", meta = (ToolTip = "일시정지 메뉴로 사용할 위젯 클래스입니다."))
-	TSubclassOf<UFRPauseMenuWidget> PauseMenuWidgetClass;
-
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Menu", meta = (ToolTip = "확인/취소가 필요한 작업을 표시할 ModalLayer 다이얼로그 위젯 클래스입니다."))
-	TSubclassOf<UFRConfirmDialogWidget> ConfirmDialogWidgetClass;
-
-	UPROPERTY()
-	TObjectPtr<UFRUIRootWidget> UIRootWidget;
-
-	UPROPERTY()
-	TObjectPtr<UFRBattleHUDWidget> BattleHUDWidget;
-
-	UPROPERTY()
-	TObjectPtr<UFRRewardScreenWidget> RewardScreenWidget;
-
-	UPROPERTY()
-	TObjectPtr<UFRMainMenuWidget> MainMenuWidget;
-
-	UPROPERTY()
-	TObjectPtr<UFROptionsMenuWidget> OptionsMenuWidget;
-
-	UPROPERTY()
-	TObjectPtr<UFRPauseMenuWidget> PauseMenuWidget;
-
-	UPROPERTY()
-	TObjectPtr<UFRConfirmDialogWidget> ConfirmDialogWidget;
 
 	float EnhancedMoveAxis = 0.0f;
 	float EnhancedAimAxis = 0.0f;
-	int32 PendingConfirmAction = 0;
-	bool bReturnToPauseMenuAfterOptions = false;
 	bool bMoveLeftAbilityInputPressed = false;
 	bool bMoveRightAbilityInputPressed = false;
 	bool bAimUpAbilityInputPressed = false;

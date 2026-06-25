@@ -13,13 +13,8 @@
 #include "Perks/FRPerkDefinition.h"
 #include "Rewards/FRRewardBlueprintLibrary.h"
 #include "Run/FRDefaultLoadoutDefinition.h"
-#include "UI/FRCharacterHealthBarWidget.h"
-#include "UI/FRTrajectoryPreviewPointWidget.h"
-#include "UI/FRFloatingCombatText.h"
-#include "UI/FRWorldStatusMarkerWidget.h"
 #include "Weapons/FRWeaponDefinition.h"
 #include "Components/StaticMeshComponent.h"
-#include "Components/WidgetComponent.h"
 #include "Engine/StaticMesh.h"
 #include "EngineUtils.h"
 #include "PaperFlipbook.h"
@@ -28,27 +23,6 @@
 
 namespace
 {
-constexpr float TrajectoryPreviewCharacterHitRadius = 34.0f;
-constexpr const TCHAR* DefaultHealthBarWidgetClassPath = TEXT("/Game/FortRogue/Widget/MainGame/Components/WBP_WorldHealthBar.WBP_WorldHealthBar_C");
-constexpr const TCHAR* DefaultStatusMarkerWidgetClassPath = TEXT("/Game/FortRogue/Widget/MainGame/Components/WBP_WorldStatusMarker.WBP_WorldStatusMarker_C");
-constexpr const TCHAR* DefaultTrajectoryPreviewPointWidgetClassPath = TEXT("/Game/FortRogue/Widget/MainGame/Components/WBP_TrajectoryPreviewPoint.WBP_TrajectoryPreviewPoint_C");
-
-template <typename WidgetType>
-TSubclassOf<WidgetType> ResolveDefaultWidgetClass(TSubclassOf<WidgetType> CurrentClass, const TCHAR* DefaultClassPath)
-{
-	if (CurrentClass.Get() && CurrentClass.Get() != WidgetType::StaticClass())
-	{
-		return CurrentClass;
-	}
-
-	if (TSubclassOf<WidgetType> LoadedClass = LoadClass<WidgetType>(nullptr, DefaultClassPath))
-	{
-		return LoadedClass;
-	}
-
-	return WidgetType::StaticClass();
-}
-
 bool DoesShotModifierMatchTag(const FFRShotModifierSpec& Modifier, FGameplayTag ModifierTag)
 {
 	return (Modifier.ModifierTag.IsValid() && Modifier.ModifierTag.MatchesTagExact(ModifierTag))
@@ -109,49 +83,16 @@ AFRBattleCharacter::AFRBattleCharacter()
 	BodySprite->SetVisibility(false);
 	UpdateCharacterRotation(0.0f);
 
-	HealthBarComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HealthBar"));
-	HealthBarComponent->SetupAttachment(Root);
-	HealthBarComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	HealthBarWidgetClass = UFRCharacterHealthBarWidget::StaticClass();
-	HealthBarComponent->SetWidgetClass(HealthBarWidgetClass);
-	HealthBarComponent->SetWidgetSpace(EWidgetSpace::Screen);
-	HealthBarComponent->SetDrawSize(FVector2D(92.0f, 14.0f));
-	HealthBarComponent->SetRelativeLocation(FVector(0.0f, 0.0f, -FootOffsetZ - 18.0f));
-	HealthBarComponent->SetTwoSided(true);
-
-	StatusMarkerComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("StatusMarker"));
-	StatusMarkerComponent->SetupAttachment(Root);
-	StatusMarkerComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	StatusMarkerWidgetClass = UFRWorldStatusMarkerWidget::StaticClass();
-	StatusMarkerComponent->SetWidgetClass(StatusMarkerWidgetClass);
-	StatusMarkerComponent->SetWidgetSpace(EWidgetSpace::Screen);
-	StatusMarkerComponent->SetDrawSize(FVector2D(128.0f, 28.0f));
-	StatusMarkerComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 54.0f));
-	StatusMarkerComponent->SetTwoSided(true);
-	StatusMarkerComponent->SetVisibility(false);
-
-	TrajectoryPreviewPointWidgetClass = UFRTrajectoryPreviewPointWidget::StaticClass();
 
 	AbilitySystemComponent = CreateDefaultSubobject<UFRAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
 	CombatSet = CreateDefaultSubobject<UFRCombatSet>(TEXT("CombatSet"));
 
 	CharacterDisplayName = FText::FromString(TEXT("Rookie Tank"));
-	FloatingCombatTextClass = AFRFloatingCombatText::StaticClass();
 }
 
 void AFRBattleCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
-	ResolveDefaultWorldUIWidgetClasses();
-	if (HealthBarComponent && HealthBarWidgetClass)
-	{
-		HealthBarComponent->SetWidgetClass(HealthBarWidgetClass);
-	}
-	if (StatusMarkerComponent && StatusMarkerWidgetClass)
-	{
-		StatusMarkerComponent->SetWidgetClass(StatusMarkerWidgetClass);
-	}
 
 	AbilitySystemComponent->InitAbilityActorInfo(this, this);
 	AbilitySystemComponent->AddAttributeSetSubobject(CombatSet.Get());
@@ -160,23 +101,14 @@ void AFRBattleCharacter::BeginPlay()
 	GrantStartupAbilitySets();
 	UpdateCharacterRotation(GetActorPitchDegrees());
 	SnapToTerrain();
-	UpdateCharacterWorldIndicators();
 }
 
-void AFRBattleCharacter::ResolveDefaultWorldUIWidgetClasses()
-{
-	HealthBarWidgetClass = ResolveDefaultWidgetClass(HealthBarWidgetClass, DefaultHealthBarWidgetClassPath);
-	StatusMarkerWidgetClass = ResolveDefaultWidgetClass(StatusMarkerWidgetClass, DefaultStatusMarkerWidgetClassPath);
-	TrajectoryPreviewPointWidgetClass = ResolveDefaultWidgetClass(TrajectoryPreviewPointWidgetClass, DefaultTrajectoryPreviewPointWidgetClassPath);
-}
 
 void AFRBattleCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
 	ApplyTerrainGravity(DeltaSeconds);
-	UpdateCharacterWorldIndicators();
-	DrawProjectileTrajectory();
 }
 
 UAbilitySystemComponent* AFRBattleCharacter::GetAbilitySystemComponent() const
@@ -627,14 +559,7 @@ void AFRBattleCharacter::FireAtTarget(AFRBattleCharacter* Target, const FFRStage
 
 void AFRBattleCharacter::ApplyDamage(float DamageAmount)
 {
-	const float HealthBeforeDamage = GetHealth();
 	CombatSet->ApplyDamage(DamageAmount);
-	const float ActualDamage = FMath::Max(0.0f, HealthBeforeDamage - GetHealth());
-	if (ActualDamage > 0.0f)
-	{
-		SpawnFloatingDamageText(ActualDamage);
-	}
-	UpdateCharacterWorldIndicators();
 }
 
 void AFRBattleCharacter::ReevaluateTerrainSupport()
@@ -1842,213 +1767,6 @@ FFRShotSpec AFRBattleCharacter::BuildShotSpec(const FFRWeaponSpec& Weapon) const
 		ApplyShotModifier(Modifier);
 	}
 	return ShotSpec;
-}
-
-void AFRBattleCharacter::DrawProjectileTrajectory()
-{
-	if (!bDrawProjectileTrajectory || !bActiveTurn || bFiredThisTurn || IsDefeated() || !IsSupportedByTerrain() || !GetWorld())
-	{
-		HideTrajectoryPreviewComponents();
-		return;
-	}
-	if (!WeaponLoadout.IsValidIndex(SelectedWeaponIndex))
-	{
-		HideTrajectoryPreviewComponents();
-		return;
-	}
-
-	const FFRWeaponSpec& Weapon = GetCurrentWeapon();
-	const FFRShotSpec ShotSpec = BuildShotSpec(Weapon);
-	const FVector LaunchDirection = GetProjectileLaunchDirection(0.0f);
-	FVector Velocity = LaunchDirection * ShotSpec.LaunchSpeed;
-	FVector Location = GetProjectileSpawnLocation(LaunchDirection);
-	// Keep the preview validated from the orthographic battle camera, not only a free 3D viewport.
-	// Side-view camera depth/projection can make a physically correct 3D debug path look wrong in-game.
-	const FVector PreviewRenderOffset(0.0f, TrajectoryPreviewCameraYOffset, 0.0f);
-	const float StepSeconds = FMath::Max(TrajectoryDebugTimeStep, KINDA_SMALL_NUMBER);
-	const int32 StepCount = FMath::Max(1, TrajectoryDebugSteps);
-	const AFRGameMode* GameMode = GetWorld()->GetAuthGameMode<AFRGameMode>();
-	const float Wind = GameMode ? GameMode->GetWind() : 0.0f;
-	const AFRDestructibleTerrain* Terrain = FindTerrain();
-	const int32 PreviewPointCount = FMath::Clamp(TrajectoryPreviewPointCount, 1, 64);
-	const int32 PointStepStride = FMath::Max(1, FMath::CeilToInt(static_cast<float>(StepCount) / static_cast<float>(PreviewPointCount)));
-	int32 PreviewPointIndex = 0;
-
-	auto ShowPreviewPoint = [&](const FVector& PreviewLocation, bool bImpact)
-	{
-		if (PreviewPointIndex >= PreviewPointCount)
-		{
-			return;
-		}
-
-		UWidgetComponent* PreviewComponent = GetOrCreateTrajectoryPreviewComponent(PreviewPointIndex);
-		if (!PreviewComponent)
-		{
-			return;
-		}
-
-		PreviewComponent->SetWorldLocation(PreviewLocation + PreviewRenderOffset);
-		PreviewComponent->SetVisibility(true);
-		PreviewComponent->InitWidget();
-		if (UFRTrajectoryPreviewPointWidget* PointWidget = Cast<UFRTrajectoryPreviewPointWidget>(PreviewComponent->GetUserWidgetObject()))
-		{
-			PointWidget->SetPreviewPointState(bImpact ? FText::FromString(TEXT("HIT")) : FText::GetEmpty(), static_cast<float>(PreviewPointIndex + 1), true, bImpact);
-		}
-		++PreviewPointIndex;
-	};
-
-	for (int32 Step = 0; Step < StepCount; ++Step)
-	{
-		const FVector PreviousLocation = Location;
-		Velocity += FVector(Wind, 0.0f, -ShotSpec.Gravity) * StepSeconds;
-		Location += Velocity * StepSeconds;
-
-		bool bHasImpact = false;
-		float BestImpactAlpha = TNumericLimits<float>::Max();
-		FVector BestImpactLocation = Location;
-
-		auto ConsiderImpact = [&](const FVector& CandidateImpactLocation)
-		{
-			const float CandidateAlpha = GetTrajectorySegmentAlphaXZ(PreviousLocation, Location, CandidateImpactLocation);
-			if (!bHasImpact || CandidateAlpha < BestImpactAlpha)
-			{
-				bHasImpact = true;
-				BestImpactAlpha = CandidateAlpha;
-				BestImpactLocation = CandidateImpactLocation;
-			}
-		};
-
-		if (Terrain)
-		{
-			FVector TerrainImpactLocation = FVector::ZeroVector;
-			if (Terrain->FindFirstSolidAlongWorldSegment(PreviousLocation, Location, TerrainImpactLocation))
-			{
-				ConsiderImpact(TerrainImpactLocation);
-			}
-		}
-
-		for (TActorIterator<AFRBattleCharacter> It(GetWorld()); It; ++It)
-		{
-			AFRBattleCharacter* Character = *It;
-			if (!Character || Character == this || Character->IsDefeated() || Character->IsEnemy() == IsEnemy())
-			{
-				continue;
-			}
-
-			const FVector ClosestPoint = GetClosestPointOnTrajectorySegmentXZ(PreviousLocation, Location, Character->GetActorLocation());
-			if (GetTrajectoryDistanceSquaredXZ(Character->GetActorLocation(), ClosestPoint) <= FMath::Square(TrajectoryPreviewCharacterHitRadius))
-			{
-				ConsiderImpact(ClosestPoint);
-			}
-		}
-
-		if (bHasImpact)
-		{
-			ShowPreviewPoint(BestImpactLocation, true);
-			break;
-		}
-		if (Step % PointStepStride == 0)
-		{
-			ShowPreviewPoint(Location, false);
-		}
-	}
-	HideTrajectoryPreviewComponents(PreviewPointIndex);
-}
-
-UWidgetComponent* AFRBattleCharacter::GetOrCreateTrajectoryPreviewComponent(int32 PreviewIndex)
-{
-	if (PreviewIndex < 0)
-	{
-		return nullptr;
-	}
-
-	while (TrajectoryPreviewComponents.Num() <= PreviewIndex)
-	{
-		const FName ComponentName(*FString::Printf(TEXT("TrajectoryPreviewPoint_%d"), TrajectoryPreviewComponents.Num()));
-		UWidgetComponent* PreviewComponent = NewObject<UWidgetComponent>(this, ComponentName);
-		if (!PreviewComponent)
-		{
-			break;
-		}
-
-		PreviewComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		PreviewComponent->SetWidgetClass(TrajectoryPreviewPointWidgetClass ? TrajectoryPreviewPointWidgetClass : TSubclassOf<UFRTrajectoryPreviewPointWidget>(UFRTrajectoryPreviewPointWidget::StaticClass()));
-		PreviewComponent->SetWidgetSpace(EWidgetSpace::Screen);
-		PreviewComponent->SetDrawSize(TrajectoryPreviewPointDrawSize);
-		PreviewComponent->SetTwoSided(true);
-		PreviewComponent->SetVisibility(false);
-		PreviewComponent->SetupAttachment(Root);
-		PreviewComponent->RegisterComponent();
-		AddInstanceComponent(PreviewComponent);
-		TrajectoryPreviewComponents.Add(PreviewComponent);
-	}
-
-	return TrajectoryPreviewComponents.IsValidIndex(PreviewIndex) ? TrajectoryPreviewComponents[PreviewIndex] : nullptr;
-}
-
-void AFRBattleCharacter::HideTrajectoryPreviewComponents(int32 StartIndex)
-{
-	for (int32 Index = FMath::Max(0, StartIndex); Index < TrajectoryPreviewComponents.Num(); ++Index)
-	{
-		if (UWidgetComponent* PreviewComponent = TrajectoryPreviewComponents[Index])
-		{
-			PreviewComponent->SetVisibility(false);
-		}
-	}
-}
-
-void AFRBattleCharacter::UpdateCharacterWorldIndicators()
-{
-	const bool bShowCharacterUI = !IsDefeated();
-	if (HealthBarComponent)
-	{
-		const bool bShowHealthBar = bShowCharacterUI && GetMaxHealth() > 0.0f;
-		HealthBarComponent->SetVisibility(bShowHealthBar);
-		if (bShowHealthBar)
-		{
-			HealthBarComponent->InitWidget();
-			if (UFRCharacterHealthBarWidget* HealthWidget = Cast<UFRCharacterHealthBarWidget>(HealthBarComponent->GetUserWidgetObject()))
-			{
-				HealthWidget->SetHealth(GetHealth(), GetMaxHealth(), IsEnemy());
-			}
-		}
-	}
-
-	if (StatusMarkerComponent)
-	{
-		const AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
-		const EFRBattleState BattleState = GameMode ? GameMode->GetBattleState() : EFRBattleState::PlayerTurn;
-		const bool bTargetMarker = (BattleState == EFRBattleState::PlayerTurn && IsEnemy())
-			|| (BattleState == EFRBattleState::EnemyTurn && !IsEnemy());
-		const bool bShowStatusMarker = bShowCharacterUI && (IsActiveTurn() || bTargetMarker);
-		StatusMarkerComponent->SetVisibility(bShowStatusMarker);
-		if (bShowStatusMarker)
-		{
-			StatusMarkerComponent->InitWidget();
-			if (UFRWorldStatusMarkerWidget* StatusMarkerWidget = Cast<UFRWorldStatusMarkerWidget>(StatusMarkerComponent->GetUserWidgetObject()))
-			{
-				StatusMarkerWidget->SetMarkerState(IsActiveTurn() ? ActiveTurnMarkerText : TargetMarkerText, true, IsActiveTurn(), bTargetMarker, IsEnemy());
-			}
-		}
-	}
-}
-
-void AFRBattleCharacter::SpawnFloatingDamageText(float DamageAmount)
-{
-	if (!GetWorld() || DamageAmount <= 0.0f)
-	{
-		return;
-	}
-
-	const TSubclassOf<AFRFloatingCombatText> ActualTextClass = FloatingCombatTextClass
-		? FloatingCombatTextClass
-		: TSubclassOf<AFRFloatingCombatText>(AFRFloatingCombatText::StaticClass());
-	const FVector SpawnLocation = GetActorLocation() + FVector(0.0f, 0.0f, 72.0f);
-	AFRFloatingCombatText* FloatingText = GetWorld()->SpawnActor<AFRFloatingCombatText>(ActualTextClass, SpawnLocation, FRotator::ZeroRotator);
-	if (FloatingText)
-	{
-		FloatingText->InitializeDamageText(DamageAmount);
-	}
 }
 
 void AFRBattleCharacter::GrantStartupAbilitySets()

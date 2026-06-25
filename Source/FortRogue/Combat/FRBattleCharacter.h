@@ -16,15 +16,10 @@ class UFRAbilitySet;
 class UFRAbilitySystemComponent;
 class UFRCombatSet;
 class UFRDefaultLoadoutDefinition;
-class UFRCharacterHealthBarWidget;
-class UFRWorldStatusMarkerWidget;
-class UFRTrajectoryPreviewPointWidget;
 class UPaperFlipbookComponent;
 class UStaticMeshComponent;
 class UFRItemDefinition;
 class UFRPerkDefinition;
-class UWidgetComponent;
-class AFRFloatingCombatText;
 class AFRDestructibleTerrain;
 
 USTRUCT()
@@ -384,14 +379,8 @@ private:
 	float GetEffectiveShotPower() const;
 	FFRShotSpec BuildShotSpec(const FFRWeaponSpec& Weapon) const;
 	int32 SpawnShotSpecProjectiles(const FFRShotSpec& ShotSpec, bool bIncreasePendingProjectileCount);
-	void DrawProjectileTrajectory();
-	UWidgetComponent* GetOrCreateTrajectoryPreviewComponent(int32 PreviewIndex);
-	void HideTrajectoryPreviewComponents(int32 StartIndex = 0);
-	void UpdateCharacterWorldIndicators();
-	void SpawnFloatingDamageText(float DamageAmount);
 	void GrantStartupAbilitySets();
 	void EnsureDefaultLoadout();
-	void ResolveDefaultWorldUIWidgetClasses();
 
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue")
 	TObjectPtr<USceneComponent> Root;
@@ -402,35 +391,6 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue")
 	TObjectPtr<UPaperFlipbookComponent> BodySprite;
 
-	UPROPERTY(VisibleAnywhere, Category = "FortRogue|UI")
-	TObjectPtr<UWidgetComponent> HealthBarComponent;
-
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI", meta = (ToolTip = "캐릭터 위에 표시할 월드 체력바 위젯 클래스입니다."))
-	TSubclassOf<UFRCharacterHealthBarWidget> HealthBarWidgetClass;
-
-	UPROPERTY(VisibleAnywhere, Category = "FortRogue|UI")
-	TObjectPtr<UWidgetComponent> StatusMarkerComponent;
-
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI", meta = (ToolTip = "캐릭터 위에 표시할 선택/타겟 마커 위젯 클래스입니다."))
-	TSubclassOf<UFRWorldStatusMarkerWidget> StatusMarkerWidgetClass;
-
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI", meta = (ToolTip = "활성 턴 캐릭터에 표시할 월드 마커 텍스트입니다."))
-	FText ActiveTurnMarkerText = FText::FromString(TEXT("ACTIVE"));
-
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI", meta = (ToolTip = "현재 공격 대상 캐릭터에 표시할 월드 마커 텍스트입니다."))
-	FText TargetMarkerText = FText::FromString(TEXT("TARGET"));
-
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Trajectory", meta = (ToolTip = "조준 궤적 포인트를 표시할 UMG 위젯 클래스입니다."))
-	TSubclassOf<UFRTrajectoryPreviewPointWidget> TrajectoryPreviewPointWidgetClass;
-
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Trajectory", meta = (ClampMin = "1", ClampMax = "64", ToolTip = "화면에 표시할 조준 궤적 포인트 수입니다."))
-	int32 TrajectoryPreviewPointCount = 16;
-
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI|Trajectory", meta = (ToolTip = "조준 궤적 포인트 위젯의 draw size입니다."))
-	FVector2D TrajectoryPreviewPointDrawSize = FVector2D(34.0f, 24.0f);
-
-	UPROPERTY()
-	TArray<TObjectPtr<UWidgetComponent>> TrajectoryPreviewComponents;
 
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue|Abilities")
 	TObjectPtr<UFRAbilitySystemComponent> AbilitySystemComponent;
@@ -478,16 +438,6 @@ private:
 	float MaxFallSpeed = 1600.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "지형 아래로 이 깊이 이상 떨어지면 패배 처리할 기준 거리입니다."))
 	float FallDeathDepth = 400.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Debug", meta = (AllowPrivateAccess = "true", ToolTip = "현재 조준과 무기 기준의 예상 탄도를 UMG 포인트로 표시할지 여부입니다."))
-	bool bDrawProjectileTrajectory = true;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Debug", meta = (AllowPrivateAccess = "true", ClampMin = "1", ToolTip = "예상 탄도 디버그 라인을 몇 구간으로 나누어 계산할지 정합니다."))
-	int32 TrajectoryDebugSteps = 50;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Debug", meta = (AllowPrivateAccess = "true", ClampMin = "0.01", ToolTip = "예상 탄도 디버그 계산에서 한 스텝이 의미하는 시간입니다. 초 단위입니다."))
-	float TrajectoryDebugTimeStep = 0.08f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Debug", meta = (AllowPrivateAccess = "true", ToolTip = "직교 카메라에서 탄도 프리뷰가 캐릭터/지형에 파묻혀 보이지 않도록 카메라 쪽으로 당기는 거리입니다."))
-	float TrajectoryPreviewCameraYOffset = 80.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|UI", meta = (AllowPrivateAccess = "true", ToolTip = "데미지를 입었을 때 표시할 플로팅 텍스트 액터 클래스입니다."))
-	TSubclassOf<AFRFloatingCombatText> FloatingCombatTextClass;
 	float ShotChargeElapsed = 0.0f;
 	float VerticalVelocity = 0.0f;
 	bool bChargingShot = false;
