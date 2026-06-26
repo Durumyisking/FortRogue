@@ -27,6 +27,8 @@ public:
 	ATTRIBUTE_ACCESSORS(UFRCombatSet, Damage);
 	ATTRIBUTE_ACCESSORS(UFRCombatSet, ShotPowerMultiplier);
 	ATTRIBUTE_ACCESSORS(UFRCombatSet, ProjectileCount);
+	ATTRIBUTE_ACCESSORS(UFRCombatSet, MinAimAngle);
+	ATTRIBUTE_ACCESSORS(UFRCombatSet, MaxAimAngle);
 
 	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
 
@@ -38,6 +40,8 @@ public:
 	void AddDamage(float BonusDamage);
 	void AddShotPowerMultiplier(float BonusMultiplier);
 	void AddProjectileCount(float BonusProjectiles);
+	void AddMinAimAngle(float BonusMinAimAngle);
+	void AddMaxAimAngle(float BonusMaxAimAngle);
 
 	UPROPERTY(BlueprintReadOnly, Category = "FortRogue|Combat")
 	FGameplayAttributeData Health;
@@ -59,4 +63,10 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "FortRogue|Combat")
 	FGameplayAttributeData ProjectileCount;
+
+	UPROPERTY(BlueprintReadOnly, Category = "FortRogue|Combat")
+	FGameplayAttributeData MinAimAngle;
+
+	UPROPERTY(BlueprintReadOnly, Category = "FortRogue|Combat")
+	FGameplayAttributeData MaxAimAngle;
 };

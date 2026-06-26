@@ -23,6 +23,8 @@ namespace FRGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attribute_Damage, "Attribute.Damage", "Flat shot damage bonus.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attribute_ShotPowerMultiplier, "Attribute.ShotPowerMultiplier", "Shot power multiplier.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attribute_ProjectileCount, "Attribute.ProjectileCount", "Current projectile count attribute.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attribute_MinAimAngle, "Attribute.MinAimAngle", "Minimum character aim angle.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Attribute_MaxAimAngle, "Attribute.MaxAimAngle", "Maximum character aim angle.");
 
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Weapon_Shell, "Weapon.Shell", "Basic arcing shell.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Weapon_Cluster, "Weapon.Cluster", "Multiple projectile shell reward.");

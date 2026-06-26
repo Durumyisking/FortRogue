@@ -34,6 +34,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats", meta = (ClampMin = "0.0", ToolTip = "샷 차지 파워에 곱해지는 배율입니다. 1.0은 변화 없음입니다."))
 	float ShotPowerMultiplier = 1.0f;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats", meta = (ClampMin = "0.0", ClampMax = "90.0", ToolTip = "캐릭터가 조준할 수 있는 최소 발사 각도입니다."))
+	float MinAimAngle = 0.0f;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats", meta = (ClampMin = "0.0", ClampMax = "90.0", ToolTip = "캐릭터가 조준할 수 있는 최대 발사 각도입니다."))
+	float MaxAimAngle = 90.0f;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities", meta = (ToolTip = "전투 시작 시 이 캐릭터에게 자동으로 부여할 AbilitySet 목록입니다."))
 	TArray<TObjectPtr<UFRAbilitySet>> StartupAbilitySets;
 

@@ -242,6 +242,12 @@ public:
 	float GetProjectileCount() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
+	float GetMinAimAngle() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
+	float GetMaxAimAngle() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Stats")
 	bool TryGetCombatAttributeValueByTag(UPARAM(meta = (Categories = "Attribute")) FGameplayTag AttributeTag, float& OutValue) const;
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Stats")

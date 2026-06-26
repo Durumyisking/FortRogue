@@ -156,6 +156,9 @@ void AFRBattleCharacter::InitializeFromDefinition(UFRCharacterDefinition* InChar
 	CombatSet->SetMaxMoveBudget(InCharacterDefinition->MaxMoveBudget);
 	CombatSet->SetMoveBudget(InCharacterDefinition->MaxMoveBudget);
 	CombatSet->SetShotPowerMultiplier(InCharacterDefinition->ShotPowerMultiplier);
+	CombatSet->SetMinAimAngle(InCharacterDefinition->MinAimAngle);
+	CombatSet->SetMaxAimAngle(InCharacterDefinition->MaxAimAngle);
+	AimAngle = FMath::Clamp(AimAngle, GetMinAimAngle(), GetMaxAimAngle());
 
 	GrantedShotModifiers.Reset();
 	PendingShotModifiers.Reset();
@@ -312,7 +315,7 @@ void AFRBattleCharacter::AdjustAim(float Axis, float DeltaSeconds)
 		return;
 	}
 
-	AimAngle = FMath::Clamp(AimAngle + Axis * 70.0f * DeltaSeconds, 5.0f, 90.0f);
+	AimAngle = FMath::Clamp(AimAngle + Axis * 70.0f * DeltaSeconds, GetMinAimAngle(), GetMaxAimAngle());
 }
 
 void AFRBattleCharacter::AdjustPower(float Axis, float DeltaSeconds)
@@ -494,8 +497,12 @@ void AFRBattleCharacter::FireAtTarget(AFRBattleCharacter* Target, const FFRStage
 	UpdateCharacterRotation(GetActorPitchDegrees());
 	const float AimError = DifficultyData.AimAngleErrorDegrees > 0.0f ? FMath::RandRange(-DifficultyData.AimAngleErrorDegrees, DifficultyData.AimAngleErrorDegrees) : 0.0f;
 	const float PowerError = DifficultyData.ShotPowerError > 0.0f ? FMath::RandRange(-DifficultyData.ShotPowerError, DifficultyData.ShotPowerError) : 0.0f;
-	const float MinAim = FMath::Min(DifficultyData.MinAimAngleDegrees, DifficultyData.MaxAimAngleDegrees);
-	const float MaxAim = FMath::Max(DifficultyData.MinAimAngleDegrees, DifficultyData.MaxAimAngleDegrees);
+	const float CharacterMinAim = GetMinAimAngle();
+	const float CharacterMaxAim = GetMaxAimAngle();
+	const float DifficultyMinAim = FMath::Min(DifficultyData.MinAimAngleDegrees, DifficultyData.MaxAimAngleDegrees);
+	const float DifficultyMaxAim = FMath::Max(DifficultyData.MinAimAngleDegrees, DifficultyData.MaxAimAngleDegrees);
+	const float MinAim = FMath::Clamp(DifficultyMinAim, CharacterMinAim, CharacterMaxAim);
+	const float MaxAim = FMath::Clamp(DifficultyMaxAim, MinAim, CharacterMaxAim);
 	const float MinPower = FMath::Min(DifficultyData.MinShotPower, DifficultyData.MaxShotPower);
 	const float MaxPower = FMath::Max(DifficultyData.MinShotPower, DifficultyData.MaxShotPower);
 
@@ -1095,6 +1102,16 @@ float AFRBattleCharacter::GetProjectileCount() const
 	return CombatSet->GetProjectileCount();
 }
 
+float AFRBattleCharacter::GetMinAimAngle() const
+{
+	return FMath::Min(CombatSet->GetMinAimAngle(), CombatSet->GetMaxAimAngle());
+}
+
+float AFRBattleCharacter::GetMaxAimAngle() const
+{
+	return FMath::Max(CombatSet->GetMinAimAngle(), CombatSet->GetMaxAimAngle());
+}
+
 bool AFRBattleCharacter::TryGetCombatAttributeValueByTag(FGameplayTag AttributeTag, float& OutValue) const
 {
 	OutValue = 0.0f;
@@ -1136,6 +1153,16 @@ bool AFRBattleCharacter::TryGetCombatAttributeValueByTag(FGameplayTag AttributeT
 	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_ProjectileCount))
 	{
 		OutValue = GetProjectileCount();
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_MinAimAngle))
+	{
+		OutValue = GetMinAimAngle();
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_MaxAimAngle))
+	{
+		OutValue = GetMaxAimAngle();
 		return true;
 	}
 
@@ -1191,6 +1218,18 @@ bool AFRBattleCharacter::TryApplyCombatAttributeDeltaByTag(FGameplayTag Attribut
 		CombatSet->AddProjectileCount(DeltaValue);
 		return true;
 	}
+	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_MinAimAngle))
+	{
+		CombatSet->AddMinAimAngle(DeltaValue);
+		AimAngle = FMath::Clamp(AimAngle, GetMinAimAngle(), GetMaxAimAngle());
+		return true;
+	}
+	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_MaxAimAngle))
+	{
+		CombatSet->AddMaxAimAngle(DeltaValue);
+		AimAngle = FMath::Clamp(AimAngle, GetMinAimAngle(), GetMaxAimAngle());
+		return true;
+	}
 
 	return false;
 }
@@ -1198,14 +1237,16 @@ bool AFRBattleCharacter::TryApplyCombatAttributeDeltaByTag(FGameplayTag Attribut
 FText AFRBattleCharacter::GetCombatStatsSummary() const
 {
 	return FText::FromString(FString::Printf(
-		TEXT("HP %.0f/%.0f | move %.0f/%.0f | damage +%.0f | shot power x%.2g | projectiles %.0f"),
+		TEXT("HP %.0f/%.0f | move %.0f/%.0f | damage +%.0f | shot power x%.2g | projectiles %.0f | aim %.0f-%.0f"),
 		GetHealth(),
 		GetMaxHealth(),
 		GetMoveBudget(),
 		GetMaxMoveBudget(),
 		GetDamageBonus(),
 		GetShotPowerMultiplier(),
-		GetProjectileCount()));
+		GetProjectileCount(),
+		GetMinAimAngle(),
+		GetMaxAimAngle()));
 }
 
 float AFRBattleCharacter::GetAimAngle() const
@@ -1744,7 +1785,7 @@ float AFRBattleCharacter::GetActorPitchDegrees() const
 
 FVector AFRBattleCharacter::GetProjectileLaunchDirection(float SpreadDegrees) const
 {
-	const float RelativeAimDegrees = FMath::Clamp(AimAngle + SpreadDegrees, 5.0f, 90.0f);
+	const float RelativeAimDegrees = FMath::Clamp(AimAngle + SpreadDegrees, GetMinAimAngle(), GetMaxAimAngle());
 	const FRotator ActorRotation = GetActorRotation();
 	const bool bActorFacingLeft = FMath::IsNearlyEqual(FMath::Abs(FRotator::NormalizeAxis(ActorRotation.Yaw)), 180.0f);
 	const float WorldAngleDegrees = bActorFacingLeft

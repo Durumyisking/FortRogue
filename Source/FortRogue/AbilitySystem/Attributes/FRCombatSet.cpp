@@ -11,6 +11,8 @@ UFRCombatSet::UFRCombatSet()
 	InitDamage(0.0f);
 	InitShotPowerMultiplier(1.0f);
 	InitProjectileCount(1.0f);
+	InitMinAimAngle(0.0f);
+	InitMaxAimAngle(90.0f);
 }
 
 void UFRCombatSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
@@ -44,6 +46,14 @@ void UFRCombatSet::PreAttributeChange(const FGameplayAttribute& Attribute, float
 	else if (Attribute == GetProjectileCountAttribute())
 	{
 		NewValue = FMath::Max(1.0f, NewValue);
+	}
+	else if (Attribute == GetMinAimAngleAttribute())
+	{
+		NewValue = FMath::Clamp(NewValue, 0.0f, 90.0f);
+	}
+	else if (Attribute == GetMaxAimAngleAttribute())
+	{
+		NewValue = FMath::Clamp(NewValue, 0.0f, 90.0f);
 	}
 }
 
@@ -100,4 +110,14 @@ void UFRCombatSet::AddShotPowerMultiplier(float BonusMultiplier)
 void UFRCombatSet::AddProjectileCount(float BonusProjectiles)
 {
 	SetProjectileCount(FMath::Max(1.0f, GetProjectileCount() + BonusProjectiles));
+}
+
+void UFRCombatSet::AddMinAimAngle(float BonusMinAimAngle)
+{
+	SetMinAimAngle(FMath::Clamp(GetMinAimAngle() + BonusMinAimAngle, 0.0f, 90.0f));
+}
+
+void UFRCombatSet::AddMaxAimAngle(float BonusMaxAimAngle)
+{
+	SetMaxAimAngle(FMath::Clamp(GetMaxAimAngle() + BonusMaxAimAngle, 0.0f, 90.0f));
 }

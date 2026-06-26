@@ -1881,17 +1881,23 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		CharacterDefinition->BonusDamage = 12.0f;
 		CharacterDefinition->MaxMoveBudget = 25.0f;
 		CharacterDefinition->ShotPowerMultiplier = 1.8f;
+		CharacterDefinition->MinAimAngle = 10.0f;
+		CharacterDefinition->MaxAimAngle = 80.0f;
 		StatCharacter->InitializeFromDefinition(CharacterDefinition);
 		if (UFRCombatSet* CombatSet = GetCombatSet(StatCharacter))
 		{
 			TestEqual(TEXT("Character definition controls max health"), CombatSet->GetMaxHealth(), 175.0f);
 			TestEqual(TEXT("Character definition controls turn movement budget"), CombatSet->GetMaxMoveBudget(), 25.0f);
 			TestEqual(TEXT("Character definition controls shot power multiplier"), CombatSet->GetShotPowerMultiplier(), 1.8f);
+			TestEqual(TEXT("Character definition controls min aim angle"), CombatSet->GetMinAimAngle(), 10.0f);
+			TestEqual(TEXT("Character definition controls max aim angle"), CombatSet->GetMaxAimAngle(), 80.0f);
 		}
 		TestEqual(TEXT("Battle character getter exposes max move budget"), StatCharacter->GetMaxMoveBudget(), 25.0f);
 		TestEqual(TEXT("Battle character getter exposes damage bonus"), StatCharacter->GetDamageBonus(), 12.0f);
 		TestEqual(TEXT("Battle character getter exposes shot power multiplier"), StatCharacter->GetShotPowerMultiplier(), 1.8f);
 		TestEqual(TEXT("Battle character getter exposes base projectile count"), StatCharacter->GetProjectileCount(), 1.0f);
+		TestEqual(TEXT("Battle character getter exposes min aim angle"), StatCharacter->GetMinAimAngle(), 10.0f);
+		TestEqual(TEXT("Battle character getter exposes max aim angle"), StatCharacter->GetMaxAimAngle(), 80.0f);
 		float TaggedAttributeValue = -1.0f;
 		TestTrue(TEXT("Battle character reads health by attribute tag"), StatCharacter->TryGetCombatAttributeValueByTag(FRGameplayTags::Attribute_Health, TaggedAttributeValue));
 		TestEqual(TEXT("Tagged health value matches getter"), TaggedAttributeValue, 175.0f);
@@ -1907,6 +1913,10 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		TestEqual(TEXT("Tagged shot power multiplier value matches getter"), TaggedAttributeValue, 1.8f);
 		TestTrue(TEXT("Battle character reads projectile count by attribute tag"), StatCharacter->TryGetCombatAttributeValueByTag(FRGameplayTags::Attribute_ProjectileCount, TaggedAttributeValue));
 		TestEqual(TEXT("Tagged projectile count value matches getter"), TaggedAttributeValue, 1.0f);
+		TestTrue(TEXT("Battle character reads min aim angle by attribute tag"), StatCharacter->TryGetCombatAttributeValueByTag(FRGameplayTags::Attribute_MinAimAngle, TaggedAttributeValue));
+		TestEqual(TEXT("Tagged min aim angle value matches getter"), TaggedAttributeValue, 10.0f);
+		TestTrue(TEXT("Battle character reads max aim angle by attribute tag"), StatCharacter->TryGetCombatAttributeValueByTag(FRGameplayTags::Attribute_MaxAimAngle, TaggedAttributeValue));
+		TestEqual(TEXT("Tagged max aim angle value matches getter"), TaggedAttributeValue, 80.0f);
 		TestFalse(TEXT("Battle character rejects invalid attribute tags"), StatCharacter->TryGetCombatAttributeValueByTag(FGameplayTag(), TaggedAttributeValue));
 		TestEqual(TEXT("Rejected attribute tag resets the out value"), TaggedAttributeValue, 0.0f);
 		StatCharacter->ApplyRewardProjectiles(2);
@@ -1917,6 +1927,7 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		TestTrue(TEXT("Battle character stats summary includes damage bonus"), CombatStatsSummary.Contains(TEXT("damage +12")));
 		TestTrue(TEXT("Battle character stats summary includes shot power multiplier"), CombatStatsSummary.Contains(TEXT("shot power x1.8")));
 		TestTrue(TEXT("Battle character stats summary includes projectile count"), CombatStatsSummary.Contains(TEXT("projectiles 3")));
+		TestTrue(TEXT("Battle character stats summary includes aim angle range"), CombatStatsSummary.Contains(TEXT("aim 10-80")));
 		TestTrue(TEXT("Battle character applies health deltas by attribute tag"), StatCharacter->TryApplyCombatAttributeDeltaByTag(FRGameplayTags::Attribute_Health, -25.0f));
 		TestEqual(TEXT("Tagged health delta damages current health"), StatCharacter->GetHealth(), 150.0f);
 		TestTrue(TEXT("Battle character applies healing deltas by attribute tag"), StatCharacter->TryApplyCombatAttributeDeltaByTag(FRGameplayTags::Attribute_Health, 1000.0f));
@@ -1945,6 +1956,14 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		TestEqual(TEXT("Tagged projectile delta clamps to one"), StatCharacter->GetProjectileCount(), 1.0f);
 		TestTrue(TEXT("Battle character restores projectile count by attribute tag"), StatCharacter->TryApplyCombatAttributeDeltaByTag(FRGameplayTags::Attribute_ProjectileCount, 2.0f));
 		TestEqual(TEXT("Tagged projectile restore updates count"), StatCharacter->GetProjectileCount(), 3.0f);
+		TestTrue(TEXT("Battle character applies min aim angle deltas by attribute tag"), StatCharacter->TryApplyCombatAttributeDeltaByTag(FRGameplayTags::Attribute_MinAimAngle, -1000.0f));
+		TestEqual(TEXT("Tagged min aim angle delta clamps to zero"), StatCharacter->GetMinAimAngle(), 0.0f);
+		TestTrue(TEXT("Battle character restores min aim angle by attribute tag"), StatCharacter->TryApplyCombatAttributeDeltaByTag(FRGameplayTags::Attribute_MinAimAngle, 10.0f));
+		TestEqual(TEXT("Tagged min aim angle restore updates min aim"), StatCharacter->GetMinAimAngle(), 10.0f);
+		TestTrue(TEXT("Battle character applies max aim angle deltas by attribute tag"), StatCharacter->TryApplyCombatAttributeDeltaByTag(FRGameplayTags::Attribute_MaxAimAngle, 1000.0f));
+		TestEqual(TEXT("Tagged max aim angle delta clamps to ninety"), StatCharacter->GetMaxAimAngle(), 90.0f);
+		TestTrue(TEXT("Battle character restores max aim angle by attribute tag"), StatCharacter->TryApplyCombatAttributeDeltaByTag(FRGameplayTags::Attribute_MaxAimAngle, -10.0f));
+		TestEqual(TEXT("Tagged max aim angle restore updates max aim"), StatCharacter->GetMaxAimAngle(), 80.0f);
 		TestFalse(TEXT("Battle character rejects invalid attribute delta tags"), StatCharacter->TryApplyCombatAttributeDeltaByTag(FGameplayTag(), 1.0f));
 		StatCharacter->ApplyRewardDamage(8.0f);
 		StatCharacter->ApplyRewardDamage(-5.0f);
