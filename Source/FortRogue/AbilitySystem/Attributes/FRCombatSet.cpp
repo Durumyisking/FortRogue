@@ -49,11 +49,11 @@ void UFRCombatSet::PreAttributeChange(const FGameplayAttribute& Attribute, float
 	}
 	else if (Attribute == GetMinAimAngleAttribute())
 	{
-		NewValue = FMath::Clamp(NewValue, 0.0f, 90.0f);
+		NewValue = FMath::Clamp(NewValue, -90.0f, 180.0f);
 	}
 	else if (Attribute == GetMaxAimAngleAttribute())
 	{
-		NewValue = FMath::Clamp(NewValue, 0.0f, 90.0f);
+		NewValue = FMath::Clamp(NewValue, -90.0f, 180.0f);
 	}
 }
 
@@ -114,10 +114,10 @@ void UFRCombatSet::AddProjectileCount(float BonusProjectiles)
 
 void UFRCombatSet::AddMinAimAngle(float BonusMinAimAngle)
 {
-	SetMinAimAngle(FMath::Clamp(GetMinAimAngle() + BonusMinAimAngle, 0.0f, 90.0f));
+	SetMinAimAngle(FMath::Clamp(GetMinAimAngle() + BonusMinAimAngle, -90.0f, 180.0f));
 }
 
 void UFRCombatSet::AddMaxAimAngle(float BonusMaxAimAngle)
 {
-	SetMaxAimAngle(FMath::Clamp(GetMaxAimAngle() + BonusMaxAimAngle, 0.0f, 90.0f));
+	SetMaxAimAngle(FMath::Clamp(GetMaxAimAngle() + BonusMaxAimAngle, -90.0f, 180.0f));
 }

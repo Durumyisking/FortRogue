@@ -24,10 +24,10 @@ struct FFRShotModifierSpec
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition", meta = (ToolTip = "켜면 현재 조준 각도가 Min/Max 범위 안일 때만 modifier가 적용됩니다."))
 	bool bUseAimAngleRange = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition", meta = (EditCondition = "bUseAimAngleRange", ClampMin = "0.0", ClampMax = "90.0", ToolTip = "modifier가 적용되는 최소 조준 각도입니다. 0~90도 값을 사용하세요."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition", meta = (EditCondition = "bUseAimAngleRange", ClampMin = "-90.0", ClampMax = "180.0", ToolTip = "modifier가 적용되는 최소 조준 각도입니다. -90~180도 값을 사용하세요."))
 	float MinAimAngle = 0.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition", meta = (EditCondition = "bUseAimAngleRange", ClampMin = "0.0", ClampMax = "90.0", ToolTip = "modifier가 적용되는 최대 조준 각도입니다. Min보다 작으면 데이터 검수 경고가 발생합니다."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition", meta = (EditCondition = "bUseAimAngleRange", ClampMin = "-90.0", ClampMax = "180.0", ToolTip = "modifier가 적용되는 최대 조준 각도입니다. Min보다 작으면 데이터 검수 경고가 발생합니다."))
 	float MaxAimAngle = 90.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition", meta = (ToolTip = "켜면 발사 방향과 바람 방향이 같을 때만 modifier가 적용됩니다."))
