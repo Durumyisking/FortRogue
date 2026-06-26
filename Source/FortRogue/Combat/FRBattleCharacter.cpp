@@ -1615,7 +1615,16 @@ void AFRBattleCharacter::UpdateBodyTerrainAlignment(const AFRDestructibleTerrain
 		return;
 	}
 
-	const float SlopeAngleDegrees = FMath::RadiansToDegrees(FMath::Atan2(RightSurfaceZ - LeftSurfaceZ, ProbeHalfWidth * 2.0f));
+	const float SurfaceDeltaZ = RightSurfaceZ - LeftSurfaceZ;
+	const float AbsSurfaceDeltaZ = FMath::Abs(SurfaceDeltaZ);
+	if (AbsSurfaceDeltaZ <= BodySlopeVisualDeadZoneHeight)
+	{
+		UpdateCharacterRotation(0.0f);
+		return;
+	}
+
+	const float VisualDeltaZ = FMath::Sign(SurfaceDeltaZ) * (AbsSurfaceDeltaZ - BodySlopeVisualDeadZoneHeight);
+	const float SlopeAngleDegrees = FMath::RadiansToDegrees(FMath::Atan2(VisualDeltaZ, ProbeHalfWidth * 2.0f));
 	const float ClampedPitch = FMath::Clamp(SlopeAngleDegrees, -MaxBodySlopeVisualDegrees, MaxBodySlopeVisualDegrees);
 	UpdateCharacterRotation(ClampedPitch);
 }

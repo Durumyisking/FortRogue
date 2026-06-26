@@ -2230,7 +2230,8 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		TestTrue(TEXT("Battle character climbs a traversable gentle slope"), RampCharacter->GetActorLocation().X > -70.0f && RampCharacter->GetActorLocation().Z >= 65.0f);
 		UStaticMeshComponent* RampBody = Cast<UStaticMeshComponent>(RampCharacter->GetDefaultSubobjectByName(TEXT("Body")));
 		TestNotNull(TEXT("Ramp battle character body exists"), RampBody);
-		TestTrue(TEXT("Battle character actor aligns to terrain slope"), RampCharacter->GetActorRotation().Pitch > 15.0f);
+		const float MaxBodySlopeVisualDegrees = GetFloatProperty(RampCharacter, TEXT("MaxBodySlopeVisualDegrees"), 12.0f);
+		TestTrue(TEXT("Battle character actor uses restrained terrain slope pitch"), RampCharacter->GetActorRotation().Pitch > 0.0f && RampCharacter->GetActorRotation().Pitch <= MaxBodySlopeVisualDegrees + 0.1f);
 		if (RampBody)
 		{
 			TestEqual(TEXT("Battle character body inherits actor terrain rotation"), RampBody->GetRelativeRotation(), FRotator::ZeroRotator);

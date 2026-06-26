@@ -450,8 +450,8 @@ private:
 	float GroundSnapDistance = 12.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "몸체 기울기를 계산할 때 캐릭터 중심 좌우로 검사할 반폭입니다."))
 	float BodySlopeProbeHalfWidth = 28.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "지형 경사에 맞춰 몸체를 시각적으로 기울일 최대 각도입니다."))
-	float MaxBodySlopeVisualDegrees = 45.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "시각적인 몸체 기울기에서 무시할 좌우 지형 높이 차이입니다. 작은 셀 단위 요철이 캐릭터 회전으로 보이지 않게 합니다."))
+	float BodySlopeVisualDeadZoneHeight = 8.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "지형 지지가 없을 때 적용할 낙하 가속도입니다."))
 	float GravityAcceleration = 980.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "낙하 중 도달할 수 있는 최대 하강 속도입니다."))

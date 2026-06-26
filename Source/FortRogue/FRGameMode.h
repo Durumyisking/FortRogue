@@ -108,6 +108,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Run")
 	int32 GetMaxStages() const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")
+	float GetMaxBodySlopeVisualDegrees() const { return MaxBodySlopeVisualDegrees; }
+
 private:
 	void StartBattleRun();
 	void ApplyGameModeData(const UFRGameModeDataAsset* ModeData);
@@ -206,6 +209,9 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup", meta = (ToolTip = "전투 카메라의 기본 직교 폭입니다. 값이 클수록 더 넓은 전장을 보여줍니다."))
 	float CameraOrthoWidth = 2700.0f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup", meta = (ClampMin = "0.0", ToolTip = "지형 경사에 맞춰 캐릭터 몸체를 시각적으로 기울일 최대 각도입니다."))
+	float MaxBodySlopeVisualDegrees = 12.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup", meta = (ToolTip = "카메라가 목표 위치로 따라가는 보간 속도입니다. 0이면 거의 따라가지 않고, 값이 클수록 빠르게 따라갑니다."))
 	float CameraFollowInterpSpeed = 4.5f;
