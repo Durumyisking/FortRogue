@@ -374,6 +374,7 @@ private:
 	bool IsFootprintBlocked(const AFRDestructibleTerrain& Terrain, const FVector& CenterLocation, float FootWorldZ) const;
 	bool TryResolveFootprintBlock(const AFRDestructibleTerrain& Terrain, FVector& InOutCenterLocation, float& InOutFootWorldZ) const;
 	bool IsSlopeTraversable(float CurrentFootWorldZ, float NextSurfaceWorldZ, float HorizontalDistance, float TerrainCellSize) const;
+	float GetMaxCharacterSlopeDegrees() const;
 	float ClampWorldXToTerrainBounds(const AFRDestructibleTerrain& Terrain, float WorldX) const;
 	void UpdateBodyTerrainAlignment(const AFRDestructibleTerrain* Terrain);
 	void ApplyTerrainGravity(float DeltaSeconds);
@@ -396,6 +397,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue")
 	TObjectPtr<USceneComponent> Root;
+
+	UPROPERTY(VisibleAnywhere, Category = "FortRogue")
+	TObjectPtr<USceneComponent> BodyFrame;
 
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue")
 	TObjectPtr<UStaticMeshComponent> Body;
@@ -444,8 +448,6 @@ private:
 	float MaxStepUp = 34.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "한 번에 내려갈 수 있는 최대 지형 높이입니다. 이보다 깊으면 낙하 상태로 처리됩니다."))
 	float MaxStepDown = 56.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "이동 가능한 최대 지형 경사각입니다. 값이 클수록 더 가파른 경사를 오를 수 있습니다."))
-	float MaxSlopeAngleDegrees = 52.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "접지 중 지형 표면에 붙이기 위해 허용하는 최대 보정 거리입니다."))
 	float GroundSnapDistance = 12.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "몸체 기울기를 계산할 때 캐릭터 중심 좌우로 검사할 반폭입니다."))

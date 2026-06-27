@@ -1676,6 +1676,7 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 	World->SetGameMode(URL);
 	World->InitializeActorsForPlay(URL);
 	World->BeginPlay();
+	AFRGameMode* RuntimeGameMode = World->GetAuthGameMode<AFRGameMode>();
 
 	UFRTerrainMapDefinition* FillRuntimeMap = NewObject<UFRTerrainMapDefinition>();
 	FillRuntimeMap->Resize(4, 3);
@@ -1750,14 +1751,21 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		if (UPrimitiveComponent* Body = Cast<UPrimitiveComponent>(Character->GetDefaultSubobjectByName(TEXT("Body"))))
 		{
 			TestEqual(TEXT("Battle character body does not use Unreal collision"), Body->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
+			TestEqual(TEXT("Battle character body is offset above the foot pivot"), static_cast<float>(Body->GetRelativeLocation().Z), 45.0f);
+		}
+		USceneComponent* BodyFrame = Cast<USceneComponent>(Character->GetDefaultSubobjectByName(TEXT("BodyFrame")));
+		TestNotNull(TEXT("Battle character body frame exists"), BodyFrame);
+		if (BodyFrame)
+		{
+			TestEqual(TEXT("Battle character body frame is aligned to the character foot offset"), static_cast<float>(BodyFrame->GetRelativeLocation().Z), -45.0f);
 		}
 		UPaperFlipbookComponent* BodySprite = Cast<UPaperFlipbookComponent>(Character->GetDefaultSubobjectByName(TEXT("BodySprite")));
 		TestNotNull(TEXT("Battle character sprite component exists"), BodySprite);
 		if (BodySprite)
 		{
 			TestEqual(TEXT("Battle character sprite does not use Unreal collision"), BodySprite->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
-			TestEqual(TEXT("Battle character sprite inherits actor facing"), BodySprite->GetRelativeRotation(), FRotator::ZeroRotator);
-			TestEqual(TEXT("Battle character sprite bottom is aligned to the character foot offset"), static_cast<float>(BodySprite->GetRelativeLocation().Z), -45.0f);
+			TestEqual(TEXT("Battle character sprite stays local under the body frame"), BodySprite->GetRelativeRotation(), FRotator::ZeroRotator);
+			TestEqual(TEXT("Battle character sprite is attached at the foot pivot"), static_cast<float>(BodySprite->GetRelativeLocation().Z), 0.0f);
 		}
 		Character->SetTerrain(Terrain);
 		Character->BeginTurn();
@@ -2230,14 +2238,17 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		TestTrue(TEXT("Battle character climbs a traversable gentle slope"), RampCharacter->GetActorLocation().X > -70.0f && RampCharacter->GetActorLocation().Z >= 65.0f);
 		UStaticMeshComponent* RampBody = Cast<UStaticMeshComponent>(RampCharacter->GetDefaultSubobjectByName(TEXT("Body")));
 		TestNotNull(TEXT("Ramp battle character body exists"), RampBody);
-		const float MaxBodySlopeVisualDegrees = GetFloatProperty(RampCharacter, TEXT("MaxBodySlopeVisualDegrees"), 12.0f);
-		TestTrue(TEXT("Battle character actor uses restrained terrain slope pitch"), RampCharacter->GetActorRotation().Pitch > 0.0f && RampCharacter->GetActorRotation().Pitch <= MaxBodySlopeVisualDegrees + 0.1f);
+		USceneComponent* RampBodyFrame = Cast<USceneComponent>(RampCharacter->GetDefaultSubobjectByName(TEXT("BodyFrame")));
+		TestNotNull(TEXT("Ramp battle character body frame exists"), RampBodyFrame);
+		TestEqual(TEXT("Battle character actor stays level on terrain slopes"), static_cast<float>(RampCharacter->GetActorRotation().Pitch), 0.0f);
+		const float MaxCharacterSlopeDegrees = RuntimeGameMode ? RuntimeGameMode->GetMaxCharacterSlopeDegrees() : 45.0f;
+		const float RampPitch = RampBodyFrame ? RampBodyFrame->GetRelativeRotation().Pitch : 0.0f;
+		TestTrue(TEXT("Battle character body frame follows traversable terrain slope"), RampPitch > 0.0f && RampPitch <= MaxCharacterSlopeDegrees + 0.1f);
 		if (RampBody)
 		{
-			TestEqual(TEXT("Battle character body inherits actor terrain rotation"), RampBody->GetRelativeRotation(), FRotator::ZeroRotator);
+			TestEqual(TEXT("Battle character body stays local under the slope frame"), RampBody->GetRelativeRotation(), FRotator::ZeroRotator);
 		}
-		const float RampPitch = RampCharacter->GetActorRotation().Pitch;
-		TestEqual(TEXT("Slope-aligned battle character fires from actor rotation"), RampCharacter->FireSelectedWeapon(), 1);
+		TestEqual(TEXT("Slope-aligned battle character fires from body frame pitch"), RampCharacter->FireSelectedWeapon(), 1);
 		AFRProjectile* RampProjectile = nullptr;
 		for (TActorIterator<AFRProjectile> It(World); It; ++It)
 		{
@@ -2253,7 +2264,7 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 			const float ExpectedLaunchAngle = RampPitch + 45.0f;
 			const FVector ExpectedRampLaunchDirection(FMath::Cos(FMath::DegreesToRadians(ExpectedLaunchAngle)), 0.0f, FMath::Sin(FMath::DegreesToRadians(ExpectedLaunchAngle)));
 			const FVector ExpectedRampProjectileSpawnLocation = RampCharacter->GetActorLocation() + ExpectedRampLaunchDirection * 70.0f + FVector(0.0f, 0.0f, 35.0f);
-			TestTrue(TEXT("Slope-aligned projectile launch uses actor pitch"), RampProjectile->GetActorLocation().Equals(ExpectedRampProjectileSpawnLocation, 0.1));
+			TestTrue(TEXT("Slope-aligned projectile launch uses body frame pitch"), RampProjectile->GetActorLocation().Equals(ExpectedRampProjectileSpawnLocation, 0.1));
 			RampProjectile->Destroy();
 		}
 	}

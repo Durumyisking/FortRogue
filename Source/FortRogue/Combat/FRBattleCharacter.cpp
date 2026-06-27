@@ -26,6 +26,9 @@
 
 namespace
 {
+constexpr float DefaultMaxCharacterSlopeDegrees = 45.0f;
+constexpr float MaxUsableSlopeDegrees = 89.0f;
+
 bool DoesShotModifierMatchTag(const FFRShotModifierSpec& Modifier, FGameplayTag ModifierTag)
 {
 	return (Modifier.ModifierTag.IsValid() && Modifier.ModifierTag.MatchesTagExact(ModifierTag))
@@ -69,8 +72,11 @@ AFRBattleCharacter::AFRBattleCharacter()
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	SetRootComponent(Root);
 
+	BodyFrame = CreateDefaultSubobject<USceneComponent>(TEXT("BodyFrame"));
+	BodyFrame->SetupAttachment(Root);
+
 	Body = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Body"));
-	Body->SetupAttachment(Root);
+	Body->SetupAttachment(BodyFrame);
 	Body->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Body->SetRelativeScale3D(FVector(0.65f, 0.08f, 0.9f));
 
@@ -81,7 +87,7 @@ AFRBattleCharacter::AFRBattleCharacter()
 	}
 
 	BodySprite = CreateDefaultSubobject<UPaperFlipbookComponent>(TEXT("BodySprite"));
-	BodySprite->SetupAttachment(Root);
+	BodySprite->SetupAttachment(BodyFrame);
 	BodySprite->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	BodySprite->SetVisibility(false);
 	UpdateCharacterRotation(0.0f);
@@ -1571,8 +1577,15 @@ bool AFRBattleCharacter::IsSlopeTraversable(float CurrentFootWorldZ, float NextS
 	}
 
 	const float HorizontalSpan = FMath::Max(FMath::Abs(HorizontalDistance), FMath::Max(TerrainCellSize, 1.0f));
-	const float MaxVerticalDelta = FMath::Tan(FMath::DegreesToRadians(MaxSlopeAngleDegrees)) * HorizontalSpan;
+	const float MaxVerticalDelta = FMath::Tan(FMath::DegreesToRadians(GetMaxCharacterSlopeDegrees())) * HorizontalSpan;
 	return NextSurfaceWorldZ - CurrentFootWorldZ <= MaxVerticalDelta + KINDA_SMALL_NUMBER;
+}
+
+float AFRBattleCharacter::GetMaxCharacterSlopeDegrees() const
+{
+	const AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
+	const float MaxSlopeDegrees = GameMode ? GameMode->GetMaxCharacterSlopeDegrees() : DefaultMaxCharacterSlopeDegrees;
+	return FMath::Clamp(MaxSlopeDegrees, 0.0f, MaxUsableSlopeDegrees);
 }
 
 float AFRBattleCharacter::ClampWorldXToTerrainBounds(const AFRDestructibleTerrain& Terrain, float WorldX) const
@@ -1591,7 +1604,7 @@ float AFRBattleCharacter::ClampWorldXToTerrainBounds(const AFRDestructibleTerrai
 
 void AFRBattleCharacter::UpdateBodyTerrainAlignment(const AFRDestructibleTerrain* Terrain)
 {
-	if (!Body)
+	if (!BodyFrame)
 	{
 		return;
 	}
@@ -1623,9 +1636,9 @@ void AFRBattleCharacter::UpdateBodyTerrainAlignment(const AFRDestructibleTerrain
 		return;
 	}
 
-	const float VisualDeltaZ = FMath::Sign(SurfaceDeltaZ) * (AbsSurfaceDeltaZ - BodySlopeVisualDeadZoneHeight);
-	const float SlopeAngleDegrees = FMath::RadiansToDegrees(FMath::Atan2(VisualDeltaZ, ProbeHalfWidth * 2.0f));
-	const float ClampedPitch = FMath::Clamp(SlopeAngleDegrees, -MaxBodySlopeVisualDegrees, MaxBodySlopeVisualDegrees);
+	const float SlopeAngleDegrees = FMath::RadiansToDegrees(FMath::Atan2(SurfaceDeltaZ, ProbeHalfWidth * 2.0f));
+	const float MaxSlopeDegrees = GetMaxCharacterSlopeDegrees();
+	const float ClampedPitch = FMath::Clamp(SlopeAngleDegrees, -MaxSlopeDegrees, MaxSlopeDegrees);
 	UpdateCharacterRotation(ClampedPitch);
 }
 
@@ -1719,15 +1732,28 @@ void AFRBattleCharacter::SetFacingFromAxis(float Axis)
 
 void AFRBattleCharacter::UpdateCharacterRotation(float PitchDegrees)
 {
-	SetActorRotation(FRotator(PitchDegrees, bFacingRight ? 0.0f : 180.0f, 0.0f));
+	SetActorRotation(FRotator(0.0f, bFacingRight ? 0.0f : 180.0f, 0.0f));
+	if (BodyFrame)
+	{
+		BodyFrame->SetRelativeRotation(FRotator(PitchDegrees, 0.0f, 0.0f));
+	}
 	UpdateBodySpriteLocalTransform();
 }
 
 void AFRBattleCharacter::UpdateBodySpriteLocalTransform()
 {
+	if (BodyFrame)
+	{
+		BodyFrame->SetRelativeLocation(FVector(0.0f, 0.0f, -FootOffsetZ));
+	}
+	if (Body)
+	{
+		Body->SetRelativeLocation(FVector(0.0f, 0.0f, FootOffsetZ));
+		Body->SetRelativeRotation(FRotator::ZeroRotator);
+	}
 	if (BodySprite)
 	{
-		BodySprite->SetRelativeLocation(FVector(0.0f, 0.0f, -FootOffsetZ));
+		BodySprite->SetRelativeLocation(FVector::ZeroVector);
 		BodySprite->SetRelativeRotation(FRotator::ZeroRotator);
 	}
 }
@@ -1789,7 +1815,7 @@ void AFRBattleCharacter::SpawnFloatingDamageText(float DamageAmount)
 
 float AFRBattleCharacter::GetActorPitchDegrees() const
 {
-	return GetActorRotation().Pitch;
+	return BodyFrame ? BodyFrame->GetRelativeRotation().Pitch : GetActorRotation().Pitch;
 }
 
 FVector AFRBattleCharacter::GetProjectileLaunchDirection(float SpreadDegrees) const
@@ -1797,9 +1823,10 @@ FVector AFRBattleCharacter::GetProjectileLaunchDirection(float SpreadDegrees) co
 	const float RelativeAimDegrees = FMath::Clamp(AimAngle + SpreadDegrees, GetMinAimAngle(), GetMaxAimAngle());
 	const FRotator ActorRotation = GetActorRotation();
 	const bool bActorFacingLeft = FMath::IsNearlyEqual(FMath::Abs(FRotator::NormalizeAxis(ActorRotation.Yaw)), 180.0f);
+	const float BodyPitchDegrees = GetActorPitchDegrees();
 	const float WorldAngleDegrees = bActorFacingLeft
-		? ActorRotation.Pitch + 180.0f - RelativeAimDegrees
-		: ActorRotation.Pitch + RelativeAimDegrees;
+		? BodyPitchDegrees + 180.0f - RelativeAimDegrees
+		: BodyPitchDegrees + RelativeAimDegrees;
 	const float WorldAngleRadians = FMath::DegreesToRadians(WorldAngleDegrees);
 	return FVector(FMath::Cos(WorldAngleRadians), 0.0f, FMath::Sin(WorldAngleRadians)).GetSafeNormal();
 }
