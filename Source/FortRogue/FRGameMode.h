@@ -12,6 +12,7 @@
 class AFRBattleCharacter;
 class AFRDestructibleTerrain;
 class AFRProjectile;
+class AActor;
 class ACameraActor;
 class UFRCharacterDefinition;
 class UFRDefaultLoadoutDefinition;
@@ -20,6 +21,12 @@ class UFRGameModeDataAsset;
 class UFRTerrainMapDefinition;
 struct FFRStageDifficultyData;
 
+enum class EFRCameraControlMode : uint8
+{
+	Auto,
+	Manual
+};
+
 
 UCLASS()
 class FORTROGUE_API AFRGameMode : public AGameModeBase
@@ -27,6 +34,7 @@ class FORTROGUE_API AFRGameMode : public AGameModeBase
 	GENERATED_BODY()
 
 #if WITH_DEV_AUTOMATION_TESTS
+	friend class FFRGameModeCameraControlTest;
 	friend class FFRGameModeEnemyTurnContinuationTest;
 	friend class FFRTerrainGameModeMapDefinitionTest;
 #endif
@@ -111,6 +119,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")
 	float GetMaxCharacterSlopeDegrees() const { return MaxCharacterSlopeDegrees; }
 
+	void HandleManualCameraInput(const FVector2D& InputAxis, bool bAnyDirectionKeyDown, float DeltaSeconds);
+
 private:
 	void StartBattleRun();
 	void ApplyGameModeData(const UFRGameModeDataAsset* ModeData);
@@ -138,6 +148,7 @@ private:
 	void SetStatus(const FString& NewStatus);
 	void UpdateBattleCamera(float DeltaSeconds);
 	void ResetShotCameraState();
+	void RequestAutoCameraFocus(AActor* FocusActor, const FVector& FocusLocation, float ZOffset);
 	float GetInitialCameraOrthoWidth() const;
 	FRotator GetBattleCameraRotation() const;
 	FVector GetDesiredCameraLocation() const;
@@ -216,6 +227,9 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup", meta = (ToolTip = "카메라가 목표 위치로 따라가는 보간 속도입니다. 0이면 거의 따라가지 않고, 값이 클수록 빠르게 따라갑니다."))
 	float CameraFollowInterpSpeed = 4.5f;
 
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup", meta = (ClampMin = "0.0", ToolTip = "방향키로 수동 카메라를 이동하는 초당 월드 거리입니다."))
+	float CameraManualPanSpeed = 900.0f;
+
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup", meta = (ToolTip = "투사체를 따라갈 때 카메라가 투사체보다 위를 보도록 더하는 Z 오프셋입니다."))
 	float CameraProjectileZOffset = 120.0f;
 
@@ -232,8 +246,13 @@ private:
 	float MaxWind = 180.0f;
 
 	int32 CurrentStage = 1;
-	FVector LastImpactCameraLocation = FVector::ZeroVector;
-	bool bHoldingImpactCamera = false;
+	EFRCameraControlMode CameraControlMode = EFRCameraControlMode::Auto;
+	TWeakObjectPtr<AActor> AutoCameraFocusActor;
+	FVector AutoCameraFocusLocation = FVector::ZeroVector;
+	FVector ManualCameraLocation = FVector::ZeroVector;
+	float AutoCameraFocusZOffset = 0.0f;
+	bool bManualCameraInputHeld = false;
+	bool bManualCameraInputRequiresRelease = false;
 	FTimerHandle ShotResolutionTimerHandle;
 	bool bBattleStarted = false;
 };

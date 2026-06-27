@@ -1084,6 +1084,79 @@ bool FFRTerrainMapDefinitionImportTest::RunTest(const FString& Parameters)
 	return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFRGameModeCameraControlTest, "FortRogue.GameMode.CameraControl", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FFRGameModeCameraControlTest::RunTest(const FString& Parameters)
+{
+	UGameInstance* GameInstance = NewObject<UGameInstance>(GEngine);
+	UWorld* World = UWorld::CreateWorld(EWorldType::Game, false);
+	TestNotNull(TEXT("Camera test game instance is created"), GameInstance);
+	TestNotNull(TEXT("Camera test world is created"), World);
+	if (!GameInstance || !World)
+	{
+		return false;
+	}
+
+	World->SetShouldTick(false);
+	World->AddToRoot();
+	FWorldContext& WorldContext = GEngine->CreateNewWorldContext(EWorldType::Game);
+	WorldContext.OwningGameInstance = GameInstance;
+	World->SetGameInstance(GameInstance);
+	WorldContext.SetCurrentWorld(World);
+	GameInstance->Init();
+
+	auto CleanupWorld = [&World, &GameInstance]()
+	{
+		World->RemoveFromRoot();
+		GameInstance->Shutdown();
+		GEngine->DestroyWorldContext(World);
+		World->DestroyWorld(false);
+	};
+
+	FURL URL;
+	World->SetGameMode(URL);
+	AFRGameMode* GameMode = World->GetAuthGameMode<AFRGameMode>();
+	TestNotNull(TEXT("Camera test game mode is created"), GameMode);
+	if (!GameMode)
+	{
+		CleanupWorld();
+		return false;
+	}
+
+	GameMode->Terrain = World->SpawnActor<AFRDestructibleTerrain>();
+	GameMode->BattleCamera = World->SpawnActor<ACameraActor>(
+		ACameraActor::StaticClass(),
+		GameMode->CameraLocation,
+		GameMode->GetBattleCameraRotation());
+	TestNotNull(TEXT("Camera test terrain is spawned"), GameMode->Terrain.Get());
+	TestNotNull(TEXT("Camera test battle camera is spawned"), GameMode->BattleCamera.Get());
+	if (!GameMode->Terrain || !GameMode->BattleCamera)
+	{
+		CleanupWorld();
+		return false;
+	}
+
+	GameMode->Terrain->Width = 5000.0f;
+	GameMode->Terrain->Height = 2000.0f;
+	TestEqual(TEXT("Battle camera zoom stays independent from terrain size"), GameMode->GetInitialCameraOrthoWidth(), GameMode->CameraOrthoWidth);
+
+	GameMode->HandleManualCameraInput(FVector2D(0.0f, 1.0f), true, 0.1f);
+	TestEqual(TEXT("Fresh direction input switches the camera to manual"), GameMode->CameraControlMode, EFRCameraControlMode::Manual);
+	GameMode->RequestAutoCameraFocus(nullptr, FVector(0.0f, 0.0f, 700.0f), 0.0f);
+	TestEqual(TEXT("Auto focus interrupts manual camera control"), GameMode->CameraControlMode, EFRCameraControlMode::Auto);
+	TestTrue(TEXT("Auto focus blocks the direction input that was already held"), GameMode->bManualCameraInputRequiresRelease);
+	TestEqual(TEXT("Auto focus snaps to the requested height"), static_cast<float>(GameMode->BattleCamera->GetActorLocation().Z), 700.0f);
+
+	GameMode->HandleManualCameraInput(FVector2D(0.0f, 1.0f), true, 0.1f);
+	TestEqual(TEXT("Held direction input cannot interrupt auto focus"), GameMode->CameraControlMode, EFRCameraControlMode::Auto);
+	GameMode->HandleManualCameraInput(FVector2D::ZeroVector, false, 0.0f);
+	GameMode->HandleManualCameraInput(FVector2D(0.0f, 1.0f), true, 0.1f);
+	TestEqual(TEXT("Direction input can return to manual after release and press"), GameMode->CameraControlMode, EFRCameraControlMode::Manual);
+
+	CleanupWorld();
+	return true;
+}
+
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFRTerrainGameModeMapDefinitionTest, "FortRogue.Terrain.GameMode.UsesMapDefinition", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
 
 bool FFRTerrainGameModeMapDefinitionTest::RunTest(const FString& Parameters)

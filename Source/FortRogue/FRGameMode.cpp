@@ -25,8 +25,6 @@
 namespace
 {
 constexpr float TerrainCameraPadding = 240.0f;
-constexpr float MinimumTerrainCameraOrthoWidth = 1200.0f;
-constexpr float ExpectedWideViewportAspectRatio = 16.0f / 9.0f;
 constexpr int32 MaxRewardChoiceCount = 5;
 const FRotator BattleCameraRotation(0.0f, -90.0f, 0.0f);
 }
@@ -163,6 +161,7 @@ void AFRGameMode::ApplyGameModeData(const UFRGameModeDataAsset* ModeData)
 	CameraLocation = ModeData->CameraLocation;
 	CameraOrthoWidth = ModeData->CameraOrthoWidth;
 	CameraFollowInterpSpeed = ModeData->CameraFollowInterpSpeed;
+	CameraManualPanSpeed = ModeData->CameraManualPanSpeed;
 	CameraProjectileZOffset = ModeData->CameraProjectileZOffset;
 	CameraTurnZOffset = ModeData->CameraTurnZOffset;
 	ShotImpactCameraHoldSeconds = ModeData->ShotImpactCameraHoldSeconds;
@@ -186,6 +185,7 @@ void AFRGameMode::NotifyProjectileSpawned(AFRProjectile* Projectile, bool bIncre
 	if (Projectile)
 	{
 		ActiveProjectiles.Add(Projectile);
+		RequestAutoCameraFocus(Projectile, Projectile->GetActorLocation(), CameraProjectileZOffset);
 		if (AFRTurnBasedGameState* TurnState = GetTurnBasedGameState())
 		{
 			TurnState->RegisterProjectileSpawned(bIncreasePendingProjectileCount);
@@ -232,7 +232,6 @@ void AFRGameMode::NotifyProjectileResolved(AFRProjectile* Projectile)
 {
 	if (Projectile)
 	{
-		LastImpactCameraLocation = Projectile->GetActorLocation();
 		ActiveProjectiles.RemoveAll([Projectile](const TWeakObjectPtr<AFRProjectile>& ActiveProjectile)
 		{
 			return !ActiveProjectile.IsValid() || ActiveProjectile.Get() == Projectile;
@@ -245,9 +244,13 @@ void AFRGameMode::NotifyProjectileResolved(AFRProjectile* Projectile)
 		return;
 	}
 
+	if (Projectile)
+	{
+		RequestAutoCameraFocus(nullptr, Projectile->GetActorLocation(), CameraProjectileZOffset);
+	}
+
 	if (TurnState->RegisterProjectileResolved() == 0)
 	{
-		bHoldingImpactCamera = true;
 		GetWorldTimerManager().SetTimer(ShotResolutionTimerHandle, this, &AFRGameMode::FinishShotResolution, ShotImpactCameraHoldSeconds, false);
 	}
 }
@@ -457,6 +460,7 @@ void AFRGameMode::SpawnMVPBattle()
 	{
 		PlayerCharacter->ConfigureAsEnemy(false);
 	}
+	RequestAutoCameraFocus(PlayerCharacter, PlayerCharacter ? PlayerCharacter->GetActorLocation() : CameraLocation, CameraTurnZOffset);
 	const TSubclassOf<ACameraActor> ActualCameraClass = CameraClass ? CameraClass : TSubclassOf<ACameraActor>(ACameraActor::StaticClass());
 	BattleCamera = World->SpawnActor<ACameraActor>(ActualCameraClass, GetDesiredCameraLocation(), GetBattleCameraRotation());
 	if (BattleCamera && BattleCamera->GetCameraComponent())
@@ -520,7 +524,9 @@ void AFRGameMode::ClearBattleStage(bool bKeepPlayerCharacter)
 	{
 		TurnState->ResetShotResolution();
 	}
-	bHoldingImpactCamera = false;
+	AutoCameraFocusActor.Reset();
+	CameraControlMode = EFRCameraControlMode::Auto;
+	bManualCameraInputRequiresRelease = false;
 	for (AFRBattleCharacter* Enemy : EnemyCharacters)
 	{
 		if (Enemy)
@@ -710,6 +716,7 @@ void AFRGameMode::StartPlayerTurn()
 	{
 		TurnState->StartPlayerTurn(PlayerCharacter, FMath::RandRange(MinWind, MaxWind), FText::FromString(TEXT("Player turn")));
 	}
+	RequestAutoCameraFocus(PlayerCharacter, PlayerCharacter ? PlayerCharacter->GetActorLocation() : CameraLocation, CameraTurnZOffset);
 }
 
 void AFRGameMode::StartEnemyTurn()
@@ -719,6 +726,8 @@ void AFRGameMode::StartEnemyTurn()
 	{
 		TurnState->StartEnemyTurn(GetEnemyCharacters(), FMath::RandRange(MinWind, MaxWind), FText::FromString(TEXT("Enemy turn")));
 	}
+	AFRBattleCharacter* FocusEnemy = GetActiveEnemyTurnCharacter();
+	RequestAutoCameraFocus(FocusEnemy, FocusEnemy ? FocusEnemy->GetActorLocation() : CameraLocation, CameraTurnZOffset);
 
 	FTimerHandle EnemyTimerHandle;
 	GetWorldTimerManager().SetTimer(EnemyTimerHandle, this, &AFRGameMode::RunEnemyTurn, GetCurrentStageDifficulty().EnemyTurnDelaySeconds, false);
@@ -738,6 +747,7 @@ void AFRGameMode::RunEnemyTurn()
 		StartPlayerTurn();
 		return;
 	}
+	RequestAutoCameraFocus(ActingEnemy, ActingEnemy->GetActorLocation(), CameraTurnZOffset);
 
 	if (!ActingEnemy->SelectSpecialAttack())
 	{
@@ -910,10 +920,36 @@ void AFRGameMode::UpdateBattleCamera(float DeltaSeconds)
 	BattleCamera->SetActorRotation(GetBattleCameraRotation());
 }
 
+void AFRGameMode::HandleManualCameraInput(const FVector2D& InputAxis, bool bAnyDirectionKeyDown, float DeltaSeconds)
+{
+	bManualCameraInputHeld = bAnyDirectionKeyDown;
+	if (!bAnyDirectionKeyDown)
+	{
+		bManualCameraInputRequiresRelease = false;
+		return;
+	}
+
+	if (!BattleCamera || bManualCameraInputRequiresRelease || InputAxis.IsNearlyZero())
+	{
+		return;
+	}
+
+	if (CameraControlMode != EFRCameraControlMode::Manual)
+	{
+		CameraControlMode = EFRCameraControlMode::Manual;
+		ManualCameraLocation = BattleCamera->GetActorLocation();
+	}
+
+	const FVector2D ClampedInput = InputAxis.GetClampedToMaxSize(1.0f);
+	ManualCameraLocation.X += ClampedInput.X * CameraManualPanSpeed * DeltaSeconds;
+	ManualCameraLocation.Z += ClampedInput.Y * CameraManualPanSpeed * DeltaSeconds;
+	ManualCameraLocation.Y = CameraLocation.Y;
+	ManualCameraLocation = ClampCameraLocationToTerrainBounds(ManualCameraLocation);
+}
+
 void AFRGameMode::ResetShotCameraState()
 {
 	ActiveProjectiles.Reset();
-	bHoldingImpactCamera = false;
 	GetWorldTimerManager().ClearTimer(ShotResolutionTimerHandle);
 	if (AFRTurnBasedGameState* TurnState = GetTurnBasedGameState())
 	{
@@ -921,16 +957,24 @@ void AFRGameMode::ResetShotCameraState()
 	}
 }
 
+void AFRGameMode::RequestAutoCameraFocus(AActor* FocusActor, const FVector& FocusLocation, float ZOffset)
+{
+	CameraControlMode = EFRCameraControlMode::Auto;
+	AutoCameraFocusActor = FocusActor;
+	AutoCameraFocusLocation = FocusActor ? FocusActor->GetActorLocation() : FocusLocation;
+	AutoCameraFocusZOffset = ZOffset;
+	bManualCameraInputRequiresRelease = bManualCameraInputHeld;
+
+	if (BattleCamera)
+	{
+		BattleCamera->SetActorLocation(GetDesiredCameraLocation());
+		BattleCamera->SetActorRotation(GetBattleCameraRotation());
+	}
+}
+
 float AFRGameMode::GetInitialCameraOrthoWidth() const
 {
-	if (!Terrain)
-	{
-		return CameraOrthoWidth;
-	}
-
-	const float WidthFit = Terrain->Width + TerrainCameraPadding;
-	const float HeightFit = Terrain->Height * ExpectedWideViewportAspectRatio + TerrainCameraPadding;
-	return FMath::Max(MinimumTerrainCameraOrthoWidth, FMath::Max(WidthFit, HeightFit));
+	return FMath::Max(1.0f, CameraOrthoWidth);
 }
 
 FRotator AFRGameMode::GetBattleCameraRotation() const
@@ -940,6 +984,11 @@ FRotator AFRGameMode::GetBattleCameraRotation() const
 
 FVector AFRGameMode::GetDesiredCameraLocation() const
 {
+	if (CameraControlMode == EFRCameraControlMode::Manual)
+	{
+		return ClampCameraLocationToTerrainBounds(ManualCameraLocation);
+	}
+
 	FVector DesiredLocation = CameraLocation;
 	if (BattleCamera)
 	{
@@ -955,41 +1004,10 @@ FVector AFRGameMode::GetDesiredCameraLocation() const
 
 FVector AFRGameMode::GetCameraFocusLocation() const
 {
-	const EFRBattleState CurrentBattleState = GetBattleState();
-	if (CurrentBattleState == EFRBattleState::ResolvingShot)
-	{
-		for (const TWeakObjectPtr<AFRProjectile>& Projectile : ActiveProjectiles)
-		{
-			if (Projectile.IsValid())
-			{
-				const FVector ProjectileLocation = Projectile->GetActorLocation();
-				return FVector(ProjectileLocation.X, CameraLocation.Y, ProjectileLocation.Z + CameraProjectileZOffset);
-			}
-		}
-
-		if (bHoldingImpactCamera)
-		{
-			return FVector(LastImpactCameraLocation.X, CameraLocation.Y, LastImpactCameraLocation.Z + CameraProjectileZOffset);
-		}
-	}
-
-	const AFRBattleCharacter* FocusCharacter = nullptr;
-	if (CurrentBattleState == EFRBattleState::EnemyTurn)
-	{
-		FocusCharacter = GetActiveEnemyTurnCharacter();
-	}
-	else
-	{
-		FocusCharacter = PlayerCharacter;
-	}
-
-	if (FocusCharacter)
-	{
-		const FVector CharacterLocation = FocusCharacter->GetActorLocation();
-		return FVector(CharacterLocation.X, CameraLocation.Y, CharacterLocation.Z + CameraTurnZOffset);
-	}
-
-	return CameraLocation;
+	const FVector FocusLocation = AutoCameraFocusActor.IsValid()
+		? AutoCameraFocusActor->GetActorLocation()
+		: AutoCameraFocusLocation;
+	return FVector(FocusLocation.X, CameraLocation.Y, FocusLocation.Z + AutoCameraFocusZOffset);
 }
 
 FVector AFRGameMode::ClampCameraLocationToTerrainBounds(const FVector& DesiredLocation) const

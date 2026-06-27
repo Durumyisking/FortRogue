@@ -46,6 +46,7 @@ private:
 	void TickKeyboardWeaponInput();
 	void TickKeyboardItemInput();
 	void TickRewardInput();
+	void TickCameraInput(float DeltaSeconds);
 	void ApplyCurrentGameFlowMode();
 	UFRAbilitySystemComponent* GetPlayerAbilitySystemComponent() const;
 	void ProcessPlayerAbilityInput(float DeltaSeconds);

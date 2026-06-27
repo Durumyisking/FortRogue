@@ -121,6 +121,7 @@ void AFRPlayerController::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 
 	TickRewardInput();
+	TickCameraInput(DeltaSeconds);
 
 	if (HasEnhancedInputBindings())
 	{
@@ -257,6 +258,24 @@ void AFRPlayerController::TickRewardInput()
 	{
 		ChooseReward(4);
 	}
+}
+
+void AFRPlayerController::TickCameraInput(float DeltaSeconds)
+{
+	AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
+	if (!GameMode)
+	{
+		return;
+	}
+
+	const bool bLeftDown = IsInputKeyDown(EKeys::Left);
+	const bool bRightDown = IsInputKeyDown(EKeys::Right);
+	const bool bUpDown = IsInputKeyDown(EKeys::Up);
+	const bool bDownDown = IsInputKeyDown(EKeys::Down);
+	const FVector2D InputAxis(
+		(bRightDown ? 1.0f : 0.0f) - (bLeftDown ? 1.0f : 0.0f),
+		(bUpDown ? 1.0f : 0.0f) - (bDownDown ? 1.0f : 0.0f));
+	GameMode->HandleManualCameraInput(InputAxis, bLeftDown || bRightDown || bUpDown || bDownDown, DeltaSeconds);
 }
 
 void AFRPlayerController::StartMainGame()
