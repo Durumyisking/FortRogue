@@ -915,7 +915,9 @@ void AFRGameMode::UpdateBattleCamera(float DeltaSeconds)
 
 	const FVector CurrentLocation = BattleCamera->GetActorLocation();
 	const FVector DesiredLocation = GetDesiredCameraLocation();
-	const FVector NewLocation = FMath::VInterpTo(CurrentLocation, DesiredLocation, DeltaSeconds, CameraFollowInterpSpeed);
+	const FVector NewLocation = CameraControlMode == EFRCameraControlMode::Manual
+		? DesiredLocation
+		: FMath::VInterpTo(CurrentLocation, DesiredLocation, DeltaSeconds, CameraFollowInterpSpeed);
 	BattleCamera->SetActorLocation(NewLocation);
 	BattleCamera->SetActorRotation(GetBattleCameraRotation());
 }

@@ -1142,6 +1142,8 @@ bool FFRGameModeCameraControlTest::RunTest(const FString& Parameters)
 
 	GameMode->HandleManualCameraInput(FVector2D(0.0f, 1.0f), true, 0.1f);
 	TestEqual(TEXT("Fresh direction input switches the camera to manual"), GameMode->CameraControlMode, EFRCameraControlMode::Manual);
+	GameMode->UpdateBattleCamera(0.001f);
+	TestEqual(TEXT("Manual camera movement does not interpolate"), GameMode->BattleCamera->GetActorLocation(), GameMode->ManualCameraLocation);
 	GameMode->RequestAutoCameraFocus(nullptr, FVector(0.0f, 0.0f, 700.0f), 0.0f);
 	TestEqual(TEXT("Auto focus interrupts manual camera control"), GameMode->CameraControlMode, EFRCameraControlMode::Auto);
 	TestTrue(TEXT("Auto focus blocks the direction input that was already held"), GameMode->bManualCameraInputRequiresRelease);
