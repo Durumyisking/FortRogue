@@ -14,6 +14,7 @@
 #include "Rewards/FRRewardBlueprintLibrary.h"
 #include "Run/FRDefaultLoadoutDefinition.h"
 #include "Weapons/FRWeaponDefinition.h"
+#include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/WidgetComponent.h"
 #include "Engine/StaticMesh.h"
@@ -74,6 +75,15 @@ AFRBattleCharacter::AFRBattleCharacter()
 
 	BodyFrame = CreateDefaultSubobject<USceneComponent>(TEXT("BodyFrame"));
 	BodyFrame->SetupAttachment(Root);
+
+	Hurtbox = CreateDefaultSubobject<UBoxComponent>(TEXT("Hurtbox"));
+	Hurtbox->SetupAttachment(BodyFrame);
+	Hurtbox->InitBoxExtent(FVector(28.0f, 16.0f, 42.0f));
+	Hurtbox->SetRelativeLocation(FVector(0.0f, 0.0f, 45.0f));
+	Hurtbox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	Hurtbox->SetCollisionResponseToAllChannels(ECR_Ignore);
+	Hurtbox->SetGenerateOverlapEvents(false);
+	Hurtbox->SetCanEverAffectNavigation(false);
 
 	Body = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Body"));
 	Body->SetupAttachment(BodyFrame);
@@ -594,6 +604,44 @@ void AFRBattleCharacter::ApplyDamage(float DamageAmount)
 		SpawnFloatingDamageText(AppliedDamage);
 	}
 	RefreshStatusWidget();
+}
+
+bool AFRBattleCharacter::FindHurtboxImpactAlongSegmentXZ(const FVector& StartLocation, const FVector& EndLocation, FVector& OutImpactLocation) const
+{
+	if (!Hurtbox)
+	{
+		return false;
+	}
+
+	const float HurtboxWorldY = Hurtbox->GetComponentLocation().Y;
+	const FVector ProjectedStart(StartLocation.X, HurtboxWorldY, StartLocation.Z);
+	const FVector ProjectedEnd(EndLocation.X, HurtboxWorldY, EndLocation.Z);
+	FHitResult HitResult;
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(CharacterHurtbox), false);
+	if (!Hurtbox->LineTraceComponent(HitResult, ProjectedStart, ProjectedEnd, QueryParams))
+	{
+		return false;
+	}
+
+	OutImpactLocation = FMath::Lerp(StartLocation, EndLocation, HitResult.Time);
+	return true;
+}
+
+float AFRBattleCharacter::GetDistanceToHurtboxXZ(const FVector& WorldLocation) const
+{
+	if (!Hurtbox)
+	{
+		return FVector2D(WorldLocation.X - GetActorLocation().X, WorldLocation.Z - GetActorLocation().Z).Size();
+	}
+
+	const FVector ProjectedLocation(WorldLocation.X, Hurtbox->GetComponentLocation().Y, WorldLocation.Z);
+	FVector ClosestPoint = ProjectedLocation;
+	if (Hurtbox->GetClosestPointOnCollision(ProjectedLocation, ClosestPoint) < 0.0f)
+	{
+		return FVector2D(WorldLocation.X - GetActorLocation().X, WorldLocation.Z - GetActorLocation().Z).Size();
+	}
+
+	return FVector2D(WorldLocation.X - ClosestPoint.X, WorldLocation.Z - ClosestPoint.Z).Size();
 }
 
 void AFRBattleCharacter::ReevaluateTerrainSupport()

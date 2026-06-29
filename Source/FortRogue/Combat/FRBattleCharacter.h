@@ -18,6 +18,7 @@ class UFRCombatSet;
 class UFRDefaultLoadoutDefinition;
 class UFRBattleCharacterStatusWidget;
 class UWidgetComponent;
+class UBoxComponent;
 class UPaperFlipbookComponent;
 class UStaticMeshComponent;
 class UFRItemDefinition;
@@ -117,6 +118,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
 	void ApplyDamage(float DamageAmount);
+
+	bool FindHurtboxImpactAlongSegmentXZ(const FVector& StartLocation, const FVector& EndLocation, FVector& OutImpactLocation) const;
+	float GetDistanceToHurtboxXZ(const FVector& WorldLocation) const;
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
 	void ReevaluateTerrainSupport();
@@ -400,6 +404,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue")
 	TObjectPtr<USceneComponent> BodyFrame;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FortRogue|Combat", meta = (AllowPrivateAccess = "true", ToolTip = "투사체 직접 충돌과 폭발 거리 계산에 사용하는 피격 박스입니다. BodyFrame과 함께 발바닥 피벗을 기준으로 회전합니다."))
+	TObjectPtr<UBoxComponent> Hurtbox;
 
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue")
 	TObjectPtr<UStaticMeshComponent> Body;

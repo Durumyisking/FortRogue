@@ -13,6 +13,7 @@
 #include "Combat/FRTerrainMapDefinition.h"
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
+#include "Components/BoxComponent.h"
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -1834,6 +1835,15 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		{
 			TestEqual(TEXT("Battle character body frame is aligned to the character foot offset"), static_cast<float>(BodyFrame->GetRelativeLocation().Z), -45.0f);
 		}
+		UBoxComponent* Hurtbox = Cast<UBoxComponent>(Character->GetDefaultSubobjectByName(TEXT("Hurtbox")));
+		TestNotNull(TEXT("Battle character hurtbox exists"), Hurtbox);
+		if (Hurtbox)
+		{
+			TestTrue(TEXT("Battle character hurtbox is attached to the slope frame"), Hurtbox->GetAttachParent() == BodyFrame);
+			TestEqual(TEXT("Battle character hurtbox only participates in queries"), Hurtbox->GetCollisionEnabled(), ECollisionEnabled::QueryOnly);
+			TestEqual(TEXT("Battle character hurtbox is centered above the foot pivot"), static_cast<float>(Hurtbox->GetRelativeLocation().Z), 45.0f);
+			TestEqual(TEXT("Battle character hurtbox has the default inset extent"), Hurtbox->GetUnscaledBoxExtent(), FVector(28.0f, 16.0f, 42.0f));
+		}
 		UPaperFlipbookComponent* BodySprite = Cast<UPaperFlipbookComponent>(Character->GetDefaultSubobjectByName(TEXT("BodySprite")));
 		TestNotNull(TEXT("Battle character sprite component exists"), BodySprite);
 		if (BodySprite)
@@ -2242,7 +2252,9 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		{
 			TestTrue(TEXT("Facing change with exhausted movement budget launches left"), ExhaustedTurnProjectile->GetActorLocation().X < ExhaustedCharacterX);
 			const FRotator ExhaustedActorRotation = ExhaustedTurnCharacter->GetActorRotation();
-			const float ExpectedLeftLaunchAngleDegrees = ExhaustedActorRotation.Pitch + 180.0f - 45.0f;
+			const USceneComponent* ExhaustedBodyFrame = Cast<USceneComponent>(ExhaustedTurnCharacter->GetDefaultSubobjectByName(TEXT("BodyFrame")));
+			const float BodyPitchDegrees = ExhaustedBodyFrame ? ExhaustedBodyFrame->GetRelativeRotation().Pitch : ExhaustedActorRotation.Pitch;
+			const float ExpectedLeftLaunchAngleDegrees = BodyPitchDegrees + 180.0f - 45.0f;
 			const FVector ExpectedLeftLaunchDirection(FMath::Cos(FMath::DegreesToRadians(ExpectedLeftLaunchAngleDegrees)), 0.0f, FMath::Sin(FMath::DegreesToRadians(ExpectedLeftLaunchAngleDegrees)));
 			const FVector ExpectedProjectileSpawnLocation = ExhaustedTurnCharacter->GetActorLocation() + ExpectedLeftLaunchDirection * 70.0f + FVector(0.0f, 0.0f, 35.0f);
 			TestTrue(TEXT("Projectile and trajectory start from the character launch offset"), ExhaustedTurnProjectile->GetActorLocation().Equals(ExpectedProjectileSpawnLocation, 0.1));
@@ -2401,12 +2413,114 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 			TestNotNull(TEXT("Fast character projectile is spawned"), FastCharacterProjectile);
 			if (FastCharacterProjectile)
 			{
+				UBoxComponent* TargetHurtbox = Cast<UBoxComponent>(FastProjectileTarget->GetDefaultSubobjectByName(TEXT("Hurtbox")));
+				const float ExpectedImpactX = TargetHurtbox
+					? TargetHurtbox->GetComponentLocation().X - TargetHurtbox->GetScaledBoxExtent().X
+					: FastProjectileTarget->GetActorLocation().X;
 				FastCharacterProjectile->InitializeProjectile(nullptr, FastProjectileTerrain, FVector(1940.0f, 0.0f, 0.0f), 20.0f, 30.0f, 50.0f, 20.0f, 0.0f);
 				FastCharacterProjectile->Tick(0.1f);
 				TestEqual(TEXT("Direct hit applies hit plus full explosion damage"), FastProjectileTarget->GetHealth(), TargetHealthBeforeHit - 50.0f);
+				if (TargetHurtbox)
+				{
+					TestTrue(TEXT("Fast projectile resolves at the first hurtbox face"), FMath::IsNearlyEqual(static_cast<float>(FastCharacterProjectile->GetActorLocation().X), ExpectedImpactX, 0.1f));
+				}
 				TestTrue(TEXT("Later terrain remains solid when the earlier character is hit"), FastProjectileTerrain->IsSolidAtWorldLocation(FVector(305.0f, 0.0f, 35.0f)));
 			}
 			FastProjectileTarget->Destroy();
+		}
+
+		UFRTerrainMapDefinition* SurfaceImpactMap = NewObject<UFRTerrainMapDefinition>();
+		SurfaceImpactMap->Resize(12, 3);
+		SurfaceImpactMap->CellSize = 10.0f;
+		SurfaceImpactMap->Clear(false);
+		SurfaceImpactMap->FillRect(0, 0, 11, 0, true);
+		AFRDestructibleTerrain* SurfaceImpactTerrain = World->SpawnActorDeferred<AFRDestructibleTerrain>(
+			AFRDestructibleTerrain::StaticClass(),
+			FTransform(FRotator::ZeroRotator, FVector(15000.0f, 0.0f, 0.0f)));
+		TestNotNull(TEXT("Surface-impact terrain is spawned"), SurfaceImpactTerrain);
+		if (SurfaceImpactTerrain)
+		{
+			SurfaceImpactTerrain->MapDefinition = SurfaceImpactMap;
+			UGameplayStatics::FinishSpawningActor(SurfaceImpactTerrain, FTransform(FRotator::ZeroRotator, FVector(15000.0f, 0.0f, 0.0f)));
+			const FVector RightFaceTerrainCell(15025.0f, 0.0f, 5.0f);
+			TestTrue(TEXT("Terrain beside the target starts solid"), SurfaceImpactTerrain->IsSolidAtWorldLocation(RightFaceTerrainCell));
+
+			AFRBattleCharacter* SurfaceImpactTarget = World->SpawnActor<AFRBattleCharacter>(AFRBattleCharacter::StaticClass(), FVector(15000.0f, 500.0f, 14.0f), FRotator::ZeroRotator, SpawnParams);
+			TestNotNull(TEXT("Surface-impact target is spawned"), SurfaceImpactTarget);
+			if (SurfaceImpactTarget)
+			{
+				SurfaceImpactTarget->SetActorLocation(FVector(15000.0f, 500.0f, 14.0f));
+			}
+			UBoxComponent* SurfaceImpactHurtbox = SurfaceImpactTarget
+				? Cast<UBoxComponent>(SurfaceImpactTarget->GetDefaultSubobjectByName(TEXT("Hurtbox")))
+				: nullptr;
+			TestNotNull(TEXT("Surface-impact target has a hurtbox"), SurfaceImpactHurtbox);
+			if (SurfaceImpactTarget && SurfaceImpactHurtbox)
+			{
+				const FVector BoxExtent = SurfaceImpactHurtbox->GetUnscaledBoxExtent();
+				const FVector ExpectedRightFace = SurfaceImpactHurtbox->GetComponentTransform().TransformPosition(FVector(BoxExtent.X, 0.0f, 0.0f));
+				const float TargetHealthBeforeSurfaceImpact = SurfaceImpactTarget->GetHealth();
+				AFRProjectile* SurfaceImpactProjectile = World->SpawnActor<AFRProjectile>(
+					AFRProjectile::StaticClass(),
+					FVector(ExpectedRightFace.X + 50.0f, 0.0f, ExpectedRightFace.Z),
+					FRotator::ZeroRotator,
+					SpawnParams);
+				TestNotNull(TEXT("Right-face projectile is spawned"), SurfaceImpactProjectile);
+				if (SurfaceImpactProjectile)
+				{
+					SurfaceImpactProjectile->InitializeProjectile(nullptr, SurfaceImpactTerrain, FVector(-1000.0f, 0.0f, 0.0f), 20.0f, 0.0f, 0.0f, 0.0f, 0.0f, 12.0f);
+					SurfaceImpactProjectile->Tick(0.1f);
+					TestEqual(TEXT("Right-face direct hit applies point damage"), SurfaceImpactTarget->GetHealth(), TargetHealthBeforeSurfaceImpact - 20.0f);
+					TestTrue(TEXT("Projectile explosion origin stays on the right hurtbox face"), FMath::IsNearlyEqual(static_cast<float>(SurfaceImpactProjectile->GetActorLocation().X), static_cast<float>(ExpectedRightFace.X), 0.1f));
+					TestFalse(TEXT("Terrain damage is centered on the right hurtbox contact"), SurfaceImpactTerrain->IsSolidAtWorldLocation(RightFaceTerrainCell));
+				}
+			}
+		}
+
+		AFRBattleCharacter* RotatedHurtboxTarget = World->SpawnActor<AFRBattleCharacter>(AFRBattleCharacter::StaticClass(), FVector(17000.0f, 700.0f, 2000.0f), FRotator::ZeroRotator, SpawnParams);
+		TestNotNull(TEXT("Rotated hurtbox target is spawned"), RotatedHurtboxTarget);
+		if (RotatedHurtboxTarget)
+		{
+			RotatedHurtboxTarget->SetActorLocation(FVector(17000.0f, 700.0f, 2000.0f));
+		}
+		USceneComponent* RotatedBodyFrame = RotatedHurtboxTarget
+			? Cast<USceneComponent>(RotatedHurtboxTarget->GetDefaultSubobjectByName(TEXT("BodyFrame")))
+			: nullptr;
+		UBoxComponent* RotatedHurtbox = RotatedHurtboxTarget
+			? Cast<UBoxComponent>(RotatedHurtboxTarget->GetDefaultSubobjectByName(TEXT("Hurtbox")))
+			: nullptr;
+		TestNotNull(TEXT("Rotated target has a body frame"), RotatedBodyFrame);
+		TestNotNull(TEXT("Rotated target has a hurtbox"), RotatedHurtbox);
+		if (RotatedHurtboxTarget && RotatedBodyFrame && RotatedHurtbox)
+		{
+			RotatedBodyFrame->SetRelativeRotation(FRotator(35.0f, 0.0f, 0.0f));
+			const FVector BoxExtent = RotatedHurtbox->GetUnscaledBoxExtent();
+			const FTransform HurtboxTransform = RotatedHurtbox->GetComponentTransform();
+			const FVector ExpectedImpact = HurtboxTransform.TransformPosition(FVector(BoxExtent.X, 0.0f, 0.0f));
+			FVector SegmentStart = HurtboxTransform.TransformPosition(FVector(BoxExtent.X + 60.0f, 0.0f, 0.0f));
+			FVector SegmentEnd = HurtboxTransform.TransformPosition(FVector(-BoxExtent.X - 60.0f, 0.0f, 0.0f));
+			SegmentStart.Y = 0.0f;
+			SegmentEnd.Y = 0.0f;
+			FVector QueriedImpact = FVector::ZeroVector;
+			TestTrue(TEXT("Rotated hurtbox intersects a high-speed XZ segment"), RotatedHurtboxTarget->FindHurtboxImpactAlongSegmentXZ(SegmentStart, SegmentEnd, QueriedImpact));
+			TestTrue(TEXT("Rotated hurtbox reports its actual surface contact"), FVector2D(QueriedImpact.X, QueriedImpact.Z).Equals(FVector2D(ExpectedImpact.X, ExpectedImpact.Z), 0.1f));
+			const FVector OutsidePoint = HurtboxTransform.TransformPosition(FVector(BoxExtent.X + 20.0f, 0.0f, 0.0f));
+			TestTrue(TEXT("Hurtbox distance is measured from the rotated surface"), FMath::IsNearlyEqual(RotatedHurtboxTarget->GetDistanceToHurtboxXZ(OutsidePoint), 20.0f, 0.1f));
+
+			const float TargetHealthBeforeRotatedHit = RotatedHurtboxTarget->GetHealth();
+			AFRProjectile* RotatedHurtboxProjectile = World->SpawnActor<AFRProjectile>(AFRProjectile::StaticClass(), SegmentStart, FRotator::ZeroRotator, SpawnParams);
+			TestNotNull(TEXT("Rotated hurtbox projectile is spawned"), RotatedHurtboxProjectile);
+			if (RotatedHurtboxProjectile)
+			{
+				constexpr float RotatedProjectileDeltaSeconds = 0.1f;
+				const float Wind = RuntimeGameMode ? RuntimeGameMode->GetWind() : 0.0f;
+				const FVector InitialVelocity = (SegmentEnd - SegmentStart) / RotatedProjectileDeltaSeconds
+					- FVector(Wind * RotatedProjectileDeltaSeconds, 0.0f, 0.0f);
+				RotatedHurtboxProjectile->InitializeProjectile(nullptr, nullptr, InitialVelocity, 20.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+				RotatedHurtboxProjectile->Tick(RotatedProjectileDeltaSeconds);
+				TestEqual(TEXT("High-speed projectile damages the rotated hurtbox target"), RotatedHurtboxTarget->GetHealth(), TargetHealthBeforeRotatedHit - 20.0f);
+				TestTrue(TEXT("High-speed projectile resolves on the rotated hurtbox face"), FVector2D(RotatedHurtboxProjectile->GetActorLocation().X, RotatedHurtboxProjectile->GetActorLocation().Z).Equals(FVector2D(ExpectedImpact.X, ExpectedImpact.Z), 0.1f));
+			}
 		}
 
 		AFRBattleCharacter* ProjectileOwner = World->SpawnActor<AFRBattleCharacter>(AFRBattleCharacter::StaticClass(), FVector(9000.0f, 0.0f, 2000.0f), FRotator::ZeroRotator, SpawnParams);
@@ -2438,11 +2552,11 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 			}
 		}
 
-		AFRBattleCharacter* ExplosionFalloffTarget = World->SpawnActor<AFRBattleCharacter>(AFRBattleCharacter::StaticClass(), FVector(340.0f, 500.0f, 35.0f), FRotator::ZeroRotator, SpawnParams);
+		AFRBattleCharacter* ExplosionFalloffTarget = World->SpawnActor<AFRBattleCharacter>(AFRBattleCharacter::StaticClass(), FVector(380.0f, 500.0f, 35.0f), FRotator::ZeroRotator, SpawnParams);
 		TestNotNull(TEXT("Explosion falloff target is spawned behind the wall"), ExplosionFalloffTarget);
 		if (ExplosionFalloffTarget)
 		{
-			ExplosionFalloffTarget->SetActorLocation(FVector(340.0f, 500.0f, 35.0f));
+			ExplosionFalloffTarget->SetActorLocation(FVector(380.0f, 500.0f, 35.0f));
 			const FVector ExplosionFalloffTargetLocation = ExplosionFalloffTarget->GetActorLocation();
 			const float TargetHealthBeforeExplosion = ExplosionFalloffTarget->GetHealth();
 			AFRProjectile* ExplosionFalloffProjectile = World->SpawnActor<AFRProjectile>(AFRProjectile::StaticClass(), FVector(280.0f, 0.0f, 35.0f), FRotator::ZeroRotator, SpawnParams);
@@ -2451,11 +2565,13 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 			{
 				FVector ExplosionFalloffImpactLocation = FVector::ZeroVector;
 				TestTrue(TEXT("Explosion falloff projectile hits terrain before the target"), FastProjectileTerrain->FindFirstSolidAlongWorldSegment(FVector(280.0f, 0.0f, 35.0f), FVector(397.0f, 0.0f, 35.0f), ExplosionFalloffImpactLocation));
+				const float ExplosionFalloffDistance = ExplosionFalloffTarget->GetDistanceToHurtboxXZ(ExplosionFalloffImpactLocation);
+				const float CenterDistance = FVector2D(ExplosionFalloffTargetLocation.X - ExplosionFalloffImpactLocation.X, ExplosionFalloffTargetLocation.Z - ExplosionFalloffImpactLocation.Z).Size();
 				ExplosionFalloffProjectile->InitializeProjectile(nullptr, FastProjectileTerrain, FVector(1170.0f, 0.0f, 0.0f), 0.0f, 80.0f, 100.0f, 25.0f, 0.0f);
 				ExplosionFalloffProjectile->Tick(0.1f);
-				const float ExplosionFalloffDistance = FVector2D(ExplosionFalloffTargetLocation.X - ExplosionFalloffImpactLocation.X, ExplosionFalloffTargetLocation.Z - ExplosionFalloffImpactLocation.Z).Size();
 				const float ExpectedExplosionFalloffDamage = FMath::Lerp(80.0f, 0.0f, FMath::Clamp((ExplosionFalloffDistance - 25.0f) / 75.0f, 0.0f, 1.0f));
-				TestTrue(TEXT("Explosion damage falls off from full radius to the blast edge"), FMath::IsNearlyEqual(ExplosionFalloffTarget->GetHealth(), TargetHealthBeforeExplosion - ExpectedExplosionFalloffDamage, 1.0f));
+				TestTrue(TEXT("Explosion uses the closest hurtbox point instead of the actor center"), ExplosionFalloffDistance < CenterDistance);
+				TestTrue(TEXT("Explosion damage falls off from the hurtbox surface to the blast edge"), FMath::IsNearlyEqual(ExplosionFalloffTarget->GetHealth(), TargetHealthBeforeExplosion - ExpectedExplosionFalloffDamage, 1.0f));
 				TestTrue(TEXT("Zero terrain damage leaves impacted terrain intact"), FastProjectileTerrain->IsSolidAtWorldLocation(FVector(305.0f, 0.0f, 35.0f)));
 			}
 		}

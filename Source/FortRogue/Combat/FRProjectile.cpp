@@ -13,8 +13,6 @@
 
 namespace
 {
-constexpr float CharacterHitRadius = 34.0f;
-
 float GetSegmentAlphaXZ(const FVector& StartLocation, const FVector& EndLocation, const FVector& TestLocation)
 {
 	const FVector2D Segment(EndLocation.X - StartLocation.X, EndLocation.Z - StartLocation.Z);
@@ -28,20 +26,6 @@ float GetSegmentAlphaXZ(const FVector& StartLocation, const FVector& EndLocation
 	return FMath::Clamp(FVector2D::DotProduct(ToTest, Segment) / SegmentLengthSq, 0.0f, 1.0f);
 }
 
-FVector GetClosestPointOnSegmentXZ(const FVector& StartLocation, const FVector& EndLocation, const FVector& TestLocation)
-{
-	return FMath::Lerp(StartLocation, EndLocation, GetSegmentAlphaXZ(StartLocation, EndLocation, TestLocation));
-}
-
-float GetDistanceXZ(const FVector& First, const FVector& Second)
-{
-	return FVector2D(First.X - Second.X, First.Z - Second.Z).Size();
-}
-
-float GetDistanceSquaredXZ(const FVector& First, const FVector& Second)
-{
-	return FVector2D(First.X - Second.X, First.Z - Second.Z).SizeSquared();
-}
 }
 
 AFRProjectile::AFRProjectile()
@@ -187,10 +171,10 @@ void AFRProjectile::Tick(float DeltaSeconds)
 			continue;
 		}
 
-		const FVector ClosestPoint = GetClosestPointOnSegmentXZ(OldLocation, NewLocation, Character->GetActorLocation());
-		if (GetDistanceSquaredXZ(Character->GetActorLocation(), ClosestPoint) <= FMath::Square(CharacterHitRadius))
+		FVector CharacterImpactLocation = FVector::ZeroVector;
+		if (Character->FindHurtboxImpactAlongSegmentXZ(OldLocation, NewLocation, CharacterImpactLocation))
 		{
-			ConsiderImpact(ClosestPoint, Character);
+			ConsiderImpact(CharacterImpactLocation, Character);
 		}
 	}
 
@@ -297,7 +281,7 @@ void AFRProjectile::ResolveImpact(const FVector& ImpactLocation, AFRBattleCharac
 			continue;
 		}
 
-		const float Distance = GetDistanceXZ(Character->GetActorLocation(), ImpactLocation);
+		const float Distance = Character->GetDistanceToHurtboxXZ(ImpactLocation);
 		float TotalDamage = 0.0f;
 		if (Character == DirectHitCharacter)
 		{
