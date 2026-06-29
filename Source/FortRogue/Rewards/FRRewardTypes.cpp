@@ -367,3 +367,20 @@ FText FFRRewardChoice::GetRewardTagConditionFailureSummary(const FGameplayTagCon
 	}
 	return FText::GetEmpty();
 }
+
+bool FFRRewardChoice::MatchesPerkCategoryFilter(const FGameplayTagContainer& RequiredCategoryTags, const FGameplayTagContainer& BlockedCategoryTags) const
+{
+	if (Type != EFRRewardType::Trait)
+	{
+		return true;
+	}
+	if (!PerkReward)
+	{
+		return RequiredCategoryTags.IsEmpty();
+	}
+	if (!PerkReward->HasAllCategoryTags(RequiredCategoryTags))
+	{
+		return false;
+	}
+	return BlockedCategoryTags.IsEmpty() || !PerkReward->HasAnyCategoryTags(BlockedCategoryTags);
+}

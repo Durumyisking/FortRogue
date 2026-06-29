@@ -61,6 +61,7 @@ struct FFRRewardChoice
 	FText GetDataValidationSummary() const;
 	bool MeetsRewardTagConditions(const FGameplayTagContainer& ChosenRewardTags) const;
 	FText GetRewardTagConditionFailureSummary(const FGameplayTagContainer& ChosenRewardTags) const;
+	bool MatchesPerkCategoryFilter(const FGameplayTagContainer& RequiredCategoryTags, const FGameplayTagContainer& BlockedCategoryTags) const;
 };
 
 FORTROGUE_API FText GetFortRogueShotModifierEffectSummary(const TArray<FFRShotModifierSpec>& ShotModifiers);

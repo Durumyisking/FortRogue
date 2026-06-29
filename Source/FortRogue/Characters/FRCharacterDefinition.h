@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Engine/DataAsset.h"
+#include "GameplayTagContainer.h"
 #include "Items/FRItemDefinition.h"
 #include "FRCharacterDefinition.generated.h"
 
@@ -42,6 +43,12 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities", meta = (ToolTip = "전투 시작 시 이 캐릭터에게 자동으로 부여할 AbilitySet 목록입니다."))
 	TArray<TObjectPtr<UFRAbilitySet>> StartupAbilitySets;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Perks", meta = (Categories = "Trait.Category", ToolTip = "비어 있지 않으면 모든 태그를 가진 Perk만 이 캐릭터의 보상 후보가 됩니다. 무기와 아이템 보상에는 적용되지 않습니다."))
+	FGameplayTagContainer RequiredPerkCategoryTags;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Perks", meta = (Categories = "Trait.Category", ToolTip = "하나라도 가진 Perk을 이 캐릭터의 보상 후보에서 제외합니다. 무기와 아이템 보상에는 적용되지 않습니다."))
+	FGameplayTagContainer BlockedPerkCategoryTags;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attacks", meta = (ToolTip = "모든 직업이 공유하는 기본 공격입니다. WeaponDefinition과 같은 샷 데이터 구조를 사용합니다."))
 	TObjectPtr<UFRWeaponDefinition> BasicAttackDefinition;

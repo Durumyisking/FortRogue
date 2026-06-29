@@ -52,6 +52,7 @@ namespace FRGameplayTags
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ShotEffect_SplitOnImpact, "ShotEffect.SplitOnImpact", "Shot effect for projectiles that split after impact.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ShotEffect_TerrainCreate, "ShotEffect.TerrainCreate", "Shot effect for projectiles that create terrain.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ShotEffect_TerrainColumn, "ShotEffect.TerrainColumn", "Shot effect for projectiles that create a vertical terrain column.");
+	UE_DEFINE_GAMEPLAY_TAG_COMMENT(ShotEffect_Knockback, "ShotEffect.Knockback", "Projectile pushes a directly hit character.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Item_AttackAmp, "Item.AttackAmp", "Consumable item that boosts a future shot.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Item_Repair, "Item.Repair", "Consumable repair item.");
 	UE_DEFINE_GAMEPLAY_TAG_COMMENT(Item_NextShot, "Item.NextShot", "Consumable item that grants a next-shot modifier.");

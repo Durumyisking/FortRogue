@@ -73,6 +73,14 @@ bool FFRShotModifierSpec::MeetsShotConditions(const FFRShotSpec& CurrentShotSpec
 			return false;
 		}
 	}
+	if (bRequireWindOpposed)
+	{
+		const float ShotDirection = bShotFacingRight ? 1.0f : -1.0f;
+		if (FMath::Abs(Wind) < MinWindMagnitude || Wind * ShotDirection >= 0.0f)
+		{
+			return false;
+		}
+	}
 	const FGameplayTagContainer ShotConditionTags = BuildShotConditionTags(CurrentShotSpec);
 	if (!RequiredShotTags.IsEmpty() && !ShotConditionTags.HasAll(RequiredShotTags))
 	{
@@ -104,6 +112,14 @@ FText FFRShotModifierSpec::GetShotConditionFailureSummary(const FFRShotSpec& Cur
 			return FText::FromString(MinWindMagnitude > 0.0f ? FString::Printf(TEXT("requires aligned wind %.0f+"), MinWindMagnitude) : FString(TEXT("requires aligned wind")));
 		}
 	}
+	if (bRequireWindOpposed)
+	{
+		const float ShotDirection = bShotFacingRight ? 1.0f : -1.0f;
+		if (FMath::Abs(Wind) < MinWindMagnitude || Wind * ShotDirection >= 0.0f)
+		{
+			return FText::FromString(MinWindMagnitude > 0.0f ? FString::Printf(TEXT("requires opposed wind %.0f+"), MinWindMagnitude) : FString(TEXT("requires opposed wind")));
+		}
+	}
 	const FGameplayTagContainer ShotConditionTags = BuildShotConditionTags(CurrentShotSpec);
 	if (!RequiredShotTags.IsEmpty() && !ShotConditionTags.HasAll(RequiredShotTags))
 	{
@@ -128,7 +144,10 @@ void FFRShotModifierSpec::ApplyToShotSpec(FFRShotSpec& ShotSpec) const
 	for (const FFRProjectileEffectSpec& ProjectileEffect : ProjectileEffects)
 	{
 		ProjectileEffect.ApplyToShotSpec(ShotSpec);
-		ShotSpec.ProjectileEffects.Add(ProjectileEffect);
+		if (ProjectileEffect.RequiresProjectileRuntime())
+		{
+			ShotSpec.ProjectileEffects.Add(ProjectileEffect);
+		}
 	}
 }
 
@@ -155,6 +174,10 @@ FText FFRShotModifierSpec::GetDataValidationSummary() const
 	if (bUseAimAngleRange && MinAimAngle > MaxAimAngle)
 	{
 		AddShotModifierValidationIssue(Issues, TEXT("aim range min is greater than max"));
+	}
+	if (bRequireWindAligned && bRequireWindOpposed)
+	{
+		AddShotModifierValidationIssue(Issues, TEXT("wind cannot require aligned and opposed directions together"));
 	}
 	if (!RequiredShotTags.IsEmpty() && !BlockedShotTags.IsEmpty() && RequiredShotTags.HasAny(BlockedShotTags))
 	{

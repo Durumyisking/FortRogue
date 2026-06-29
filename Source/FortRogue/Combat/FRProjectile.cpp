@@ -271,7 +271,8 @@ void AFRProjectile::ResolveImpact(const FVector& ImpactLocation, AFRBattleCharac
 	{
 		ApplyDefaultTerrainImpact(ImpactLocation);
 	}
-	ApplyProjectileEffects(ImpactLocation);
+	const FFRProjectileEffectImpactContext EffectContext = BuildProjectileEffectContext(ImpactLocation, DirectHitCharacter);
+	ApplyProjectileEffects(EffectContext);
 
 	for (TActorIterator<AFRBattleCharacter> It(GetWorld()); It; ++It)
 	{
@@ -301,6 +302,8 @@ void AFRProjectile::ResolveImpact(const FVector& ImpactLocation, AFRBattleCharac
 
 		Character->ReevaluateTerrainSupport();
 	}
+
+	ApplyProjectilePostImpactEffects(EffectContext);
 
 	if (AFRGameMode* GameMode = GetWorld()->GetAuthGameMode<AFRGameMode>())
 	{
@@ -370,17 +373,13 @@ bool AFRProjectile::CanAffectCharacter(const AFRBattleCharacter* Character) cons
 	return Character != OwnerCharacter && Character->IsEnemy() != OwnerCharacter->IsEnemy();
 }
 
-void AFRProjectile::ApplyProjectileEffects(const FVector& ImpactLocation)
+FFRProjectileEffectImpactContext AFRProjectile::BuildProjectileEffectContext(const FVector& ImpactLocation, AFRBattleCharacter* DirectHitCharacter) const
 {
-	if (ProjectileEffects.Num() <= 0)
-	{
-		return;
-	}
-
 	FFRProjectileEffectImpactContext Context;
 	Context.World = GetWorld();
-	Context.Projectile = this;
+	Context.Projectile = const_cast<AFRProjectile*>(this);
 	Context.OwnerCharacter = OwnerCharacter;
+	Context.DirectHitCharacter = DirectHitCharacter;
 	Context.AssignedTerrain = AssignedTerrain;
 	Context.ImpactLocation = ImpactLocation;
 	Context.Velocity = Velocity;
@@ -393,10 +392,23 @@ void AFRProjectile::ApplyProjectileEffects(const FVector& ImpactLocation)
 	Context.TerrainDamage = TerrainDamage;
 	Context.TerrainFillRadius = TerrainFillRadius;
 	Context.Gravity = Gravity;
+	Context.RuntimeEffects = &ProjectileEffects;
+	return Context;
+}
 
+void AFRProjectile::ApplyProjectileEffects(const FFRProjectileEffectImpactContext& Context)
+{
 	for (const FFRProjectileEffectSpec& ProjectileEffect : ProjectileEffects)
 	{
 		ProjectileEffect.HandleImpact(Context);
+	}
+}
+
+void AFRProjectile::ApplyProjectilePostImpactEffects(const FFRProjectileEffectImpactContext& Context)
+{
+	for (const FFRProjectileEffectSpec& ProjectileEffect : ProjectileEffects)
+	{
+		ProjectileEffect.HandlePostImpact(Context);
 	}
 }
 

@@ -19,6 +19,7 @@ struct FFRProjectileEffectImpactContext
 	UWorld* World = nullptr;
 	AFRProjectile* Projectile = nullptr;
 	AFRBattleCharacter* OwnerCharacter = nullptr;
+	AFRBattleCharacter* DirectHitCharacter = nullptr;
 	AFRDestructibleTerrain* AssignedTerrain = nullptr;
 	FVector ImpactLocation = FVector::ZeroVector;
 	FVector Velocity = FVector::ZeroVector;
@@ -31,6 +32,7 @@ struct FFRProjectileEffectImpactContext
 	float TerrainDamage = 0.0f;
 	float TerrainFillRadius = 0.0f;
 	float Gravity = 0.0f;
+	const TArray<FFRProjectileEffectSpec>* RuntimeEffects = nullptr;
 };
 
 USTRUCT(BlueprintType)
@@ -48,6 +50,8 @@ public:
 	virtual const UScriptStruct* GetParameterStruct() const;
 	virtual void ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFRShotSpec& ShotSpec) const;
 	virtual void HandleImpact(const FFRProjectileEffectSpec& EffectSpec, const FFRProjectileEffectImpactContext& Context) const;
+	virtual void HandlePostImpact(const FFRProjectileEffectSpec& EffectSpec, const FFRProjectileEffectImpactContext& Context) const;
+	virtual bool RequiresProjectileRuntime(const FFRProjectileEffectSpec& EffectSpec) const;
 	virtual bool UsesCustomTerrainImpact(const FFRProjectileEffectSpec& EffectSpec) const;
 	virtual void AddDataValidationIssues(const FFRProjectileEffectSpec& EffectSpec, TArray<FString>& Issues) const;
 };
@@ -70,6 +74,8 @@ struct FORTROGUE_API FFRProjectileEffectSpec
 	bool EnsureParametersMatchEffectClass();
 	void ApplyToShotSpec(FFRShotSpec& ShotSpec) const;
 	void HandleImpact(const FFRProjectileEffectImpactContext& Context) const;
+	void HandlePostImpact(const FFRProjectileEffectImpactContext& Context) const;
+	bool RequiresProjectileRuntime() const;
 	bool UsesCustomTerrainImpact() const;
 	FText GetDataValidationSummary() const;
 
@@ -107,6 +113,7 @@ public:
 	virtual const UScriptStruct* GetParameterStruct() const override;
 	virtual void ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFRShotSpec& ShotSpec) const override;
 	virtual void HandleImpact(const FFRProjectileEffectSpec& EffectSpec, const FFRProjectileEffectImpactContext& Context) const override;
+	virtual bool RequiresProjectileRuntime(const FFRProjectileEffectSpec& EffectSpec) const override;
 	virtual bool UsesCustomTerrainImpact(const FFRProjectileEffectSpec& EffectSpec) const override;
 	virtual void AddDataValidationIssues(const FFRProjectileEffectSpec& EffectSpec, TArray<FString>& Issues) const override;
 };
@@ -132,6 +139,7 @@ public:
 	virtual const UScriptStruct* GetParameterStruct() const override;
 	virtual void ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFRShotSpec& ShotSpec) const override;
 	virtual void HandleImpact(const FFRProjectileEffectSpec& EffectSpec, const FFRProjectileEffectImpactContext& Context) const override;
+	virtual bool RequiresProjectileRuntime(const FFRProjectileEffectSpec& EffectSpec) const override;
 	virtual bool UsesCustomTerrainImpact(const FFRProjectileEffectSpec& EffectSpec) const override;
 	virtual void AddDataValidationIssues(const FFRProjectileEffectSpec& EffectSpec, TArray<FString>& Issues) const override;
 };
@@ -163,6 +171,7 @@ public:
 	virtual const UScriptStruct* GetParameterStruct() const override;
 	virtual void ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFRShotSpec& ShotSpec) const override;
 	virtual void HandleImpact(const FFRProjectileEffectSpec& EffectSpec, const FFRProjectileEffectImpactContext& Context) const override;
+	virtual bool RequiresProjectileRuntime(const FFRProjectileEffectSpec& EffectSpec) const override;
 	virtual bool UsesCustomTerrainImpact(const FFRProjectileEffectSpec& EffectSpec) const override;
 	virtual void AddDataValidationIssues(const FFRProjectileEffectSpec& EffectSpec, TArray<FString>& Issues) const override;
 };

@@ -46,6 +46,29 @@ void UFRProjectileEffectSplit::HandleImpact(const FFRProjectileEffectSpec& Effec
 	BaseChildShotSpec.Gravity = FMath::Max(0.0f, Context.Gravity * Params.GravityMultiplier);
 	BaseChildShotSpec.ProjectileCount = 1;
 	BaseChildShotSpec.ProjectileClass = Params.ProjectileClass ? Params.ProjectileClass : TSubclassOf<AFRProjectile>(Context.Projectile ? Context.Projectile->GetClass() : AFRProjectile::StaticClass());
+	for (const FFRProjectileEffectSpec& ChildEffect : Params.ChildProjectileEffects)
+	{
+		ChildEffect.ApplyToShotSpec(BaseChildShotSpec);
+		if (ChildEffect.RequiresProjectileRuntime())
+		{
+			BaseChildShotSpec.ProjectileEffects.Add(ChildEffect);
+		}
+	}
+	if (Params.bInheritParentRuntimeEffects && Context.RuntimeEffects)
+	{
+		for (const FFRProjectileEffectSpec& ParentEffect : *Context.RuntimeEffects)
+		{
+			if (ParentEffect.EffectClass && ParentEffect.EffectClass->IsChildOf(UFRProjectileEffectSplit::StaticClass()))
+			{
+				continue;
+			}
+			ParentEffect.ApplyToShotSpec(BaseChildShotSpec);
+			if (ParentEffect.RequiresProjectileRuntime())
+			{
+				BaseChildShotSpec.ProjectileEffects.Add(ParentEffect);
+			}
+		}
+	}
 	const AFRGameMode* WindGameMode = Context.World->GetAuthGameMode<AFRGameMode>();
 	const float Wind = WindGameMode ? WindGameMode->GetWind() : 0.0f;
 	const FVector FallbackDirection = Context.OwnerCharacter && Context.OwnerCharacter->IsEnemy()
@@ -92,6 +115,11 @@ void UFRProjectileEffectSplit::HandleImpact(const FFRProjectileEffectSpec& Effec
 	}
 }
 
+bool UFRProjectileEffectSplit::RequiresProjectileRuntime(const FFRProjectileEffectSpec& EffectSpec) const
+{
+	return true;
+}
+
 void UFRProjectileEffectSplit::AddDataValidationIssues(const FFRProjectileEffectSpec& EffectSpec, TArray<FString>& Issues) const
 {
 	const FFRProjectileEffectSplitParams& Params = EffectSpec.GetParametersOrDefault<FFRProjectileEffectSplitParams>();
@@ -127,6 +155,14 @@ void UFRProjectileEffectSplit::AddDataValidationIssues(const FFRProjectileEffect
 	{
 		Issues.Add(TEXT("split gravity multiplier must be non-negative"));
 	}
+	for (const FFRProjectileEffectSpec& ChildEffect : Params.ChildProjectileEffects)
+	{
+		if (!ChildEffect.GetDataValidationSummary().IsEmpty())
+		{
+			Issues.Add(TEXT("split child projectile effect data has warnings"));
+			break;
+		}
+	}
 
 	bool bHasInvalidChildModifier = false;
 	bool bHasIgnoredProjectileCountBonus = false;
@@ -148,5 +184,59 @@ void UFRProjectileEffectSplit::AddDataValidationIssues(const FFRProjectileEffect
 	if (bHasInvalidChildModifier)
 	{
 		Issues.Add(TEXT("split child shot modifier data has warnings"));
+	}
+}
+
+const UScriptStruct* UFRProjectileEffectSplitModifier::GetParameterStruct() const
+{
+	return FFRProjectileEffectSplitModifierParams::StaticStruct();
+}
+
+void UFRProjectileEffectSplitModifier::ApplyToShotSpec(const FFRProjectileEffectSpec& EffectSpec, FFRShotSpec& ShotSpec) const
+{
+	const FFRProjectileEffectSplitModifierParams& Params = EffectSpec.GetParametersOrDefault<FFRProjectileEffectSplitModifierParams>();
+	for (FFRProjectileEffectSpec& RuntimeEffect : ShotSpec.ProjectileEffects)
+	{
+		if (!RuntimeEffect.EffectClass || !RuntimeEffect.EffectClass->IsChildOf(UFRProjectileEffectSplit::StaticClass()))
+		{
+			continue;
+		}
+
+		FFRProjectileEffectSplitParams* SplitParams = RuntimeEffect.Parameters.GetMutablePtr<FFRProjectileEffectSplitParams>();
+		if (!SplitParams)
+		{
+			continue;
+		}
+
+		SplitParams->DamageMultiplier *= Params.ChildDamageMultiplier;
+		SplitParams->BlastRadiusMultiplier *= Params.ChildBlastRadiusMultiplier;
+		SplitParams->TerrainCarveRadiusMultiplier *= Params.ChildTerrainCarveMultiplier;
+		SplitParams->bInheritParentRuntimeEffects |= Params.bInheritParentRuntimeEffects;
+		SplitParams->ChildProjectileEffects.Append(Params.ChildProjectileEffects);
+	}
+}
+
+void UFRProjectileEffectSplitModifier::AddDataValidationIssues(const FFRProjectileEffectSpec& EffectSpec, TArray<FString>& Issues) const
+{
+	const FFRProjectileEffectSplitModifierParams& Params = EffectSpec.GetParametersOrDefault<FFRProjectileEffectSplitModifierParams>();
+	if (Params.ChildDamageMultiplier < 0.0f)
+	{
+		Issues.Add(TEXT("split modifier child damage multiplier must be non-negative"));
+	}
+	if (Params.ChildBlastRadiusMultiplier < 0.0f)
+	{
+		Issues.Add(TEXT("split modifier child blast radius multiplier must be non-negative"));
+	}
+	if (Params.ChildTerrainCarveMultiplier < 0.0f)
+	{
+		Issues.Add(TEXT("split modifier child terrain carve multiplier must be non-negative"));
+	}
+	for (const FFRProjectileEffectSpec& ChildEffect : Params.ChildProjectileEffects)
+	{
+		if (!ChildEffect.GetDataValidationSummary().IsEmpty())
+		{
+			Issues.Add(TEXT("split modifier child projectile effect data has warnings"));
+			break;
+		}
 	}
 }

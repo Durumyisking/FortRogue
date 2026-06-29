@@ -821,6 +821,10 @@ void AFRGameMode::BuildRewardChoices()
 	TArray<FFRRewardChoice> CandidateRewards;
 	for (const FFRRewardChoice& Reward : StageRunDefinition->RewardPool)
 	{
+		if (PlayerDefinition && !Reward.MatchesPerkCategoryFilter(PlayerDefinition->RequiredPerkCategoryTags, PlayerDefinition->BlockedPerkCategoryTags))
+		{
+			continue;
+		}
 		if (!Reward.MeetsRewardTagConditions(ChosenRewardTagContainer))
 		{
 			continue;

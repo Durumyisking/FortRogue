@@ -50,6 +50,15 @@ void UFRProjectileEffectBase::HandleImpact(const FFRProjectileEffectSpec& Effect
 {
 }
 
+void UFRProjectileEffectBase::HandlePostImpact(const FFRProjectileEffectSpec& EffectSpec, const FFRProjectileEffectImpactContext& Context) const
+{
+}
+
+bool UFRProjectileEffectBase::RequiresProjectileRuntime(const FFRProjectileEffectSpec& EffectSpec) const
+{
+	return false;
+}
+
 bool UFRProjectileEffectBase::UsesCustomTerrainImpact(const FFRProjectileEffectSpec& EffectSpec) const
 {
 	return false;
@@ -131,6 +140,20 @@ void FFRProjectileEffectSpec::HandleImpact(const FFRProjectileEffectImpactContex
 	}
 }
 
+void FFRProjectileEffectSpec::HandlePostImpact(const FFRProjectileEffectImpactContext& Context) const
+{
+	if (const UFRProjectileEffectBase* EffectCDO = GetEffectCDO())
+	{
+		EffectCDO->HandlePostImpact(*this, Context);
+	}
+}
+
+bool FFRProjectileEffectSpec::RequiresProjectileRuntime() const
+{
+	const UFRProjectileEffectBase* EffectCDO = GetEffectCDO();
+	return EffectCDO && EffectCDO->RequiresProjectileRuntime(*this);
+}
+
 bool FFRProjectileEffectSpec::UsesCustomTerrainImpact() const
 {
 	const UFRProjectileEffectBase* EffectCDO = GetEffectCDO();
@@ -181,6 +204,11 @@ void UFRProjectileEffectDrill::HandleImpact(const FFRProjectileEffectSpec& Effec
 	});
 }
 
+bool UFRProjectileEffectDrill::RequiresProjectileRuntime(const FFRProjectileEffectSpec& EffectSpec) const
+{
+	return true;
+}
+
 bool UFRProjectileEffectDrill::UsesCustomTerrainImpact(const FFRProjectileEffectSpec& EffectSpec) const
 {
 	return true;
@@ -222,6 +250,11 @@ void UFRProjectileEffectTerrainCreate::HandleImpact(const FFRProjectileEffectSpe
 	{
 		Terrain.FillCircle(Context.ImpactLocation, Context.TerrainFillRadius);
 	});
+}
+
+bool UFRProjectileEffectTerrainCreate::RequiresProjectileRuntime(const FFRProjectileEffectSpec& EffectSpec) const
+{
+	return true;
 }
 
 bool UFRProjectileEffectTerrainCreate::UsesCustomTerrainImpact(const FFRProjectileEffectSpec& EffectSpec) const
@@ -271,6 +304,11 @@ void UFRProjectileEffectTerrainColumn::HandleImpact(const FFRProjectileEffectSpe
 			Terrain.FillCircle(FillLocation, Params.Radius, Params.TextureLayer);
 		}
 	});
+}
+
+bool UFRProjectileEffectTerrainColumn::RequiresProjectileRuntime(const FFRProjectileEffectSpec& EffectSpec) const
+{
+	return true;
 }
 
 bool UFRProjectileEffectTerrainColumn::UsesCustomTerrainImpact(const FFRProjectileEffectSpec& EffectSpec) const

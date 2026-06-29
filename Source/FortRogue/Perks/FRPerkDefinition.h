@@ -27,6 +27,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Perk")
 	FText GetDataValidationSummary() const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Perk")
+	bool HasAllCategoryTags(const FGameplayTagContainer& RequiredTags) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Perk")
+	bool HasAnyCategoryTags(const FGameplayTagContainer& Tags) const;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Perk", meta = (ToolTip = "에디터와 UI에 표시할 퍽 이름입니다."))
 	FText DisplayName = FText::FromString(TEXT("Perk"));
 
@@ -35,6 +41,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Perk", meta = (Categories = "Trait", ToolTip = "퍽을 식별하는 태그입니다. Trait.* 태그만 사용하세요."))
 	FGameplayTag PerkTag;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Perk", meta = (Categories = "Trait.Category", ToolTip = "보상 필터와 시너지 검색에 사용할 복수 분류 태그입니다. Trait.Category.* 태그만 사용하세요."))
+	FGameplayTagContainer PerkCategoryTags;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Perk", meta = (ToolTip = "퍽 희귀도입니다. 강함의 절대 등급이 아니라 이해 난이도, 시너지, 룰 변경 정도를 뜻합니다."))
 	EFRPerkRarity Rarity = EFRPerkRarity::Common;

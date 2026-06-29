@@ -37,6 +37,16 @@ bool HasPerkGameplayEffect(const UFRPerkDefinition& PerkDefinition)
 }
 }
 
+bool UFRPerkDefinition::HasAllCategoryTags(const FGameplayTagContainer& RequiredTags) const
+{
+	return RequiredTags.IsEmpty() || PerkCategoryTags.HasAll(RequiredTags);
+}
+
+bool UFRPerkDefinition::HasAnyCategoryTags(const FGameplayTagContainer& Tags) const
+{
+	return !Tags.IsEmpty() && PerkCategoryTags.HasAny(Tags);
+}
+
 FText UFRPerkDefinition::GetDataValidationSummary() const
 {
 	TArray<FString> Issues;

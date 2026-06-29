@@ -33,7 +33,9 @@ private:
 	void ApplyHoming(float DeltaSeconds);
 	void ResolveImpact(const FVector& ImpactLocation, AFRBattleCharacter* DirectHitCharacter = nullptr);
 	void ApplyDefaultTerrainImpact(const FVector& ImpactLocation);
-	void ApplyProjectileEffects(const FVector& ImpactLocation);
+	FFRProjectileEffectImpactContext BuildProjectileEffectContext(const FVector& ImpactLocation, AFRBattleCharacter* DirectHitCharacter) const;
+	void ApplyProjectileEffects(const FFRProjectileEffectImpactContext& Context);
+	void ApplyProjectilePostImpactEffects(const FFRProjectileEffectImpactContext& Context);
 	float CalculateExplosionDamage(float Distance) const;
 	bool CanAffectCharacter(const AFRBattleCharacter* Character) const;
 	bool UsesCustomTerrainImpact() const;

@@ -29,6 +29,7 @@
 #include "PaperFlipbookComponent.h"
 #include "Perks/FRPerkDefinition.h"
 #include "ProjectileEffects/FRProjectileEffect.h"
+#include "ProjectileEffects/FRProjectileSpecEffects.h"
 #include "ProjectileEffects/FRProjectileSplitEffect.h"
 #include "Rewards/FRRewardBlueprintLibrary.h"
 #include "Rewards/FRRewardTypes.h"
@@ -480,6 +481,9 @@ bool FFRTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	TestGameplayTagCategories(*this, FFRShotSpec::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFRShotSpec, WeaponTag), TEXT("Weapon"));
 	TestGameplayTagCategories(*this, FFRShotSpec::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFRShotSpec, EffectTags), TEXT("Weapon,ShotEffect"));
 	TestGameplayTagCategories(*this, UFRPerkDefinition::StaticClass(), GET_MEMBER_NAME_CHECKED(UFRPerkDefinition, PerkTag), TEXT("Trait"));
+	TestGameplayTagCategories(*this, UFRPerkDefinition::StaticClass(), GET_MEMBER_NAME_CHECKED(UFRPerkDefinition, PerkCategoryTags), TEXT("Trait.Category"));
+	TestGameplayTagCategories(*this, UFRCharacterDefinition::StaticClass(), GET_MEMBER_NAME_CHECKED(UFRCharacterDefinition, RequiredPerkCategoryTags), TEXT("Trait.Category"));
+	TestGameplayTagCategories(*this, UFRCharacterDefinition::StaticClass(), GET_MEMBER_NAME_CHECKED(UFRCharacterDefinition, BlockedPerkCategoryTags), TEXT("Trait.Category"));
 	TestGameplayTagCategories(*this, FFRProjectileEffectSplitParams::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFRProjectileEffectSplitParams, ChildEffectTags), TEXT("ShotEffect"));
 	TestGameplayTagCategories(*this, FFRAbilitySet_GameplayAbility::StaticStruct(), GET_MEMBER_NAME_CHECKED(FFRAbilitySet_GameplayAbility, InputTag), TEXT("InputTag"));
 	TestGameplayTagCategories(*this, UFRAbilitySet::StaticClass(), GET_MEMBER_NAME_CHECKED(UFRAbilitySet, AbilitySetTag), TEXT("Trait"));
@@ -540,6 +544,42 @@ bool FFRTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Projectile effect CDO adds terrain create tags"), EffectShotSpec.EffectTags.HasTagExact(FRGameplayTags::ShotEffect_TerrainCreate));
 	TestEqual(TEXT("Projectile drill effect updates terrain damage radius"), EffectShotSpec.TerrainDamage, 125.0f);
 	TestEqual(TEXT("Projectile terrain create effect updates terrain fill radius"), EffectShotSpec.TerrainFillRadius, 60.0f);
+	FFRProjectileEffectDirectHitDamageParams DirectHitDamageParams;
+	DirectHitDamageParams.BonusDamage = 10.0f;
+	DirectHitDamageParams.DamageMultiplier = 2.0f;
+	FFRProjectileEffectSpec DirectHitDamageEffect;
+	DirectHitDamageEffect.EffectClass = UFRProjectileEffectDirectHitDamage::StaticClass();
+	DirectHitDamageEffect.Parameters = FInstancedStruct::Make(DirectHitDamageParams);
+	FFRProjectileEffectExplosionPayloadParams ExplosionPayloadParams;
+	ExplosionPayloadParams.DamageMultiplier = 1.5f;
+	ExplosionPayloadParams.RadiusMultiplier = 1.25f;
+	FFRProjectileEffectSpec ExplosionPayloadEffect;
+	ExplosionPayloadEffect.EffectClass = UFRProjectileEffectExplosionPayload::StaticClass();
+	ExplosionPayloadEffect.Parameters = FInstancedStruct::Make(ExplosionPayloadParams);
+	FFRProjectileEffectSalvoParams SalvoParams;
+	SalvoParams.CountBonus = 2;
+	SalvoParams.SalvoInterval = 0.2f;
+	FFRProjectileEffectSpec SalvoEffect;
+	SalvoEffect.EffectClass = UFRProjectileEffectSalvo::StaticClass();
+	SalvoEffect.Parameters = FInstancedStruct::Make(SalvoParams);
+	FFRShotModifierSpec ShellEffectModifier;
+	ShellEffectModifier.ProjectileEffects = { DirectHitDamageEffect, ExplosionPayloadEffect, SalvoEffect };
+	FFRShotSpec ShellEffectShotSpec;
+	ShellEffectShotSpec.HitDamage = 20.0f;
+	ShellEffectShotSpec.Damage = 40.0f;
+	ShellEffectShotSpec.BlastRadius = 100.0f;
+	ShellEffectModifier.ApplyToShotSpec(ShellEffectShotSpec);
+	TestEqual(TEXT("Direct hit ShellEffect applies bonus then multiplier"), ShellEffectShotSpec.HitDamage, 60.0f);
+	TestEqual(TEXT("Explosion payload ShellEffect changes damage"), ShellEffectShotSpec.Damage, 60.0f);
+	TestEqual(TEXT("Explosion payload ShellEffect changes radius"), ShellEffectShotSpec.BlastRadius, 125.0f);
+	TestEqual(TEXT("Salvo ShellEffect changes repeat count"), ShellEffectShotSpec.SalvoCount, 3);
+	TestEqual(TEXT("Salvo ShellEffect changes repeat interval"), ShellEffectShotSpec.SalvoInterval, 0.2f);
+	TestEqual(TEXT("Spec-only ShellEffects are not attached to projectiles"), ShellEffectShotSpec.ProjectileEffects.Num(), 0);
+	FFRProjectileEffectKnockbackParams KnockbackParams;
+	FFRProjectileEffectSpec KnockbackEffect;
+	KnockbackEffect.EffectClass = UFRProjectileEffectKnockback::StaticClass();
+	KnockbackEffect.Parameters = FInstancedStruct::Make(KnockbackParams);
+	TestTrue(TEXT("Knockback remains attached for post-impact execution"), KnockbackEffect.RequiresProjectileRuntime());
 	FFRShotModifierSpec EffectModifierData;
 	EffectModifierData.ProjectileEffects.Add(DrillEffect);
 	EffectModifierData.ProjectileEffects.Add(TerrainCreateEffect);
@@ -551,6 +591,24 @@ bool FFRTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	SplitEffect.Parameters = FInstancedStruct::Make(SplitParams);
 	SplitEffect.ApplyToShotSpec(EffectShotSpec);
 	TestTrue(TEXT("Projectile split effect CDO adds split tags"), EffectShotSpec.EffectTags.HasTagExact(FRGameplayTags::ShotEffect_SplitOnImpact));
+	FFRShotSpec SplitModifierShotSpec;
+	SplitModifierShotSpec.ProjectileEffects.Add(SplitEffect);
+	FFRProjectileEffectSplitModifierParams SplitModifierParams;
+	SplitModifierParams.ChildDamageMultiplier = 1.5f;
+	SplitModifierParams.ChildTerrainCarveMultiplier = 2.0f;
+	SplitModifierParams.bInheritParentRuntimeEffects = true;
+	FFRProjectileEffectSpec SplitModifierEffect;
+	SplitModifierEffect.EffectClass = UFRProjectileEffectSplitModifier::StaticClass();
+	SplitModifierEffect.Parameters = FInstancedStruct::Make(SplitModifierParams);
+	SplitModifierEffect.ApplyToShotSpec(SplitModifierShotSpec);
+	const FFRProjectileEffectSplitParams* ModifiedSplitParams = SplitModifierShotSpec.ProjectileEffects[0].Parameters.GetPtr<FFRProjectileEffectSplitParams>();
+	TestNotNull(TEXT("Split modifier preserves typed split parameters"), ModifiedSplitParams);
+	if (ModifiedSplitParams)
+	{
+		TestEqual(TEXT("Split modifier changes child damage"), ModifiedSplitParams->DamageMultiplier, 0.75f);
+		TestEqual(TEXT("Split modifier changes child terrain carve"), ModifiedSplitParams->TerrainCarveRadiusMultiplier, 1.0f);
+		TestTrue(TEXT("Split modifier enables runtime effect inheritance"), ModifiedSplitParams->bInheritParentRuntimeEffects);
+	}
 	EffectModifierData.ProjectileEffects.Add(SplitEffect);
 	TestTrue(TEXT("Shot modifier data validation accepts projectile effects"), EffectModifierData.GetDataValidationSummary().ToString().IsEmpty());
 	TArray<FFRShotModifierSpec> EffectModifierSummaryData = { EffectModifierData };
@@ -638,6 +696,11 @@ bool FFRTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Shot modifier condition helper accepts aligned wind"), ConditionModifier.MeetsShotConditions(ConditionShotSpec, 45.0f, 15.0f, true));
 	TestFalse(TEXT("Shot modifier condition helper rejects opposite wind"), ConditionModifier.MeetsShotConditions(ConditionShotSpec, 45.0f, -15.0f, true));
 	TestTrue(TEXT("Shot modifier condition failure summary names aligned wind"), ConditionModifier.GetShotConditionFailureSummary(ConditionShotSpec, 45.0f, -15.0f, true).ToString().Contains(TEXT("requires aligned wind")));
+	ConditionModifier.bRequireWindAligned = false;
+	ConditionModifier.bRequireWindOpposed = true;
+	TestTrue(TEXT("Shot modifier condition helper accepts opposed wind"), ConditionModifier.MeetsShotConditions(ConditionShotSpec, 45.0f, -15.0f, true));
+	TestFalse(TEXT("Shot modifier condition helper rejects aligned wind for opposed condition"), ConditionModifier.MeetsShotConditions(ConditionShotSpec, 45.0f, 15.0f, true));
+	TestTrue(TEXT("Shot modifier condition failure summary names opposed wind"), ConditionModifier.GetShotConditionFailureSummary(ConditionShotSpec, 45.0f, 15.0f, true).ToString().Contains(TEXT("requires opposed wind")));
 	UFRPerkDefinition* AbilitySetPerk = NewObject<UFRPerkDefinition>();
 	AbilitySetPerk->DisplayName = FText::FromString(TEXT("Wind Split Perk"));
 	AbilitySetPerk->PerkTag = FRGameplayTags::Trait_ShotModifier;
@@ -667,6 +730,21 @@ bool FFRTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	ValidRewardData.bOfferOncePerRun = true;
 	ValidRewardData.PerkReward = ValidRewardPerk;
 	TestTrue(TEXT("Reward data validation is empty for valid reward data"), ValidRewardData.GetDataValidationSummary().ToString().IsEmpty());
+	const FGameplayTag DrillCategoryTag = FGameplayTag::RequestGameplayTag(FName(TEXT("Trait.Category.Drill")));
+	const FGameplayTag CannonCategoryTag = FGameplayTag::RequestGameplayTag(FName(TEXT("Trait.Category.Cannon")));
+	ValidRewardPerk->PerkCategoryTags.AddTag(DrillCategoryTag);
+	FGameplayTagContainer RequiredDrillCategory;
+	RequiredDrillCategory.AddTag(DrillCategoryTag);
+	FGameplayTagContainer BlockedCannonCategory;
+	BlockedCannonCategory.AddTag(CannonCategoryTag);
+	TestTrue(TEXT("Perk reports required category tags"), ValidRewardPerk->HasAllCategoryTags(RequiredDrillCategory));
+	TestTrue(TEXT("Reward category filter accepts matching Perks"), ValidRewardData.MatchesPerkCategoryFilter(RequiredDrillCategory, BlockedCannonCategory));
+	BlockedCannonCategory.Reset();
+	BlockedCannonCategory.AddTag(DrillCategoryTag);
+	TestFalse(TEXT("Reward category filter rejects blocked Perks"), ValidRewardData.MatchesPerkCategoryFilter(FGameplayTagContainer(), BlockedCannonCategory));
+	FFRRewardChoice WeaponCategoryFilterReward;
+	WeaponCategoryFilterReward.Type = EFRRewardType::Weapon;
+	TestTrue(TEXT("Perk category filter leaves non-Perk rewards available"), WeaponCategoryFilterReward.MatchesPerkCategoryFilter(RequiredDrillCategory, BlockedCannonCategory));
 
 	UFRWeaponDefinition* SummaryWeapon = NewObject<UFRWeaponDefinition>();
 	SummaryWeapon->Weapon.DisplayName = FText::FromString(TEXT("Fork Shell"));

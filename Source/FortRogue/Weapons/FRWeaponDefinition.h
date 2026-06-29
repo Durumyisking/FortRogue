@@ -36,6 +36,9 @@ struct FFRShotModifierSpec
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition", meta = (EditCondition = "bRequireWindAligned", ClampMin = "0.0", ToolTip = "바람 조건에 필요한 최소 바람 세기입니다. 0이면 방향만 확인합니다."))
 	float MinWindMagnitude = 0.0f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition", meta = (ToolTip = "켜면 발사 방향과 바람 방향이 반대일 때만 modifier가 적용됩니다. Wind Aligned와 동시에 켤 수 없습니다."))
+	bool bRequireWindOpposed = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot Modifier|Condition", meta = (Categories = "Weapon,ShotEffect", ToolTip = "현재 ShotSpec에 모두 있어야 하는 태그입니다. Weapon.* 또는 ShotEffect.* 태그만 사용하세요."))
 	FGameplayTagContainer RequiredShotTags;
 

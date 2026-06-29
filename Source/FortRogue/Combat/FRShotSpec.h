@@ -47,6 +47,12 @@ struct FFRShotSpec
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot", meta = (ToolTip = "이번 발사에서 생성할 최종 투사체 수입니다. 최소 1개로 보정됩니다."))
 	int32 ProjectileCount = 1;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot", meta = (ToolTip = "한 번의 발사 입력으로 반복 발사할 최종 횟수입니다. 최소 1회로 보정됩니다."))
+	int32 SalvoCount = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot", meta = (ClampMin = "0.0", ToolTip = "반복 발사 사이의 최종 간격입니다. 초 단위입니다."))
+	float SalvoInterval = 0.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shot", meta = (ToolTip = "이번 샷에서 스폰할 투사체 클래스입니다."))
 	TSubclassOf<AFRProjectile> ProjectileClass;
 

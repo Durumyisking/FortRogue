@@ -125,6 +125,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
 	void ReevaluateTerrainSupport();
 
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
+	void ApplyImpactKnockback(float HorizontalDistance, FVector ImpactLocation, FVector ImpactVelocity);
+
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
 	void SetTerrain(AFRDestructibleTerrain* InTerrain);
 

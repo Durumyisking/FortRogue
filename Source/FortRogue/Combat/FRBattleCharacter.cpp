@@ -467,8 +467,8 @@ int32 AFRBattleCharacter::FireSelectedWeapon()
 	const FFRWeaponSpec& Weapon = GetCurrentWeapon();
 	const FFRShotSpec ShotSpec = BuildShotSpec(Weapon);
 	const int32 ProjectileCount = ShotSpec.ProjectileCount;
-	const int32 SalvoCount = FMath::Max(1, Weapon.SalvoCount);
-	const float SalvoInterval = FMath::Max(0.0f, Weapon.SalvoInterval);
+	const int32 SalvoCount = FMath::Max(1, ShotSpec.SalvoCount);
+	const float SalvoInterval = FMath::Max(0.0f, ShotSpec.SalvoInterval);
 	PendingAttackMultiplier = 1.0f;
 	PendingShotModifiers.Reset();
 
@@ -670,6 +670,28 @@ void AFRBattleCharacter::ReevaluateTerrainSupport()
 	}
 	bChargingShot = false;
 	ApplyTerrainGravity(1.0f / 60.0f);
+}
+
+void AFRBattleCharacter::ApplyImpactKnockback(float HorizontalDistance, FVector ImpactLocation, FVector ImpactVelocity)
+{
+	if (HorizontalDistance <= 0.0f || IsDefeated())
+	{
+		return;
+	}
+
+	FVector NewLocation = GetActorLocation();
+	float Direction = FMath::Sign(NewLocation.X - ImpactLocation.X);
+	if (FMath::IsNearlyZero(Direction))
+	{
+		Direction = ImpactVelocity.X >= 0.0f ? 1.0f : -1.0f;
+	}
+	NewLocation.X += Direction * HorizontalDistance;
+	if (AFRDestructibleTerrain* Terrain = FindTerrain())
+	{
+		NewLocation.X = ClampWorldXToTerrainBounds(*Terrain, NewLocation.X);
+	}
+	SetActorLocation(NewLocation);
+	ReevaluateTerrainSupport();
 }
 
 void AFRBattleCharacter::SetTerrain(AFRDestructibleTerrain* InTerrain)
@@ -1942,11 +1964,16 @@ FFRShotSpec AFRBattleCharacter::BuildShotSpec(const FFRWeaponSpec& Weapon) const
 	ShotSpec.LaunchSpeed = FMath::Max(0.0f, Weapon.ProjectileSpeed * GetEffectiveShotPower() * CombatSet->GetShotPowerMultiplier());
 	ShotSpec.Gravity = FMath::Max(0.0f, Weapon.Gravity);
 	ShotSpec.ProjectileCount = FMath::Max(1, Weapon.ProjectilesPerShot + FMath::RoundToInt(CombatSet->GetProjectileCount()) - 1);
+	ShotSpec.SalvoCount = FMath::Max(1, Weapon.SalvoCount);
+	ShotSpec.SalvoInterval = FMath::Max(0.0f, Weapon.SalvoInterval);
 	ShotSpec.ProjectileClass = Weapon.ProjectileClass ? Weapon.ProjectileClass : TSubclassOf<AFRProjectile>(AFRProjectile::StaticClass());
 	for (const FFRProjectileEffectSpec& ProjectileEffect : Weapon.ProjectileEffects)
 	{
 		ProjectileEffect.ApplyToShotSpec(ShotSpec);
-		ShotSpec.ProjectileEffects.Add(ProjectileEffect);
+		if (ProjectileEffect.RequiresProjectileRuntime())
+		{
+			ShotSpec.ProjectileEffects.Add(ProjectileEffect);
+		}
 	}
 	const AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
 	const float Wind = GameMode ? GameMode->GetWind() : 0.0f;
