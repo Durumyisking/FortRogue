@@ -17,6 +17,7 @@ class UFRAbilitySystemComponent;
 class UFRCombatSet;
 class UFRDefaultLoadoutDefinition;
 class UFRBattleCharacterStatusWidget;
+class UFRBattleCharacterAimIndicatorWidget;
 class UWidgetComponent;
 class UBoxComponent;
 class UPaperFlipbookComponent;
@@ -218,6 +219,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Character")
 	bool IsEnemy() const;
 
+
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Turn")
 	bool IsActiveTurn() const;
 
@@ -265,6 +267,7 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
 	float GetAimAngle() const;
+
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
 	float GetShotPower() const;
@@ -389,13 +392,16 @@ private:
 	void SnapToTerrain();
 	void SetFacingFromAxis(float Axis);
 	void UpdateCharacterRotation(float PitchDegrees);
-	void UpdateBodySpriteLocalTransform();
-	void InitializeStatusWidget();
-	void RefreshStatusWidget();
+	void UpdateBodyFrameChildrenLocalTransform();
+	void UpdateAimDrivenComponents();
+	void InitializeCharacterWidgets();
+	void RefreshCharacterWidgets();
 	void SpawnFloatingDamageText(float DamageAmount);
 	float GetActorPitchDegrees() const;
 	FVector GetProjectileLaunchDirection(float SpreadDegrees) const;
+	FVector GetAimPivotWorldLocation() const;
 	FVector GetProjectileSpawnLocation(const FVector& LaunchDirection) const;
+	FVector GetMuzzleSpawnLocation() const;
 	float GetEffectiveShotPower() const;
 	FFRShotSpec BuildShotSpec(const FFRWeaponSpec& Weapon) const;
 	int32 SpawnShotSpecProjectiles(const FFRShotSpec& ShotSpec, bool bIncreasePendingProjectileCount);
@@ -417,11 +423,29 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue")
 	TObjectPtr<UPaperFlipbookComponent> BodySprite;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FortRogue|Combat", meta = (AllowPrivateAccess = "true", ToolTip = "투사체 생성 위치와 발사 방향의 기준이 되는 총구입니다. BodyFrame 스케일을 따라 위치 오프셋도 함께 커집니다."))
+	TObjectPtr<USceneComponent> Muzzle;
+
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue|UI")
-	TObjectPtr<UWidgetComponent> StatusWidgetComponent;
+	TObjectPtr<UWidgetComponent> AngleIndicatorWidget;
+
+	UPROPERTY(VisibleAnywhere, Category = "FortRogue|UI")
+	TObjectPtr<UWidgetComponent> HpWidget;
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI")
-	TSubclassOf<UFRBattleCharacterStatusWidget> StatusWidgetClass;
+	TSubclassOf<UFRBattleCharacterAimIndicatorWidget> AngleIndicatorWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI")
+	TSubclassOf<UFRBattleCharacterStatusWidget> HpWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Aim", meta = (AllowPrivateAccess = "true", ToolTip = "BodyFrame 로컬 공간에서 조준 각도기의 중심이자 총구 오프셋의 시작점입니다."))
+	FVector AimPivotLocalLocation = FVector(0.0f, 0.0f, 80.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Aim", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "AimPivotLocalLocation에서 조준 방향으로 떨어진 총구 끝 거리입니다. BodyFrame 스케일을 적용받습니다."))
+	float MuzzleForwardOffset = 70.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Aim", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "각도 인디케이터가 캐릭터 스프라이트에 가려지지 않도록 전투 카메라 방향으로 빼는 거리입니다."))
+	float AimIndicatorCameraOffsetY = 2.0f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI")
 	TSubclassOf<AFRFloatingDamageTextActor> FloatingDamageTextActorClass;

@@ -17,6 +17,7 @@
 #include "Components/InstancedStaticMeshComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
 #include "Engine/Texture2D.h"
@@ -1906,6 +1907,7 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		{
 			TestEqual(TEXT("Battle character body does not use Unreal collision"), Body->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
 			TestEqual(TEXT("Battle character body is offset above the foot pivot"), static_cast<float>(Body->GetRelativeLocation().Z), 45.0f);
+			TestEqual(TEXT("Battle character body uses unit relative scale"), Body->GetRelativeScale3D(), FVector::OneVector);
 		}
 		USceneComponent* BodyFrame = Cast<USceneComponent>(Character->GetDefaultSubobjectByName(TEXT("BodyFrame")));
 		TestNotNull(TEXT("Battle character body frame exists"), BodyFrame);
@@ -1921,6 +1923,7 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 			TestEqual(TEXT("Battle character hurtbox only participates in queries"), Hurtbox->GetCollisionEnabled(), ECollisionEnabled::QueryOnly);
 			TestEqual(TEXT("Battle character hurtbox is centered above the foot pivot"), static_cast<float>(Hurtbox->GetRelativeLocation().Z), 45.0f);
 			TestEqual(TEXT("Battle character hurtbox has the default inset extent"), Hurtbox->GetUnscaledBoxExtent(), FVector(28.0f, 16.0f, 42.0f));
+			TestEqual(TEXT("Battle character hurtbox uses unit relative scale"), Hurtbox->GetRelativeScale3D(), FVector::OneVector);
 		}
 		UPaperFlipbookComponent* BodySprite = Cast<UPaperFlipbookComponent>(Character->GetDefaultSubobjectByName(TEXT("BodySprite")));
 		TestNotNull(TEXT("Battle character sprite component exists"), BodySprite);
@@ -1929,6 +1932,39 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 			TestEqual(TEXT("Battle character sprite does not use Unreal collision"), BodySprite->GetCollisionEnabled(), ECollisionEnabled::NoCollision);
 			TestEqual(TEXT("Battle character sprite stays local under the body frame"), BodySprite->GetRelativeRotation(), FRotator::ZeroRotator);
 			TestEqual(TEXT("Battle character sprite is attached at the foot pivot"), static_cast<float>(BodySprite->GetRelativeLocation().Z), 0.0f);
+			TestEqual(TEXT("Battle character sprite uses unit relative scale"), BodySprite->GetRelativeScale3D(), FVector::OneVector);
+		}
+		USceneComponent* Muzzle = Cast<USceneComponent>(Character->GetDefaultSubobjectByName(TEXT("Muzzle")));
+		TestNotNull(TEXT("Battle character muzzle component exists"), Muzzle);
+		if (Muzzle && BodyFrame)
+		{
+			TestTrue(TEXT("Battle character muzzle is attached to the body frame"), Muzzle->GetAttachParent() == BodyFrame);
+			TestEqual(TEXT("Battle character muzzle uses unit relative scale"), Muzzle->GetRelativeScale3D(), FVector::OneVector);
+			const FVector ExpectedMuzzleLocalLocation(FMath::Cos(FMath::DegreesToRadians(45.0f)) * 70.0f, 0.0f, 80.0f + FMath::Sin(FMath::DegreesToRadians(45.0f)) * 70.0f);
+			TestTrue(TEXT("Battle character muzzle starts at the default aim tip"), Muzzle->GetRelativeLocation().Equals(ExpectedMuzzleLocalLocation, 0.1f));
+			const FVector MuzzleLocalBeforeScale = Muzzle->GetRelativeLocation();
+			BodyFrame->SetRelativeScale3D(FVector(1.2f));
+			TestTrue(TEXT("Battle character muzzle world offset follows BodyFrame scale"), Muzzle->GetComponentLocation().Equals(BodyFrame->GetComponentTransform().TransformPosition(MuzzleLocalBeforeScale), 0.1f));
+			BodyFrame->SetRelativeScale3D(FVector::OneVector);
+		}
+		UWidgetComponent* AngleIndicatorWidget = Cast<UWidgetComponent>(Character->GetDefaultSubobjectByName(TEXT("AngleIndicatorWidget")));
+		TestNotNull(TEXT("Battle character angle indicator widget exists"), AngleIndicatorWidget);
+		if (AngleIndicatorWidget && BodyFrame)
+		{
+			TestTrue(TEXT("Battle character angle indicator is attached to the body frame"), AngleIndicatorWidget->GetAttachParent() == BodyFrame);
+			TestEqual(TEXT("Battle character angle indicator uses world widget space"), AngleIndicatorWidget->GetWidgetSpace(), EWidgetSpace::World);
+			TestEqual(TEXT("Battle character angle indicator uses a square draw size"), AngleIndicatorWidget->GetDrawSize(), FVector2D(128.0f, 128.0f));
+			TestEqual(TEXT("Battle character angle indicator pivots at its center"), AngleIndicatorWidget->GetPivot(), FVector2D(0.5f, 0.5f));
+			TestTrue(TEXT("Battle character angle indicator is offset toward the battle camera"), AngleIndicatorWidget->GetRelativeLocation().Y > 0.0f);
+			TestTrue(TEXT("Battle character angle indicator is two-sided for left/right facing"), AngleIndicatorWidget->GetTwoSided());
+		}
+		UWidgetComponent* HpWidget = Cast<UWidgetComponent>(Character->GetDefaultSubobjectByName(TEXT("HpWidget")));
+		TestNotNull(TEXT("Battle character HP widget exists"), HpWidget);
+		if (HpWidget)
+		{
+			TestTrue(TEXT("Battle character HP widget is attached outside the body frame"), HpWidget->GetAttachParent() == Character->GetRootComponent());
+			TestEqual(TEXT("Battle character HP widget uses screen widget space"), HpWidget->GetWidgetSpace(), EWidgetSpace::Screen);
+			TestTrue(TEXT("Battle character HP widget is below the sprite foot pivot"), HpWidget->GetRelativeLocation().Z < -45.0f);
 		}
 		Character->SetTerrain(Terrain);
 		Character->BeginTurn();
@@ -2303,6 +2339,10 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 			TestEqual(TEXT("Battle character sprite stays local while actor turns left"), ExhaustedTurnSprite->GetRelativeRotation(), FRotator::ZeroRotator);
 		}
 		TestEqual(TEXT("Exhausted movement budget does not move the character"), static_cast<float>(ExhaustedTurnCharacter->GetActorLocation().X), ExhaustedCharacterX);
+		if (const UWidgetComponent* ExhaustedAngleIndicator = Cast<UWidgetComponent>(ExhaustedTurnCharacter->GetDefaultSubobjectByName(TEXT("AngleIndicatorWidget"))))
+		{
+			TestTrue(TEXT("Left-facing angle indicator remains offset toward the battle camera"), ExhaustedAngleIndicator->GetComponentLocation().Y > ExhaustedTurnCharacter->GetActorLocation().Y);
+		}
 		TestEqual(TEXT("Exhausted movement budget still leaves the budget at zero"), ExhaustedTurnCharacter->GetMoveBudget(), 0.0f);
 		TestTrue(TEXT("Battle character reports selected weapon fireable before firing"), ExhaustedTurnCharacter->CanFireSelectedWeapon());
 		TestTrue(TEXT("Battle character reports shot charge can begin before firing"), ExhaustedTurnCharacter->CanBeginShotCharge());
@@ -2329,13 +2369,10 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		if (ExhaustedTurnProjectile)
 		{
 			TestTrue(TEXT("Facing change with exhausted movement budget launches left"), ExhaustedTurnProjectile->GetActorLocation().X < ExhaustedCharacterX);
-			const FRotator ExhaustedActorRotation = ExhaustedTurnCharacter->GetActorRotation();
-			const USceneComponent* ExhaustedBodyFrame = Cast<USceneComponent>(ExhaustedTurnCharacter->GetDefaultSubobjectByName(TEXT("BodyFrame")));
-			const float BodyPitchDegrees = ExhaustedBodyFrame ? ExhaustedBodyFrame->GetRelativeRotation().Pitch : ExhaustedActorRotation.Pitch;
-			const float ExpectedLeftLaunchAngleDegrees = BodyPitchDegrees + 180.0f - 45.0f;
-			const FVector ExpectedLeftLaunchDirection(FMath::Cos(FMath::DegreesToRadians(ExpectedLeftLaunchAngleDegrees)), 0.0f, FMath::Sin(FMath::DegreesToRadians(ExpectedLeftLaunchAngleDegrees)));
-			const FVector ExpectedProjectileSpawnLocation = ExhaustedTurnCharacter->GetActorLocation() + ExpectedLeftLaunchDirection * 70.0f + FVector(0.0f, 0.0f, 35.0f);
-			TestTrue(TEXT("Projectile and trajectory start from the character launch offset"), ExhaustedTurnProjectile->GetActorLocation().Equals(ExpectedProjectileSpawnLocation, 0.1));
+			const USceneComponent* ExhaustedMuzzle = Cast<USceneComponent>(ExhaustedTurnCharacter->GetDefaultSubobjectByName(TEXT("Muzzle")));
+			TestNotNull(TEXT("Facing change projectile owner has a muzzle"), ExhaustedMuzzle);
+			const FVector ExpectedProjectileSpawnLocation = ExhaustedMuzzle ? ExhaustedMuzzle->GetComponentLocation() : ExhaustedTurnCharacter->GetActorLocation();
+			TestTrue(TEXT("Projectile and trajectory start from the muzzle"), ExhaustedTurnProjectile->GetActorLocation().Equals(ExpectedProjectileSpawnLocation, 0.1));
 			ExhaustedTurnProjectile->Destroy();
 		}
 	}
@@ -2426,10 +2463,10 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		TestNotNull(TEXT("Slope-aligned battle character spawns a projectile"), RampProjectile);
 		if (RampProjectile)
 		{
-			const float ExpectedLaunchAngle = RampPitch + 45.0f;
-			const FVector ExpectedRampLaunchDirection(FMath::Cos(FMath::DegreesToRadians(ExpectedLaunchAngle)), 0.0f, FMath::Sin(FMath::DegreesToRadians(ExpectedLaunchAngle)));
-			const FVector ExpectedRampProjectileSpawnLocation = RampCharacter->GetActorLocation() + ExpectedRampLaunchDirection * 70.0f + FVector(0.0f, 0.0f, 35.0f);
-			TestTrue(TEXT("Slope-aligned projectile launch uses body frame pitch"), RampProjectile->GetActorLocation().Equals(ExpectedRampProjectileSpawnLocation, 0.1));
+			const USceneComponent* RampMuzzle = Cast<USceneComponent>(RampCharacter->GetDefaultSubobjectByName(TEXT("Muzzle")));
+			TestNotNull(TEXT("Slope-aligned projectile owner has a muzzle"), RampMuzzle);
+			const FVector ExpectedRampProjectileSpawnLocation = RampMuzzle ? RampMuzzle->GetComponentLocation() : RampCharacter->GetActorLocation();
+			TestTrue(TEXT("Slope-aligned projectile starts from the muzzle"), RampProjectile->GetActorLocation().Equals(ExpectedRampProjectileSpawnLocation, 0.1));
 			RampProjectile->Destroy();
 		}
 	}

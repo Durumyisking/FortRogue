@@ -5,6 +5,7 @@
 #include "Combat/FRBattleCharacter.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
+#include "Components/Widget.h"
 
 void UFRBattleCharacterStatusWidget::SetBattleCharacter(AFRBattleCharacter* InBattleCharacter)
 {
@@ -42,6 +43,7 @@ void UFRBattleCharacterStatusWidget::RefreshStatus()
 	}
 	if (AimText)
 	{
-		AimText->SetText(FText::FromString(FString::Printf(TEXT("Aim %.0f deg"), BattleCharacter->GetAimAngle())));
+		AimText->SetVisibility(ESlateVisibility::Collapsed);
 	}
 }
+

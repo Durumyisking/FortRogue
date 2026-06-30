@@ -21,6 +21,7 @@
 #include "EngineUtils.h"
 #include "PaperFlipbook.h"
 #include "PaperFlipbookComponent.h"
+#include "UI/FRBattleCharacterAimIndicatorWidget.h"
 #include "UI/FRBattleCharacterStatusWidget.h"
 #include "UI/FRFloatingDamageTextActor.h"
 #include "UObject/ConstructorHelpers.h"
@@ -72,12 +73,15 @@ AFRBattleCharacter::AFRBattleCharacter()
 
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	SetRootComponent(Root);
+	Root->SetRelativeScale3D(FVector::OneVector);
 
 	BodyFrame = CreateDefaultSubobject<USceneComponent>(TEXT("BodyFrame"));
 	BodyFrame->SetupAttachment(Root);
+	BodyFrame->SetRelativeScale3D(FVector::OneVector);
 
 	Hurtbox = CreateDefaultSubobject<UBoxComponent>(TEXT("Hurtbox"));
 	Hurtbox->SetupAttachment(BodyFrame);
+	Hurtbox->SetRelativeScale3D(FVector::OneVector);
 	Hurtbox->InitBoxExtent(FVector(28.0f, 16.0f, 42.0f));
 	Hurtbox->SetRelativeLocation(FVector(0.0f, 0.0f, 45.0f));
 	Hurtbox->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
@@ -88,7 +92,7 @@ AFRBattleCharacter::AFRBattleCharacter()
 	Body = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Body"));
 	Body->SetupAttachment(BodyFrame);
 	Body->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	Body->SetRelativeScale3D(FVector(0.65f, 0.08f, 0.9f));
+	Body->SetRelativeScale3D(FVector::OneVector);
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CubeMesh(TEXT("/Engine/BasicShapes/Cube.Cube"));
 	if (CubeMesh.Succeeded())
@@ -99,17 +103,33 @@ AFRBattleCharacter::AFRBattleCharacter()
 	BodySprite = CreateDefaultSubobject<UPaperFlipbookComponent>(TEXT("BodySprite"));
 	BodySprite->SetupAttachment(BodyFrame);
 	BodySprite->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	BodySprite->SetRelativeScale3D(FVector::OneVector);
 	BodySprite->SetVisibility(false);
-	UpdateCharacterRotation(0.0f);
 
-	StatusWidgetComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("StatusWidget"));
-	StatusWidgetComponent->SetupAttachment(Root);
-	StatusWidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	StatusWidgetComponent->SetWidgetSpace(EWidgetSpace::Screen);
-	StatusWidgetComponent->SetDrawAtDesiredSize(false);
-	StatusWidgetComponent->SetDrawSize(FVector2D(220.0f, 76.0f));
-	StatusWidgetComponent->SetPivot(FVector2D(0.5f, 1.0f));
-	StatusWidgetComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 118.0f));
+	Muzzle = CreateDefaultSubobject<USceneComponent>(TEXT("Muzzle"));
+	Muzzle->SetupAttachment(BodyFrame);
+	Muzzle->SetRelativeScale3D(FVector::OneVector);
+
+	AngleIndicatorWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("AngleIndicatorWidget"));
+	AngleIndicatorWidget->SetupAttachment(BodyFrame);
+	AngleIndicatorWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	AngleIndicatorWidget->SetWidgetSpace(EWidgetSpace::World);
+	AngleIndicatorWidget->SetDrawAtDesiredSize(false);
+	AngleIndicatorWidget->SetDrawSize(FVector2D(128.0f, 128.0f));
+	AngleIndicatorWidget->SetPivot(FVector2D(0.5f, 0.5f));
+	AngleIndicatorWidget->SetRelativeScale3D(FVector::OneVector);
+	AngleIndicatorWidget->SetTranslucentSortPriority(10);
+	AngleIndicatorWidget->SetTwoSided(true);
+
+	HpWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("HpWidget"));
+	HpWidget->SetupAttachment(Root);
+	HpWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	HpWidget->SetWidgetSpace(EWidgetSpace::Screen);
+	HpWidget->SetDrawAtDesiredSize(false);
+	HpWidget->SetDrawSize(FVector2D(160.0f, 18.0f));
+	HpWidget->SetPivot(FVector2D(0.5f, 0.0f));
+	HpWidget->SetRelativeScale3D(FVector::OneVector);
+	HpWidget->SetRelativeLocation(FVector(0.0f, 0.0f, -62.0f));
 
 	FloatingDamageTextActorClass = AFRFloatingDamageTextActor::StaticClass();
 
@@ -117,6 +137,7 @@ AFRBattleCharacter::AFRBattleCharacter()
 	CombatSet = CreateDefaultSubobject<UFRCombatSet>(TEXT("CombatSet"));
 
 	CharacterDisplayName = FText::FromString(TEXT("Rookie Tank"));
+	UpdateCharacterRotation(0.0f);
 }
 
 void AFRBattleCharacter::BeginPlay()
@@ -130,7 +151,7 @@ void AFRBattleCharacter::BeginPlay()
 	GrantStartupAbilitySets();
 	UpdateCharacterRotation(GetActorPitchDegrees());
 	SnapToTerrain();
-	InitializeStatusWidget();
+	InitializeCharacterWidgets();
 }
 
 
@@ -175,6 +196,7 @@ void AFRBattleCharacter::InitializeFromDefinition(UFRCharacterDefinition* InChar
 	CombatSet->SetMinAimAngle(InCharacterDefinition->MinAimAngle);
 	CombatSet->SetMaxAimAngle(InCharacterDefinition->MaxAimAngle);
 	AimAngle = FMath::Clamp(AimAngle, GetMinAimAngle(), GetMaxAimAngle());
+	UpdateAimDrivenComponents();
 
 	GrantedShotModifiers.Reset();
 	PendingShotModifiers.Reset();
@@ -210,9 +232,10 @@ void AFRBattleCharacter::InitializeFromDefinition(UFRCharacterDefinition* InChar
 
 void AFRBattleCharacter::ConfigureAsEnemy(bool bNewEnemy)
 {
+	const float TerrainPitchDegrees = GetActorPitchDegrees();
 	bEnemy = bNewEnemy;
 	bFacingRight = !bEnemy;
-	UpdateCharacterRotation(GetActorPitchDegrees());
+	UpdateCharacterRotation(TerrainPitchDegrees);
 }
 
 void AFRBattleCharacter::BeginTurn()
@@ -332,6 +355,7 @@ void AFRBattleCharacter::AdjustAim(float Axis, float DeltaSeconds)
 	}
 
 	AimAngle = FMath::Clamp(AimAngle + Axis * 70.0f * DeltaSeconds, GetMinAimAngle(), GetMaxAimAngle());
+	UpdateAimDrivenComponents();
 }
 
 void AFRBattleCharacter::AdjustPower(float Axis, float DeltaSeconds)
@@ -509,8 +533,9 @@ void AFRBattleCharacter::FireAtTarget(AFRBattleCharacter* Target, const FFRStage
 	}
 
 	const FVector ToTarget = Target->GetActorLocation() - GetActorLocation();
+	const float TerrainPitchDegrees = GetActorPitchDegrees();
 	bFacingRight = ToTarget.X >= 0.0f;
-	UpdateCharacterRotation(GetActorPitchDegrees());
+	UpdateCharacterRotation(TerrainPitchDegrees);
 	const float AimError = DifficultyData.AimAngleErrorDegrees > 0.0f ? FMath::RandRange(-DifficultyData.AimAngleErrorDegrees, DifficultyData.AimAngleErrorDegrees) : 0.0f;
 	const float PowerError = DifficultyData.ShotPowerError > 0.0f ? FMath::RandRange(-DifficultyData.ShotPowerError, DifficultyData.ShotPowerError) : 0.0f;
 	const float CharacterMinAim = GetMinAimAngle();
@@ -592,6 +617,7 @@ void AFRBattleCharacter::FireAtTarget(AFRBattleCharacter* Target, const FFRStage
 		AimAngle = FMath::Clamp(FMath::RadiansToDegrees(FMath::Atan2(AimArcHeight, Distance)) + AimError, MinAim, MaxAim);
 		ShotPower = FMath::Clamp(Distance / FMath::Max(1.0f, DifficultyData.ShotPowerDistanceScale) + PowerError, MinPower, MaxPower);
 	}
+	UpdateAimDrivenComponents();
 }
 
 void AFRBattleCharacter::ApplyDamage(float DamageAmount)
@@ -603,7 +629,7 @@ void AFRBattleCharacter::ApplyDamage(float DamageAmount)
 	{
 		SpawnFloatingDamageText(AppliedDamage);
 	}
-	RefreshStatusWidget();
+	RefreshCharacterWidgets();
 }
 
 bool AFRBattleCharacter::FindHurtboxImpactAlongSegmentXZ(const FVector& StartLocation, const FVector& EndLocation, FVector& OutImpactLocation) const
@@ -1128,6 +1154,7 @@ bool AFRBattleCharacter::IsEnemy() const
 	return bEnemy;
 }
 
+
 bool AFRBattleCharacter::IsActiveTurn() const
 {
 	return bActiveTurn;
@@ -1298,12 +1325,14 @@ bool AFRBattleCharacter::TryApplyCombatAttributeDeltaByTag(FGameplayTag Attribut
 	{
 		CombatSet->AddMinAimAngle(DeltaValue);
 		AimAngle = FMath::Clamp(AimAngle, GetMinAimAngle(), GetMaxAimAngle());
+		UpdateAimDrivenComponents();
 		return true;
 	}
 	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_MaxAimAngle))
 	{
 		CombatSet->AddMaxAimAngle(DeltaValue);
 		AimAngle = FMath::Clamp(AimAngle, GetMinAimAngle(), GetMaxAimAngle());
+		UpdateAimDrivenComponents();
 		return true;
 	}
 
@@ -1329,6 +1358,7 @@ float AFRBattleCharacter::GetAimAngle() const
 {
 	return AimAngle;
 }
+
 
 float AFRBattleCharacter::GetShotPower() const
 {
@@ -1795,8 +1825,9 @@ void AFRBattleCharacter::SetFacingFromAxis(float Axis)
 {
 	if (!FMath::IsNearlyZero(Axis))
 	{
+		const float TerrainPitchDegrees = GetActorPitchDegrees();
 		bFacingRight = Axis > 0.0f;
-		UpdateCharacterRotation(GetActorPitchDegrees());
+		UpdateCharacterRotation(TerrainPitchDegrees);
 	}
 }
 
@@ -1805,12 +1836,14 @@ void AFRBattleCharacter::UpdateCharacterRotation(float PitchDegrees)
 	SetActorRotation(FRotator(0.0f, bFacingRight ? 0.0f : 180.0f, 0.0f));
 	if (BodyFrame)
 	{
-		BodyFrame->SetRelativeRotation(FRotator(PitchDegrees, 0.0f, 0.0f));
+		const float LocalBodyPitch = bFacingRight ? PitchDegrees : -PitchDegrees;
+		BodyFrame->SetRelativeRotation(FRotator(LocalBodyPitch, 0.0f, 0.0f));
 	}
-	UpdateBodySpriteLocalTransform();
+	UpdateBodyFrameChildrenLocalTransform();
+	UpdateAimDrivenComponents();
 }
 
-void AFRBattleCharacter::UpdateBodySpriteLocalTransform()
+void AFRBattleCharacter::UpdateBodyFrameChildrenLocalTransform()
 {
 	if (BodyFrame)
 	{
@@ -1828,34 +1861,70 @@ void AFRBattleCharacter::UpdateBodySpriteLocalTransform()
 	}
 }
 
-void AFRBattleCharacter::InitializeStatusWidget()
+void AFRBattleCharacter::UpdateAimDrivenComponents()
 {
-	if (!StatusWidgetComponent)
-	{
-		return;
-	}
+	const float RelativeAimDegrees = FMath::Clamp(AimAngle, GetMinAimAngle(), GetMaxAimAngle());
+	const FRotator AimLocalRotation(RelativeAimDegrees, 0.0f, 0.0f);
+	const FVector MuzzleLocalLocation = AimPivotLocalLocation + AimLocalRotation.RotateVector(FVector(MuzzleForwardOffset, 0.0f, 0.0f));
 
-	if (StatusWidgetClass)
+	if (Muzzle)
 	{
-		StatusWidgetComponent->SetWidgetClass(StatusWidgetClass);
+		Muzzle->SetRelativeLocation(MuzzleLocalLocation);
+		Muzzle->SetRelativeRotation(AimLocalRotation);
 	}
-	else if (UClass* LoadedStatusWidgetClass = LoadClass<UFRBattleCharacterStatusWidget>(nullptr, TEXT("/Game/FortRogue/Widget/Character/WBP_BattleCharacterStatus.WBP_BattleCharacterStatus_C")))
+	if (AngleIndicatorWidget)
 	{
-		StatusWidgetClass = LoadedStatusWidgetClass;
-		StatusWidgetComponent->SetWidgetClass(StatusWidgetClass);
-	}
-	StatusWidgetComponent->InitWidget();
-	RefreshStatusWidget();
-}
-
-void AFRBattleCharacter::RefreshStatusWidget()
-{
-	if (UFRBattleCharacterStatusWidget* StatusWidget = StatusWidgetComponent ? Cast<UFRBattleCharacterStatusWidget>(StatusWidgetComponent->GetUserWidgetObject()) : nullptr)
-	{
-		StatusWidget->SetBattleCharacter(this);
+		const float CameraLocalYOffset = bFacingRight ? AimIndicatorCameraOffsetY : -AimIndicatorCameraOffsetY;
+		AngleIndicatorWidget->SetRelativeLocation(AimPivotLocalLocation + FVector(0.0f, CameraLocalYOffset, 0.0f));
+		AngleIndicatorWidget->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
 	}
 }
 
+void AFRBattleCharacter::InitializeCharacterWidgets()
+{
+	if (AngleIndicatorWidget)
+	{
+		if (AngleIndicatorWidgetClass)
+		{
+			AngleIndicatorWidget->SetWidgetClass(AngleIndicatorWidgetClass);
+		}
+		else if (UClass* LoadedAimWidgetClass = LoadClass<UFRBattleCharacterAimIndicatorWidget>(nullptr, TEXT("/Game/FortRogue/Widget/Character/WBP_BattleCharacterAimIndicator.WBP_BattleCharacterAimIndicator_C")))
+		{
+			AngleIndicatorWidgetClass = LoadedAimWidgetClass;
+			AngleIndicatorWidget->SetWidgetClass(AngleIndicatorWidgetClass);
+		}
+		AngleIndicatorWidget->InitWidget();
+	}
+
+	if (HpWidget)
+	{
+		if (HpWidgetClass)
+		{
+			HpWidget->SetWidgetClass(HpWidgetClass);
+		}
+		else if (UClass* LoadedHpWidgetClass = LoadClass<UFRBattleCharacterStatusWidget>(nullptr, TEXT("/Game/FortRogue/Widget/Character/WBP_BattleCharacterStatus.WBP_BattleCharacterStatus_C")))
+		{
+			HpWidgetClass = LoadedHpWidgetClass;
+			HpWidget->SetWidgetClass(HpWidgetClass);
+		}
+		HpWidget->InitWidget();
+	}
+
+	RefreshCharacterWidgets();
+}
+
+void AFRBattleCharacter::RefreshCharacterWidgets()
+{
+	UpdateAimDrivenComponents();
+	if (UFRBattleCharacterAimIndicatorWidget* AimWidget = AngleIndicatorWidget ? Cast<UFRBattleCharacterAimIndicatorWidget>(AngleIndicatorWidget->GetUserWidgetObject()) : nullptr)
+	{
+		AimWidget->SetBattleCharacter(this);
+	}
+	if (UFRBattleCharacterStatusWidget* HealthWidget = HpWidget ? Cast<UFRBattleCharacterStatusWidget>(HpWidget->GetUserWidgetObject()) : nullptr)
+	{
+		HealthWidget->SetBattleCharacter(this);
+	}
+}
 void AFRBattleCharacter::SpawnFloatingDamageText(float DamageAmount)
 {
 	if (!GetWorld())
@@ -1885,27 +1954,49 @@ void AFRBattleCharacter::SpawnFloatingDamageText(float DamageAmount)
 
 float AFRBattleCharacter::GetActorPitchDegrees() const
 {
-	return BodyFrame ? BodyFrame->GetRelativeRotation().Pitch : GetActorRotation().Pitch;
+	if (!BodyFrame)
+	{
+		return GetActorRotation().Pitch;
+	}
+
+	const float LocalBodyPitch = BodyFrame->GetRelativeRotation().Pitch;
+	return bFacingRight ? LocalBodyPitch : -LocalBodyPitch;
 }
 
 FVector AFRBattleCharacter::GetProjectileLaunchDirection(float SpreadDegrees) const
 {
 	const float RelativeAimDegrees = FMath::Clamp(AimAngle + SpreadDegrees, GetMinAimAngle(), GetMaxAimAngle());
-	const FRotator ActorRotation = GetActorRotation();
-	const bool bActorFacingLeft = FMath::IsNearlyEqual(FMath::Abs(FRotator::NormalizeAxis(ActorRotation.Yaw)), 180.0f);
-	const float BodyPitchDegrees = GetActorPitchDegrees();
-	const float WorldAngleDegrees = bActorFacingLeft
-		? BodyPitchDegrees + 180.0f - RelativeAimDegrees
-		: BodyPitchDegrees + RelativeAimDegrees;
-	const float WorldAngleRadians = FMath::DegreesToRadians(WorldAngleDegrees);
-	return FVector(FMath::Cos(WorldAngleRadians), 0.0f, FMath::Sin(WorldAngleRadians)).GetSafeNormal();
+	const FQuat AimLocalRotation = FRotator(RelativeAimDegrees, 0.0f, 0.0f).Quaternion();
+	if (BodyFrame)
+	{
+		return (BodyFrame->GetComponentQuat() * AimLocalRotation).GetForwardVector().GetSafeNormal();
+	}
+
+	const FRotator FallbackRotation(RelativeAimDegrees, bFacingRight ? 0.0f : 180.0f, 0.0f);
+	return FallbackRotation.Vector().GetSafeNormal();
+}
+
+FVector AFRBattleCharacter::GetAimPivotWorldLocation() const
+{
+	if (BodyFrame)
+	{
+		return BodyFrame->GetComponentTransform().TransformPosition(AimPivotLocalLocation);
+	}
+
+	return GetActorLocation() + AimPivotLocalLocation;
 }
 
 FVector AFRBattleCharacter::GetProjectileSpawnLocation(const FVector& LaunchDirection) const
 {
-	return GetActorLocation() + LaunchDirection * 70.0f + FVector(0.0f, 0.0f, 35.0f);
+	const FVector SafeLaunchDirection = LaunchDirection.GetSafeNormal();
+	const float BodyScale = BodyFrame ? BodyFrame->GetComponentScale().GetAbsMax() : 1.0f;
+	return GetAimPivotWorldLocation() + SafeLaunchDirection * MuzzleForwardOffset * BodyScale;
 }
 
+FVector AFRBattleCharacter::GetMuzzleSpawnLocation() const
+{
+	return Muzzle ? Muzzle->GetComponentLocation() : GetProjectileSpawnLocation(GetProjectileLaunchDirection(0.0f));
+}
 float AFRBattleCharacter::GetEffectiveShotPower() const
 {
 	const float MinPower = FMath::Clamp(FMath::Min(MinShotPower, MaxShotPower), 0.0f, 1.0f);
@@ -1920,12 +2011,14 @@ int32 AFRBattleCharacter::SpawnShotSpecProjectiles(const FFRShotSpec& ShotSpec, 
 		return 0;
 	}
 
+	UpdateAimDrivenComponents();
+	const FVector SpawnLocation = GetMuzzleSpawnLocation();
+
 	int32 SpawnedProjectiles = 0;
 	for (int32 Index = 0; Index < ShotSpec.ProjectileCount; ++Index)
 	{
 		const float Spread = (ShotSpec.ProjectileCount > 1) ? (Index - (ShotSpec.ProjectileCount - 1) * 0.5f) * 5.0f : 0.0f;
 		const FVector Direction = GetProjectileLaunchDirection(Spread);
-		const FVector SpawnLocation = GetProjectileSpawnLocation(Direction);
 
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = this;

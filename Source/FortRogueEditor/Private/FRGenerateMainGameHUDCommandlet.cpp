@@ -14,12 +14,19 @@
 #include "Components/TextBlock.h"
 #include "Engine/Font.h"
 #include "Engine/Texture2D.h"
+#include "Materials/Material.h"
+#include "Materials/MaterialExpressionComponentMask.h"
+#include "Materials/MaterialExpressionCustom.h"
+#include "Materials/MaterialExpressionScalarParameter.h"
+#include "Materials/MaterialExpressionTextureCoordinate.h"
+#include "Materials/MaterialInterface.h"
 #include "Game/FRGameModeDataAsset.h"
 #include "HAL/FileManager.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
+#include "UI/FRBattleCharacterAimIndicatorWidget.h"
 #include "UI/FRBattleCharacterStatusWidget.h"
 #include "UI/FRFloatingDamageTextWidget.h"
 #include "UI/FRMainGameHUDWidget.h"
@@ -35,9 +42,13 @@ constexpr const TCHAR* WindArrowTextureName = TEXT("T_WindArrow");
 constexpr const TCHAR* WindArrowTextureObjectPath = TEXT("/Game/FortRogue/Widget/MainGame/T_WindArrow.T_WindArrow");
 constexpr const TCHAR* CharacterWidgetPath = TEXT("/Game/FortRogue/Widget/Character");
 constexpr const TCHAR* BattleCharacterStatusName = TEXT("WBP_BattleCharacterStatus");
+constexpr const TCHAR* BattleCharacterAimIndicatorName = TEXT("WBP_BattleCharacterAimIndicator");
 constexpr const TCHAR* FloatingDamageTextName = TEXT("WBP_FloatingDamageText");
 constexpr const TCHAR* MainGameModeObjectPath = TEXT("/Game/FortRogue/DataAsset/Global/DA_MainGameMode.DA_MainGameMode");
 constexpr const TCHAR* MainGameHUDClassPath = TEXT("/Game/FortRogue/Widget/MainGame/WBP_MainGameHUD.WBP_MainGameHUD_C");
+constexpr const TCHAR* WidgetMaterialPath = TEXT("/Game/FortRogue/Material/Widget");
+constexpr const TCHAR* AimAngleIndicatorMaterialName = TEXT("M_AimAngleIndicator");
+constexpr const TCHAR* AimAngleIndicatorMaterialObjectPath = TEXT("/Game/FortRogue/Material/Widget/M_AimAngleIndicator.M_AimAngleIndicator");
 
 bool SaveAsset(UObject* Asset)
 {
@@ -132,7 +143,127 @@ UTexture2D* LoadOrCreateWindArrowTexture()
 	}
 	return Texture;
 }
+template <typename TExpression>
+TExpression* AddMaterialExpression(UMaterial* Material, int32 EditorX, int32 EditorY)
+{
+	TExpression* Expression = NewObject<TExpression>(Material);
+	Expression->Material = Material;
+	Expression->MaterialExpressionEditorX = EditorX;
+	Expression->MaterialExpressionEditorY = EditorY;
+	Material->GetExpressionCollection().AddExpression(Expression);
+	return Expression;
+}
 
+UMaterialExpressionScalarParameter* AddScalarParameter(UMaterial* Material, const TCHAR* Name, float DefaultValue, int32 EditorX, int32 EditorY)
+{
+	UMaterialExpressionScalarParameter* Parameter = AddMaterialExpression<UMaterialExpressionScalarParameter>(Material, EditorX, EditorY);
+	Parameter->ParameterName = FName(Name);
+	Parameter->DefaultValue = DefaultValue;
+	Parameter->SliderMin = -180.0f;
+	Parameter->SliderMax = 180.0f;
+	return Parameter;
+}
+
+void AddCustomInput(UMaterialExpressionCustom* CustomExpression, const TCHAR* Name, UMaterialExpression* Expression)
+{
+	FCustomInput Input;
+	Input.InputName = FName(Name);
+	Input.Input.Connect(0, Expression);
+	CustomExpression->Inputs.Add(Input);
+}
+
+UMaterial* LoadOrCreateAimAngleIndicatorMaterial()
+{
+	UMaterial* Material = LoadObject<UMaterial>(nullptr, AimAngleIndicatorMaterialObjectPath);
+	bool bCreatedMaterial = false;
+	if (!Material)
+	{
+		const FString LongPackageName = FString::Printf(TEXT("%s/%s"), WidgetMaterialPath, AimAngleIndicatorMaterialName);
+		UPackage* Package = CreatePackage(*LongPackageName);
+		Material = NewObject<UMaterial>(Package, AimAngleIndicatorMaterialName, RF_Public | RF_Standalone | RF_Transactional);
+		bCreatedMaterial = true;
+	}
+	if (!Material)
+	{
+		return nullptr;
+	}
+
+	Material->Modify();
+	Material->MaterialDomain = MD_UI;
+	Material->BlendMode = BLEND_Translucent;
+	Material->SetShadingModel(MSM_Unlit);
+	Material->GetExpressionCollection().Empty();
+
+	if (FExpressionInput* EmissiveInput = Material->GetExpressionInputForProperty(MP_EmissiveColor))
+	{
+		*EmissiveInput = FExpressionInput();
+	}
+	if (FExpressionInput* OpacityInput = Material->GetExpressionInputForProperty(MP_Opacity))
+	{
+		*OpacityInput = FExpressionInput();
+	}
+
+	UMaterialExpressionTextureCoordinate* UV = AddMaterialExpression<UMaterialExpressionTextureCoordinate>(Material, -760, -120);
+	UMaterialExpressionScalarParameter* MinAngle = AddScalarParameter(Material, TEXT("MinAngle"), 0.0f, -760, -20);
+	UMaterialExpressionScalarParameter* MaxAngle = AddScalarParameter(Material, TEXT("MaxAngle"), 90.0f, -760, 80);
+	UMaterialExpressionScalarParameter* CurrentAngle = AddScalarParameter(Material, TEXT("CurrentAngle"), 45.0f, -760, 180);
+	UMaterialExpressionCustom* Custom = AddMaterialExpression<UMaterialExpressionCustom>(Material, -420, 20);
+	Custom->Description = TEXT("Aim range sector and current angle line");
+	Custom->OutputType = CMOT_Float4;
+	Custom->ContainsClipInstruction = CMCI_No;
+	Custom->Code = TEXT(R"(
+float2 p = float2(UV.x, 1.0 - UV.y);
+float2 origin = float2(0.5, 0.5);
+float2 d = p - origin;
+float radius = length(d);
+float angle = atan2(d.y, d.x) * 57.2957795;
+float minAngle = min(MinAngle, MaxAngle);
+float maxAngle = max(MinAngle, MaxAngle);
+float radiusMask = smoothstep(0.006, 0.018, radius) * smoothstep(0.49, 0.46, radius);
+float angleMask = step(minAngle, angle) * step(angle, maxAngle);
+float sectorAlpha = radiusMask * angleMask * 0.36;
+float currentAngle = clamp(CurrentAngle, minAngle, maxAngle);
+float currentRad = currentAngle * 0.01745329252;
+float2 lineDir = float2(cos(currentRad), sin(currentRad));
+float alongLine = dot(d, lineDir);
+float lineDistance = abs(d.x * lineDir.y - d.y * lineDir.x);
+float lineAlpha = smoothstep(0.014, 0.004, lineDistance) * step(0.0, alongLine) * step(alongLine, 0.49);
+float alpha = saturate(max(sectorAlpha, lineAlpha));
+float3 color = lerp(float3(0.0, 0.0, 0.0), float3(1.0, 0.0, 0.0), step(0.01, lineAlpha));
+return float4(color, alpha);
+)");
+	AddCustomInput(Custom, TEXT("UV"), UV);
+	AddCustomInput(Custom, TEXT("MinAngle"), MinAngle);
+	AddCustomInput(Custom, TEXT("MaxAngle"), MaxAngle);
+	AddCustomInput(Custom, TEXT("CurrentAngle"), CurrentAngle);
+
+	UMaterialExpressionComponentMask* RGBMask = AddMaterialExpression<UMaterialExpressionComponentMask>(Material, -80, -20);
+	RGBMask->Input.Connect(0, Custom);
+	RGBMask->R = true;
+	RGBMask->G = true;
+	RGBMask->B = true;
+
+	UMaterialExpressionComponentMask* AlphaMask = AddMaterialExpression<UMaterialExpressionComponentMask>(Material, -80, 120);
+	AlphaMask->Input.Connect(0, Custom);
+	AlphaMask->A = true;
+
+	if (FExpressionInput* EmissiveInput = Material->GetExpressionInputForProperty(MP_EmissiveColor))
+	{
+		EmissiveInput->Connect(0, RGBMask);
+	}
+	if (FExpressionInput* OpacityInput = Material->GetExpressionInputForProperty(MP_Opacity))
+	{
+		OpacityInput->Connect(0, AlphaMask);
+	}
+
+	Material->PostEditChange();
+	Material->MarkPackageDirty();
+	if (bCreatedMaterial)
+	{
+		FAssetRegistryModule::AssetCreated(Material);
+	}
+	return Material;
+}
 void ConfigureCanvasSlot(UCanvasPanelSlot* Slot, const FAnchors& Anchors, const FVector2D& Position, const FVector2D& Size, const FVector2D& Alignment)
 {
 	if (!Slot)
@@ -181,7 +312,17 @@ UImage* AddImage(UWidgetTree* WidgetTree, UCanvasPanel* Root, const FName& Name,
 	ConfigureCanvasSlot(Root->AddChildToCanvas(Image), Anchors, Position, Size, Alignment);
 	return Image;
 }
-
+UImage* AddMaterialImage(UWidgetTree* WidgetTree, UCanvasPanel* Root, const FName& Name, UMaterialInterface* Material, const FAnchors& Anchors, const FVector2D& Position, const FVector2D& Size, const FVector2D& Alignment)
+{
+	UImage* Image = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), Name);
+	if (Material)
+	{
+		Image->SetBrushFromMaterial(Material);
+	}
+	Image->SetColorAndOpacity(FLinearColor::White);
+	ConfigureCanvasSlot(Root->AddChildToCanvas(Image), Anchors, Position, Size, Alignment);
+	return Image;
+}
 UProgressBar* AddProgressBar(UWidgetTree* WidgetTree, UCanvasPanel* Root, const FName& Name, const FAnchors& Anchors, const FVector2D& Position, const FVector2D& Size, const FLinearColor& FillColor)
 {
 	UProgressBar* ProgressBar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), Name);
@@ -318,17 +459,47 @@ void ConfigureBattleCharacterStatusTree(UWidgetBlueprint* WidgetBlueprint)
 	UCanvasPanel* Root = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("RootCanvas"));
 	WidgetTree->RootWidget = Root;
 
-	AddText(WidgetTree, Root, TEXT("CharacterNameText"), FText::FromString(TEXT("Character")), FAnchors(0.0f, 0.0f), FVector2D(0.0f, 0.0f), FVector2D(220.0f, 18.0f), FVector2D::ZeroVector, 12, ETextJustify::Center);
-	AddProgressBar(WidgetTree, Root, TEXT("HealthBar"), FAnchors(0.0f, 0.0f), FVector2D(22.0f, 22.0f), FVector2D(176.0f, 14.0f), FLinearColor(0.9f, 0.1f, 0.08f));
-	AddText(WidgetTree, Root, TEXT("HealthText"), FText::FromString(TEXT("100 / 100")), FAnchors(0.0f, 0.0f), FVector2D(0.0f, 38.0f), FVector2D(220.0f, 18.0f), FVector2D::ZeroVector, 11, ETextJustify::Center);
-	AddText(WidgetTree, Root, TEXT("AimText"), FText::FromString(TEXT("Aim 45 deg")), FAnchors(0.0f, 0.0f), FVector2D(0.0f, 56.0f), FVector2D(220.0f, 18.0f), FVector2D::ZeroVector, 11, ETextJustify::Center, FLinearColor(0.95f, 0.88f, 0.25f));
+	UImage* LegacyAimIndicatorImage = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("AimIndicatorImage"));
+	LegacyAimIndicatorImage->SetVisibility(ESlateVisibility::Collapsed);
+	ConfigureCanvasSlot(Root->AddChildToCanvas(LegacyAimIndicatorImage), FAnchors(0.0f, 0.0f), FVector2D::ZeroVector, FVector2D(1.0f, 1.0f), FVector2D::ZeroVector);
 
+	AddProgressBar(WidgetTree, Root, TEXT("HealthBar"), FAnchors(0.0f, 0.0f), FVector2D(0.0f, 0.0f), FVector2D(160.0f, 18.0f), FLinearColor(0.9f, 0.1f, 0.08f));
+	AddText(WidgetTree, Root, TEXT("CharacterNameText"), FText::GetEmpty(), FAnchors(0.0f, 0.0f), FVector2D::ZeroVector, FVector2D(1.0f, 1.0f), FVector2D::ZeroVector, 1)->SetVisibility(ESlateVisibility::Collapsed);
+	AddText(WidgetTree, Root, TEXT("HealthText"), FText::GetEmpty(), FAnchors(0.0f, 0.0f), FVector2D::ZeroVector, FVector2D(1.0f, 1.0f), FVector2D::ZeroVector, 1)->SetVisibility(ESlateVisibility::Collapsed);
+	AddText(WidgetTree, Root, TEXT("AimText"), FText::GetEmpty(), FAnchors(0.0f, 0.0f), FVector2D::ZeroVector, FVector2D(1.0f, 1.0f), FVector2D::ZeroVector, 1)->SetVisibility(ESlateVisibility::Collapsed);
 	ResetWidgetVariableGuids(WidgetBlueprint);
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(WidgetBlueprint);
 	FKismetEditorUtilities::CompileBlueprint(WidgetBlueprint);
 	WidgetBlueprint->MarkPackageDirty();
 }
 
+void ConfigureBattleCharacterAimIndicatorTree(UWidgetBlueprint* WidgetBlueprint, UMaterialInterface* AimAngleMaterial)
+{
+	if (!WidgetBlueprint)
+	{
+		return;
+	}
+
+	WidgetBlueprint->Modify();
+	WidgetBlueprint->ParentClass = UFRBattleCharacterAimIndicatorWidget::StaticClass();
+
+	UWidgetTree* WidgetTree = WidgetBlueprint->WidgetTree;
+	if (!WidgetTree)
+	{
+		WidgetTree = NewObject<UWidgetTree>(WidgetBlueprint, TEXT("WidgetTree"), RF_Transactional);
+		WidgetBlueprint->WidgetTree = WidgetTree;
+	}
+	WidgetTree->Modify();
+
+	UCanvasPanel* Root = WidgetTree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("RootCanvas"));
+	WidgetTree->RootWidget = Root;
+
+	AddMaterialImage(WidgetTree, Root, TEXT("AimIndicatorImage"), AimAngleMaterial, FAnchors(0.0f, 0.0f), FVector2D::ZeroVector, FVector2D(128.0f, 128.0f), FVector2D::ZeroVector);
+	ResetWidgetVariableGuids(WidgetBlueprint);
+	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(WidgetBlueprint);
+	FKismetEditorUtilities::CompileBlueprint(WidgetBlueprint);
+	WidgetBlueprint->MarkPackageDirty();
+}
 void ConfigureFloatingDamageTextTree(UWidgetBlueprint* WidgetBlueprint)
 {
 	if (!WidgetBlueprint)
@@ -386,6 +557,7 @@ UFRGenerateMainGameHUDCommandlet::UFRGenerateMainGameHUDCommandlet()
 int32 UFRGenerateMainGameHUDCommandlet::Main(const FString& Params)
 {
 	UTexture2D* WindArrowTexture = LoadOrCreateWindArrowTexture();
+	UMaterial* AimAngleMaterial = LoadOrCreateAimAngleIndicatorMaterial();
 	UWidgetBlueprint* MainGameHUD = LoadOrCreateWidgetBlueprint(MainGameHUDPath, MainGameHUDName, UFRMainGameHUDWidget::StaticClass());
 	if (!MainGameHUD)
 	{
@@ -394,8 +566,9 @@ int32 UFRGenerateMainGameHUDCommandlet::Main(const FString& Params)
 	}
 
 	UWidgetBlueprint* BattleCharacterStatus = LoadOrCreateWidgetBlueprint(CharacterWidgetPath, BattleCharacterStatusName, UFRBattleCharacterStatusWidget::StaticClass());
+	UWidgetBlueprint* BattleCharacterAimIndicator = LoadOrCreateWidgetBlueprint(CharacterWidgetPath, BattleCharacterAimIndicatorName, UFRBattleCharacterAimIndicatorWidget::StaticClass());
 	UWidgetBlueprint* FloatingDamageText = LoadOrCreateWidgetBlueprint(CharacterWidgetPath, FloatingDamageTextName, UFRFloatingDamageTextWidget::StaticClass());
-	if (!BattleCharacterStatus || !FloatingDamageText || !WindArrowTexture)
+	if (!BattleCharacterStatus || !BattleCharacterAimIndicator || !FloatingDamageText || !WindArrowTexture || !AimAngleMaterial)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Could not create combat feedback UI assets."));
 		return 1;
@@ -403,19 +576,24 @@ int32 UFRGenerateMainGameHUDCommandlet::Main(const FString& Params)
 
 	ConfigureMainGameHUDTree(MainGameHUD, WindArrowTexture);
 	ConfigureBattleCharacterStatusTree(BattleCharacterStatus);
+	ConfigureBattleCharacterAimIndicatorTree(BattleCharacterAimIndicator, AimAngleMaterial);
 	ConfigureFloatingDamageTextTree(FloatingDamageText);
 	UFRGameModeDataAsset* MainGameMode = ConfigureMainGameModeHUD();
 
 	const bool bSavedWindArrow = SaveAsset(WindArrowTexture);
+	const bool bSavedAimAngleMaterial = SaveAsset(AimAngleMaterial);
 	const bool bSavedHUD = SaveAsset(MainGameHUD);
 	const bool bSavedStatus = SaveAsset(BattleCharacterStatus);
+	const bool bSavedAimIndicator = SaveAsset(BattleCharacterAimIndicator);
 	const bool bSavedDamageText = SaveAsset(FloatingDamageText);
 	const bool bSavedMode = SaveAsset(MainGameMode);
-	UE_LOG(LogTemp, Display, TEXT("Generated MainGame combat UI. SavedWindArrow=%s SavedHUD=%s SavedStatus=%s SavedDamageText=%s SavedMode=%s"),
+	UE_LOG(LogTemp, Display, TEXT("Generated MainGame combat UI. SavedWindArrow=%s SavedAimAngleMaterial=%s SavedHUD=%s SavedStatus=%s SavedAimIndicator=%s SavedDamageText=%s SavedMode=%s"),
 		bSavedWindArrow ? TEXT("true") : TEXT("false"),
+		bSavedAimAngleMaterial ? TEXT("true") : TEXT("false"),
 		bSavedHUD ? TEXT("true") : TEXT("false"),
 		bSavedStatus ? TEXT("true") : TEXT("false"),
+		bSavedAimIndicator ? TEXT("true") : TEXT("false"),
 		bSavedDamageText ? TEXT("true") : TEXT("false"),
 		bSavedMode ? TEXT("true") : TEXT("false"));
-	return bSavedWindArrow && bSavedHUD && bSavedStatus && bSavedDamageText && bSavedMode ? 0 : 1;
+	return bSavedWindArrow && bSavedAimAngleMaterial && bSavedHUD && bSavedStatus && bSavedAimIndicator && bSavedDamageText && bSavedMode ? 0 : 1;
 }
