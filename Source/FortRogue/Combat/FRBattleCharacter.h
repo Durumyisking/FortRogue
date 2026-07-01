@@ -268,6 +268,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
 	float GetAimAngle() const;
 
+	bool IsFacingRight() const;
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Combat")
 	float GetShotPower() const;

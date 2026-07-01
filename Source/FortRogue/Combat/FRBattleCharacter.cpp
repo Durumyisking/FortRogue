@@ -1359,6 +1359,10 @@ float AFRBattleCharacter::GetAimAngle() const
 	return AimAngle;
 }
 
+bool AFRBattleCharacter::IsFacingRight() const
+{
+	return bFacingRight;
+}
 
 float AFRBattleCharacter::GetShotPower() const
 {
@@ -1876,7 +1880,7 @@ void AFRBattleCharacter::UpdateAimDrivenComponents()
 	{
 		const float CameraLocalYOffset = bFacingRight ? AimIndicatorCameraOffsetY : -AimIndicatorCameraOffsetY;
 		AngleIndicatorWidget->SetRelativeLocation(AimPivotLocalLocation + FVector(0.0f, CameraLocalYOffset, 0.0f));
-		AngleIndicatorWidget->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
+		AngleIndicatorWidget->SetRelativeRotation(FRotator(0.0f, bFacingRight ? 90.0f : -90.0f, 0.0f));
 	}
 }
 

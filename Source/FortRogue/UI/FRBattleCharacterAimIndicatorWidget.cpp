@@ -29,6 +29,7 @@ void UFRBattleCharacterAimIndicatorWidget::RefreshIndicator()
 	}
 
 	AimIndicatorImage->SetVisibility(ESlateVisibility::HitTestInvisible);
+	AimIndicatorImage->SetRenderScale(FVector2D(BattleCharacter->IsFacingRight() ? 1.0f : -1.0f, 1.0f));
 	if (!AimIndicatorMaterial)
 	{
 		AimIndicatorMaterial = AimIndicatorImage->GetDynamicMaterial();
