@@ -80,3 +80,18 @@ FText UFRDefaultLoadoutDefinition::GetDataValidationSummary() const
 
 	return Issues.Num() > 0 ? FText::FromString(FString::Join(Issues, TEXT(" | "))) : FText::GetEmpty();
 }
+
+#if WITH_EDITOR
+#include "Misc/DataValidation.h"
+
+EDataValidationResult UFRDefaultLoadoutDefinition::IsDataValid(FDataValidationContext& Context) const
+{
+	EDataValidationResult Result = Super::IsDataValid(Context);
+	const FText ValidationSummary = GetDataValidationSummary();
+	if (!ValidationSummary.IsEmpty())
+	{
+		Context.AddWarning(ValidationSummary);
+	}
+	return Result;
+}
+#endif

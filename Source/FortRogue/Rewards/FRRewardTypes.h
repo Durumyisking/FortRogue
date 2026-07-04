@@ -7,31 +7,23 @@
 #include "Weapons/FRWeaponDefinition.h"
 #include "FRRewardTypes.generated.h"
 
-class UFRItemDefinition;
-class UFRPerkDefinition;
-class UFRWeaponDefinition;
-
-UENUM(BlueprintType)
-enum class EFRRewardType : uint8
-{
-	Weapon,
-	Consumable,
-	Trait
-};
+class AFRBattleCharacter;
+class UFRAbilitySet;
+class UFRRewardGrant;
 
 USTRUCT(BlueprintType)
 struct FFRRewardChoice
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward", meta = (ToolTip = "보상 종류입니다. Weapon은 무기, Consumable은 아이템, Trait은 퍽/패시브 보상입니다."))
-	EFRRewardType Type = EFRRewardType::Trait;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward", meta = (ToolTip = "보상 선택 화면에 표시할 이름입니다."))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward", meta = (ToolTip = "보상 선택 화면에 표시할 이름입니다. 비워두면 첫 번째 그랜트의 기본 이름을 사용합니다."))
 	FText DisplayName;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward", meta = (ToolTip = "보상 선택 화면에 표시할 설명입니다. 플레이 방식이 어떻게 바뀌는지 적어주세요."))
 	FText Description;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Instanced, Category = "Reward", meta = (ToolTip = "이 보상이 지급할 그랜트 목록입니다. 무기, 아이템, 퍽 그랜트를 조합할 수 있습니다."))
+	TArray<TObjectPtr<UFRRewardGrant>> Grants;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward", meta = (Categories = "Weapon,Item,Trait", ToolTip = "런 안에서 보상 획득 여부를 추적할 태그입니다. Weapon.*, Item.*, Trait.* 태그만 사용하세요."))
 	FGameplayTag RewardTag;
@@ -48,15 +40,9 @@ struct FFRRewardChoice
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward|Condition", meta = (Categories = "Weapon,Item,Trait", ToolTip = "이 태그가 이미 선택되어 있으면 보상이 등장하지 않습니다."))
 	FGameplayTagContainer BlockedRewardTags;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward", meta = (ToolTip = "Type이 Weapon일 때 지급할 무기 데이터입니다."))
-	TObjectPtr<UFRWeaponDefinition> WeaponReward;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward", meta = (ToolTip = "Type이 Consumable일 때 지급할 아이템 데이터입니다."))
-	TObjectPtr<UFRItemDefinition> ItemReward;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward", meta = (ToolTip = "Type이 Trait일 때 지급할 퍽 데이터입니다."))
-	TObjectPtr<UFRPerkDefinition> PerkReward;
-
+	void ApplyToCharacter(AFRBattleCharacter& Character) const;
+	FText GetResolvedDisplayName() const;
+	FGameplayTag GetResolvedRewardTag() const;
 	FText GetEffectSummary() const;
 	FText GetDataValidationSummary() const;
 	bool MeetsRewardTagConditions(const FGameplayTagContainer& ChosenRewardTags) const;
@@ -65,3 +51,5 @@ struct FFRRewardChoice
 };
 
 FORTROGUE_API FText GetFortRogueShotModifierEffectSummary(const TArray<FFRShotModifierSpec>& ShotModifiers);
+FORTROGUE_API void AppendFortRogueShotModifierSummary(TArray<FString>& Parts, const TArray<FFRShotModifierSpec>& ShotModifiers);
+FORTROGUE_API void AppendFortRogueAbilitySetSummary(TArray<FString>& Parts, const UFRAbilitySet* AbilitySet);

@@ -18,6 +18,7 @@ class UFRCombatSet;
 class UFRDefaultLoadoutDefinition;
 class UFRBattleCharacterStatusWidget;
 class UFRBattleCharacterAimIndicatorWidget;
+class UFRTerrainMovementComponent;
 class UWidgetComponent;
 class UBoxComponent;
 class UPaperFlipbookComponent;
@@ -37,6 +38,29 @@ struct FFRGrantedAbilitySetEntry
 
 	UPROPERTY()
 	FFRAbilitySet_GrantedHandles Handles;
+};
+
+/** 런타임에 부여된 샷 modifier와 그 출처(퍽)를 함께 기록합니다. 퍽 제거 시 출처로 되돌립니다. */
+USTRUCT()
+struct FFRGrantedShotModifierEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FFRShotModifierSpec Spec;
+
+	UPROPERTY()
+	TObjectPtr<UFRPerkDefinition> SourcePerk;
+};
+
+/** 획득한 퍽 한 개의 기록입니다. 빌드 UI 표시, 스택 카운트, 퍽 제거에 사용합니다. */
+USTRUCT(BlueprintType)
+struct FFRAcquiredPerkEntry
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = "Perk")
+	TObjectPtr<UFRPerkDefinition> PerkDefinition;
 };
 
 UCLASS()
@@ -108,6 +132,12 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
 	int32 GetWeaponIndexByTag(UPARAM(meta = (Categories = "Weapon")) FGameplayTag WeaponTag) const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
+	int32 GetBasicAttackIndex() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapons")
+	int32 GetSpecialAttackIndex() const;
+
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
 	int32 FireSelectedWeapon();
 
@@ -120,6 +150,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
 	void ApplyDamage(float DamageAmount);
 
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat")
+	void ApplyHeal(float HealAmount);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Combat", meta = (ToolTip = "다음 발사에 적용할 공격 배율을 등록합니다. 이미 더 큰 배율이 대기 중이면 큰 값이 유지됩니다."))
+	void ApplyPendingAttackMultiplier(float Multiplier);
+
 	bool FindHurtboxImpactAlongSegmentXZ(const FVector& StartLocation, const FVector& EndLocation, FVector& OutImpactLocation) const;
 	float GetDistanceToHurtboxXZ(const FVector& WorldLocation) const;
 
@@ -131,6 +167,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Terrain")
 	void SetTerrain(AFRDestructibleTerrain* InTerrain);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Terrain")
+	UFRTerrainMovementComponent* GetTerrainMovement() const;
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Items")
 	bool UseItemByType(EFRItemType ItemType);
@@ -168,8 +207,23 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
 	void ApplyRewardShotPowerMultiplier(float BonusMultiplier);
 
-	UFUNCTION(BlueprintCallable, Category = "FortRogue|Rewards")
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Perks")
 	void ApplyPerkDefinition(UFRPerkDefinition* PerkDefinition);
+
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Perks", meta = (ToolTip = "획득한 퍽 한 스택을 제거하고 스탯/능력/샷 modifier를 되돌립니다."))
+	bool RemovePerkDefinition(UFRPerkDefinition* PerkDefinition);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Perks")
+	TArray<UFRPerkDefinition*> GetAcquiredPerksForBlueprint() const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Perks")
+	int32 GetPerkStackCount(const UFRPerkDefinition* PerkDefinition) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Perks")
+	bool HasPerkByTag(UPARAM(meta = (Categories = "Trait")) FGameplayTag PerkTag) const;
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Perks")
+	FText GetAcquiredPerksSummary() const;
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Abilities")
 	void GrantAbilitySet(UFRAbilitySet* AbilitySet);
@@ -218,7 +272,6 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Character")
 	bool IsEnemy() const;
-
 
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Turn")
 	bool IsActiveTurn() const;
@@ -357,12 +410,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Items", meta = (ToolTip = "캐릭터가 보유한 아이템과 사용 가능 횟수 목록입니다."))
 	TArray<FFRItemStack> ItemLoadout;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Perks", meta = (ToolTip = "캐릭터에게 지속 적용되는 샷 modifier 목록입니다. 퍽이나 보상으로 얻은 장기 효과를 담습니다."))
-	TArray<FFRShotModifierSpec> GrantedShotModifiers;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Items", meta = (ToolTip = "다음 발사에만 적용되는 샷 modifier 목록입니다. 공격 아이템처럼 1회성 효과를 담습니다."))
-	TArray<FFRShotModifierSpec> PendingShotModifiers;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "FortRogue|Loadout", meta = (ToolTip = "CharacterDefinition에 로드아웃이 없을 때 사용할 기본 로드아웃 데이터입니다."))
 	TObjectPtr<UFRDefaultLoadoutDefinition> DefaultLoadoutDefinition;
 
@@ -381,16 +428,9 @@ private:
 	bool CanUseItemStack(const FFRItemStack& ItemStack) const;
 	bool UseItemStack(FFRItemStack& ItemStack);
 	bool IsSupportedByTerrain() const;
-	bool FindFootprintSurfaceZ(const AFRDestructibleTerrain& Terrain, float CenterWorldX, float StartWorldZ, float SearchDistance, float& OutSurfaceZ) const;
-	bool IsFootprintBlocked(const AFRDestructibleTerrain& Terrain, const FVector& CenterLocation, float FootWorldZ) const;
-	bool TryResolveFootprintBlock(const AFRDestructibleTerrain& Terrain, FVector& InOutCenterLocation, float& InOutFootWorldZ) const;
-	bool IsSlopeTraversable(float CurrentFootWorldZ, float NextSurfaceWorldZ, float HorizontalDistance, float TerrainCellSize) const;
-	float GetMaxCharacterSlopeDegrees() const;
-	float ClampWorldXToTerrainBounds(const AFRDestructibleTerrain& Terrain, float WorldX) const;
-	void UpdateBodyTerrainAlignment(const AFRDestructibleTerrain* Terrain);
-	void ApplyTerrainGravity(float DeltaSeconds);
-	bool CheckFallDeath();
-	void SnapToTerrain();
+	void HandleSurfacePitchChanged(float PitchDegrees);
+	void HandleSupportLost();
+	void HandleFellToDeath();
 	void SetFacingFromAxis(float Axis);
 	void UpdateCharacterRotation(float PitchDegrees);
 	void UpdateBodyFrameChildrenLocalTransform();
@@ -400,14 +440,19 @@ private:
 	void SpawnFloatingDamageText(float DamageAmount);
 	float GetActorPitchDegrees() const;
 	FVector GetProjectileLaunchDirection(float SpreadDegrees) const;
+	FVector GetLaunchDirectionForAim(float AimDegrees) const;
 	FVector GetAimPivotWorldLocation() const;
 	FVector GetProjectileSpawnLocation(const FVector& LaunchDirection) const;
 	FVector GetMuzzleSpawnLocation() const;
 	float GetEffectiveShotPower() const;
+	float GetEffectiveShotPowerFor(float InShotPower) const;
 	FFRShotSpec BuildShotSpec(const FFRWeaponSpec& Weapon) const;
+	FFRShotSpec BuildShotSpecForAim(const FFRWeaponSpec& Weapon, float InAimAngle, float InShotPower) const;
 	int32 SpawnShotSpecProjectiles(const FFRShotSpec& ShotSpec, bool bIncreasePendingProjectileCount);
 	void GrantStartupAbilitySets();
 	void EnsureDefaultLoadout();
+	void AppendGrantedShotModifiers(const TArray<FFRShotModifierSpec>& ShotModifiers, UFRPerkDefinition* SourcePerk);
+	float GetWorldWind() const;
 
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue")
 	TObjectPtr<USceneComponent> Root;
@@ -427,16 +472,19 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FortRogue|Combat", meta = (AllowPrivateAccess = "true", ToolTip = "투사체 생성 위치와 발사 방향의 기준이 되는 총구입니다. BodyFrame 스케일을 따라 위치 오프셋도 함께 커집니다."))
 	TObjectPtr<USceneComponent> Muzzle;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FortRogue|Terrain", meta = (AllowPrivateAccess = "true", ToolTip = "지형 이동/중력/낙사 판정을 담당하는 컴포넌트입니다."))
+	TObjectPtr<UFRTerrainMovementComponent> TerrainMovement;
+
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue|UI")
 	TObjectPtr<UWidgetComponent> AngleIndicatorWidget;
 
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue|UI")
 	TObjectPtr<UWidgetComponent> HpWidget;
 
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI")
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI", meta = (ToolTip = "각도 인디케이터 위젯 클래스입니다. 비워두면 프로젝트 설정(FortRogue Game Flow)의 기본 클래스를 사용합니다."))
 	TSubclassOf<UFRBattleCharacterAimIndicatorWidget> AngleIndicatorWidgetClass;
 
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI")
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|UI", meta = (ToolTip = "체력 표시 위젯 클래스입니다. 비워두면 프로젝트 설정(FortRogue Game Flow)의 기본 클래스를 사용합니다."))
 	TSubclassOf<UFRBattleCharacterStatusWidget> HpWidgetClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Aim", meta = (AllowPrivateAccess = "true", ToolTip = "BodyFrame 로컬 공간에서 조준 각도기의 중심이자 총구 오프셋의 시작점입니다."))
@@ -458,46 +506,32 @@ private:
 	TObjectPtr<UFRCombatSet> CombatSet;
 
 	UPROPERTY()
-	TObjectPtr<AFRDestructibleTerrain> AssignedTerrain;
+	TArray<FFRGrantedAbilitySetEntry> GrantedAbilitySetEntries;
 
 	UPROPERTY()
-	TArray<FFRGrantedAbilitySetEntry> GrantedAbilitySetEntries;
+	TArray<FFRGrantedShotModifierEntry> GrantedShotModifierEntries;
+
+	UPROPERTY()
+	TArray<FFRShotModifierSpec> PendingShotModifiers;
+
+	UPROPERTY()
+	TArray<FFRAcquiredPerkEntry> AcquiredPerkEntries;
 
 	FText CharacterDisplayName;
 	bool bEnemy = false;
 	bool bActiveTurn = false;
 	bool bFiredThisTurn = false;
-	bool bHasSpecialAttackSlot = false;
-	bool bSpecialAttackEnabled = true;
 	bool bFacingRight = true;
 	float AimAngle = 45.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Combat|Charge", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ClampMax = "1.0", ToolTip = "UI에 표시되는 현재 발사 게이지입니다. 0이어도 실제 발사는 MinShotPower를 사용합니다."))
 	float ShotPower = 0.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "턴 중 좌우 이동 속도입니다. 월드 단위/초 기준입니다."))
-	float MoveSpeed = 260.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "캐릭터 위치에서 발 접지점을 찾을 때 아래로 내리는 Z 오프셋입니다."))
-	float FootOffsetZ = 45.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "발판 판정을 위해 캐릭터 중심 좌우로 검사할 반폭입니다."))
-	float FootProbeHalfWidth = 22.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "한 번에 올라갈 수 있는 최대 지형 높이입니다. 이보다 높은 턱은 이동을 막습니다."))
-	float MaxStepUp = 34.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "한 번에 내려갈 수 있는 최대 지형 높이입니다. 이보다 깊으면 낙하 상태로 처리됩니다."))
-	float MaxStepDown = 56.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "접지 중 지형 표면에 붙이기 위해 허용하는 최대 보정 거리입니다."))
-	float GroundSnapDistance = 12.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "몸체 기울기를 계산할 때 캐릭터 중심 좌우로 검사할 반폭입니다."))
-	float BodySlopeProbeHalfWidth = 28.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "시각적인 몸체 기울기에서 무시할 좌우 지형 높이 차이입니다. 작은 셀 단위 요철이 캐릭터 회전으로 보이지 않게 합니다."))
-	float BodySlopeVisualDeadZoneHeight = 8.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "지형 지지가 없을 때 적용할 낙하 가속도입니다."))
-	float GravityAcceleration = 980.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "낙하 중 도달할 수 있는 최대 하강 속도입니다."))
-	float MaxFallSpeed = 1600.0f;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FortRogue|Terrain Movement", meta = (AllowPrivateAccess = "true", ClampMin = "0.0", ToolTip = "지형 아래로 이 깊이 이상 떨어지면 패배 처리할 기준 거리입니다."))
-	float FallDeathDepth = 400.0f;
+
 	float ShotChargeElapsed = 0.0f;
-	float VerticalVelocity = 0.0f;
 	bool bChargingShot = false;
+	bool bSpecialAttackEnabled = true;
+	int32 BasicAttackIndex = INDEX_NONE;
+	int32 SpecialAttackIndex = INDEX_NONE;
 	float PendingAttackMultiplier = 1.0f;
 	int32 SelectedWeaponIndex = 0;
 };

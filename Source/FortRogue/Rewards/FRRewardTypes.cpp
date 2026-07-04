@@ -3,9 +3,8 @@
 #include "Rewards/FRRewardTypes.h"
 
 #include "AbilitySystem/FRAbilitySet.h"
-#include "Items/FRItemDefinition.h"
-#include "Perks/FRPerkDefinition.h"
-#include "Weapons/FRWeaponDefinition.h"
+#include "Combat/FRBattleCharacter.h"
+#include "Rewards/FRRewardGrant.h"
 
 namespace
 {
@@ -14,42 +13,6 @@ void AddSummaryPart(TArray<FString>& Parts, const FString& Part)
 	if (!Part.IsEmpty())
 	{
 		Parts.Add(Part);
-	}
-}
-
-bool HasRewardGameplayEffect(const FFRRewardChoice& Reward)
-{
-	return Reward.WeaponReward
-		|| Reward.ItemReward
-		|| Reward.PerkReward;
-}
-
-void AddAbilitySetSummary(TArray<FString>& Parts, const UFRAbilitySet* AbilitySet)
-{
-	if (!AbilitySet)
-	{
-		return;
-	}
-
-	const FString AbilitySetSummary = AbilitySet->GetEffectSummary().ToString();
-	const FString SummaryText = AbilitySetSummary.IsEmpty() ? AbilitySet->GetName() : AbilitySetSummary;
-	AddSummaryPart(Parts, FString::Printf(TEXT("ability set %s"), *SummaryText));
-}
-
-FString GetPerkRarityName(EFRPerkRarity Rarity)
-{
-	switch (Rarity)
-	{
-	case EFRPerkRarity::Common:
-		return TEXT("Common");
-	case EFRPerkRarity::Rare:
-		return TEXT("Rare");
-	case EFRPerkRarity::Epic:
-		return TEXT("Epic");
-	case EFRPerkRarity::Legendary:
-		return TEXT("Legendary");
-	default:
-		return TEXT("Common");
 	}
 }
 
@@ -65,8 +28,21 @@ int32 CountRewardProjectileEffects(const TArray<FFRProjectileEffectSpec>& Projec
 	}
 	return TotalCount;
 }
+}
 
-void AddShotModifierSummary(TArray<FString>& Parts, const TArray<FFRShotModifierSpec>& Modifiers)
+void AppendFortRogueAbilitySetSummary(TArray<FString>& Parts, const UFRAbilitySet* AbilitySet)
+{
+	if (!AbilitySet)
+	{
+		return;
+	}
+
+	const FString AbilitySetSummary = AbilitySet->GetEffectSummary().ToString();
+	const FString SummaryText = AbilitySetSummary.IsEmpty() ? AbilitySet->GetName() : AbilitySetSummary;
+	AddSummaryPart(Parts, FString::Printf(TEXT("ability set %s"), *SummaryText));
+}
+
+void AppendFortRogueShotModifierSummary(TArray<FString>& Parts, const TArray<FFRShotModifierSpec>& Modifiers)
 {
 	if (Modifiers.Num() <= 0)
 	{
@@ -159,12 +135,63 @@ void AddShotModifierSummary(TArray<FString>& Parts, const TArray<FFRShotModifier
 		AddSummaryPart(Parts, FString::Printf(TEXT("projectile effects %d"), ProjectileEffectCount));
 	}
 }
+
+FText GetFortRogueShotModifierEffectSummary(const TArray<FFRShotModifierSpec>& ShotModifiers)
+{
+	TArray<FString> Parts;
+	AppendFortRogueShotModifierSummary(Parts, ShotModifiers);
+	return Parts.Num() > 0 ? FText::FromString(FString::Join(Parts, TEXT(" | "))) : FText::GetEmpty();
+}
+
+void FFRRewardChoice::ApplyToCharacter(AFRBattleCharacter& Character) const
+{
+	for (const UFRRewardGrant* Grant : Grants)
+	{
+		if (Grant)
+		{
+			Grant->ApplyToCharacter(Character);
+		}
+	}
+}
+
+FText FFRRewardChoice::GetResolvedDisplayName() const
+{
+	if (!DisplayName.IsEmpty())
+	{
+		return DisplayName;
+	}
+
+	for (const UFRRewardGrant* Grant : Grants)
+	{
+		if (Grant && !Grant->GetDefaultDisplayName().IsEmpty())
+		{
+			return Grant->GetDefaultDisplayName();
+		}
+	}
+	return FText::GetEmpty();
+}
+
+FGameplayTag FFRRewardChoice::GetResolvedRewardTag() const
+{
+	if (RewardTag.IsValid())
+	{
+		return RewardTag;
+	}
+
+	for (const UFRRewardGrant* Grant : Grants)
+	{
+		if (Grant && Grant->GetDefaultRewardTag().IsValid())
+		{
+			return Grant->GetDefaultRewardTag();
+		}
+	}
+	return FGameplayTag();
 }
 
 FText FFRRewardChoice::GetEffectSummary() const
 {
 	TArray<FString> Parts;
-	const FString RewardDisplayName = DisplayName.ToString();
+	const FString RewardDisplayName = GetResolvedDisplayName().ToString();
 	if (!RewardDisplayName.IsEmpty())
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("reward %s"), *RewardDisplayName));
@@ -174,120 +201,18 @@ FText FFRRewardChoice::GetEffectSummary() const
 	{
 		AddSummaryPart(Parts, RewardDescription);
 	}
-	if (WeaponReward)
+	for (const UFRRewardGrant* Grant : Grants)
 	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("weapon %s"), *WeaponReward->Weapon.DisplayName.ToString()));
-		const FString WeaponDescription = WeaponReward->Weapon.Description.ToString();
-		if (!WeaponDescription.IsEmpty())
+		if (Grant)
 		{
-			AddSummaryPart(Parts, WeaponDescription);
-		}
-		if (WeaponReward->Weapon.WeaponTag.IsValid())
-		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("tag %s"), *WeaponReward->Weapon.WeaponTag.ToString()));
-		}
-		if (WeaponReward->Weapon.HitDamage > 0.0f)
-		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("hit damage %.0f"), WeaponReward->Weapon.HitDamage));
-		}
-		if (WeaponReward->Weapon.Damage > 0.0f)
-		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("explosion damage %.0f"), WeaponReward->Weapon.Damage));
-		}
-		if (WeaponReward->Weapon.BlastRadius > 0.0f)
-		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("blast %.0f"), WeaponReward->Weapon.BlastRadius));
-		}
-		if (WeaponReward->Weapon.TerrainDamage > 0.0f)
-		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("terrain damage %.0f"), WeaponReward->Weapon.TerrainDamage));
-		}
-		if (WeaponReward->Weapon.ProjectilesPerShot > 1)
-		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("projectiles %d"), WeaponReward->Weapon.ProjectilesPerShot));
-		}
-		for (const FFRProjectileEffectSpec& ProjectileEffect : WeaponReward->Weapon.ProjectileEffects)
-		{
-			const FString ProjectileEffectName = ProjectileEffect.GetEffectDisplayName().ToString();
-			if (!ProjectileEffectName.IsEmpty())
-			{
-				AddSummaryPart(Parts, FString::Printf(TEXT("projectile effect %s"), *ProjectileEffectName));
-			}
-		}
-		const int32 ProjectileEffectCount = CountRewardProjectileEffects(WeaponReward->Weapon.ProjectileEffects);
-		if (ProjectileEffectCount > 0)
-		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("projectile effects %d"), ProjectileEffectCount));
-		}
-	}
-	if (ItemReward)
-	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("item %s"), *ItemReward->DisplayName.ToString()));
-		const FString ItemDescription = ItemReward->Description.ToString();
-		if (!ItemDescription.IsEmpty())
-		{
-			AddSummaryPart(Parts, ItemDescription);
-		}
-		if (ItemReward->ItemTag.IsValid())
-		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("tag %s"), *ItemReward->ItemTag.ToString()));
-		}
-		if (ItemReward->InitialCharges > 1)
-		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("charges %d"), ItemReward->InitialCharges));
-		}
-		if (ItemReward->ItemType == EFRItemType::Heal && ItemReward->HealAmount > 0.0f)
-		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("heal +%.0f"), ItemReward->HealAmount));
-		}
-		if (ItemReward->ItemType == EFRItemType::AttackMultiplier && !FMath::IsNearlyEqual(ItemReward->AttackMultiplier, 1.0f))
-		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("next shot attack x%.2g"), ItemReward->AttackMultiplier));
-		}
-		AddShotModifierSummary(Parts, ItemReward->UseShotModifiers);
-		AddAbilitySetSummary(Parts, ItemReward->UseAbilitySet);
-	}
-	if (PerkReward)
-	{
-		AddSummaryPart(Parts, FString::Printf(TEXT("perk %s"), *PerkReward->DisplayName.ToString()));
-		const FString PerkDescription = PerkReward->Description.ToString();
-		if (!PerkDescription.IsEmpty())
-		{
-			AddSummaryPart(Parts, PerkDescription);
-		}
-		if (PerkReward->PerkTag.IsValid())
-		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("tag %s"), *PerkReward->PerkTag.ToString()));
-		}
-		AddSummaryPart(Parts, FString::Printf(TEXT("rarity %s"), *GetPerkRarityName(PerkReward->Rarity)));
-		AddShotModifierSummary(Parts, PerkReward->ShotModifiers);
-		AddAbilitySetSummary(Parts, PerkReward->GrantedAbilitySet);
-		if (!FMath::IsNearlyZero(PerkReward->DamageBonus))
-		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("damage %+.0f"), PerkReward->DamageBonus));
-		}
-		if (!FMath::IsNearlyZero(PerkReward->MaxHealthBonus))
-		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("max HP %+.0f"), PerkReward->MaxHealthBonus));
-		}
-		if (!FMath::IsNearlyZero(PerkReward->MaxMoveBudgetBonus))
-		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("move %+.0f"), PerkReward->MaxMoveBudgetBonus));
-		}
-		if (PerkReward->ProjectileBonus != 0)
-		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("projectiles %+d"), PerkReward->ProjectileBonus));
-		}
-		if (!FMath::IsNearlyZero(PerkReward->ShotPowerMultiplierBonus))
-		{
-			AddSummaryPart(Parts, FString::Printf(TEXT("shot power %+.2g"), PerkReward->ShotPowerMultiplierBonus));
+			Grant->AppendEffectSummary(Parts);
 		}
 	}
 	if (RewardTag.IsValid())
 	{
 		AddSummaryPart(Parts, FString::Printf(TEXT("reward tag %s"), *RewardTag.ToString()));
 	}
-	if (bOfferOncePerRun && RewardTag.IsValid())
+	if (bOfferOncePerRun && GetResolvedRewardTag().IsValid())
 	{
 		AddSummaryPart(Parts, TEXT("once per run"));
 	}
@@ -308,17 +233,10 @@ FText FFRRewardChoice::GetEffectSummary() const
 	return FText::FromString(FString::Join(Parts, TEXT(" | ")));
 }
 
-FText GetFortRogueShotModifierEffectSummary(const TArray<FFRShotModifierSpec>& ShotModifiers)
-{
-	TArray<FString> Parts;
-	AddShotModifierSummary(Parts, ShotModifiers);
-	return Parts.Num() > 0 ? FText::FromString(FString::Join(Parts, TEXT(" | "))) : FText::GetEmpty();
-}
-
 FText FFRRewardChoice::GetDataValidationSummary() const
 {
 	TArray<FString> Issues;
-	if (DisplayName.IsEmpty())
+	if (GetResolvedDisplayName().IsEmpty())
 	{
 		AddSummaryPart(Issues, TEXT("missing display name"));
 	}
@@ -326,11 +244,23 @@ FText FFRRewardChoice::GetDataValidationSummary() const
 	{
 		AddSummaryPart(Issues, TEXT("reward weight must be greater than 0"));
 	}
-	if (bOfferOncePerRun && !RewardTag.IsValid())
+	if (bOfferOncePerRun && !GetResolvedRewardTag().IsValid())
 	{
 		AddSummaryPart(Issues, TEXT("once per run rewards need a RewardTag"));
 	}
-	if (!HasRewardGameplayEffect(*this))
+
+	bool bHasGameplayEffect = false;
+	for (const UFRRewardGrant* Grant : Grants)
+	{
+		if (!Grant)
+		{
+			AddSummaryPart(Issues, TEXT("grants contain an empty entry"));
+			continue;
+		}
+		Grant->AppendValidationIssues(Issues);
+		bHasGameplayEffect |= Grant->HasGameplayEffect();
+	}
+	if (!bHasGameplayEffect)
 	{
 		AddSummaryPart(Issues, TEXT("missing gameplay effect"));
 	}
@@ -370,17 +300,12 @@ FText FFRRewardChoice::GetRewardTagConditionFailureSummary(const FGameplayTagCon
 
 bool FFRRewardChoice::MatchesPerkCategoryFilter(const FGameplayTagContainer& RequiredCategoryTags, const FGameplayTagContainer& BlockedCategoryTags) const
 {
-	if (Type != EFRRewardType::Trait)
+	for (const UFRRewardGrant* Grant : Grants)
 	{
-		return true;
+		if (Grant && !Grant->MatchesPerkCategoryFilter(RequiredCategoryTags, BlockedCategoryTags))
+		{
+			return false;
+		}
 	}
-	if (!PerkReward)
-	{
-		return RequiredCategoryTags.IsEmpty();
-	}
-	if (!PerkReward->HasAllCategoryTags(RequiredCategoryTags))
-	{
-		return false;
-	}
-	return BlockedCategoryTags.IsEmpty() || !PerkReward->HasAnyCategoryTags(BlockedCategoryTags);
+	return true;
 }

@@ -9,6 +9,7 @@
 
 class UFRAbilitySet;
 class UFRItemDefinition;
+class UFRItemEffect;
 
 USTRUCT(BlueprintType)
 struct FFRItemStack
@@ -25,9 +26,9 @@ struct FFRItemStack
 UENUM(BlueprintType)
 enum class EFRItemType : uint8
 {
-	AttackMultiplier,
-	Heal,
-	AbilitySet
+	AttackMultiplier UMETA(ToolTip = "공격 강화 단축키(J)로 사용되는 분류입니다."),
+	Heal UMETA(ToolTip = "회복 단축키(H)로 사용되는 분류입니다."),
+	AbilitySet UMETA(ToolTip = "능력 부여형 아이템 분류입니다.")
 };
 
 UCLASS(BlueprintType)
@@ -39,6 +40,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Item")
 	FText GetDataValidationSummary() const;
 
+#if WITH_EDITOR
+	virtual EDataValidationResult IsDataValid(class FDataValidationContext& Context) const override;
+#endif
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item", meta = (ToolTip = "에디터와 UI에 표시할 아이템 이름입니다."))
 	FText DisplayName = FText::FromString(TEXT("Item"));
 
@@ -48,21 +53,18 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item", meta = (Categories = "Item", ToolTip = "아이템을 식별하는 태그입니다. Item.* 태그만 사용하세요."))
 	FGameplayTag ItemTag;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item", meta = (ToolTip = "아이템 사용 방식입니다. Heal은 즉시 회복, AttackMultiplier는 다음 샷 강화, AbilitySet은 GAS 능력 세트를 부여합니다."))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item", meta = (ToolTip = "아이템 단축키/UI 분류입니다. 실제 효과는 UseEffects, UseAbilitySet, UseShotModifiers로 정의합니다."))
 	EFRItemType ItemType = EFRItemType::Heal;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item", meta = (ClampMin = "1", ToolTip = "런 시작 시 지급되는 기본 사용 횟수입니다. 1 이상이어야 합니다."))
 	int32 InitialCharges = 1;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item", meta = (ToolTip = "아이템 사용 시 부여할 AbilitySet입니다. ItemType이 AbilitySet일 때 주로 사용합니다."))
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Instanced, Category = "Item|Effects", meta = (ToolTip = "아이템 사용 시 즉시 실행할 조립식 효과 목록입니다. 회복, 공격 강화 같은 효과 클래스를 추가하세요."))
+	TArray<TObjectPtr<UFRItemEffect>> UseEffects;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item|Effects", meta = (ToolTip = "아이템 사용 시 부여할 AbilitySet입니다."))
 	TObjectPtr<UFRAbilitySet> UseAbilitySet;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Shot Modifier", meta = (TitleProperty = ModifierTag, ToolTip = "아이템 사용 후 다음 샷에 적용할 modifier 목록입니다. 굴착, 지형 생성, 분열 같은 샷 변화를 여기에 조립합니다."))
 	TArray<FFRShotModifierSpec> UseShotModifiers;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item", meta = (EditCondition = "ItemType == EFRItemType::AttackMultiplier", ClampMin = "1.0", ToolTip = "AttackMultiplier 아이템이 다음 샷 피해량에 적용할 배율입니다. 1.0은 변화 없음입니다."))
-	float AttackMultiplier = 1.5f;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item", meta = (EditCondition = "ItemType == EFRItemType::Heal", ClampMin = "0.0", ToolTip = "Heal 아이템 사용 시 회복할 체력입니다."))
-	float HealAmount = 35.0f;
 };

@@ -2,7 +2,7 @@
 
 #include "Game/FRGameModeDataAsset.h"
 
-#include "Camera/CameraActor.h"
+#include "Combat/FRBattleCamera.h"
 #include "Combat/FRBattleCharacter.h"
 #include "Combat/FRDestructibleTerrain.h"
 #include "Blueprint/UserWidget.h"
@@ -50,7 +50,7 @@ TSubclassOf<AFRDestructibleTerrain> UFRGameModeDataAsset::LoadTerrainClass() con
 	return TerrainClass.LoadSynchronous();
 }
 
-TSubclassOf<ACameraActor> UFRGameModeDataAsset::LoadCameraClass() const
+TSubclassOf<AFRBattleCamera> UFRGameModeDataAsset::LoadCameraClass() const
 {
 	return CameraClass.LoadSynchronous();
 }

@@ -6,6 +6,8 @@
 #include "Engine/DeveloperSettings.h"
 #include "FRGameFlowSettings.generated.h"
 
+class UFRBattleCharacterAimIndicatorWidget;
+class UFRBattleCharacterStatusWidget;
 class UFRGameModeDataAsset;
 
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "FortRogue Game Flow"))
@@ -24,4 +26,10 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Game Flow")
 	TSoftObjectPtr<UFRGameModeDataAsset> MainGameModeData;
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Combat UI", meta = (ToolTip = "전투 캐릭터의 조준 각도 인디케이터 위젯 기본 클래스입니다. 캐릭터에 별도 지정이 없을 때 사용합니다."))
+	TSoftClassPtr<UFRBattleCharacterAimIndicatorWidget> DefaultAimIndicatorWidgetClass;
+
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Combat UI", meta = (ToolTip = "전투 캐릭터의 체력 표시 위젯 기본 클래스입니다. 캐릭터에 별도 지정이 없을 때 사용합니다."))
+	TSoftClassPtr<UFRBattleCharacterStatusWidget> DefaultCharacterStatusWidgetClass;
 };

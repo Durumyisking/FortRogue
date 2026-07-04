@@ -4,6 +4,10 @@
 
 #include "Combat/FRShotSpec.h"
 
+#if WITH_EDITOR
+#include "Misc/DataValidation.h"
+#endif
+
 namespace
 {
 void AddShotModifierValidationIssue(TArray<FString>& Issues, const FString& Issue)
@@ -254,3 +258,16 @@ FText UFRWeaponDefinition::GetDataValidationSummary() const
 {
 	return Weapon.GetDataValidationSummary();
 }
+
+#if WITH_EDITOR
+EDataValidationResult UFRWeaponDefinition::IsDataValid(FDataValidationContext& Context) const
+{
+	EDataValidationResult Result = Super::IsDataValid(Context);
+	const FText ValidationSummary = GetDataValidationSummary();
+	if (!ValidationSummary.IsEmpty())
+	{
+		Context.AddWarning(ValidationSummary);
+	}
+	return Result;
+}
+#endif

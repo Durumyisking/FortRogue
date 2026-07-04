@@ -3,6 +3,7 @@
 #include "FRGameMode.h"
 
 #include "Characters/FRCharacterDefinition.h"
+#include "Combat/FRBattleCamera.h"
 #include "Combat/FRBattleCharacter.h"
 #include "Combat/FRDestructibleTerrain.h"
 #include "Combat/FRProjectile.h"
@@ -11,23 +12,16 @@
 #include "FRGameplayTags.h"
 #include "Game/FRGameFlowSubsystem.h"
 #include "Game/FRGameModeDataAsset.h"
+#include "Game/FRRunSubsystem.h"
 #include "FRPlayerController.h"
 #include "Items/FRItemDefinition.h"
 #include "Perks/FRPerkDefinition.h"
+#include "Rewards/FRRewardGrant.h"
 #include "Run/FRDefaultLoadoutDefinition.h"
 #include "Run/FRStageRunDefinition.h"
-#include "Camera/CameraActor.h"
-#include "Camera/CameraComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
-
-namespace
-{
-constexpr float TerrainCameraPadding = 240.0f;
-constexpr int32 MaxRewardChoiceCount = 5;
-const FRotator BattleCameraRotation(0.0f, -90.0f, 0.0f);
-}
 
 AFRGameMode::AFRGameMode()
 {
@@ -37,19 +31,17 @@ AFRGameMode::AFRGameMode()
 	PlayerCharacterClass = AFRBattleCharacter::StaticClass();
 	EnemyCharacterClass = AFRBattleCharacter::StaticClass();
 	TerrainClass = AFRDestructibleTerrain::StaticClass();
-	CameraClass = ACameraActor::StaticClass();
+	CameraClass = AFRBattleCamera::StaticClass();
 	GameStateClass = AFRTurnBasedGameState::StaticClass();
 }
 
 void AFRGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
 {
+	// 레벨/설정이 다른 클래스를 지정해도 FortRogue 흐름에 필요한 클래스를 보장합니다.
 	PlayerControllerClass = AFRPlayerController::StaticClass();
 	DefaultPawnClass = nullptr;
 	GameStateClass = AFRTurnBasedGameState::StaticClass();
 	Super::InitGame(MapName, Options, ErrorMessage);
-	PlayerControllerClass = AFRPlayerController::StaticClass();
-	DefaultPawnClass = nullptr;
-	GameStateClass = AFRTurnBasedGameState::StaticClass();
 }
 
 void AFRGameMode::BeginPlay()
@@ -61,15 +53,19 @@ void AFRGameMode::BeginPlay()
 		TurnState->ResetTurnState();
 	}
 
-	if (UGameInstance* GameInstance = GetGameInstance())
+	// 자동화 테스트는 게임 플로우(메뉴 진입/레벨 이동) 없이 테스트가 구성한 데이터로 바로 전투를 시작합니다.
+	if (!GIsAutomationTesting)
 	{
-		if (UFRGameFlowSubsystem* GameFlow = GameInstance->GetSubsystem<UFRGameFlowSubsystem>())
+		if (UGameInstance* GameInstance = GetGameInstance())
 		{
-			GameFlow->EnsureStartupMode();
-			if (const UFRGameModeDataAsset* ModeData = GameFlow->GetCurrentModeData())
+			if (UFRGameFlowSubsystem* GameFlow = GameInstance->GetSubsystem<UFRGameFlowSubsystem>())
 			{
-				EnterGameFlowMode(ModeData);
-				return;
+				GameFlow->EnsureStartupMode();
+				if (const UFRGameModeDataAsset* ModeData = GameFlow->GetCurrentModeData())
+				{
+					EnterGameFlowMode(ModeData);
+					return;
+				}
 			}
 		}
 	}
@@ -91,6 +87,10 @@ void AFRGameMode::EnterGameFlowMode(const UFRGameModeDataAsset* ModeData)
 	{
 		ClearBattleStage(false);
 		bBattleStarted = false;
+		if (UFRRunSubsystem* RunSubsystem = GetRunSubsystem())
+		{
+			RunSubsystem->EndRun();
+		}
 	}
 
 	const FString Status = ModeData->DisplayName.IsEmpty()
@@ -107,13 +107,14 @@ void AFRGameMode::StartBattleRun()
 	}
 
 	bBattleStarted = true;
-	CurrentStage = 1;
+	if (UFRRunSubsystem* RunSubsystem = GetRunSubsystem())
+	{
+		RunSubsystem->StartRun();
+	}
 	if (StageRunDefinition)
 	{
 		StageRunDefinition->NormalizeStageData();
 	}
-	EncounteredEnemyDefinitions.Reset();
-	ChosenRewardTags.Reset();
 	SelectNextEnemyDefinition();
 	SpawnMVPBattle();
 	StartPlayerTurn();
@@ -138,7 +139,7 @@ void AFRGameMode::ApplyGameModeData(const UFRGameModeDataAsset* ModeData)
 	{
 		TerrainClass = LoadedTerrainClass;
 	}
-	if (TSubclassOf<ACameraActor> LoadedCameraClass = ModeData->LoadCameraClass())
+	if (TSubclassOf<AFRBattleCamera> LoadedCameraClass = ModeData->LoadCameraClass())
 	{
 		CameraClass = LoadedCameraClass;
 	}
@@ -173,11 +174,24 @@ void AFRGameMode::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	UpdateBattleCamera(DeltaSeconds);
 	if (bBattleStarted)
 	{
 		CheckTurnDefeatState();
 	}
+}
+
+UFRRunSubsystem* AFRGameMode::GetRunSubsystem() const
+{
+	return GetGameInstance() ? GetGameInstance()->GetSubsystem<UFRRunSubsystem>() : nullptr;
+}
+
+float AFRGameMode::RollWind()
+{
+	if (UFRRunSubsystem* RunSubsystem = GetRunSubsystem())
+	{
+		return RunSubsystem->RandRange(MinWind, MaxWind);
+	}
+	return FMath::RandRange(MinWind, MaxWind);
 }
 
 void AFRGameMode::NotifyProjectileSpawned(AFRProjectile* Projectile, bool bIncreasePendingProjectileCount)
@@ -264,12 +278,12 @@ void AFRGameMode::ApplyRewardChoice(int32 ChoiceIndex)
 
 	const FFRRewardChoice Reward = RewardChoices[ChoiceIndex];
 	ApplyRewardToPlayer(Reward);
-	if (Reward.RewardTag.IsValid())
+	if (UFRRunSubsystem* RunSubsystem = GetRunSubsystem())
 	{
-		ChosenRewardTags.AddUnique(Reward.RewardTag);
+		RunSubsystem->RecordChosenRewardTag(Reward.GetResolvedRewardTag());
 	}
 
-	SetStatus(FString::Printf(TEXT("Reward chosen: %s"), *Reward.DisplayName.ToString()));
+	SetStatus(FString::Printf(TEXT("Reward chosen: %s"), *Reward.GetResolvedDisplayName().ToString()));
 	RewardChoices.Reset();
 	AdvanceToNextStage();
 }
@@ -328,6 +342,11 @@ TArray<AFRBattleCharacter*> AFRGameMode::GetEnemyCharacters() const
 	return Result;
 }
 
+AFRBattleCamera* AFRGameMode::GetBattleCamera() const
+{
+	return BattleCamera;
+}
+
 TArray<FFRRewardChoice> AFRGameMode::GetRewardChoices() const
 {
 	return RewardChoices;
@@ -355,15 +374,11 @@ FText AFRGameMode::GetRewardChoiceConditionFailureSummary(int32 ChoiceIndex) con
 
 FGameplayTagContainer AFRGameMode::GetChosenRewardTags() const
 {
-	FGameplayTagContainer ChosenRewardTagContainer;
-	for (const FGameplayTag& ChosenRewardTag : ChosenRewardTags)
+	if (const UFRRunSubsystem* RunSubsystem = GetRunSubsystem())
 	{
-		if (ChosenRewardTag.IsValid())
-		{
-			ChosenRewardTagContainer.AddTag(ChosenRewardTag);
-		}
+		return RunSubsystem->GetChosenRewardTags();
 	}
-	return ChosenRewardTagContainer;
+	return FGameplayTagContainer();
 }
 
 FText AFRGameMode::GetStatusText() const
@@ -381,7 +396,8 @@ FText AFRGameMode::GetRunProgressSummary() const
 
 int32 AFRGameMode::GetCurrentStage() const
 {
-	return CurrentStage;
+	const UFRRunSubsystem* RunSubsystem = GetRunSubsystem();
+	return RunSubsystem ? RunSubsystem->GetCurrentStage() : 1;
 }
 
 int32 AFRGameMode::GetMaxStages() const
@@ -439,7 +455,6 @@ void AFRGameMode::SpawnMVPBattle()
 	}
 
 	EnemyCharacters.Reset();
-	EnemyCharacter = nullptr;
 	UFRCharacterDefinition* DefaultEnemyDefinition = CurrentEnemyDefinition.Get();
 	const UFRTerrainMapDefinition* ActiveMapDefinition = Terrain ? Terrain->MapDefinition.Get() : nullptr;
 	if (Terrain && ActiveMapDefinition && ActiveMapDefinition->EnemyPlacements.Num() > 0)
@@ -460,15 +475,15 @@ void AFRGameMode::SpawnMVPBattle()
 	{
 		PlayerCharacter->ConfigureAsEnemy(false);
 	}
-	RequestAutoCameraFocus(PlayerCharacter, PlayerCharacter ? PlayerCharacter->GetActorLocation() : CameraLocation, CameraTurnZOffset);
-	const TSubclassOf<ACameraActor> ActualCameraClass = CameraClass ? CameraClass : TSubclassOf<ACameraActor>(ACameraActor::StaticClass());
-	BattleCamera = World->SpawnActor<ACameraActor>(ActualCameraClass, GetDesiredCameraLocation(), GetBattleCameraRotation());
-	if (BattleCamera && BattleCamera->GetCameraComponent())
+
+	const TSubclassOf<AFRBattleCamera> ActualCameraClass = CameraClass ? CameraClass : TSubclassOf<AFRBattleCamera>(AFRBattleCamera::StaticClass());
+	BattleCamera = World->SpawnActor<AFRBattleCamera>(ActualCameraClass, CameraLocation, AFRBattleCamera::GetBattleRotation());
+	if (BattleCamera)
 	{
-		BattleCamera->SetActorRotation(GetBattleCameraRotation());
-		BattleCamera->GetCameraComponent()->ProjectionMode = ECameraProjectionMode::Orthographic;
-		BattleCamera->GetCameraComponent()->OrthoWidth = GetInitialCameraOrthoWidth();
+		BattleCamera->ConfigureBattle(CameraLocation, CameraOrthoWidth, CameraFollowInterpSpeed, CameraManualPanSpeed);
+		BattleCamera->SetTerrainActor(Terrain);
 	}
+	RequestAutoCameraFocus(PlayerCharacter, PlayerCharacter ? PlayerCharacter->GetActorLocation() : CameraLocation, CameraTurnZOffset);
 
 	if (APlayerController* PlayerController = UGameplayStatics::GetPlayerController(World, 0))
 	{
@@ -502,10 +517,6 @@ AFRBattleCharacter* AFRGameMode::SpawnEnemyCharacter(UWorld* World, const FVecto
 	}
 
 	EnemyCharacters.Add(SpawnedEnemy);
-	if (!EnemyCharacter)
-	{
-		EnemyCharacter = SpawnedEnemy;
-	}
 	return SpawnedEnemy;
 }
 
@@ -524,9 +535,6 @@ void AFRGameMode::ClearBattleStage(bool bKeepPlayerCharacter)
 	{
 		TurnState->ResetShotResolution();
 	}
-	AutoCameraFocusActor.Reset();
-	CameraControlMode = EFRCameraControlMode::Auto;
-	bManualCameraInputRequiresRelease = false;
 	for (AFRBattleCharacter* Enemy : EnemyCharacters)
 	{
 		if (Enemy)
@@ -535,7 +543,6 @@ void AFRGameMode::ClearBattleStage(bool bKeepPlayerCharacter)
 		}
 	}
 	EnemyCharacters.Reset();
-	EnemyCharacter = nullptr;
 
 	if (Terrain)
 	{
@@ -558,40 +565,20 @@ void AFRGameMode::ClearBattleStage(bool bKeepPlayerCharacter)
 
 void AFRGameMode::SelectNextEnemyDefinition()
 {
-	TArray<UFRCharacterDefinition*> Candidates;
-	const TArray<TObjectPtr<UFRCharacterDefinition>>* EnemyPool = StageRunDefinition ? &StageRunDefinition->EnemyDefinitionPool : nullptr;
-	if (EnemyPool)
-	{
-		for (UFRCharacterDefinition* Candidate : *EnemyPool)
-		{
-			if (Candidate && !EncounteredEnemyDefinitions.Contains(Candidate))
-			{
-				Candidates.Add(Candidate);
-			}
-		}
-	}
-
-	if (Candidates.Num() == 0 && EnemyPool && EnemyPool->Num() > 0)
-	{
-		EncounteredEnemyDefinitions.Reset();
-		for (UFRCharacterDefinition* Candidate : *EnemyPool)
-		{
-			if (Candidate)
-			{
-				Candidates.Add(Candidate);
-			}
-		}
-	}
-
-	if (Candidates.Num() > 0)
-	{
-		CurrentEnemyDefinition = Candidates[FMath::RandRange(0, Candidates.Num() - 1)];
-		EncounteredEnemyDefinitions.AddUnique(CurrentEnemyDefinition);
-	}
-	else
+	if (!StageRunDefinition)
 	{
 		CurrentEnemyDefinition = nullptr;
+		return;
 	}
+
+	if (UFRRunSubsystem* RunSubsystem = GetRunSubsystem())
+	{
+		CurrentEnemyDefinition = RunSubsystem->PickNextEnemyDefinition(StageRunDefinition->EnemyDefinitionPool);
+		return;
+	}
+
+	// 게임 인스턴스가 없는 환경(예: 일부 테스트)에서는 풀의 첫 항목을 사용합니다.
+	CurrentEnemyDefinition = StageRunDefinition->EnemyDefinitionPool.Num() > 0 ? StageRunDefinition->EnemyDefinitionPool[0].Get() : nullptr;
 }
 
 UFRTerrainMapDefinition* AFRGameMode::GetStageTerrainMapDefinition() const
@@ -613,7 +600,7 @@ const FFRStageDifficultyData& AFRGameMode::GetCurrentStageDifficulty() const
 {
 	if (StageRunDefinition)
 	{
-		return StageRunDefinition->GetStageDifficulty(CurrentStage);
+		return StageRunDefinition->GetStageDifficulty(GetCurrentStage());
 	}
 
 	static const FFRStageDifficultyData DefaultDifficulty;
@@ -635,7 +622,7 @@ AFRBattleCharacter* AFRGameMode::GetFirstAliveEnemyCharacter() const
 		}
 	}
 
-	return EnemyCharacter && !EnemyCharacter->IsDefeated() ? EnemyCharacter.Get() : nullptr;
+	return nullptr;
 }
 
 AFRBattleCharacter* AFRGameMode::GetActiveEnemyTurnCharacter() const
@@ -645,11 +632,6 @@ AFRBattleCharacter* AFRGameMode::GetActiveEnemyTurnCharacter() const
 
 bool AFRGameMode::AreAllEnemiesDefeated() const
 {
-	if (EnemyCharacters.Num() == 0)
-	{
-		return !EnemyCharacter || EnemyCharacter->IsDefeated();
-	}
-
 	for (AFRBattleCharacter* Enemy : EnemyCharacters)
 	{
 		if (Enemy && !Enemy->IsDefeated())
@@ -663,11 +645,15 @@ bool AFRGameMode::AreAllEnemiesDefeated() const
 void AFRGameMode::HandleEnemyDefeated()
 {
 	ResetShotCameraState();
-	if (CurrentStage >= GetConfiguredStageCount())
+	if (GetCurrentStage() >= GetConfiguredStageCount())
 	{
 		if (AFRTurnBasedGameState* TurnState = GetTurnBasedGameState())
 		{
 			TurnState->EnterWonState(FText::FromString(TEXT("Run complete")));
+		}
+		if (UFRRunSubsystem* RunSubsystem = GetRunSubsystem())
+		{
+			RunSubsystem->EndRun();
 		}
 		return;
 	}
@@ -675,14 +661,17 @@ void AFRGameMode::HandleEnemyDefeated()
 	EnterRewardState();
 	if (RewardChoices.Num() <= 0)
 	{
-		UE_LOG(LogFortRogue, Log, TEXT("No reward choices configured after stage %d."), CurrentStage);
+		UE_LOG(LogFortRogue, Log, TEXT("No reward choices configured after stage %d."), GetCurrentStage());
 		AdvanceToNextStage();
 	}
 }
 
 void AFRGameMode::AdvanceToNextStage()
 {
-	++CurrentStage;
+	if (UFRRunSubsystem* RunSubsystem = GetRunSubsystem())
+	{
+		RunSubsystem->AdvanceStage();
+	}
 	SelectNextEnemyDefinition();
 	SpawnMVPBattle();
 	StartPlayerTurn();
@@ -695,17 +684,17 @@ void AFRGameMode::ApplyRewardToPlayer(const FFRRewardChoice& Reward)
 		return;
 	}
 
-	if (Reward.PerkReward)
+	Reward.ApplyToCharacter(*PlayerCharacter);
+
+	if (UFRRunSubsystem* RunSubsystem = GetRunSubsystem())
 	{
-		PlayerCharacter->ApplyPerkDefinition(Reward.PerkReward);
-	}
-	if (Reward.WeaponReward)
-	{
-		PlayerCharacter->AddWeaponDefinition(Reward.WeaponReward);
-	}
-	if (Reward.ItemReward)
-	{
-		PlayerCharacter->AddItemDefinition(Reward.ItemReward);
+		for (const UFRRewardGrant* Grant : Reward.Grants)
+		{
+			if (const UFRRewardGrant_Perk* PerkGrant = Cast<UFRRewardGrant_Perk>(Grant))
+			{
+				RunSubsystem->RecordAcquiredPerk(PerkGrant->PerkDefinition);
+			}
+		}
 	}
 }
 
@@ -714,7 +703,7 @@ void AFRGameMode::StartPlayerTurn()
 	ResetShotCameraState();
 	if (AFRTurnBasedGameState* TurnState = GetTurnBasedGameState())
 	{
-		TurnState->StartPlayerTurn(PlayerCharacter, FMath::RandRange(MinWind, MaxWind), FText::FromString(TEXT("Player turn")));
+		TurnState->StartPlayerTurn(PlayerCharacter, RollWind(), FText::FromString(TEXT("Player turn")));
 	}
 	RequestAutoCameraFocus(PlayerCharacter, PlayerCharacter ? PlayerCharacter->GetActorLocation() : CameraLocation, CameraTurnZOffset);
 }
@@ -724,7 +713,7 @@ void AFRGameMode::StartEnemyTurn()
 	ResetShotCameraState();
 	if (AFRTurnBasedGameState* TurnState = GetTurnBasedGameState())
 	{
-		TurnState->StartEnemyTurn(GetEnemyCharacters(), FMath::RandRange(MinWind, MaxWind), FText::FromString(TEXT("Enemy turn")));
+		TurnState->StartEnemyTurn(GetEnemyCharacters(), RollWind(), FText::FromString(TEXT("Enemy turn")));
 	}
 	AFRBattleCharacter* FocusEnemy = GetActiveEnemyTurnCharacter();
 	RequestAutoCameraFocus(FocusEnemy, FocusEnemy ? FocusEnemy->GetActorLocation() : CameraLocation, CameraTurnZOffset);
@@ -782,6 +771,10 @@ void AFRGameMode::FinishShotResolution()
 	if (PlayerCharacter && PlayerCharacter->IsDefeated())
 	{
 		TurnState->EnterLostState(FText::FromString(TEXT("Defeat")));
+		if (UFRRunSubsystem* RunSubsystem = GetRunSubsystem())
+		{
+			RunSubsystem->EndRun();
+		}
 		return;
 	}
 
@@ -811,75 +804,9 @@ void AFRGameMode::EnterRewardState()
 void AFRGameMode::BuildRewardChoices()
 {
 	RewardChoices.Reset();
-	if (!StageRunDefinition || StageRunDefinition->RewardPool.Num() <= 0)
+	if (UFRRunSubsystem* RunSubsystem = GetRunSubsystem())
 	{
-		return;
-	}
-
-	const FGameplayTagContainer ChosenRewardTagContainer = GetChosenRewardTags();
-	TArray<FFRRewardChoice> CompatibleRewards;
-	TArray<FFRRewardChoice> CandidateRewards;
-	for (const FFRRewardChoice& Reward : StageRunDefinition->RewardPool)
-	{
-		if (PlayerDefinition && !Reward.MatchesPerkCategoryFilter(PlayerDefinition->RequiredPerkCategoryTags, PlayerDefinition->BlockedPerkCategoryTags))
-		{
-			continue;
-		}
-		if (!Reward.MeetsRewardTagConditions(ChosenRewardTagContainer))
-		{
-			continue;
-		}
-
-		CompatibleRewards.Add(Reward);
-		if (Reward.bOfferOncePerRun && Reward.RewardTag.IsValid() && ChosenRewardTags.Contains(Reward.RewardTag))
-		{
-			continue;
-		}
-
-		CandidateRewards.Add(Reward);
-	}
-	if (CandidateRewards.Num() <= 0)
-	{
-		CandidateRewards = CompatibleRewards;
-	}
-	if (CandidateRewards.Num() <= 0)
-	{
-		return;
-	}
-
-	const int32 MaxAvailableChoices = FMath::Min(MaxRewardChoiceCount, CandidateRewards.Num());
-	const int32 ChoiceCount = FMath::Clamp(StageRunDefinition->RewardChoiceCount, 1, MaxAvailableChoices);
-	for (int32 ChoiceIndex = 0; ChoiceIndex < ChoiceCount; ++ChoiceIndex)
-	{
-		float TotalWeight = 0.0f;
-		for (const FFRRewardChoice& CandidateReward : CandidateRewards)
-		{
-			TotalWeight += FMath::Max(0.0f, CandidateReward.RewardWeight);
-		}
-
-		int32 CandidateIndex = FMath::RandRange(0, CandidateRewards.Num() - 1);
-		if (TotalWeight > KINDA_SMALL_NUMBER)
-		{
-			float WeightRoll = FMath::FRandRange(0.0f, TotalWeight);
-			for (int32 Index = 0; Index < CandidateRewards.Num(); ++Index)
-			{
-				const float CandidateWeight = FMath::Max(0.0f, CandidateRewards[Index].RewardWeight);
-				if (CandidateWeight <= 0.0f)
-				{
-					continue;
-				}
-
-				WeightRoll -= CandidateWeight;
-				if (WeightRoll <= 0.0f)
-				{
-					CandidateIndex = Index;
-					break;
-				}
-			}
-		}
-
-		RewardChoices.Add(CandidateRewards[CandidateIndex]);
-		CandidateRewards.RemoveAtSwap(CandidateIndex, 1, EAllowShrinking::No);
+		RewardChoices = RunSubsystem->BuildRewardChoices(StageRunDefinition, PlayerDefinition);
 	}
 }
 
@@ -900,6 +827,10 @@ void AFRGameMode::CheckTurnDefeatState()
 	if (PlayerCharacter && PlayerCharacter->IsDefeated())
 	{
 		TurnState->EnterLostState(FText::FromString(TEXT("Defeat")));
+		if (UFRRunSubsystem* RunSubsystem = GetRunSubsystem())
+		{
+			RunSubsystem->EndRun();
+		}
 	}
 }
 
@@ -910,47 +841,13 @@ void AFRGameMode::SetStatus(const FString& NewStatus)
 		TurnState->SetStatusText(FText::FromString(NewStatus));
 	}
 }
-void AFRGameMode::UpdateBattleCamera(float DeltaSeconds)
-{
-	if (!BattleCamera)
-	{
-		return;
-	}
-
-	const FVector CurrentLocation = BattleCamera->GetActorLocation();
-	const FVector DesiredLocation = GetDesiredCameraLocation();
-	const FVector NewLocation = CameraControlMode == EFRCameraControlMode::Manual
-		? DesiredLocation
-		: FMath::VInterpTo(CurrentLocation, DesiredLocation, DeltaSeconds, CameraFollowInterpSpeed);
-	BattleCamera->SetActorLocation(NewLocation);
-	BattleCamera->SetActorRotation(GetBattleCameraRotation());
-}
 
 void AFRGameMode::HandleManualCameraInput(const FVector2D& InputAxis, bool bAnyDirectionKeyDown, float DeltaSeconds)
 {
-	bManualCameraInputHeld = bAnyDirectionKeyDown;
-	if (!bAnyDirectionKeyDown)
+	if (BattleCamera)
 	{
-		bManualCameraInputRequiresRelease = false;
-		return;
+		BattleCamera->HandleManualInput(InputAxis, bAnyDirectionKeyDown, DeltaSeconds);
 	}
-
-	if (!BattleCamera || bManualCameraInputRequiresRelease || InputAxis.IsNearlyZero())
-	{
-		return;
-	}
-
-	if (CameraControlMode != EFRCameraControlMode::Manual)
-	{
-		CameraControlMode = EFRCameraControlMode::Manual;
-		ManualCameraLocation = BattleCamera->GetActorLocation();
-	}
-
-	const FVector2D ClampedInput = InputAxis.GetClampedToMaxSize(1.0f);
-	ManualCameraLocation.X += ClampedInput.X * CameraManualPanSpeed * DeltaSeconds;
-	ManualCameraLocation.Z += ClampedInput.Y * CameraManualPanSpeed * DeltaSeconds;
-	ManualCameraLocation.Y = CameraLocation.Y;
-	ManualCameraLocation = ClampCameraLocationToTerrainBounds(ManualCameraLocation);
 }
 
 void AFRGameMode::ResetShotCameraState()
@@ -965,90 +862,8 @@ void AFRGameMode::ResetShotCameraState()
 
 void AFRGameMode::RequestAutoCameraFocus(AActor* FocusActor, const FVector& FocusLocation, float ZOffset)
 {
-	CameraControlMode = EFRCameraControlMode::Auto;
-	AutoCameraFocusActor = FocusActor;
-	AutoCameraFocusLocation = FocusActor ? FocusActor->GetActorLocation() : FocusLocation;
-	AutoCameraFocusZOffset = ZOffset;
-	bManualCameraInputRequiresRelease = bManualCameraInputHeld;
-
 	if (BattleCamera)
 	{
-		BattleCamera->SetActorLocation(GetDesiredCameraLocation());
-		BattleCamera->SetActorRotation(GetBattleCameraRotation());
+		BattleCamera->RequestAutoFocus(FocusActor, FocusLocation, ZOffset);
 	}
-}
-
-float AFRGameMode::GetInitialCameraOrthoWidth() const
-{
-	return FMath::Max(1.0f, CameraOrthoWidth);
-}
-
-FRotator AFRGameMode::GetBattleCameraRotation() const
-{
-	return BattleCameraRotation;
-}
-
-FVector AFRGameMode::GetDesiredCameraLocation() const
-{
-	if (CameraControlMode == EFRCameraControlMode::Manual)
-	{
-		return ClampCameraLocationToTerrainBounds(ManualCameraLocation);
-	}
-
-	FVector DesiredLocation = CameraLocation;
-	if (BattleCamera)
-	{
-		DesiredLocation = BattleCamera->GetActorLocation();
-		DesiredLocation.Y = CameraLocation.Y;
-	}
-
-	const FVector FocusLocation = GetCameraFocusLocation();
-	DesiredLocation.X = FocusLocation.X;
-	DesiredLocation.Z = FocusLocation.Z;
-	return ClampCameraLocationToTerrainBounds(DesiredLocation);
-}
-
-FVector AFRGameMode::GetCameraFocusLocation() const
-{
-	const FVector FocusLocation = AutoCameraFocusActor.IsValid()
-		? AutoCameraFocusActor->GetActorLocation()
-		: AutoCameraFocusLocation;
-	return FVector(FocusLocation.X, CameraLocation.Y, FocusLocation.Z + AutoCameraFocusZOffset);
-}
-
-FVector AFRGameMode::ClampCameraLocationToTerrainBounds(const FVector& DesiredLocation) const
-{
-	if (!Terrain)
-	{
-		return DesiredLocation;
-	}
-
-	float OrthoWidth = CameraOrthoWidth;
-	if (BattleCamera && BattleCamera->GetCameraComponent())
-	{
-		OrthoWidth = BattleCamera->GetCameraComponent()->OrthoWidth;
-	}
-	else
-	{
-		OrthoWidth = GetInitialCameraOrthoWidth();
-	}
-
-	const float ViewHalfWidth = OrthoWidth * 0.5f;
-	const float TerrainHalfWidth = Terrain->Width * 0.5f;
-	const float PaddingHalf = TerrainCameraPadding * 0.5f;
-	const float TerrainCenterX = Terrain->GetActorLocation().X;
-
-	FVector ClampedLocation = DesiredLocation;
-	if (ViewHalfWidth >= TerrainHalfWidth + PaddingHalf)
-	{
-		ClampedLocation.X = TerrainCenterX;
-	}
-	else
-	{
-		const float MinCameraX = TerrainCenterX - TerrainHalfWidth - PaddingHalf + ViewHalfWidth;
-		const float MaxCameraX = TerrainCenterX + TerrainHalfWidth + PaddingHalf - ViewHalfWidth;
-		ClampedLocation.X = FMath::Clamp(static_cast<float>(DesiredLocation.X), MinCameraX, MaxCameraX);
-	}
-
-	return ClampedLocation;
 }

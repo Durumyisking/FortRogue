@@ -3,6 +3,11 @@
 #include "Items/FRItemDefinition.h"
 
 #include "AbilitySystem/FRAbilitySet.h"
+#include "Items/FRItemEffect.h"
+
+#if WITH_EDITOR
+#include "Misc/DataValidation.h"
+#endif
 
 namespace
 {
@@ -27,13 +32,12 @@ bool HasItemGameplayEffect(const UFRItemDefinition& ItemDefinition)
 			return true;
 		}
 	}
-	if (ItemDefinition.ItemType == EFRItemType::Heal)
+	for (const UFRItemEffect* UseEffect : ItemDefinition.UseEffects)
 	{
-		return ItemDefinition.HealAmount > 0.0f;
-	}
-	if (ItemDefinition.ItemType == EFRItemType::AttackMultiplier)
-	{
-		return ItemDefinition.AttackMultiplier > 1.0f;
+		if (UseEffect && UseEffect->HasGameplayEffect())
+		{
+			return true;
+		}
 	}
 	return false;
 }
@@ -58,13 +62,14 @@ FText UFRItemDefinition::GetDataValidationSummary() const
 	{
 		AddItemValidationIssue(Issues, TEXT("missing item effect"));
 	}
-	if (ItemType == EFRItemType::Heal && HealAmount <= 0.0f)
+	for (const UFRItemEffect* UseEffect : UseEffects)
 	{
-		AddItemValidationIssue(Issues, TEXT("heal amount must be greater than 0"));
-	}
-	if (ItemType == EFRItemType::AttackMultiplier && AttackMultiplier <= 1.0f)
-	{
-		AddItemValidationIssue(Issues, TEXT("attack multiplier must be greater than 1"));
+		if (!UseEffect)
+		{
+			AddItemValidationIssue(Issues, TEXT("use effects contain an empty entry"));
+			continue;
+		}
+		UseEffect->AppendValidationIssues(Issues);
 	}
 	if (UseAbilitySet && !UseAbilitySet->GetDataValidationSummary().IsEmpty())
 	{
@@ -81,3 +86,16 @@ FText UFRItemDefinition::GetDataValidationSummary() const
 
 	return Issues.Num() > 0 ? FText::FromString(FString::Join(Issues, TEXT(" | "))) : FText::GetEmpty();
 }
+
+#if WITH_EDITOR
+EDataValidationResult UFRItemDefinition::IsDataValid(FDataValidationContext& Context) const
+{
+	EDataValidationResult Result = Super::IsDataValid(Context);
+	const FText ValidationSummary = GetDataValidationSummary();
+	if (!ValidationSummary.IsEmpty())
+	{
+		Context.AddWarning(ValidationSummary);
+	}
+	return Result;
+}
+#endif

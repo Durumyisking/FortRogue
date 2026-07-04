@@ -7,7 +7,7 @@
 #include "GameFramework/Pawn.h"
 #include "FRGameModeDataAsset.generated.h"
 
-class ACameraActor;
+class AFRBattleCamera;
 class AFRBattleCharacter;
 class AFRDestructibleTerrain;
 class UFRCharacterDefinition;
@@ -39,7 +39,7 @@ public:
 	TSubclassOf<AFRBattleCharacter> LoadPlayerCharacterClass() const;
 	TSubclassOf<AFRBattleCharacter> LoadEnemyCharacterClass() const;
 	TSubclassOf<AFRDestructibleTerrain> LoadTerrainClass() const;
-	TSubclassOf<ACameraActor> LoadCameraClass() const;
+	TSubclassOf<AFRBattleCamera> LoadCameraClass() const;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Mode")
 	FName ModeName = NAME_None;
@@ -78,7 +78,7 @@ public:
 	TSoftClassPtr<AFRDestructibleTerrain> TerrainClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle")
-	TSoftClassPtr<ACameraActor> CameraClass;
+	TSoftClassPtr<AFRBattleCamera> CameraClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Battle")
 	TObjectPtr<UFRCharacterDefinition> PlayerDefinition;

@@ -7,10 +7,12 @@
 #include "AbilitySystem/Attributes/FRCombatSet.h"
 #include "AbilitySystem/FRAbilitySet.h"
 #include "Characters/FRCharacterDefinition.h"
+#include "Combat/FRBattleCamera.h"
 #include "Combat/FRBattleCharacter.h"
 #include "Combat/FRDestructibleTerrain.h"
 #include "Combat/FRProjectile.h"
 #include "Combat/FRTerrainMapDefinition.h"
+#include "Combat/FRTerrainMovementComponent.h"
 #include "Camera/CameraActor.h"
 #include "Camera/CameraComponent.h"
 #include "Components/BoxComponent.h"
@@ -25,7 +27,9 @@
 #include "EngineUtils.h"
 #include "FRGameMode.h"
 #include "FRGameplayTags.h"
+#include "Game/FRRunSubsystem.h"
 #include "Items/FRItemDefinition.h"
+#include "Items/FRItemEffect.h"
 #include "Kismet/GameplayStatics.h"
 #include "PaperFlipbookComponent.h"
 #include "Perks/FRPerkDefinition.h"
@@ -33,6 +37,7 @@
 #include "ProjectileEffects/FRProjectileSpecEffects.h"
 #include "ProjectileEffects/FRProjectileSplitEffect.h"
 #include "Rewards/FRRewardBlueprintLibrary.h"
+#include "Rewards/FRRewardGrant.h"
 #include "Rewards/FRRewardTypes.h"
 #include "Run/FRDefaultLoadoutDefinition.h"
 #include "Run/FRStageRunDefinition.h"
@@ -60,6 +65,41 @@ UFRDefaultLoadoutDefinition* CreateTestDefaultLoadout(UObject* Outer)
 	UFRDefaultLoadoutDefinition* LoadoutDefinition = NewObject<UFRDefaultLoadoutDefinition>(Outer);
 	LoadoutDefinition->WeaponDefinitions.Add(CreateTestWeaponDefinition(LoadoutDefinition));
 	return LoadoutDefinition;
+}
+
+void AddTestPerkGrant(FFRRewardChoice& Reward, UFRPerkDefinition* PerkDefinition)
+{
+	UFRRewardGrant_Perk* Grant = NewObject<UFRRewardGrant_Perk>(PerkDefinition ? static_cast<UObject*>(PerkDefinition) : GetTransientPackage());
+	Grant->PerkDefinition = PerkDefinition;
+	Reward.Grants.Add(Grant);
+}
+
+void AddTestItemGrant(FFRRewardChoice& Reward, UFRItemDefinition* ItemDefinition)
+{
+	UFRRewardGrant_Item* Grant = NewObject<UFRRewardGrant_Item>(ItemDefinition ? static_cast<UObject*>(ItemDefinition) : GetTransientPackage());
+	Grant->ItemDefinition = ItemDefinition;
+	Reward.Grants.Add(Grant);
+}
+
+void AddTestWeaponGrant(FFRRewardChoice& Reward, UFRWeaponDefinition* WeaponDefinition)
+{
+	UFRRewardGrant_Weapon* Grant = NewObject<UFRRewardGrant_Weapon>(WeaponDefinition ? static_cast<UObject*>(WeaponDefinition) : GetTransientPackage());
+	Grant->WeaponDefinition = WeaponDefinition;
+	Reward.Grants.Add(Grant);
+}
+
+void AddTestHealEffect(UFRItemDefinition* ItemDefinition, float HealAmount)
+{
+	UFRItemEffect_Heal* HealEffect = NewObject<UFRItemEffect_Heal>(ItemDefinition);
+	HealEffect->HealAmount = HealAmount;
+	ItemDefinition->UseEffects.Add(HealEffect);
+}
+
+void AddTestAttackMultiplierEffect(UFRItemDefinition* ItemDefinition, float Multiplier)
+{
+	UFRItemEffect_AttackMultiplier* AttackEffect = NewObject<UFRItemEffect_AttackMultiplier>(ItemDefinition);
+	AttackEffect->AttackMultiplier = Multiplier;
+	ItemDefinition->UseEffects.Add(AttackEffect);
 }
 
 bool TestGameplayTagCategories(FAutomationTestBase& Test, const UStruct* Struct, FName PropertyName, const TCHAR* ExpectedCategories)
@@ -418,7 +458,7 @@ bool FFRTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	LockedRewardPerk->DamageBonus = 1.0f;
 	FFRRewardChoice LockedReward;
 	LockedReward.DisplayName = FText::FromString(TEXT("Locked Reward"));
-	LockedReward.PerkReward = LockedRewardPerk;
+	AddTestPerkGrant(LockedReward, LockedRewardPerk);
 	LockedReward.RequiredRewardTags.AddTag(FRGameplayTags::Trait_Damage);
 	LockedStageRunData->RewardPool.Add(LockedReward);
 	LockedStageRunData->RewardChoiceCount = 1;
@@ -432,7 +472,7 @@ bool FFRTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	ValidStageRewardPerk->DamageBonus = 1.0f;
 	FFRRewardChoice ValidStageReward;
 	ValidStageReward.DisplayName = FText::FromString(TEXT("Valid Stage Reward"));
-	ValidStageReward.PerkReward = ValidStageRewardPerk;
+	AddTestPerkGrant(ValidStageReward, ValidStageRewardPerk);
 	ValidStageRunData->RewardPool.Add(ValidStageReward);
 	ValidStageRunData->RewardChoiceCount = 1;
 	TestTrue(TEXT("Stage run data validation is empty for valid run data"), ValidStageRunData->GetDataValidationSummary().ToString().IsEmpty());
@@ -707,7 +747,7 @@ bool FFRTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	AbilitySetPerk->PerkTag = FRGameplayTags::Trait_ShotModifier;
 	AbilitySetPerk->GrantedAbilitySet = NamedAbilitySet;
 	FFRRewardChoice AbilitySetReward;
-	AbilitySetReward.PerkReward = AbilitySetPerk;
+	AddTestPerkGrant(AbilitySetReward, AbilitySetPerk);
 	TestTrue(TEXT("Reward summary names perk ability set"), AbilitySetReward.GetEffectSummary().ToString().Contains(TEXT("ability set Wind Split")));
 	FFRRewardChoice InvalidRewardData;
 	InvalidRewardData.bOfferOncePerRun = true;
@@ -729,7 +769,7 @@ bool FFRTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	ValidRewardData.DisplayName = FText::FromString(TEXT("Valid Reward"));
 	ValidRewardData.RewardTag = FRGameplayTags::Trait_Damage;
 	ValidRewardData.bOfferOncePerRun = true;
-	ValidRewardData.PerkReward = ValidRewardPerk;
+	AddTestPerkGrant(ValidRewardData, ValidRewardPerk);
 	TestTrue(TEXT("Reward data validation is empty for valid reward data"), ValidRewardData.GetDataValidationSummary().ToString().IsEmpty());
 	const FGameplayTag DrillCategoryTag = FGameplayTag::RequestGameplayTag(FName(TEXT("Trait.Category.Drill")));
 	const FGameplayTag CannonCategoryTag = FGameplayTag::RequestGameplayTag(FName(TEXT("Trait.Category.Cannon")));
@@ -744,7 +784,7 @@ bool FFRTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	BlockedCannonCategory.AddTag(DrillCategoryTag);
 	TestFalse(TEXT("Reward category filter rejects blocked Perks"), ValidRewardData.MatchesPerkCategoryFilter(FGameplayTagContainer(), BlockedCannonCategory));
 	FFRRewardChoice WeaponCategoryFilterReward;
-	WeaponCategoryFilterReward.Type = EFRRewardType::Weapon;
+	AddTestWeaponGrant(WeaponCategoryFilterReward, CreateTestWeaponDefinition(GetTransientPackage()));
 	TestTrue(TEXT("Perk category filter leaves non-Perk rewards available"), WeaponCategoryFilterReward.MatchesPerkCategoryFilter(RequiredDrillCategory, BlockedCannonCategory));
 
 	UFRWeaponDefinition* SummaryWeapon = NewObject<UFRWeaponDefinition>();
@@ -786,7 +826,7 @@ bool FFRTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	AbilityItem->InitialCharges = 2;
 	AbilityItem->UseAbilitySet = NamedAbilitySet;
 	FFRRewardChoice ItemAbilityReward;
-	ItemAbilityReward.ItemReward = AbilityItem;
+	AddTestItemGrant(ItemAbilityReward, AbilityItem);
 	TestTrue(TEXT("Reward summary names item ability set"), ItemAbilityReward.GetEffectSummary().ToString().Contains(TEXT("ability set Wind Split")));
 	TestTrue(TEXT("Reward summary includes item descriptions"), ItemAbilityReward.GetEffectSummary().ToString().Contains(TEXT("Empowers the next shot.")));
 	TestTrue(TEXT("Reward summary names item tags"), ItemAbilityReward.GetEffectSummary().ToString().Contains(TEXT("tag Item.NextShot")));
@@ -794,17 +834,17 @@ bool FFRTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	TestTrue(TEXT("Blueprint helper summarizes item assets"), UFRRewardBlueprintLibrary::GetItemEffectSummary(AbilityItem).ToString().Contains(TEXT("ability set Wind Split")));
 	UFRItemDefinition* HealSummaryItem = NewObject<UFRItemDefinition>();
 	HealSummaryItem->ItemType = EFRItemType::Heal;
-	HealSummaryItem->HealAmount = 42.0f;
+	AddTestHealEffect(HealSummaryItem, 42.0f);
 	TestTrue(TEXT("Reward summary names heal item amount"), UFRRewardBlueprintLibrary::GetItemEffectSummary(HealSummaryItem).ToString().Contains(TEXT("heal +42")));
 	UFRItemDefinition* AttackSummaryItem = NewObject<UFRItemDefinition>();
 	AttackSummaryItem->ItemType = EFRItemType::AttackMultiplier;
-	AttackSummaryItem->AttackMultiplier = 2.0f;
+	AddTestAttackMultiplierEffect(AttackSummaryItem, 2.0f);
 	TestTrue(TEXT("Reward summary names attack multiplier item amount"), UFRRewardBlueprintLibrary::GetItemEffectSummary(AttackSummaryItem).ToString().Contains(TEXT("next shot attack x2")));
 	UFRItemDefinition* InvalidItemData = NewObject<UFRItemDefinition>();
 	InvalidItemData->DisplayName = FText::GetEmpty();
 	InvalidItemData->ItemType = EFRItemType::AttackMultiplier;
 	InvalidItemData->InitialCharges = 0;
-	InvalidItemData->AttackMultiplier = 1.0f;
+	AddTestAttackMultiplierEffect(InvalidItemData, 1.0f);
 	const FString InvalidItemDataSummary = InvalidItemData->GetDataValidationSummary().ToString();
 	TestTrue(TEXT("Item data validation reports missing display names"), InvalidItemDataSummary.Contains(TEXT("missing display name")));
 	TestTrue(TEXT("Item data validation reports missing tags"), InvalidItemDataSummary.Contains(TEXT("ItemTag")));
@@ -835,7 +875,7 @@ bool FFRTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	ValidItemData->ItemTag = FRGameplayTags::Item_Repair;
 	ValidItemData->ItemType = EFRItemType::Heal;
 	ValidItemData->InitialCharges = 1;
-	ValidItemData->HealAmount = 10.0f;
+	AddTestHealEffect(ValidItemData, 10.0f);
 	TestTrue(TEXT("Item data validation is empty for valid item data"), ValidItemData->GetDataValidationSummary().ToString().IsEmpty());
 
 	UFRPerkDefinition* AbilityPerk = NewObject<UFRPerkDefinition>();
@@ -850,7 +890,7 @@ bool FFRTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	AbilityPerk->ProjectileBonus = -1;
 	AbilityPerk->ShotPowerMultiplierBonus = -0.2f;
 	FFRRewardChoice PerkAbilityReward;
-	PerkAbilityReward.PerkReward = AbilityPerk;
+	AddTestPerkGrant(PerkAbilityReward, AbilityPerk);
 	TestTrue(TEXT("Reward summary names perk ability set"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("ability set Wind Split")));
 	TestTrue(TEXT("Reward summary includes perk descriptions"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("Every run shot bends harder.")));
 	TestTrue(TEXT("Reward summary names perk tags"), PerkAbilityReward.GetEffectSummary().ToString().Contains(TEXT("tag Trait.ShotModifier")));
@@ -901,7 +941,7 @@ bool FFRTerrainMapDefinitionEditTest::RunTest(const FString& Parameters)
 	FFRRewardChoice RiskReward;
 	RiskReward.DisplayName = FText::FromString(TEXT("Glass Cannon"));
 	RiskReward.Description = FText::FromString(TEXT("Trades survivability for tempo."));
-	RiskReward.PerkReward = RiskPerk;
+	AddTestPerkGrant(RiskReward, RiskPerk);
 	const FString RiskRewardSummary = RiskReward.GetEffectSummary().ToString();
 	TestTrue(TEXT("Reward summary includes reward display names"), RiskRewardSummary.Contains(TEXT("reward Glass Cannon")));
 	TestTrue(TEXT("Reward summary includes reward descriptions"), RiskRewardSummary.Contains(TEXT("Trades survivability for tempo.")));
@@ -1204,10 +1244,10 @@ bool FFRGameModeCameraControlTest::RunTest(const FString& Parameters)
 	}
 
 	GameMode->Terrain = World->SpawnActor<AFRDestructibleTerrain>();
-	GameMode->BattleCamera = World->SpawnActor<ACameraActor>(
-		ACameraActor::StaticClass(),
+	GameMode->BattleCamera = World->SpawnActor<AFRBattleCamera>(
+		AFRBattleCamera::StaticClass(),
 		GameMode->CameraLocation,
-		GameMode->GetBattleCameraRotation());
+		AFRBattleCamera::GetBattleRotation());
 	TestNotNull(TEXT("Camera test terrain is spawned"), GameMode->Terrain.Get());
 	TestNotNull(TEXT("Camera test battle camera is spawned"), GameMode->BattleCamera.Get());
 	if (!GameMode->Terrain || !GameMode->BattleCamera)
@@ -1216,24 +1256,28 @@ bool FFRGameModeCameraControlTest::RunTest(const FString& Parameters)
 		return false;
 	}
 
+	AFRBattleCamera* BattleCamera = GameMode->BattleCamera;
+	BattleCamera->ConfigureBattle(GameMode->CameraLocation, GameMode->CameraOrthoWidth, GameMode->CameraFollowInterpSpeed, GameMode->CameraManualPanSpeed);
+	BattleCamera->SetTerrainActor(GameMode->Terrain);
+
 	GameMode->Terrain->Width = 5000.0f;
 	GameMode->Terrain->Height = 2000.0f;
-	TestEqual(TEXT("Battle camera zoom stays independent from terrain size"), GameMode->GetInitialCameraOrthoWidth(), GameMode->CameraOrthoWidth);
+	TestEqual(TEXT("Battle camera zoom stays independent from terrain size"), BattleCamera->GetCameraComponent()->OrthoWidth, GameMode->CameraOrthoWidth);
 
 	GameMode->HandleManualCameraInput(FVector2D(0.0f, 1.0f), true, 0.1f);
-	TestEqual(TEXT("Fresh direction input switches the camera to manual"), GameMode->CameraControlMode, EFRCameraControlMode::Manual);
-	GameMode->UpdateBattleCamera(0.001f);
-	TestEqual(TEXT("Manual camera movement does not interpolate"), GameMode->BattleCamera->GetActorLocation(), GameMode->ManualCameraLocation);
+	TestEqual(TEXT("Fresh direction input switches the camera to manual"), BattleCamera->GetControlMode(), EFRBattleCameraControlMode::Manual);
+	BattleCamera->Tick(0.001f);
+	TestEqual(TEXT("Manual camera movement does not interpolate"), BattleCamera->GetActorLocation(), BattleCamera->GetManualLocation());
 	GameMode->RequestAutoCameraFocus(nullptr, FVector(0.0f, 0.0f, 700.0f), 0.0f);
-	TestEqual(TEXT("Auto focus interrupts manual camera control"), GameMode->CameraControlMode, EFRCameraControlMode::Auto);
-	TestTrue(TEXT("Auto focus blocks the direction input that was already held"), GameMode->bManualCameraInputRequiresRelease);
-	TestEqual(TEXT("Auto focus snaps to the requested height"), static_cast<float>(GameMode->BattleCamera->GetActorLocation().Z), 700.0f);
+	TestEqual(TEXT("Auto focus interrupts manual camera control"), BattleCamera->GetControlMode(), EFRBattleCameraControlMode::Auto);
+	TestTrue(TEXT("Auto focus blocks the direction input that was already held"), BattleCamera->RequiresManualInputRelease());
+	TestEqual(TEXT("Auto focus snaps to the requested height"), static_cast<float>(BattleCamera->GetActorLocation().Z), 700.0f);
 
 	GameMode->HandleManualCameraInput(FVector2D(0.0f, 1.0f), true, 0.1f);
-	TestEqual(TEXT("Held direction input cannot interrupt auto focus"), GameMode->CameraControlMode, EFRCameraControlMode::Auto);
+	TestEqual(TEXT("Held direction input cannot interrupt auto focus"), BattleCamera->GetControlMode(), EFRBattleCameraControlMode::Auto);
 	GameMode->HandleManualCameraInput(FVector2D::ZeroVector, false, 0.0f);
 	GameMode->HandleManualCameraInput(FVector2D(0.0f, 1.0f), true, 0.1f);
-	TestEqual(TEXT("Direction input can return to manual after release and press"), GameMode->CameraControlMode, EFRCameraControlMode::Manual);
+	TestEqual(TEXT("Direction input can return to manual after release and press"), BattleCamera->GetControlMode(), EFRBattleCameraControlMode::Manual);
 
 	CleanupWorld();
 	return true;
@@ -1361,7 +1405,7 @@ bool FFRTerrainGameModeMapDefinitionTest::RunTest(const FString& Parameters)
 		UFRPerkDefinition* NegativeDamagePerk = NewObject<UFRPerkDefinition>(GameMode);
 		NegativeDamagePerk->DamageBonus = -4.0f;
 		FFRRewardChoice NegativeDamageReward;
-		NegativeDamageReward.PerkReward = NegativeDamagePerk;
+		AddTestPerkGrant(NegativeDamageReward, NegativeDamagePerk);
 		GameMode->ApplyRewardToPlayer(NegativeDamageReward);
 		TestEqual(TEXT("Game mode applies negative perk reward deltas"), PlayerCharacter->GetDamageBonus(), BaseDamageBonus + 6.0f);
 	}
@@ -1395,7 +1439,14 @@ bool FFRTerrainGameModeMapDefinitionTest::RunTest(const FString& Parameters)
 	TestStageRunDefinition->RewardChoiceCount = 5;
 	TestStageRunDefinition->RewardPool = { BaseReward, RequiredReward, BlockedReward, OpenReward };
 
-	GameMode->ChosenRewardTags.Reset();
+	UFRRunSubsystem* RunSubsystem = GameInstance->GetSubsystem<UFRRunSubsystem>();
+	TestNotNull(TEXT("Run subsystem exists for reward tag tracking"), RunSubsystem);
+	if (!RunSubsystem)
+	{
+		CleanupWorld();
+		return false;
+	}
+	RunSubsystem->ClearChosenRewardTags();
 	GameMode->BuildRewardChoices();
 	FGameplayTagContainer EmptyChosenRewardTags;
 	TestFalse(TEXT("Reward condition helper rejects missing required tags"), RequiredReward.MeetsRewardTagConditions(EmptyChosenRewardTags));
@@ -1410,7 +1461,8 @@ bool FFRTerrainGameModeMapDefinitionTest::RunTest(const FString& Parameters)
 	TestFalse(TEXT("Game mode rejects reward choices with unmet required tags"), GameMode->CanApplyRewardChoice(0));
 	GameMode->GetTurnBasedGameState()->StartPlayerTurn(GameMode->GetPlayerCharacter(), GameMode->GetWind(), FText::FromString(TEXT("Player turn")));
 
-	GameMode->ChosenRewardTags = { FRGameplayTags::Trait_Damage };
+	RunSubsystem->ClearChosenRewardTags();
+	RunSubsystem->RecordChosenRewardTag(FRGameplayTags::Trait_Damage);
 	TestTrue(TEXT("Game mode exposes chosen reward tags for UI"), GameMode->GetChosenRewardTags().HasTagExact(FRGameplayTags::Trait_Damage));
 	TestTrue(TEXT("Reward condition helper accepts satisfied required tags"), RequiredReward.MeetsRewardTagConditions(GameMode->GetChosenRewardTags()));
 	TestFalse(TEXT("Reward condition helper rejects blocked chosen tags"), BlockedReward.MeetsRewardTagConditions(GameMode->GetChosenRewardTags()));
@@ -1445,7 +1497,7 @@ bool FFRTerrainGameModeMapDefinitionTest::RunTest(const FString& Parameters)
 	GameMode->GetTurnBasedGameState()->StartPlayerTurn(GameMode->GetPlayerCharacter(), GameMode->GetWind(), FText::FromString(TEXT("Player turn")));
 	TestStageRunDefinition->RewardPool.Reset();
 	GameMode->RewardChoices.Reset();
-	GameMode->ChosenRewardTags.Reset();
+	RunSubsystem->ClearChosenRewardTags();
 
 	AFRProjectile* WindProjectile = World->SpawnActor<AFRProjectile>(AFRProjectile::StaticClass(), FVector(0.0f, 0.0f, 500.0f), FRotator::ZeroRotator);
 	TestNotNull(TEXT("Wind test projectile is spawned"), WindProjectile);
@@ -2296,7 +2348,7 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		HealItem->ItemType = EFRItemType::Heal;
 		HealItem->ItemTag = FRGameplayTags::Item_Repair;
 		HealItem->InitialCharges = 2;
-		HealItem->HealAmount = 25.0f;
+		AddTestHealEffect(HealItem, 25.0f);
 		ItemSlotCharacter->SetTerrain(Terrain);
 		ItemSlotCharacter->AddItemDefinition(HealItem, 2);
 		ItemSlotCharacter->BeginTurn();
@@ -2408,7 +2460,7 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 	{
 		BoundaryCharacter->SetActorLocation(FVector(500.0f, 0.0f, 200.0f));
 		BoundaryCharacter->SetTerrain(Terrain);
-		const float FootProbeHalfWidth = GetFloatProperty(BoundaryCharacter, TEXT("FootProbeHalfWidth"), 22.0f);
+		const float FootProbeHalfWidth = BoundaryCharacter->GetTerrainMovement()->FootProbeHalfWidth;
 		const float MaxCharacterX = Terrain->GetActorLocation().X + Terrain->Width * 0.5f - FootProbeHalfWidth;
 		TestEqual(TEXT("Assigning terrain clamps character inside terrain width"), static_cast<float>(BoundaryCharacter->GetActorLocation().X), MaxCharacterX);
 		BoundaryCharacter->BeginTurn();
@@ -2422,7 +2474,7 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 	{
 		LateBoundCharacter->SetActorLocation(FVector(-15.0f, 0.0f, 200.0f));
 		LateBoundCharacter->SetTerrain(Terrain);
-		const float FootOffsetZ = GetFloatProperty(LateBoundCharacter, TEXT("FootOffsetZ"), 45.0f);
+		const float FootOffsetZ = LateBoundCharacter->GetTerrainMovement()->GetFootOffsetZ();
 		TestEqual(TEXT("Assigning terrain after BeginPlay snaps character feet onto the highest footprint surface"), static_cast<float>(LateBoundCharacter->GetActorLocation().Z), 60.0f + FootOffsetZ);
 	}
 
@@ -2432,8 +2484,8 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 	{
 		RampCharacter->AddWeaponDefinition(CreateTestWeaponDefinition(RampCharacter));
 		RampCharacter->SetTerrain(Terrain);
-		SetFloatProperty(RampCharacter, TEXT("FootProbeHalfWidth"), 0.0f);
-		SetFloatProperty(RampCharacter, TEXT("BodySlopeProbeHalfWidth"), 5.0f);
+		RampCharacter->GetTerrainMovement()->FootProbeHalfWidth = 0.0f;
+		RampCharacter->GetTerrainMovement()->BodySlopeProbeHalfWidth = 5.0f;
 		RampCharacter->SetActorLocation(FVector(-95.0f, 0.0f, 55.0f));
 		RampCharacter->BeginTurn();
 		RampCharacter->MoveHorizontal(1.0f, 0.12f);
@@ -2476,7 +2528,7 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 	if (SteepSlopeCharacter)
 	{
 		SteepSlopeCharacter->SetTerrain(Terrain);
-		SetFloatProperty(SteepSlopeCharacter, TEXT("FootProbeHalfWidth"), 0.0f);
+		SteepSlopeCharacter->GetTerrainMovement()->FootProbeHalfWidth = 0.0f;
 		SteepSlopeCharacter->SetActorLocation(FVector(-45.0f, 0.0f, 55.0f));
 		SteepSlopeCharacter->BeginTurn();
 		SteepSlopeCharacter->MoveHorizontal(1.0f, 0.12f);
@@ -2489,7 +2541,7 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 	if (GapCharacter && GapTerrain)
 	{
 		GapCharacter->SetTerrain(GapTerrain);
-		SetFloatProperty(GapCharacter, TEXT("FootProbeHalfWidth"), 0.0f);
+		GapCharacter->GetTerrainMovement()->FootProbeHalfWidth = 0.0f;
 		GapCharacter->SetActorLocation(FVector(485.0f, 0.0f, 55.0f));
 		GapCharacter->BeginTurn();
 		GapCharacter->MoveHorizontal(1.0f, 0.1f);
@@ -2502,7 +2554,7 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 	if (SettlingCharacter)
 	{
 		SettlingCharacter->SetTerrain(Terrain);
-		SetFloatProperty(SettlingCharacter, TEXT("FootProbeHalfWidth"), 0.0f);
+		SettlingCharacter->GetTerrainMovement()->FootProbeHalfWidth = 0.0f;
 		TestTrue(TEXT("Carve circle lowers nearby support under the character"), Terrain->CarveCircle(FVector(5.0f, 0.0f, 55.0f), 11.0f));
 		SettlingCharacter->ReevaluateTerrainSupport();
 		TestEqual(TEXT("Battle character settles onto a lower surface inside the step-down range"), static_cast<float>(SettlingCharacter->GetActorLocation().Z), 85.0f);
@@ -2765,7 +2817,7 @@ bool FFRDestructibleTerrainRuntimeTest::RunTest(const FString& Parameters)
 		FallingCharacter->BeginShotCharge();
 		FallingCharacter->UpdateShotCharge(1.0f);
 		TestEqual(TEXT("Falling battle character cannot fire while unsupported"), FallingCharacter->ReleaseShotCharge(), 0);
-		SetFloatProperty(FallingCharacter, TEXT("FallDeathDepth"), 1.0f);
+		FallingCharacter->GetTerrainMovement()->FallDeathDepth = 1.0f;
 		FallingCharacter->SetActorLocation(FVector(45.0f, 0.0f, -2.0f));
 		FallingCharacter->Tick(0.01f);
 		TestTrue(TEXT("Battle character is defeated after falling below the terrain death depth"), FallingCharacter->IsDefeated());

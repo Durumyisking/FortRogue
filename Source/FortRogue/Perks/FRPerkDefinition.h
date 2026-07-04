@@ -27,6 +27,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Perk")
 	FText GetDataValidationSummary() const;
 
+#if WITH_EDITOR
+	virtual EDataValidationResult IsDataValid(class FDataValidationContext& Context) const override;
+#endif
+
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Perk")
 	bool HasAllCategoryTags(const FGameplayTagContainer& RequiredTags) const;
 
