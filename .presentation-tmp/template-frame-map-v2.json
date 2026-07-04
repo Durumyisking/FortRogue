@@ -1,0 +1,188 @@
+{
+  "outputSlides": [
+    {
+      "outputSlide": 1,
+      "sourceSlide": 1,
+      "narrativeRole": "opening context and four-character roster",
+      "reuseMode": "duplicate-slide",
+      "editTargets": [
+        {
+          "shapeIds": [
+            "sh/5gbq1ory",
+            "sh/udg7adsj",
+            "sh/nyd0z610",
+            "sh/cj6tovah",
+            "sh/u9knih4b",
+            "sh/judg7ads"
+          ],
+          "action": "rewrite"
+        },
+        {
+          "action": "add",
+          "newPrimitiveAllowed": true,
+          "mustNotOverlapInherited": true,
+          "zone": { "left": 782, "top": 74, "width": 456, "height": 516 },
+          "reason": "Fill the cleared inherited roster-image slot with the supplied concept-art montage."
+        }
+      ]
+    },
+    {
+      "outputSlide": 2,
+      "sourceSlide": 2,
+      "narrativeRole": "Cannon character identity and gameplay rules",
+      "reuseMode": "duplicate-slide",
+      "editTargets": [
+        {
+          "shapeIds": [
+            "sh/5o7qpg3e",
+            "sh/ylc7u54z",
+            "sh/9cvixcze",
+            "sh/rytsvu9k",
+            "sh/wb2hwfyx",
+            "sh/lwval87e",
+            "sh/3q5o7qpg",
+            "sh/w3m94fu1",
+            "sh/loj2t83i",
+            "sh/3itgfmlk",
+            "sh/szqtcj6t",
+            "sh/lc7u54zi",
+            "sh/wra5gbq1",
+            "sh/eloj2t83",
+            "sh/l0rqd4vm",
+            "sh/7u54zido",
+            "sh/ed8bat47",
+            "sh/w7mp0bi9",
+            "sh/65wjudg7",
+            "sh/obm58z25"
+          ],
+          "action": "rewrite"
+        },
+        {
+          "action": "add",
+          "newPrimitiveAllowed": true,
+          "mustNotOverlapInherited": true,
+          "zone": { "left": 782, "top": 124, "width": 456, "height": 274 },
+          "reason": "Fill the cleared inherited character-image slot with Cannon.png."
+        }
+      ]
+    },
+    {
+      "outputSlide": 3,
+      "sourceSlide": 3,
+      "narrativeRole": "Bandit character identity and gameplay rules",
+      "reuseMode": "duplicate-slide",
+      "editTargets": [
+        {
+          "shapeIds": [
+            "sh/o7qpg3ex",
+            "sh/vy90je9c",
+            "sh/oj2t83it",
+            "sh/6hcrmhk3",
+            "sh/6dcbulwv",
+            "sh/vmtwra5g",
+            "sh/61032lsz",
+            "sh/vahoza1g",
+            "sh/epkzupwb",
+            "sh/7adsji5s",
+            "sh/pg3ex0nu",
+            "sh/e1w7mp0b",
+            "sh/w7mp0bi9",
+            "sh/psfil0rq",
+            "sh/7u54zido",
+            "sh/twra5gbq",
+            "sh/bq1oryts"
+          ],
+          "action": "rewrite"
+        },
+        {
+          "action": "add",
+          "newPrimitiveAllowed": true,
+          "mustNotOverlapInherited": true,
+          "zone": { "left": 782, "top": 124, "width": 456, "height": 274 },
+          "reason": "Fill the cleared inherited character-image slot with Bandit.png."
+        }
+      ]
+    },
+    {
+      "outputSlide": 4,
+      "sourceSlide": 4,
+      "narrativeRole": "Miner character identity and gameplay rules",
+      "reuseMode": "duplicate-slide",
+      "editTargets": [
+        {
+          "shapeIds": [
+            "sh/qtcj6tov",
+            "sh/xs72x4na",
+            "sh/q1orytsv",
+            "sh/8jqh0fep",
+            "sh/1w7mp0bi",
+            "sh/8bat47y1",
+            "sh/q5o7qpg3",
+            "sh/18jqh0fe",
+            "sh/8nqxs72x",
+            "sh/qh0fepkz",
+            "sh/1cfa9w3m",
+            "sh/sfil0rqd",
+            "sh/h0fepkzu",
+            "sh/zupwb2hw",
+            "sh/orytsvu9",
+            "sh/al87ed8b",
+            "sh/z61032ls",
+            "sh/hk3q5o7q",
+            "sh/7mp0bi9s",
+            "sh/psfil0rq"
+          ],
+          "action": "rewrite"
+        },
+        {
+          "action": "add",
+          "newPrimitiveAllowed": true,
+          "mustNotOverlapInherited": true,
+          "zone": { "left": 782, "top": 124, "width": 456, "height": 274 },
+          "reason": "Fill the cleared inherited character-image slot with Driller.png as Miner."
+        }
+      ]
+    },
+    {
+      "outputSlide": 5,
+      "sourceSlide": 5,
+      "narrativeRole": "Engineer character identity and gameplay rules",
+      "reuseMode": "duplicate-slide",
+      "editTargets": [
+        {
+          "shapeIds": [
+            "sh/ovahoza1",
+            "sh/z25kb6xk",
+            "sh/onyd0z61",
+            "sh/6dcbulwv",
+            "sh/nuxc3ylc",
+            "sh/y90je9cv",
+            "sh/gbq1oryt",
+            "sh/n29gr2p8",
+            "sh/yhgn29gr",
+            "sh/gn29gr2p",
+            "sh/neloj2t8",
+            "sh/2x4nap4r",
+            "sh/vixczed8",
+            "sh/donyd0z6",
+            "sh/6psfil0r",
+            "sh/kre1w7mp",
+            "sh/dcbulwva",
+            "sh/v6psfil0",
+            "sh/h4byhgn2",
+            "sh/3ylc7u54"
+          ],
+          "action": "rewrite"
+        },
+        {
+          "action": "add",
+          "newPrimitiveAllowed": true,
+          "mustNotOverlapInherited": true,
+          "zone": { "left": 782, "top": 124, "width": 456, "height": 274 },
+          "reason": "Fill the cleared inherited character-image slot with Engineer.png."
+        }
+      ]
+    }
+  ],
+  "omittedSourceSlides": []
+}

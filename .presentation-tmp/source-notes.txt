@@ -1,0 +1,21 @@
+Primary visual sources:
+- F:\Dev\FortRogue\docs\캐릭터 컨셉아트\Cannon.png
+- F:\Dev\FortRogue\docs\캐릭터 컨셉아트\Bandit.png
+- F:\Dev\FortRogue\docs\캐릭터 컨셉아트\Driller.png
+- F:\Dev\FortRogue\docs\캐릭터 컨셉아트\Engineer.png
+
+Primary content sources:
+- F:\Dev\FortRogue\docs\CHARACTER_SETTING.md
+- F:\Dev\FortRogue\docs\FORTROGUE_FUN_DIRECTION.md
+- F:\Dev\FortRogue\docs\PRODUCT_VISION.md
+- F:\Dev\FortRogue\Source\FortRogue\Characters\FRCharacterDefinition.h
+
+Name decision:
+- Driller.png is mapped to Miner because the user's prior direction, current CharacterDefinition assets, and existing CHARACTER_SETTING source all use Miner.
+
+Content policy:
+- Cannon keeps the existing fast projectile, narrow blast, high direct-damage concept.
+- Miner and Engineer use the documented Drill Core and Builder Core gameplay identities.
+- Bandit is defined from the approved western double-barrel concept art as a short-range multi-projectile character.
+- Qualitative stats are design targets, not claims about final runtime Data Asset values.
+- No external research or third-party imagery is used.

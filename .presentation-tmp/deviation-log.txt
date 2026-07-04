@@ -1,0 +1,11 @@
+Slide 1:
+- Replaced the gray roster-image placeholder with a bounded 2x2 montage made only from the four supplied concept-art files.
+- Rewrote draft-oriented subtitle and purpose copy as audience-facing character-setting copy.
+
+Slides 2-5:
+- Replaced each gray representative-image placeholder with the matching supplied concept art while preserving the inherited frame.
+- Renamed "특수 공격" to "시그니처 공격" to align with the project's fixed character-core direction.
+- Reframed the numeric placeholder table as qualitative "캐릭터 성향" because final runtime values are not established in the supplied source.
+- Updated placeholder notes to a concise play-rhythm statement.
+
+No slide geometry, typography, footer placement, page numbering, or brand chrome is intentionally changed.

@@ -1,0 +1,29 @@
+Communication job:
+By the end, the FortRogue development team should understand how the four playable characters differ in fantasy, signature attack, play rhythm, and design-target stats because each character must create a visibly different artillery run.
+
+Source deck:
+- 5 slides at 1280x720.
+- Slide 1 is a title/roster cover.
+- Slides 2-5 use one repeated character profile layout.
+- Typography: Malgun Gothic, 50 px character titles, 24 px section headings, 21 px body copy, 18-19 px table copy, 15 px footer copy.
+- Palette: white background, black primary text, #555555 secondary text, #FF6B35 accent rules, #F5F5F5 alternating stat rows.
+- Every visible object is slide-owned; no inherited master/layout placeholders were detected.
+- The right-side concept-art zone is represented by a gray panel with overlaid label and caption shapes.
+
+Reusable slide types:
+- Slide 1: minimal cover with roster-image slot.
+- Slides 2-5: character profile with two narrative sections, play-rhythm note band, representative-image slot, and five-row stat table.
+
+Insertion contract:
+- Preserve all source slide geometry, typography, footer rhythm, page numbering, accent rules, and alternating stat rows.
+- Rewrite only mapped text elements.
+- Make the inherited image-slot panel transparent, then insert exactly one bounded raster image inside that inherited zone.
+- Keep the inherited image label and caption above the image.
+- Do not add decorative panels, diagrams, icons, or unrelated imagery.
+
+Asset mapping:
+- Cannon.png -> Cannon
+- Bandit.png -> Bandit
+- Driller.png -> Miner
+- Engineer.png -> Engineer
+- A 2x2 montage of the four supplied images -> title slide roster image
