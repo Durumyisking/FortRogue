@@ -11,10 +11,11 @@
 #include "EnhancedInputSubsystems.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
+#include "InputAction.h"
+#include "InputMappingContext.h"
+#include "InputModifiers.h"
 #include "InputCoreTypes.h"
-#include "InputActionValue.h"
 #include "Items/FRItemDefinition.h"
-
 
 AFRPlayerController::AFRPlayerController()
 {
@@ -26,11 +27,15 @@ void AFRPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (BattleInputMappingContext)
+	if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
 	{
-		if (ULocalPlayer* LocalPlayer = GetLocalPlayer())
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
 		{
-			if (UEnhancedInputLocalPlayerSubsystem* Subsystem = LocalPlayer->GetSubsystem<UEnhancedInputLocalPlayerSubsystem>())
+			if (DefaultInputMappingContext)
+			{
+				Subsystem->AddMappingContext(DefaultInputMappingContext, 0);
+			}
+			if (BattleInputMappingContext)
 			{
 				Subsystem->AddMappingContext(BattleInputMappingContext, BattleInputMappingPriority);
 			}
@@ -38,6 +43,91 @@ void AFRPlayerController::BeginPlay()
 	}
 
 	ApplyCurrentGameFlowMode();
+}
+
+UInputAction* AFRPlayerController::CreateDefaultAction(const TCHAR* ActionName, EInputActionValueType ValueType)
+{
+	UInputAction* Action = NewObject<UInputAction>(this, ActionName);
+	Action->ValueType = ValueType;
+	return Action;
+}
+
+void AFRPlayerController::MapDefaultKey(UInputAction* Action, const FKey& Key, bool bNegate, bool bSwizzleToY)
+{
+	if (!Action || !DefaultInputMappingContext)
+	{
+		return;
+	}
+
+	FEnhancedActionKeyMapping& Mapping = DefaultInputMappingContext->MapKey(Action, Key);
+	if (bSwizzleToY)
+	{
+		Mapping.Modifiers.Add(NewObject<UInputModifierSwizzleAxis>(this));
+	}
+	if (bNegate)
+	{
+		Mapping.Modifiers.Add(NewObject<UInputModifierNegate>(this));
+	}
+}
+
+void AFRPlayerController::BuildDefaultInputBindings()
+{
+	DefaultInputMappingContext = NewObject<UInputMappingContext>(this, TEXT("FRDefaultBattleInputContext"));
+
+	if (!MoveAction)
+	{
+		MoveAction = CreateDefaultAction(TEXT("FRDefaultMoveAction"), EInputActionValueType::Axis1D);
+		MapDefaultKey(MoveAction, EKeys::D);
+		MapDefaultKey(MoveAction, EKeys::A, true);
+	}
+	if (!AimAction)
+	{
+		AimAction = CreateDefaultAction(TEXT("FRDefaultAimAction"), EInputActionValueType::Axis1D);
+		MapDefaultKey(AimAction, EKeys::W);
+		MapDefaultKey(AimAction, EKeys::S, true);
+	}
+	if (!FireAction)
+	{
+		FireAction = CreateDefaultAction(TEXT("FRDefaultFireAction"), EInputActionValueType::Boolean);
+		MapDefaultKey(FireAction, EKeys::SpaceBar);
+	}
+
+	const FKey SlotKeys[] = { EKeys::One, EKeys::Two, EKeys::Three, EKeys::Four, EKeys::Five };
+	TObjectPtr<UInputAction>* WeaponActions[] = { &Weapon1Action, &Weapon2Action, &Weapon3Action, &Weapon4Action, &Weapon5Action };
+	TObjectPtr<UInputAction>* RewardActions[] = { &Reward1Action, &Reward2Action, &Reward3Action, &Reward4Action, &Reward5Action };
+	for (int32 SlotIndex = 0; SlotIndex < 5; ++SlotIndex)
+	{
+		if (!*WeaponActions[SlotIndex])
+		{
+			*WeaponActions[SlotIndex] = CreateDefaultAction(*FString::Printf(TEXT("FRDefaultWeapon%dAction"), SlotIndex + 1), EInputActionValueType::Boolean);
+			MapDefaultKey(*WeaponActions[SlotIndex], SlotKeys[SlotIndex]);
+		}
+		if (!*RewardActions[SlotIndex])
+		{
+			// 무기 선택과 같은 숫자 키를 공유합니다. 두 핸들러 모두 전투 상태를 확인하므로 동시에 반응하지 않습니다.
+			*RewardActions[SlotIndex] = CreateDefaultAction(*FString::Printf(TEXT("FRDefaultReward%dAction"), SlotIndex + 1), EInputActionValueType::Boolean);
+			MapDefaultKey(*RewardActions[SlotIndex], SlotKeys[SlotIndex]);
+		}
+	}
+
+	if (!AttackItemAction)
+	{
+		AttackItemAction = CreateDefaultAction(TEXT("FRDefaultAttackItemAction"), EInputActionValueType::Boolean);
+		MapDefaultKey(AttackItemAction, EKeys::J);
+	}
+	if (!HealItemAction)
+	{
+		HealItemAction = CreateDefaultAction(TEXT("FRDefaultHealItemAction"), EInputActionValueType::Boolean);
+		MapDefaultKey(HealItemAction, EKeys::H);
+	}
+	if (!CameraPanAction)
+	{
+		CameraPanAction = CreateDefaultAction(TEXT("FRDefaultCameraPanAction"), EInputActionValueType::Axis2D);
+		MapDefaultKey(CameraPanAction, EKeys::Right);
+		MapDefaultKey(CameraPanAction, EKeys::Left, true);
+		MapDefaultKey(CameraPanAction, EKeys::Up, false, true);
+		MapDefaultKey(CameraPanAction, EKeys::Down, true, true);
+	}
 }
 
 void AFRPlayerController::SetupInputComponent()
@@ -50,214 +140,43 @@ void AFRPlayerController::SetupInputComponent()
 		return;
 	}
 
-	if (MoveAction)
-	{
-		EnhancedInput->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AFRPlayerController::HandleMove);
-		EnhancedInput->BindAction(MoveAction, ETriggerEvent::Completed, this, &AFRPlayerController::HandleMove);
-	}
-	if (AimAction)
-	{
-		EnhancedInput->BindAction(AimAction, ETriggerEvent::Triggered, this, &AFRPlayerController::HandleAim);
-		EnhancedInput->BindAction(AimAction, ETriggerEvent::Completed, this, &AFRPlayerController::HandleAim);
-	}
-	if (FireAction)
-	{
-		EnhancedInput->BindAction(FireAction, ETriggerEvent::Started, this, &AFRPlayerController::HandleFirePressed);
-		EnhancedInput->BindAction(FireAction, ETriggerEvent::Completed, this, &AFRPlayerController::HandleFireReleased);
-		EnhancedInput->BindAction(FireAction, ETriggerEvent::Canceled, this, &AFRPlayerController::HandleFireReleased);
-	}
-	if (Weapon1Action)
-	{
-		EnhancedInput->BindAction(Weapon1Action, ETriggerEvent::Started, this, &AFRPlayerController::HandleWeapon1);
-	}
-	if (Weapon2Action)
-	{
-		EnhancedInput->BindAction(Weapon2Action, ETriggerEvent::Started, this, &AFRPlayerController::HandleWeapon2);
-	}
-	if (Weapon3Action)
-	{
-		EnhancedInput->BindAction(Weapon3Action, ETriggerEvent::Started, this, &AFRPlayerController::HandleWeapon3);
-	}
-	if (Weapon4Action)
-	{
-		EnhancedInput->BindAction(Weapon4Action, ETriggerEvent::Started, this, &AFRPlayerController::HandleWeapon4);
-	}
-	if (Weapon5Action)
-	{
-		EnhancedInput->BindAction(Weapon5Action, ETriggerEvent::Started, this, &AFRPlayerController::HandleWeapon5);
-	}
-	if (AttackItemAction)
-	{
-		EnhancedInput->BindAction(AttackItemAction, ETriggerEvent::Started, this, &AFRPlayerController::HandleAttackItem);
-	}
-	if (HealItemAction)
-	{
-		EnhancedInput->BindAction(HealItemAction, ETriggerEvent::Started, this, &AFRPlayerController::HandleHealItem);
-	}
-	if (Reward1Action)
-	{
-		EnhancedInput->BindAction(Reward1Action, ETriggerEvent::Started, this, &AFRPlayerController::HandleReward1);
-	}
-	if (Reward2Action)
-	{
-		EnhancedInput->BindAction(Reward2Action, ETriggerEvent::Started, this, &AFRPlayerController::HandleReward2);
-	}
-	if (Reward3Action)
-	{
-		EnhancedInput->BindAction(Reward3Action, ETriggerEvent::Started, this, &AFRPlayerController::HandleReward3);
-	}
-	if (Reward4Action)
-	{
-		EnhancedInput->BindAction(Reward4Action, ETriggerEvent::Started, this, &AFRPlayerController::HandleReward4);
-	}
-	if (Reward5Action)
-	{
-		EnhancedInput->BindAction(Reward5Action, ETriggerEvent::Started, this, &AFRPlayerController::HandleReward5);
-	}
+	BuildDefaultInputBindings();
+
+	EnhancedInput->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AFRPlayerController::HandleMove);
+	EnhancedInput->BindAction(MoveAction, ETriggerEvent::Completed, this, &AFRPlayerController::HandleMove);
+	EnhancedInput->BindAction(MoveAction, ETriggerEvent::Canceled, this, &AFRPlayerController::HandleMove);
+	EnhancedInput->BindAction(AimAction, ETriggerEvent::Triggered, this, &AFRPlayerController::HandleAim);
+	EnhancedInput->BindAction(AimAction, ETriggerEvent::Completed, this, &AFRPlayerController::HandleAim);
+	EnhancedInput->BindAction(AimAction, ETriggerEvent::Canceled, this, &AFRPlayerController::HandleAim);
+	EnhancedInput->BindAction(FireAction, ETriggerEvent::Started, this, &AFRPlayerController::HandleFirePressed);
+	EnhancedInput->BindAction(FireAction, ETriggerEvent::Completed, this, &AFRPlayerController::HandleFireReleased);
+	EnhancedInput->BindAction(FireAction, ETriggerEvent::Canceled, this, &AFRPlayerController::HandleFireReleased);
+	EnhancedInput->BindAction(Weapon1Action, ETriggerEvent::Started, this, &AFRPlayerController::HandleWeapon1);
+	EnhancedInput->BindAction(Weapon2Action, ETriggerEvent::Started, this, &AFRPlayerController::HandleWeapon2);
+	EnhancedInput->BindAction(Weapon3Action, ETriggerEvent::Started, this, &AFRPlayerController::HandleWeapon3);
+	EnhancedInput->BindAction(Weapon4Action, ETriggerEvent::Started, this, &AFRPlayerController::HandleWeapon4);
+	EnhancedInput->BindAction(Weapon5Action, ETriggerEvent::Started, this, &AFRPlayerController::HandleWeapon5);
+	EnhancedInput->BindAction(AttackItemAction, ETriggerEvent::Started, this, &AFRPlayerController::HandleAttackItem);
+	EnhancedInput->BindAction(HealItemAction, ETriggerEvent::Started, this, &AFRPlayerController::HandleHealItem);
+	EnhancedInput->BindAction(Reward1Action, ETriggerEvent::Started, this, &AFRPlayerController::HandleReward1);
+	EnhancedInput->BindAction(Reward2Action, ETriggerEvent::Started, this, &AFRPlayerController::HandleReward2);
+	EnhancedInput->BindAction(Reward3Action, ETriggerEvent::Started, this, &AFRPlayerController::HandleReward3);
+	EnhancedInput->BindAction(Reward4Action, ETriggerEvent::Started, this, &AFRPlayerController::HandleReward4);
+	EnhancedInput->BindAction(Reward5Action, ETriggerEvent::Started, this, &AFRPlayerController::HandleReward5);
+	EnhancedInput->BindAction(CameraPanAction, ETriggerEvent::Triggered, this, &AFRPlayerController::HandleCameraPan);
+	EnhancedInput->BindAction(CameraPanAction, ETriggerEvent::Completed, this, &AFRPlayerController::HandleCameraPanReleased);
+	EnhancedInput->BindAction(CameraPanAction, ETriggerEvent::Canceled, this, &AFRPlayerController::HandleCameraPanReleased);
 }
 
 void AFRPlayerController::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	TickRewardInput();
 	TickCameraInput(DeltaSeconds);
-
-	if (HasEnhancedInputBindings())
-	{
-		ApplyMoveAxis(EnhancedMoveAxis, DeltaSeconds);
-		ApplyAimAxis(EnhancedAimAxis, DeltaSeconds);
-		TickKeyboardFireInput();
-		TickKeyboardWeaponInput();
-		TickKeyboardItemInput();
-		TickPlayerWeaponCharge(DeltaSeconds);
-		ProcessPlayerAbilityInput(DeltaSeconds);
-		return;
-	}
-
-	TickBattleInput(DeltaSeconds);
-	if (bHUDShotChargePressed)
-	{
-		TickPlayerWeaponCharge(DeltaSeconds);
-	}
+	ApplyMoveAxis(EnhancedMoveAxis, DeltaSeconds);
+	ApplyAimAxis(EnhancedAimAxis, DeltaSeconds);
+	TickPlayerWeaponCharge(DeltaSeconds);
 	ProcessPlayerAbilityInput(DeltaSeconds);
-}
-
-void AFRPlayerController::TickBattleInput(float DeltaSeconds)
-{
-	AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
-	if (!GameMode || GameMode->GetBattleState() != EFRBattleState::PlayerTurn)
-	{
-		return;
-	}
-
-	AFRBattleCharacter* PlayerCharacter = GameMode->GetPlayerCharacter();
-	if (!PlayerCharacter)
-	{
-		return;
-	}
-
-	ApplyMoveAxis((IsInputKeyDown(EKeys::D) ? 1.0f : 0.0f) + (IsInputKeyDown(EKeys::A) ? -1.0f : 0.0f), DeltaSeconds);
-	ApplyAimAxis((IsInputKeyDown(EKeys::W) ? 1.0f : 0.0f) + (IsInputKeyDown(EKeys::S) ? -1.0f : 0.0f), DeltaSeconds);
-	TickKeyboardWeaponInput();
-	TickKeyboardItemInput();
-
-	if (WasInputKeyJustPressed(EKeys::SpaceBar))
-	{
-		BeginPlayerWeaponCharge();
-	}
-	if (IsInputKeyDown(EKeys::SpaceBar))
-	{
-		TickPlayerWeaponCharge(DeltaSeconds);
-	}
-	if (WasInputKeyJustReleased(EKeys::SpaceBar))
-	{
-		ReleasePlayerWeaponCharge();
-	}
-}
-
-void AFRPlayerController::TickKeyboardFireInput()
-{
-	AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
-	if (!GameMode || GameMode->GetBattleState() != EFRBattleState::PlayerTurn || !GameMode->GetPlayerCharacter())
-	{
-		return;
-	}
-
-	if (WasInputKeyJustPressed(EKeys::SpaceBar))
-	{
-		BeginPlayerWeaponCharge();
-	}
-	if (WasInputKeyJustReleased(EKeys::SpaceBar))
-	{
-		ReleasePlayerWeaponCharge();
-	}
-}
-
-void AFRPlayerController::TickKeyboardWeaponInput()
-{
-	if (!Weapon1Action && WasInputKeyJustPressed(EKeys::One))
-	{
-		SelectPlayerWeapon(0);
-	}
-	if (!Weapon2Action && WasInputKeyJustPressed(EKeys::Two))
-	{
-		SelectPlayerWeapon(1);
-	}
-	if (!Weapon3Action && WasInputKeyJustPressed(EKeys::Three))
-	{
-		SelectPlayerWeapon(2);
-	}
-	if (!Weapon4Action && WasInputKeyJustPressed(EKeys::Four))
-	{
-		SelectPlayerWeapon(3);
-	}
-	if (!Weapon5Action && WasInputKeyJustPressed(EKeys::Five))
-	{
-		SelectPlayerWeapon(4);
-	}
-}
-
-void AFRPlayerController::TickKeyboardItemInput()
-{
-	if (!AttackItemAction && WasInputKeyJustPressed(EKeys::J))
-	{
-		UsePlayerItem(EFRItemType::AttackMultiplier);
-	}
-	if (!HealItemAction && WasInputKeyJustPressed(EKeys::H))
-	{
-		UsePlayerItem(EFRItemType::Heal);
-	}
-}
-
-void AFRPlayerController::TickRewardInput()
-{
-	AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
-	if (!GameMode || GameMode->GetBattleState() != EFRBattleState::Reward)
-	{
-		return;
-	}
-
-	if (WasInputKeyJustPressed(EKeys::One))
-	{
-		ChooseReward(0);
-	}
-	else if (WasInputKeyJustPressed(EKeys::Two))
-	{
-		ChooseReward(1);
-	}
-	else if (WasInputKeyJustPressed(EKeys::Three))
-	{
-		ChooseReward(2);
-	}
-	else if (WasInputKeyJustPressed(EKeys::Four))
-	{
-		ChooseReward(3);
-	}
-	else if (WasInputKeyJustPressed(EKeys::Five))
-	{
-		ChooseReward(4);
-	}
 }
 
 void AFRPlayerController::TickCameraInput(float DeltaSeconds)
@@ -268,14 +187,7 @@ void AFRPlayerController::TickCameraInput(float DeltaSeconds)
 		return;
 	}
 
-	const bool bLeftDown = IsInputKeyDown(EKeys::Left);
-	const bool bRightDown = IsInputKeyDown(EKeys::Right);
-	const bool bUpDown = IsInputKeyDown(EKeys::Up);
-	const bool bDownDown = IsInputKeyDown(EKeys::Down);
-	const FVector2D InputAxis(
-		(bRightDown ? 1.0f : 0.0f) - (bLeftDown ? 1.0f : 0.0f),
-		(bUpDown ? 1.0f : 0.0f) - (bDownDown ? 1.0f : 0.0f));
-	GameMode->HandleManualCameraInput(InputAxis, bLeftDown || bRightDown || bUpDown || bDownDown, DeltaSeconds);
+	GameMode->HandleManualCameraInput(EnhancedCameraAxis, bCameraPanHeld, DeltaSeconds);
 }
 
 void AFRPlayerController::StartMainGame()
@@ -423,14 +335,6 @@ void AFRPlayerController::ReleasePlayerAbilityAxisInput()
 	UpdatePlayerAbilityAxisInput(0.0f, FRGameplayTags::InputTag_AimDown, FRGameplayTags::InputTag_AimUp, bAimDownAbilityInputPressed, bAimUpAbilityInputPressed);
 }
 
-bool AFRPlayerController::HasEnhancedInputBindings() const
-{
-	return MoveAction || AimAction || FireAction
-		|| Weapon1Action || Weapon2Action || Weapon3Action || Weapon4Action || Weapon5Action
-		|| AttackItemAction || HealItemAction
-		|| Reward1Action || Reward2Action || Reward3Action || Reward4Action || Reward5Action;
-}
-
 void AFRPlayerController::HandleMove(const FInputActionValue& Value)
 {
 	EnhancedMoveAxis = Value.Get<float>();
@@ -509,6 +413,18 @@ void AFRPlayerController::HandleReward4()
 void AFRPlayerController::HandleReward5()
 {
 	ChooseReward(4);
+}
+
+void AFRPlayerController::HandleCameraPan(const FInputActionValue& Value)
+{
+	EnhancedCameraAxis = Value.Get<FVector2D>();
+	bCameraPanHeld = true;
+}
+
+void AFRPlayerController::HandleCameraPanReleased(const FInputActionValue& Value)
+{
+	EnhancedCameraAxis = FVector2D::ZeroVector;
+	bCameraPanHeld = false;
 }
 
 void AFRPlayerController::ApplyMoveAxis(float Axis, float DeltaSeconds)

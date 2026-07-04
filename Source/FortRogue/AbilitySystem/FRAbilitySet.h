@@ -86,6 +86,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Ability Set")
 	FText GetDataValidationSummary() const;
 
+#if WITH_EDITOR
+	virtual EDataValidationResult IsDataValid(class FDataValidationContext& Context) const override;
+#endif
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Ability Set", meta = (ToolTip = "에디터와 UI에 표시할 AbilitySet 이름입니다."))
 	FText DisplayName = FText::FromString(TEXT("Ability Set"));
 

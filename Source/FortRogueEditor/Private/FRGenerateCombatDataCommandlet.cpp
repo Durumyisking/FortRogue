@@ -3,9 +3,11 @@
 #include "FRGenerateCombatDataCommandlet.h"
 
 #include "Characters/FRCharacterDefinition.h"
+#include "Combat/FRBattleCamera.h"
 #include "Combat/FRBattleCharacter.h"
 #include "Combat/FRTerrainMapDefinition.h"
 #include "Combat/FRDestructibleTerrain.h"
+#include "Rewards/FRRewardGrant.h"
 #include "FRGameplayTags.h"
 #include "Game/FRGameModeDataAsset.h"
 #include "Blueprint/UserWidget.h"
@@ -150,11 +152,9 @@ void ConfigureCharacter(UFRCharacterDefinition* CharacterDefinition, const FText
 	CharacterDefinition->MarkPackageDirty();
 }
 
-FFRRewardChoice MakeWeaponReward(UFRWeaponDefinition* WeaponDefinition)
+FFRRewardChoice MakeWeaponReward(UObject* Outer, UFRWeaponDefinition* WeaponDefinition)
 {
 	FFRRewardChoice Reward;
-	Reward.Type = EFRRewardType::Weapon;
-	Reward.WeaponReward = WeaponDefinition;
 	Reward.RewardWeight = 1.0f;
 	Reward.bOfferOncePerRun = true;
 	if (WeaponDefinition)
@@ -163,6 +163,10 @@ FFRRewardChoice MakeWeaponReward(UFRWeaponDefinition* WeaponDefinition)
 		Reward.Description = WeaponDefinition->Weapon.Description;
 		Reward.RewardTag = WeaponDefinition->Weapon.WeaponTag;
 	}
+
+	UFRRewardGrant_Weapon* WeaponGrant = NewObject<UFRRewardGrant_Weapon>(Outer, NAME_None, RF_Transactional);
+	WeaponGrant->WeaponDefinition = WeaponDefinition;
+	Reward.Grants.Add(WeaponGrant);
 	return Reward;
 }
 TArray<UObject*> ConfigureGameFlowModeDataAssets(UFRCharacterDefinition* Cannon, UFRStageRunDefinition* DefaultRun, UFRTerrainMapDefinition* TestMap)
@@ -198,7 +202,7 @@ TArray<UObject*> ConfigureGameFlowModeDataAssets(UFRCharacterDefinition* Cannon,
 		MainGameMode->PlayerCharacterClass = AFRBattleCharacter::StaticClass();
 		MainGameMode->EnemyCharacterClass = AFRBattleCharacter::StaticClass();
 		MainGameMode->TerrainClass = AFRDestructibleTerrain::StaticClass();
-		MainGameMode->CameraClass = ACameraActor::StaticClass();
+		MainGameMode->CameraClass = AFRBattleCamera::StaticClass();
 		MainGameMode->PlayerDefinition = Cannon;
 		MainGameMode->StageRunDefinition = DefaultRun;
 		MainGameMode->TerrainMapDefinition = TestMap;
@@ -308,10 +312,10 @@ int32 UFRGenerateCombatDataCommandlet::Main(const FString& Params)
 		DefaultRun->EnemyDefinitionPool.Add(EnemyGrunt);
 		DefaultRun->EnemyDefinitionPool.Add(EnemyMarauder);
 		DefaultRun->RewardPool.Reset();
-		DefaultRun->RewardPool.Add(MakeWeaponReward(CannonSpecial));
-		DefaultRun->RewardPool.Add(MakeWeaponReward(BanditSpecial));
-		DefaultRun->RewardPool.Add(MakeWeaponReward(MinerSpecial));
-		DefaultRun->RewardPool.Add(MakeWeaponReward(EngineerSpecial));
+		DefaultRun->RewardPool.Add(MakeWeaponReward(DefaultRun, CannonSpecial));
+		DefaultRun->RewardPool.Add(MakeWeaponReward(DefaultRun, BanditSpecial));
+		DefaultRun->RewardPool.Add(MakeWeaponReward(DefaultRun, MinerSpecial));
+		DefaultRun->RewardPool.Add(MakeWeaponReward(DefaultRun, EngineerSpecial));
 		DefaultRun->MarkPackageDirty();
 	}
 

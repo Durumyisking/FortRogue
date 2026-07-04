@@ -141,6 +141,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Weapon")
 	FText GetDataValidationSummary() const;
 
+#if WITH_EDITOR
+	virtual EDataValidationResult IsDataValid(class FDataValidationContext& Context) const override;
+#endif
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon", meta = (ToolTip = "이 데이터 에셋이 정의하는 무기 기본 스펙입니다. 런 성장용 modifier는 Reward, Perk, Character 쪽에 설정합니다."))
 	FFRWeaponSpec Weapon;
 };

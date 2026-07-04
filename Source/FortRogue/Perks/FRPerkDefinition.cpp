@@ -4,6 +4,10 @@
 
 #include "AbilitySystem/FRAbilitySet.h"
 
+#if WITH_EDITOR
+#include "Misc/DataValidation.h"
+#endif
+
 namespace
 {
 void AddPerkValidationIssue(TArray<FString>& Issues, const FString& Issue)
@@ -77,3 +81,16 @@ FText UFRPerkDefinition::GetDataValidationSummary() const
 
 	return Issues.Num() > 0 ? FText::FromString(FString::Join(Issues, TEXT(" | "))) : FText::GetEmpty();
 }
+
+#if WITH_EDITOR
+EDataValidationResult UFRPerkDefinition::IsDataValid(FDataValidationContext& Context) const
+{
+	EDataValidationResult Result = Super::IsDataValid(Context);
+	const FText ValidationSummary = GetDataValidationSummary();
+	if (!ValidationSummary.IsEmpty())
+	{
+		Context.AddWarning(ValidationSummary);
+	}
+	return Result;
+}
+#endif

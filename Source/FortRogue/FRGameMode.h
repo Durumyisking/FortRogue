@@ -9,25 +9,24 @@
 #include "TimerManager.h"
 #include "FRGameMode.generated.h"
 
+class AFRBattleCamera;
 class AFRBattleCharacter;
 class AFRDestructibleTerrain;
 class AFRProjectile;
 class AActor;
-class ACameraActor;
 class UFRCharacterDefinition;
 class UFRDefaultLoadoutDefinition;
+class UFRRunSubsystem;
 class UFRStageRunDefinition;
 class UFRGameModeDataAsset;
 class UFRTerrainMapDefinition;
 struct FFRStageDifficultyData;
 
-enum class EFRCameraControlMode : uint8
-{
-	Auto,
-	Manual
-};
-
-
+/**
+ * 전투 스테이지의 연출과 턴 흐름을 담당합니다.
+ * 런 상태(스테이지 진행, 보상 기록, 시드 RNG)는 UFRRunSubsystem이,
+ * 카메라 동작은 AFRBattleCamera가 소유합니다.
+ */
 UCLASS()
 class FORTROGUE_API AFRGameMode : public AGameModeBase
 {
@@ -86,6 +85,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")
 	TArray<AFRBattleCharacter*> GetEnemyCharacters() const;
 
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Battle")
+	AFRBattleCamera* GetBattleCamera() const;
+
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Rewards")
 	TArray<FFRRewardChoice> GetRewardChoices() const;
 
@@ -127,6 +129,7 @@ private:
 	void SpawnMVPBattle();
 	void ClearBattleStage(bool bKeepPlayerCharacter);
 	void SelectNextEnemyDefinition();
+	UFRRunSubsystem* GetRunSubsystem() const;
 	UFRTerrainMapDefinition* GetStageTerrainMapDefinition() const;
 	UFRDefaultLoadoutDefinition* GetDefaultLoadoutDefinition() const;
 	const FFRStageDifficultyData& GetCurrentStageDifficulty() const;
@@ -146,20 +149,12 @@ private:
 	AFRBattleCharacter* GetActiveEnemyTurnCharacter() const;
 	bool AreAllEnemiesDefeated() const;
 	void SetStatus(const FString& NewStatus);
-	void UpdateBattleCamera(float DeltaSeconds);
 	void ResetShotCameraState();
 	void RequestAutoCameraFocus(AActor* FocusActor, const FVector& FocusLocation, float ZOffset);
-	float GetInitialCameraOrthoWidth() const;
-	FRotator GetBattleCameraRotation() const;
-	FVector GetDesiredCameraLocation() const;
-	FVector GetCameraFocusLocation() const;
-	FVector ClampCameraLocationToTerrainBounds(const FVector& DesiredLocation) const;
+	float RollWind();
 
 	UPROPERTY()
 	TObjectPtr<AFRBattleCharacter> PlayerCharacter;
-
-	UPROPERTY()
-	TObjectPtr<AFRBattleCharacter> EnemyCharacter;
 
 	UPROPERTY()
 	TArray<TObjectPtr<AFRBattleCharacter>> EnemyCharacters;
@@ -168,7 +163,7 @@ private:
 	TObjectPtr<AFRDestructibleTerrain> Terrain;
 
 	UPROPERTY()
-	TObjectPtr<ACameraActor> BattleCamera;
+	TObjectPtr<AFRBattleCamera> BattleCamera;
 
 	UPROPERTY()
 	TArray<FFRRewardChoice> RewardChoices;
@@ -178,12 +173,6 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UFRCharacterDefinition> CurrentEnemyDefinition;
-
-	UPROPERTY()
-	TArray<TObjectPtr<UFRCharacterDefinition>> EncounteredEnemyDefinitions;
-
-	UPROPERTY()
-	TArray<FGameplayTag> ChosenRewardTags;
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup", meta = (ToolTip = "전투 시작 시 스폰할 플레이어 캐릭터 액터 클래스입니다."))
 	TSubclassOf<AFRBattleCharacter> PlayerCharacterClass;
@@ -197,8 +186,8 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup", meta = (ToolTip = "StageRunDefinition에 맵이 없을 때 사용할 기본 지형 맵 데이터입니다."))
 	TObjectPtr<UFRTerrainMapDefinition> TerrainMapDefinition;
 
-	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup", meta = (ToolTip = "전투 카메라로 스폰할 CameraActor 클래스입니다."))
-	TSubclassOf<ACameraActor> CameraClass;
+	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup", meta = (ToolTip = "전투 카메라로 스폰할 카메라 액터 클래스입니다."))
+	TSubclassOf<AFRBattleCamera> CameraClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup", meta = (ToolTip = "플레이어에게 적용할 캐릭터 데이터입니다. 비워두면 캐릭터 클래스 기본값을 사용합니다."))
 	TObjectPtr<UFRCharacterDefinition> PlayerDefinition;
@@ -245,14 +234,6 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "FortRogue|Battle Setup", meta = (ToolTip = "각 스테이지에서 무작위로 뽑을 최대 바람 값입니다. 양수는 오른쪽 방향 바람입니다."))
 	float MaxWind = 180.0f;
 
-	int32 CurrentStage = 1;
-	EFRCameraControlMode CameraControlMode = EFRCameraControlMode::Auto;
-	TWeakObjectPtr<AActor> AutoCameraFocusActor;
-	FVector AutoCameraFocusLocation = FVector::ZeroVector;
-	FVector ManualCameraLocation = FVector::ZeroVector;
-	float AutoCameraFocusZOffset = 0.0f;
-	bool bManualCameraInputHeld = false;
-	bool bManualCameraInputRequiresRelease = false;
 	FTimerHandle ShotResolutionTimerHandle;
 	bool bBattleStarted = false;
 };

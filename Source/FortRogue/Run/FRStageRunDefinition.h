@@ -67,6 +67,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "FortRogue|Run")
 	FText GetDataValidationSummary() const;
 
+#if WITH_EDITOR
+	virtual EDataValidationResult IsDataValid(class FDataValidationContext& Context) const override;
+#endif
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Run", meta = (ClampMin = "1", ToolTip = "한 런에서 진행할 총 스테이지 수입니다. 1 이상이어야 합니다."))
 	int32 StageCount = 7;
 

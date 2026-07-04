@@ -5,9 +5,20 @@
 #include "AbilitySystem/FRAbilitySet.h"
 #include "Items/FRItemDefinition.h"
 #include "Perks/FRPerkDefinition.h"
+#include "Rewards/FRRewardGrant.h"
 #include "Run/FRDefaultLoadoutDefinition.h"
 #include "Run/FRStageRunDefinition.h"
 #include "Weapons/FRWeaponDefinition.h"
+
+namespace
+{
+FText BuildGrantEffectSummary(const UFRRewardGrant& Grant)
+{
+	TArray<FString> Parts;
+	Grant.AppendEffectSummary(Parts);
+	return Parts.Num() > 0 ? FText::FromString(FString::Join(Parts, TEXT(" | "))) : FText::GetEmpty();
+}
+}
 
 FText UFRRewardBlueprintLibrary::GetRewardEffectSummary(const FFRRewardChoice& RewardChoice)
 {
@@ -31,9 +42,9 @@ FText UFRRewardBlueprintLibrary::GetDefaultLoadoutDataValidationSummary(UFRDefau
 
 FText UFRRewardBlueprintLibrary::GetWeaponEffectSummary(UFRWeaponDefinition* WeaponDefinition)
 {
-	FFRRewardChoice RewardChoice;
-	RewardChoice.WeaponReward = WeaponDefinition;
-	return RewardChoice.GetEffectSummary();
+	UFRRewardGrant_Weapon* Grant = NewObject<UFRRewardGrant_Weapon>(GetTransientPackage());
+	Grant->WeaponDefinition = WeaponDefinition;
+	return BuildGrantEffectSummary(*Grant);
 }
 
 FText UFRRewardBlueprintLibrary::GetWeaponDataValidationSummary(UFRWeaponDefinition* WeaponDefinition)
@@ -43,9 +54,9 @@ FText UFRRewardBlueprintLibrary::GetWeaponDataValidationSummary(UFRWeaponDefinit
 
 FText UFRRewardBlueprintLibrary::GetItemEffectSummary(UFRItemDefinition* ItemDefinition)
 {
-	FFRRewardChoice RewardChoice;
-	RewardChoice.ItemReward = ItemDefinition;
-	return RewardChoice.GetEffectSummary();
+	UFRRewardGrant_Item* Grant = NewObject<UFRRewardGrant_Item>(GetTransientPackage());
+	Grant->ItemDefinition = ItemDefinition;
+	return BuildGrantEffectSummary(*Grant);
 }
 
 FText UFRRewardBlueprintLibrary::GetItemDataValidationSummary(UFRItemDefinition* ItemDefinition)
@@ -55,9 +66,9 @@ FText UFRRewardBlueprintLibrary::GetItemDataValidationSummary(UFRItemDefinition*
 
 FText UFRRewardBlueprintLibrary::GetPerkEffectSummary(UFRPerkDefinition* PerkDefinition)
 {
-	FFRRewardChoice RewardChoice;
-	RewardChoice.PerkReward = PerkDefinition;
-	return RewardChoice.GetEffectSummary();
+	UFRRewardGrant_Perk* Grant = NewObject<UFRRewardGrant_Perk>(GetTransientPackage());
+	Grant->PerkDefinition = PerkDefinition;
+	return BuildGrantEffectSummary(*Grant);
 }
 
 FText UFRRewardBlueprintLibrary::GetPerkDataValidationSummary(UFRPerkDefinition* PerkDefinition)

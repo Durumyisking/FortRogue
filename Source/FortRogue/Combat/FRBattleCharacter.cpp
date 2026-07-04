@@ -7,9 +7,14 @@
 #include "AbilitySystem/Attributes/FRCombatSet.h"
 #include "Combat/FRDestructibleTerrain.h"
 #include "Combat/FRProjectile.h"
+#include "Combat/FRShotAimSolver.h"
+#include "Combat/FRTerrainMovementComponent.h"
 #include "FRGameMode.h"
 #include "FRGameplayTags.h"
+#include "Game/FRGameFlowSettings.h"
+#include "Game/FRRunSubsystem.h"
 #include "Items/FRItemDefinition.h"
+#include "Items/FRItemEffect.h"
 #include "Perks/FRPerkDefinition.h"
 #include "Rewards/FRRewardBlueprintLibrary.h"
 #include "Run/FRDefaultLoadoutDefinition.h"
@@ -17,8 +22,8 @@
 #include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/WidgetComponent.h"
+#include "Engine/GameInstance.h"
 #include "Engine/StaticMesh.h"
-#include "EngineUtils.h"
 #include "PaperFlipbook.h"
 #include "PaperFlipbookComponent.h"
 #include "UI/FRBattleCharacterAimIndicatorWidget.h"
@@ -28,9 +33,6 @@
 
 namespace
 {
-constexpr float DefaultMaxCharacterSlopeDegrees = 45.0f;
-constexpr float MaxUsableSlopeDegrees = 89.0f;
-
 bool DoesShotModifierMatchTag(const FFRShotModifierSpec& Modifier, FGameplayTag ModifierTag)
 {
 	return (Modifier.ModifierTag.IsValid() && Modifier.ModifierTag.MatchesTagExact(ModifierTag))
@@ -42,29 +44,49 @@ bool DoesAbilitySetMatchTag(const UFRAbilitySet* AbilitySet, FGameplayTag Abilit
 	return AbilitySet && AbilitySetTag.IsValid() && AbilitySet->AbilitySetTag.MatchesTagExact(AbilitySetTag);
 }
 
-float GetTrajectorySegmentAlphaXZ(const FVector& StartLocation, const FVector& EndLocation, const FVector& TestLocation)
+// 태그 하나가 값 읽기와 델타 적용 동작 한 쌍에 대응합니다. 새 어트리뷰트는 여기 한 줄만 추가하면 됩니다.
+struct FFRCombatAttributeHandlers
 {
-	const FVector2D Segment(EndLocation.X - StartLocation.X, EndLocation.Z - StartLocation.Z);
-	const FVector2D ToTest(TestLocation.X - StartLocation.X, TestLocation.Z - StartLocation.Z);
-	const float SegmentLengthSq = Segment.SizeSquared();
-	if (SegmentLengthSq <= KINDA_SMALL_NUMBER)
+	float (*GetValue)(const UFRCombatSet&) = nullptr;
+	void (*ApplyDelta)(UFRCombatSet&, float) = nullptr;
+};
+
+const TMap<FGameplayTag, FFRCombatAttributeHandlers>& GetCombatAttributeHandlers()
+{
+	static const TMap<FGameplayTag, FFRCombatAttributeHandlers> Handlers = []()
 	{
-		return 0.0f;
-	}
-
-	return FMath::Clamp(FVector2D::DotProduct(ToTest, Segment) / SegmentLengthSq, 0.0f, 1.0f);
+		TMap<FGameplayTag, FFRCombatAttributeHandlers> Map;
+		Map.Add(FRGameplayTags::Attribute_Health, {
+			[](const UFRCombatSet& Set) { return Set.GetHealth(); },
+			nullptr }); // Health 델타는 회복/피해 연출이 달라 캐릭터에서 직접 처리합니다.
+		Map.Add(FRGameplayTags::Attribute_MaxHealth, {
+			[](const UFRCombatSet& Set) { return Set.GetMaxHealth(); },
+			[](UFRCombatSet& Set, float Delta) { Set.AddMaxHealth(Delta); } });
+		Map.Add(FRGameplayTags::Attribute_MoveBudget, {
+			[](const UFRCombatSet& Set) { return Set.GetMoveBudget(); },
+			[](UFRCombatSet& Set, float Delta) { Set.SetMoveBudget(FMath::Clamp(Set.GetMoveBudget() + Delta, 0.0f, Set.GetMaxMoveBudget())); } });
+		Map.Add(FRGameplayTags::Attribute_MaxMoveBudget, {
+			[](const UFRCombatSet& Set) { return Set.GetMaxMoveBudget(); },
+			[](UFRCombatSet& Set, float Delta) { Set.AddMaxMoveBudget(Delta); } });
+		Map.Add(FRGameplayTags::Attribute_Damage, {
+			[](const UFRCombatSet& Set) { return Set.GetDamage(); },
+			[](UFRCombatSet& Set, float Delta) { Set.AddDamage(Delta); } });
+		Map.Add(FRGameplayTags::Attribute_ShotPowerMultiplier, {
+			[](const UFRCombatSet& Set) { return Set.GetShotPowerMultiplier(); },
+			[](UFRCombatSet& Set, float Delta) { Set.AddShotPowerMultiplier(Delta); } });
+		Map.Add(FRGameplayTags::Attribute_ProjectileCount, {
+			[](const UFRCombatSet& Set) { return Set.GetProjectileCount(); },
+			[](UFRCombatSet& Set, float Delta) { Set.AddProjectileCount(Delta); } });
+		Map.Add(FRGameplayTags::Attribute_MinAimAngle, {
+			[](const UFRCombatSet& Set) { return FMath::Min(Set.GetMinAimAngle(), Set.GetMaxAimAngle()); },
+			[](UFRCombatSet& Set, float Delta) { Set.AddMinAimAngle(Delta); } });
+		Map.Add(FRGameplayTags::Attribute_MaxAimAngle, {
+			[](const UFRCombatSet& Set) { return FMath::Max(Set.GetMinAimAngle(), Set.GetMaxAimAngle()); },
+			[](UFRCombatSet& Set, float Delta) { Set.AddMaxAimAngle(Delta); } });
+		return Map;
+	}();
+	return Handlers;
 }
-
-FVector GetClosestPointOnTrajectorySegmentXZ(const FVector& StartLocation, const FVector& EndLocation, const FVector& TestLocation)
-{
-	return FMath::Lerp(StartLocation, EndLocation, GetTrajectorySegmentAlphaXZ(StartLocation, EndLocation, TestLocation));
-}
-
-float GetTrajectoryDistanceSquaredXZ(const FVector& First, const FVector& Second)
-{
-	return FVector2D(First.X - Second.X, First.Z - Second.Z).SizeSquared();
-}
-
 }
 
 AFRBattleCharacter::AFRBattleCharacter()
@@ -110,6 +132,12 @@ AFRBattleCharacter::AFRBattleCharacter()
 	Muzzle->SetupAttachment(BodyFrame);
 	Muzzle->SetRelativeScale3D(FVector::OneVector);
 
+	TerrainMovement = CreateDefaultSubobject<UFRTerrainMovementComponent>(TEXT("TerrainMovement"));
+	TerrainMovement->OnSurfacePitchChanged.BindUObject(this, &AFRBattleCharacter::HandleSurfacePitchChanged);
+	TerrainMovement->OnSupportLost.BindUObject(this, &AFRBattleCharacter::HandleSupportLost);
+	TerrainMovement->OnFellToDeath.BindUObject(this, &AFRBattleCharacter::HandleFellToDeath);
+	TerrainMovement->CanApplyGravity.BindWeakLambda(this, [this]() { return !IsDefeated(); });
+
 	AngleIndicatorWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("AngleIndicatorWidget"));
 	AngleIndicatorWidget->SetupAttachment(BodyFrame);
 	AngleIndicatorWidget->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -150,21 +178,25 @@ void AFRBattleCharacter::BeginPlay()
 	EnsureDefaultLoadout();
 	GrantStartupAbilitySets();
 	UpdateCharacterRotation(GetActorPitchDegrees());
-	SnapToTerrain();
+	TerrainMovement->SnapToTerrain();
 	InitializeCharacterWidgets();
 }
-
 
 void AFRBattleCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	ApplyTerrainGravity(DeltaSeconds);
+	TerrainMovement->TickGravity(DeltaSeconds);
 }
 
 UAbilitySystemComponent* AFRBattleCharacter::GetAbilitySystemComponent() const
 {
 	return AbilitySystemComponent;
+}
+
+UFRTerrainMovementComponent* AFRBattleCharacter::GetTerrainMovement() const
+{
+	return TerrainMovement;
 }
 
 void AFRBattleCharacter::InitializeFromDefinition(UFRCharacterDefinition* InCharacterDefinition)
@@ -198,19 +230,30 @@ void AFRBattleCharacter::InitializeFromDefinition(UFRCharacterDefinition* InChar
 	AimAngle = FMath::Clamp(AimAngle, GetMinAimAngle(), GetMaxAimAngle());
 	UpdateAimDrivenComponents();
 
-	GrantedShotModifiers.Reset();
+	GrantedShotModifierEntries.Reset();
 	PendingShotModifiers.Reset();
+	AcquiredPerkEntries.Reset();
 	WeaponLoadout.Reset();
-	bHasSpecialAttackSlot = InCharacterDefinition->SpecialAttackDefinition != nullptr;
+	BasicAttackIndex = INDEX_NONE;
+	SpecialAttackIndex = INDEX_NONE;
 	bSpecialAttackEnabled = InCharacterDefinition->bCanUseSpecialAttack;
-	if (InCharacterDefinition->BasicAttackDefinition)
+	auto AddAttackDefinition = [this](UFRWeaponDefinition* WeaponDefinition) -> int32
 	{
-		AddWeaponDefinition(InCharacterDefinition->BasicAttackDefinition);
-	}
-	if (InCharacterDefinition->SpecialAttackDefinition)
-	{
-		AddWeaponDefinition(InCharacterDefinition->SpecialAttackDefinition);
-	}
+		if (!WeaponDefinition)
+		{
+			return INDEX_NONE;
+		}
+
+		const int32 PreviousCount = WeaponLoadout.Num();
+		AddWeaponDefinition(WeaponDefinition);
+		if (WeaponLoadout.Num() > PreviousCount)
+		{
+			return PreviousCount;
+		}
+		return GetWeaponIndexByTag(WeaponDefinition->Weapon.WeaponTag);
+	};
+	BasicAttackIndex = AddAttackDefinition(InCharacterDefinition->BasicAttackDefinition);
+	SpecialAttackIndex = AddAttackDefinition(InCharacterDefinition->SpecialAttackDefinition);
 	for (UFRWeaponDefinition* WeaponDefinition : InCharacterDefinition->WeaponLoadout)
 	{
 		if (WeaponDefinition != InCharacterDefinition->BasicAttackDefinition && WeaponDefinition != InCharacterDefinition->SpecialAttackDefinition)
@@ -218,7 +261,7 @@ void AFRBattleCharacter::InitializeFromDefinition(UFRCharacterDefinition* InChar
 			AddWeaponDefinition(WeaponDefinition);
 		}
 	}
-	SelectedWeaponIndex = 0;
+	SelectedWeaponIndex = BasicAttackIndex != INDEX_NONE ? BasicAttackIndex : 0;
 
 	ItemLoadout = InCharacterDefinition->ItemLoadout;
 	for (FFRItemStack& ItemStack : ItemLoadout)
@@ -263,7 +306,7 @@ void AFRBattleCharacter::MoveHorizontal(float Axis, float DeltaSeconds)
 
 	SetFacingFromAxis(Axis);
 
-	const float RequestedDelta = Axis * MoveSpeed * DeltaSeconds;
+	const float RequestedDelta = Axis * TerrainMovement->MoveSpeed * DeltaSeconds;
 	const float Budget = CombatSet->GetMoveBudget();
 	const float AppliedDelta = FMath::Clamp(RequestedDelta, -Budget, Budget);
 	if (FMath::IsNearlyZero(AppliedDelta))
@@ -271,79 +314,12 @@ void AFRBattleCharacter::MoveHorizontal(float Axis, float DeltaSeconds)
 		return;
 	}
 
-	FVector NewLocation = GetActorLocation();
-	float ActualDelta = 0.0f;
-	bool bLostSupport = false;
-
-	if (AFRDestructibleTerrain* Terrain = FindTerrain())
-	{
-		const float StepLength = FMath::Max(1.0f, Terrain->CellSize * 0.5f);
-		const int32 StepCount = FMath::Max(1, FMath::CeilToInt(FMath::Abs(AppliedDelta) / StepLength));
-		const float StepDelta = AppliedDelta / static_cast<float>(StepCount);
-
-		for (int32 Step = 0; Step < StepCount; ++Step)
-		{
-			FVector StepLocation = NewLocation;
-			StepLocation.X += StepDelta;
-			StepLocation.X = ClampWorldXToTerrainBounds(*Terrain, StepLocation.X);
-			const float ClampedStepDelta = StepLocation.X - NewLocation.X;
-			if (FMath::IsNearlyZero(ClampedStepDelta))
-			{
-				break;
-			}
-
-			const float CurrentFootZ = NewLocation.Z - FootOffsetZ;
-			float SurfaceZ = 0.0f;
-			if (FindFootprintSurfaceZ(*Terrain, StepLocation.X, CurrentFootZ + MaxStepUp, MaxStepUp + MaxStepDown, SurfaceZ))
-			{
-				if (!IsSlopeTraversable(CurrentFootZ, SurfaceZ, ClampedStepDelta, Terrain->CellSize))
-				{
-					break;
-				}
-
-				StepLocation.Z = SurfaceZ + FootOffsetZ;
-				if (!TryResolveFootprintBlock(*Terrain, StepLocation, SurfaceZ))
-				{
-					break;
-				}
-				VerticalVelocity = 0.0f;
-			}
-			else if (IsFootprintBlocked(*Terrain, StepLocation, CurrentFootZ))
-			{
-				break;
-			}
-			else
-			{
-				NewLocation = StepLocation;
-				ActualDelta += ClampedStepDelta;
-				bLostSupport = true;
-				break;
-			}
-
-			NewLocation = StepLocation;
-			ActualDelta += ClampedStepDelta;
-		}
-	}
-	else
-	{
-		NewLocation.X += AppliedDelta;
-		ActualDelta = AppliedDelta;
-	}
-
+	const float ActualDelta = TerrainMovement->MoveHorizontal(AppliedDelta);
 	if (FMath::IsNearlyZero(ActualDelta))
 	{
 		return;
 	}
 
-	SetActorLocation(NewLocation);
-	if (bLostSupport)
-	{
-		ReevaluateTerrainSupport();
-	}
-	else
-	{
-		UpdateBodyTerrainAlignment(FindTerrain());
-	}
 	CombatSet->SetMoveBudget(Budget - FMath::Abs(ActualDelta));
 }
 
@@ -418,7 +394,7 @@ void AFRBattleCharacter::SelectWeapon(int32 WeaponIndex)
 
 void AFRBattleCharacter::SelectBasicAttack()
 {
-	SelectWeapon(0);
+	SelectWeapon(BasicAttackIndex != INDEX_NONE ? BasicAttackIndex : 0);
 }
 
 bool AFRBattleCharacter::SelectSpecialAttack()
@@ -428,7 +404,7 @@ bool AFRBattleCharacter::SelectSpecialAttack()
 		return false;
 	}
 
-	SelectedWeaponIndex = 1;
+	SelectedWeaponIndex = SpecialAttackIndex;
 	return true;
 }
 
@@ -447,7 +423,7 @@ bool AFRBattleCharacter::SelectWeaponByTag(FGameplayTag WeaponTag)
 bool AFRBattleCharacter::CanSelectWeapon(int32 WeaponIndex) const
 {
 	return WeaponLoadout.IsValidIndex(WeaponIndex)
-		&& (!bHasSpecialAttackSlot || WeaponIndex != 1 || bSpecialAttackEnabled);
+		&& (WeaponIndex != SpecialAttackIndex || bSpecialAttackEnabled);
 }
 
 bool AFRBattleCharacter::CanSelectWeaponByTag(FGameplayTag WeaponTag) const
@@ -457,7 +433,7 @@ bool AFRBattleCharacter::CanSelectWeaponByTag(FGameplayTag WeaponTag) const
 
 bool AFRBattleCharacter::CanSelectSpecialAttack() const
 {
-	return bHasSpecialAttackSlot && bSpecialAttackEnabled && WeaponLoadout.IsValidIndex(1);
+	return SpecialAttackIndex != INDEX_NONE && bSpecialAttackEnabled && WeaponLoadout.IsValidIndex(SpecialAttackIndex);
 }
 
 int32 AFRBattleCharacter::GetWeaponIndexByTag(FGameplayTag WeaponTag) const
@@ -476,6 +452,16 @@ int32 AFRBattleCharacter::GetWeaponIndexByTag(FGameplayTag WeaponTag) const
 	}
 
 	return INDEX_NONE;
+}
+
+int32 AFRBattleCharacter::GetBasicAttackIndex() const
+{
+	return BasicAttackIndex;
+}
+
+int32 AFRBattleCharacter::GetSpecialAttackIndex() const
+{
+	return SpecialAttackIndex;
 }
 
 int32 AFRBattleCharacter::FireSelectedWeapon()
@@ -536,8 +522,15 @@ void AFRBattleCharacter::FireAtTarget(AFRBattleCharacter* Target, const FFRStage
 	const float TerrainPitchDegrees = GetActorPitchDegrees();
 	bFacingRight = ToTarget.X >= 0.0f;
 	UpdateCharacterRotation(TerrainPitchDegrees);
-	const float AimError = DifficultyData.AimAngleErrorDegrees > 0.0f ? FMath::RandRange(-DifficultyData.AimAngleErrorDegrees, DifficultyData.AimAngleErrorDegrees) : 0.0f;
-	const float PowerError = DifficultyData.ShotPowerError > 0.0f ? FMath::RandRange(-DifficultyData.ShotPowerError, DifficultyData.ShotPowerError) : 0.0f;
+
+	UFRRunSubsystem* RunSubsystem = GetGameInstance() ? GetGameInstance()->GetSubsystem<UFRRunSubsystem>() : nullptr;
+	auto RandInRange = [RunSubsystem](float Min, float Max)
+	{
+		return RunSubsystem ? RunSubsystem->RandRange(Min, Max) : FMath::RandRange(Min, Max);
+	};
+
+	const float AimError = DifficultyData.AimAngleErrorDegrees > 0.0f ? RandInRange(-DifficultyData.AimAngleErrorDegrees, DifficultyData.AimAngleErrorDegrees) : 0.0f;
+	const float PowerError = DifficultyData.ShotPowerError > 0.0f ? RandInRange(-DifficultyData.ShotPowerError, DifficultyData.ShotPowerError) : 0.0f;
 	const float CharacterMinAim = GetMinAimAngle();
 	const float CharacterMaxAim = GetMaxAimAngle();
 	const float DifficultyMinAim = FMath::Min(DifficultyData.MinAimAngleDegrees, DifficultyData.MaxAimAngleDegrees);
@@ -548,64 +541,31 @@ void AFRBattleCharacter::FireAtTarget(AFRBattleCharacter* Target, const FFRStage
 	const float MaxPower = FMath::Max(DifficultyData.MinShotPower, DifficultyData.MaxShotPower);
 
 	const FFRWeaponSpec& Weapon = GetCurrentWeapon();
-	const AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
-	const float Wind = GameMode ? GameMode->GetWind() : 0.0f;
-	const FVector TargetLocation = Target->GetActorLocation();
+
+	FFRShotAimSolverParams SolverParams;
+	SolverParams.TargetLocation = Target->GetActorLocation();
+	SolverParams.Wind = GetWorldWind();
+	SolverParams.bFacingRight = bFacingRight;
+	SolverParams.MinAimAngle = MinAim;
+	SolverParams.MaxAimAngle = MaxAim;
+	SolverParams.MinShotPower = MinPower;
+	SolverParams.MaxShotPower = MaxPower;
+	SolverParams.BuildShotSpec = [this, &Weapon](float CandidateAim, float CandidatePower)
+	{
+		return BuildShotSpecForAim(Weapon, CandidateAim, CandidatePower);
+	};
+	SolverParams.GetLaunchDirection = [this](float CandidateAim)
+	{
+		return GetLaunchDirectionForAim(CandidateAim);
+	};
+	SolverParams.GetSpawnLocation = [this](const FVector& LaunchDirection)
+	{
+		return GetProjectileSpawnLocation(LaunchDirection);
+	};
+
 	float BestAimAngle = AimAngle;
 	float BestShotPower = ShotPower;
-	float BestScore = MAX_flt;
-	constexpr int32 AimSamples = 24;
-	constexpr int32 PowerSamples = 24;
-	constexpr int32 SimulationSteps = 150;
-	constexpr float SimulationDeltaSeconds = 1.0f / 30.0f;
-
-	for (int32 AimSampleIndex = 0; AimSampleIndex <= AimSamples; ++AimSampleIndex)
-	{
-		const float AimAlpha = static_cast<float>(AimSampleIndex) / static_cast<float>(AimSamples);
-		const float CandidateAimAngle = FMath::Lerp(MinAim, MaxAim, AimAlpha);
-		for (int32 PowerSampleIndex = 0; PowerSampleIndex <= PowerSamples; ++PowerSampleIndex)
-		{
-			const float PowerAlpha = static_cast<float>(PowerSampleIndex) / static_cast<float>(PowerSamples);
-			const float CandidateShotPower = FMath::Lerp(MinPower, MaxPower, PowerAlpha);
-			AimAngle = CandidateAimAngle;
-			ShotPower = CandidateShotPower;
-
-			const FFRShotSpec CandidateShotSpec = BuildShotSpec(Weapon);
-			if (CandidateShotSpec.LaunchSpeed <= KINDA_SMALL_NUMBER)
-			{
-				continue;
-			}
-
-			const FVector LaunchDirection = GetProjectileLaunchDirection(0.0f);
-			FVector SimulatedLocation = GetProjectileSpawnLocation(LaunchDirection);
-			FVector SimulatedVelocity = LaunchDirection * CandidateShotSpec.LaunchSpeed;
-			float CandidateScore = GetTrajectoryDistanceSquaredXZ(SimulatedLocation, TargetLocation);
-			for (int32 StepIndex = 0; StepIndex < SimulationSteps; ++StepIndex)
-			{
-				const FVector PreviousLocation = SimulatedLocation;
-				SimulatedVelocity += FVector(Wind, 0.0f, -CandidateShotSpec.Gravity) * SimulationDeltaSeconds;
-				SimulatedLocation += SimulatedVelocity * SimulationDeltaSeconds;
-				const FVector ClosestPoint = GetClosestPointOnTrajectorySegmentXZ(PreviousLocation, SimulatedLocation, TargetLocation);
-				CandidateScore = FMath::Min(CandidateScore, GetTrajectoryDistanceSquaredXZ(ClosestPoint, TargetLocation));
-
-				const float HorizontalOvershoot = bFacingRight ? SimulatedLocation.X - TargetLocation.X : TargetLocation.X - SimulatedLocation.X;
-				const bool bMovingPastTarget = bFacingRight ? SimulatedVelocity.X > 0.0f : SimulatedVelocity.X < 0.0f;
-				if ((SimulatedLocation.Z < TargetLocation.Z - 2000.0f && SimulatedVelocity.Z < 0.0f) || (HorizontalOvershoot > 1400.0f && bMovingPastTarget))
-				{
-					break;
-				}
-			}
-
-			if (CandidateScore < BestScore)
-			{
-				BestScore = CandidateScore;
-				BestAimAngle = CandidateAimAngle;
-				BestShotPower = CandidateShotPower;
-			}
-		}
-	}
-
-	if (BestScore < MAX_flt)
+	if (FRShotAimSolver::SolveBallisticAim(SolverParams, BestAimAngle, BestShotPower))
 	{
 		AimAngle = FMath::Clamp(BestAimAngle + AimError, MinAim, MaxAim);
 		ShotPower = FMath::Clamp(BestShotPower + PowerError, MinPower, MaxPower);
@@ -630,6 +590,17 @@ void AFRBattleCharacter::ApplyDamage(float DamageAmount)
 		SpawnFloatingDamageText(AppliedDamage);
 	}
 	RefreshCharacterWidgets();
+}
+
+void AFRBattleCharacter::ApplyHeal(float HealAmount)
+{
+	CombatSet->Heal(HealAmount);
+	RefreshCharacterWidgets();
+}
+
+void AFRBattleCharacter::ApplyPendingAttackMultiplier(float Multiplier)
+{
+	PendingAttackMultiplier = FMath::Max(PendingAttackMultiplier, Multiplier);
 }
 
 bool AFRBattleCharacter::FindHurtboxImpactAlongSegmentXZ(const FVector& StartLocation, const FVector& EndLocation, FVector& OutImpactLocation) const
@@ -672,30 +643,7 @@ float AFRBattleCharacter::GetDistanceToHurtboxXZ(const FVector& WorldLocation) c
 
 void AFRBattleCharacter::ReevaluateTerrainSupport()
 {
-	AFRDestructibleTerrain* Terrain = FindTerrain();
-	if (!Terrain)
-	{
-		return;
-	}
-
-	const FVector CurrentLocation = GetActorLocation();
-	const float ClampedWorldX = ClampWorldXToTerrainBounds(*Terrain, CurrentLocation.X);
-	const float CurrentFootZ = CurrentLocation.Z - FootOffsetZ;
-	float SurfaceZ = 0.0f;
-	if (FindFootprintSurfaceZ(*Terrain, ClampedWorldX, CurrentFootZ + GroundSnapDistance, GroundSnapDistance + MaxStepDown, SurfaceZ))
-	{
-		SetActorLocation(FVector(ClampedWorldX, CurrentLocation.Y, SurfaceZ + FootOffsetZ));
-		VerticalVelocity = 0.0f;
-		UpdateBodyTerrainAlignment(Terrain);
-		return;
-	}
-
-	if (!FMath::IsNearlyEqual(ClampedWorldX, static_cast<float>(CurrentLocation.X)))
-	{
-		SetActorLocation(FVector(ClampedWorldX, CurrentLocation.Y, CurrentLocation.Z));
-	}
-	bChargingShot = false;
-	ApplyTerrainGravity(1.0f / 60.0f);
+	TerrainMovement->ReevaluateSupport();
 }
 
 void AFRBattleCharacter::ApplyImpactKnockback(float HorizontalDistance, FVector ImpactLocation, FVector ImpactVelocity)
@@ -705,28 +653,12 @@ void AFRBattleCharacter::ApplyImpactKnockback(float HorizontalDistance, FVector 
 		return;
 	}
 
-	FVector NewLocation = GetActorLocation();
-	float Direction = FMath::Sign(NewLocation.X - ImpactLocation.X);
-	if (FMath::IsNearlyZero(Direction))
-	{
-		Direction = ImpactVelocity.X >= 0.0f ? 1.0f : -1.0f;
-	}
-	NewLocation.X += Direction * HorizontalDistance;
-	if (AFRDestructibleTerrain* Terrain = FindTerrain())
-	{
-		NewLocation.X = ClampWorldXToTerrainBounds(*Terrain, NewLocation.X);
-	}
-	SetActorLocation(NewLocation);
-	ReevaluateTerrainSupport();
+	TerrainMovement->ApplyKnockback(HorizontalDistance, ImpactLocation, ImpactVelocity);
 }
 
 void AFRBattleCharacter::SetTerrain(AFRDestructibleTerrain* InTerrain)
 {
-	AssignedTerrain = InTerrain;
-	if (HasActorBegunPlay())
-	{
-		SnapToTerrain();
-	}
+	TerrainMovement->SetTerrain(InTerrain);
 }
 
 bool AFRBattleCharacter::UseItemByType(EFRItemType ItemType)
@@ -860,13 +792,12 @@ bool AFRBattleCharacter::UseItemStack(FFRItemStack& ItemStack)
 	}
 
 	--ItemStack.Charges;
-	if (ItemDefinition->ItemType == EFRItemType::Heal)
+	for (const UFRItemEffect* UseEffect : ItemDefinition->UseEffects)
 	{
-		CombatSet->Heal(ItemDefinition->HealAmount);
-	}
-	else if (ItemDefinition->ItemType == EFRItemType::AttackMultiplier)
-	{
-		PendingAttackMultiplier = FMath::Max(PendingAttackMultiplier, ItemDefinition->AttackMultiplier);
+		if (UseEffect)
+		{
+			UseEffect->ApplyToCharacter(*this);
+		}
 	}
 	GrantAbilitySet(ItemDefinition->UseAbilitySet);
 	PendingShotModifiers.Append(ItemDefinition->UseShotModifiers);
@@ -910,9 +841,118 @@ void AFRBattleCharacter::ApplyPerkDefinition(UFRPerkDefinition* PerkDefinition)
 	ApplyRewardMoveBudget(PerkDefinition->MaxMoveBudgetBonus);
 	ApplyRewardProjectiles(PerkDefinition->ProjectileBonus);
 	ApplyRewardShotPowerMultiplier(PerkDefinition->ShotPowerMultiplierBonus);
-	GrantShotModifiers(PerkDefinition->ShotModifiers);
-
+	AppendGrantedShotModifiers(PerkDefinition->ShotModifiers, PerkDefinition);
 	GrantAbilitySet(PerkDefinition->GrantedAbilitySet);
+
+	FFRAcquiredPerkEntry& Entry = AcquiredPerkEntries.AddDefaulted_GetRef();
+	Entry.PerkDefinition = PerkDefinition;
+}
+
+bool AFRBattleCharacter::RemovePerkDefinition(UFRPerkDefinition* PerkDefinition)
+{
+	if (!PerkDefinition)
+	{
+		return false;
+	}
+
+	int32 EntryIndex = INDEX_NONE;
+	for (int32 Index = AcquiredPerkEntries.Num() - 1; Index >= 0; --Index)
+	{
+		if (AcquiredPerkEntries[Index].PerkDefinition == PerkDefinition)
+		{
+			EntryIndex = Index;
+			break;
+		}
+	}
+	if (EntryIndex == INDEX_NONE)
+	{
+		return false;
+	}
+
+	ApplyRewardDamage(-PerkDefinition->DamageBonus);
+	ApplyRewardHealth(-PerkDefinition->MaxHealthBonus);
+	ApplyRewardMoveBudget(-PerkDefinition->MaxMoveBudgetBonus);
+	ApplyRewardProjectiles(-PerkDefinition->ProjectileBonus);
+	ApplyRewardShotPowerMultiplier(-PerkDefinition->ShotPowerMultiplierBonus);
+	if (PerkDefinition->GrantedAbilitySet)
+	{
+		RemoveAbilitySet(PerkDefinition->GrantedAbilitySet);
+	}
+
+	int32 ModifiersToRemove = PerkDefinition->ShotModifiers.Num();
+	for (int32 Index = GrantedShotModifierEntries.Num() - 1; Index >= 0 && ModifiersToRemove > 0; --Index)
+	{
+		if (GrantedShotModifierEntries[Index].SourcePerk == PerkDefinition)
+		{
+			GrantedShotModifierEntries.RemoveAt(Index);
+			--ModifiersToRemove;
+		}
+	}
+
+	AcquiredPerkEntries.RemoveAt(EntryIndex);
+	RefreshCharacterWidgets();
+	return true;
+}
+
+TArray<UFRPerkDefinition*> AFRBattleCharacter::GetAcquiredPerksForBlueprint() const
+{
+	TArray<UFRPerkDefinition*> Perks;
+	for (const FFRAcquiredPerkEntry& Entry : AcquiredPerkEntries)
+	{
+		if (Entry.PerkDefinition)
+		{
+			Perks.Add(Entry.PerkDefinition);
+		}
+	}
+	return Perks;
+}
+
+int32 AFRBattleCharacter::GetPerkStackCount(const UFRPerkDefinition* PerkDefinition) const
+{
+	if (!PerkDefinition)
+	{
+		return 0;
+	}
+
+	int32 StackCount = 0;
+	for (const FFRAcquiredPerkEntry& Entry : AcquiredPerkEntries)
+	{
+		if (Entry.PerkDefinition == PerkDefinition)
+		{
+			++StackCount;
+		}
+	}
+	return StackCount;
+}
+
+bool AFRBattleCharacter::HasPerkByTag(FGameplayTag PerkTag) const
+{
+	if (!PerkTag.IsValid())
+	{
+		return false;
+	}
+
+	for (const FFRAcquiredPerkEntry& Entry : AcquiredPerkEntries)
+	{
+		if (Entry.PerkDefinition && Entry.PerkDefinition->PerkTag.MatchesTagExact(PerkTag))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+FText AFRBattleCharacter::GetAcquiredPerksSummary() const
+{
+	TArray<FString> Parts;
+	for (const FFRAcquiredPerkEntry& Entry : AcquiredPerkEntries)
+	{
+		if (Entry.PerkDefinition)
+		{
+			Parts.Add(Entry.PerkDefinition->DisplayName.ToString());
+		}
+	}
+	return Parts.Num() > 0 ? FText::FromString(FString::Join(Parts, TEXT(" | "))) : FText::GetEmpty();
 }
 
 void AFRBattleCharacter::GrantAbilitySet(UFRAbilitySet* AbilitySet)
@@ -1044,14 +1084,19 @@ FText AFRBattleCharacter::GetGrantedAbilitySetsSummary() const
 	return Parts.Num() > 0 ? FText::FromString(FString::Join(Parts, TEXT(" | "))) : FText::GetEmpty();
 }
 
+void AFRBattleCharacter::AppendGrantedShotModifiers(const TArray<FFRShotModifierSpec>& ShotModifiers, UFRPerkDefinition* SourcePerk)
+{
+	for (const FFRShotModifierSpec& Modifier : ShotModifiers)
+	{
+		FFRGrantedShotModifierEntry& Entry = GrantedShotModifierEntries.AddDefaulted_GetRef();
+		Entry.Spec = Modifier;
+		Entry.SourcePerk = SourcePerk;
+	}
+}
+
 void AFRBattleCharacter::GrantShotModifiers(const TArray<FFRShotModifierSpec>& ShotModifiers)
 {
-	if (ShotModifiers.Num() <= 0)
-	{
-		return;
-	}
-
-	GrantedShotModifiers.Append(ShotModifiers);
+	AppendGrantedShotModifiers(ShotModifiers, nullptr);
 }
 
 void AFRBattleCharacter::GrantPendingShotModifiers(const TArray<FFRShotModifierSpec>& ShotModifiers)
@@ -1072,15 +1117,14 @@ int32 AFRBattleCharacter::RemoveGrantedShotModifiersByTag(FGameplayTag ModifierT
 	}
 
 	int32 RemovedCount = 0;
-	for (int32 Index = GrantedShotModifiers.Num() - 1; Index >= 0; --Index)
+	for (int32 Index = GrantedShotModifierEntries.Num() - 1; Index >= 0; --Index)
 	{
-		const FFRShotModifierSpec& Modifier = GrantedShotModifiers[Index];
-		if (!DoesShotModifierMatchTag(Modifier, ModifierTag))
+		if (!DoesShotModifierMatchTag(GrantedShotModifierEntries[Index].Spec, ModifierTag))
 		{
 			continue;
 		}
 
-		GrantedShotModifiers.RemoveAt(Index);
+		GrantedShotModifierEntries.RemoveAt(Index);
 		++RemovedCount;
 	}
 
@@ -1123,7 +1167,7 @@ void AFRBattleCharacter::SetSpecialAttackEnabled(bool bEnabled)
 	bSpecialAttackEnabled = bEnabled;
 	if (!CanSelectWeapon(SelectedWeaponIndex))
 	{
-		SelectedWeaponIndex = 0;
+		SelectBasicAttack();
 	}
 }
 
@@ -1153,7 +1197,6 @@ bool AFRBattleCharacter::IsEnemy() const
 {
 	return bEnemy;
 }
-
 
 bool AFRBattleCharacter::IsActiveTurn() const
 {
@@ -1223,53 +1266,14 @@ bool AFRBattleCharacter::TryGetCombatAttributeValueByTag(FGameplayTag AttributeT
 		return false;
 	}
 
-	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_Health))
+	const FFRCombatAttributeHandlers* Handlers = GetCombatAttributeHandlers().Find(AttributeTag);
+	if (!Handlers || !Handlers->GetValue)
 	{
-		OutValue = GetHealth();
-		return true;
-	}
-	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_MaxHealth))
-	{
-		OutValue = GetMaxHealth();
-		return true;
-	}
-	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_MoveBudget))
-	{
-		OutValue = GetMoveBudget();
-		return true;
-	}
-	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_MaxMoveBudget))
-	{
-		OutValue = GetMaxMoveBudget();
-		return true;
-	}
-	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_Damage))
-	{
-		OutValue = GetDamageBonus();
-		return true;
-	}
-	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_ShotPowerMultiplier))
-	{
-		OutValue = GetShotPowerMultiplier();
-		return true;
-	}
-	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_ProjectileCount))
-	{
-		OutValue = GetProjectileCount();
-		return true;
-	}
-	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_MinAimAngle))
-	{
-		OutValue = GetMinAimAngle();
-		return true;
-	}
-	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_MaxAimAngle))
-	{
-		OutValue = GetMaxAimAngle();
-		return true;
+		return false;
 	}
 
-	return false;
+	OutValue = Handlers->GetValue(*CombatSet);
+	return true;
 }
 
 bool AFRBattleCharacter::TryApplyCombatAttributeDeltaByTag(FGameplayTag AttributeTag, float DeltaValue)
@@ -1279,11 +1283,12 @@ bool AFRBattleCharacter::TryApplyCombatAttributeDeltaByTag(FGameplayTag Attribut
 		return false;
 	}
 
+	// 체력 델타는 회복과 피해가 서로 다른 연출(플로팅 텍스트)을 타므로 별도 처리합니다.
 	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_Health))
 	{
 		if (DeltaValue >= 0.0f)
 		{
-			CombatSet->Heal(DeltaValue);
+			ApplyHeal(DeltaValue);
 		}
 		else
 		{
@@ -1291,52 +1296,21 @@ bool AFRBattleCharacter::TryApplyCombatAttributeDeltaByTag(FGameplayTag Attribut
 		}
 		return true;
 	}
-	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_MaxHealth))
+
+	const FFRCombatAttributeHandlers* Handlers = GetCombatAttributeHandlers().Find(AttributeTag);
+	if (!Handlers || !Handlers->ApplyDelta)
 	{
-		CombatSet->AddMaxHealth(DeltaValue);
-		return true;
-	}
-	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_MoveBudget))
-	{
-		CombatSet->SetMoveBudget(FMath::Clamp(GetMoveBudget() + DeltaValue, 0.0f, GetMaxMoveBudget()));
-		return true;
-	}
-	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_MaxMoveBudget))
-	{
-		CombatSet->AddMaxMoveBudget(DeltaValue);
-		return true;
-	}
-	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_Damage))
-	{
-		CombatSet->AddDamage(DeltaValue);
-		return true;
-	}
-	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_ShotPowerMultiplier))
-	{
-		CombatSet->AddShotPowerMultiplier(DeltaValue);
-		return true;
-	}
-	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_ProjectileCount))
-	{
-		CombatSet->AddProjectileCount(DeltaValue);
-		return true;
-	}
-	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_MinAimAngle))
-	{
-		CombatSet->AddMinAimAngle(DeltaValue);
-		AimAngle = FMath::Clamp(AimAngle, GetMinAimAngle(), GetMaxAimAngle());
-		UpdateAimDrivenComponents();
-		return true;
-	}
-	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_MaxAimAngle))
-	{
-		CombatSet->AddMaxAimAngle(DeltaValue);
-		AimAngle = FMath::Clamp(AimAngle, GetMinAimAngle(), GetMaxAimAngle());
-		UpdateAimDrivenComponents();
-		return true;
+		return false;
 	}
 
-	return false;
+	Handlers->ApplyDelta(*CombatSet, DeltaValue);
+
+	if (AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_MinAimAngle) || AttributeTag.MatchesTagExact(FRGameplayTags::Attribute_MaxAimAngle))
+	{
+		AimAngle = FMath::Clamp(AimAngle, GetMinAimAngle(), GetMaxAimAngle());
+		UpdateAimDrivenComponents();
+	}
+	return true;
 }
 
 FText AFRBattleCharacter::GetCombatStatsSummary() const
@@ -1422,7 +1396,13 @@ TArray<FFRItemStack> AFRBattleCharacter::GetItemLoadoutForBlueprint() const
 
 TArray<FFRShotModifierSpec> AFRBattleCharacter::GetGrantedShotModifiersForBlueprint() const
 {
-	return GrantedShotModifiers;
+	TArray<FFRShotModifierSpec> Modifiers;
+	Modifiers.Reserve(GrantedShotModifierEntries.Num());
+	for (const FFRGrantedShotModifierEntry& Entry : GrantedShotModifierEntries)
+	{
+		Modifiers.Add(Entry.Spec);
+	}
+	return Modifiers;
 }
 
 TArray<FFRShotModifierSpec> AFRBattleCharacter::GetPendingShotModifiersForBlueprint() const
@@ -1432,7 +1412,7 @@ TArray<FFRShotModifierSpec> AFRBattleCharacter::GetPendingShotModifiersForBluepr
 
 FText AFRBattleCharacter::GetGrantedShotModifiersSummary() const
 {
-	return UFRRewardBlueprintLibrary::GetShotModifierEffectSummary(GrantedShotModifiers);
+	return UFRRewardBlueprintLibrary::GetShotModifierEffectSummary(GetGrantedShotModifiersForBlueprint());
 }
 
 FText AFRBattleCharacter::GetPendingShotModifiersSummary() const
@@ -1448,9 +1428,9 @@ int32 AFRBattleCharacter::GetGrantedShotModifierCountByTag(FGameplayTag Modifier
 	}
 
 	int32 TotalCount = 0;
-	for (const FFRShotModifierSpec& Modifier : GrantedShotModifiers)
+	for (const FFRGrantedShotModifierEntry& Entry : GrantedShotModifierEntries)
 	{
-		if (DoesShotModifierMatchTag(Modifier, ModifierTag))
+		if (DoesShotModifierMatchTag(Entry.Spec, ModifierTag))
 		{
 			++TotalCount;
 		}
@@ -1535,18 +1515,20 @@ FText AFRBattleCharacter::GetCurrentShotSummary() const
 		ShotSpec.ProjectileCount));
 }
 
-bool AFRBattleCharacter::DoesShotModifierMeetCurrentShotConditions(const FFRShotModifierSpec& ShotModifier) const
+float AFRBattleCharacter::GetWorldWind() const
 {
 	const AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
-	const float Wind = GameMode ? GameMode->GetWind() : 0.0f;
-	return ShotModifier.MeetsShotConditions(GetCurrentShotSpec(), AimAngle, Wind, bFacingRight);
+	return GameMode ? GameMode->GetWind() : 0.0f;
+}
+
+bool AFRBattleCharacter::DoesShotModifierMeetCurrentShotConditions(const FFRShotModifierSpec& ShotModifier) const
+{
+	return ShotModifier.MeetsShotConditions(GetCurrentShotSpec(), AimAngle, GetWorldWind(), bFacingRight);
 }
 
 FText AFRBattleCharacter::GetShotModifierCurrentConditionFailureSummary(const FFRShotModifierSpec& ShotModifier) const
 {
-	const AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
-	const float Wind = GameMode ? GameMode->GetWind() : 0.0f;
-	return ShotModifier.GetShotConditionFailureSummary(GetCurrentShotSpec(), AimAngle, Wind, bFacingRight);
+	return ShotModifier.GetShotConditionFailureSummary(GetCurrentShotSpec(), AimAngle, GetWorldWind(), bFacingRight);
 }
 
 const TArray<FFRWeaponSpec>& AFRBattleCharacter::GetWeaponLoadout() const
@@ -1576,253 +1558,28 @@ FText AFRBattleCharacter::GetCharacterDisplayName() const
 
 AFRDestructibleTerrain* AFRBattleCharacter::FindTerrain() const
 {
-	if (AssignedTerrain)
-	{
-		return AssignedTerrain;
-	}
-
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return nullptr;
-	}
-
-	for (TActorIterator<AFRDestructibleTerrain> It(World); It; ++It)
-	{
-		return *It;
-	}
-
-	return nullptr;
+	return TerrainMovement->FindTerrain();
 }
 
 bool AFRBattleCharacter::IsSupportedByTerrain() const
 {
-	AFRDestructibleTerrain* Terrain = FindTerrain();
-	if (!Terrain)
-	{
-		return true;
-	}
-
-	const FVector CurrentLocation = GetActorLocation();
-	const float ClampedWorldX = ClampWorldXToTerrainBounds(*Terrain, CurrentLocation.X);
-	const float CurrentFootZ = CurrentLocation.Z - FootOffsetZ;
-	float SurfaceZ = 0.0f;
-	return FindFootprintSurfaceZ(*Terrain, ClampedWorldX, CurrentFootZ + GroundSnapDistance, GroundSnapDistance + 1.0f, SurfaceZ);
+	return TerrainMovement->IsSupportedByTerrain();
 }
 
-bool AFRBattleCharacter::FindFootprintSurfaceZ(const AFRDestructibleTerrain& Terrain, float CenterWorldX, float StartWorldZ, float SearchDistance, float& OutSurfaceZ) const
+void AFRBattleCharacter::HandleSurfacePitchChanged(float PitchDegrees)
 {
-	bool bFoundSurface = false;
-	float BestSurfaceZ = -TNumericLimits<float>::Max();
-	const float SampleOffsets[] = { -FootProbeHalfWidth, 0.0f, FootProbeHalfWidth };
-	for (const float SampleOffset : SampleOffsets)
-	{
-		float SampleSurfaceZ = 0.0f;
-		if (Terrain.FindSurfaceZAtWorldX(CenterWorldX + SampleOffset, StartWorldZ, SearchDistance, SampleSurfaceZ))
-		{
-			BestSurfaceZ = FMath::Max(BestSurfaceZ, SampleSurfaceZ);
-			bFoundSurface = true;
-		}
-	}
-
-	if (bFoundSurface)
-	{
-		OutSurfaceZ = BestSurfaceZ;
-	}
-
-	return bFoundSurface;
+	UpdateCharacterRotation(PitchDegrees);
 }
 
-bool AFRBattleCharacter::IsFootprintBlocked(const AFRDestructibleTerrain& Terrain, const FVector& CenterLocation, float FootWorldZ) const
+void AFRBattleCharacter::HandleSupportLost()
 {
-	const float SampleOffsets[] = { -FootProbeHalfWidth, 0.0f, FootProbeHalfWidth };
-	for (const float SampleOffset : SampleOffsets)
-	{
-		const FVector FootProbe(CenterLocation.X + SampleOffset, CenterLocation.Y, FootWorldZ + 1.0f);
-		const FVector BodyProbe(CenterLocation.X + SampleOffset, CenterLocation.Y, FootWorldZ + FootOffsetZ * 0.5f);
-		if (Terrain.IsSolidAtWorldLocation(FootProbe) || Terrain.IsSolidAtWorldLocation(BodyProbe))
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-bool AFRBattleCharacter::TryResolveFootprintBlock(const AFRDestructibleTerrain& Terrain, FVector& InOutCenterLocation, float& InOutFootWorldZ) const
-{
-	if (!IsFootprintBlocked(Terrain, InOutCenterLocation, InOutFootWorldZ))
-	{
-		return true;
-	}
-
-	const float LiftStep = FMath::Max(1.0f, Terrain.CellSize);
-	for (float Lift = LiftStep; Lift <= MaxStepUp + KINDA_SMALL_NUMBER; Lift += LiftStep)
-	{
-		const float CandidateFootWorldZ = InOutFootWorldZ + Lift;
-		FVector CandidateLocation = InOutCenterLocation;
-		CandidateLocation.Z = CandidateFootWorldZ + FootOffsetZ;
-		if (!IsFootprintBlocked(Terrain, CandidateLocation, CandidateFootWorldZ))
-		{
-			InOutCenterLocation = CandidateLocation;
-			InOutFootWorldZ = CandidateFootWorldZ;
-			return true;
-		}
-	}
-
-	return false;
-}
-
-bool AFRBattleCharacter::IsSlopeTraversable(float CurrentFootWorldZ, float NextSurfaceWorldZ, float HorizontalDistance, float TerrainCellSize) const
-{
-	if (NextSurfaceWorldZ <= CurrentFootWorldZ)
-	{
-		return true;
-	}
-
-	const float HorizontalSpan = FMath::Max(FMath::Abs(HorizontalDistance), FMath::Max(TerrainCellSize, 1.0f));
-	const float MaxVerticalDelta = FMath::Tan(FMath::DegreesToRadians(GetMaxCharacterSlopeDegrees())) * HorizontalSpan;
-	return NextSurfaceWorldZ - CurrentFootWorldZ <= MaxVerticalDelta + KINDA_SMALL_NUMBER;
-}
-
-float AFRBattleCharacter::GetMaxCharacterSlopeDegrees() const
-{
-	const AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
-	const float MaxSlopeDegrees = GameMode ? GameMode->GetMaxCharacterSlopeDegrees() : DefaultMaxCharacterSlopeDegrees;
-	return FMath::Clamp(MaxSlopeDegrees, 0.0f, MaxUsableSlopeDegrees);
-}
-
-float AFRBattleCharacter::ClampWorldXToTerrainBounds(const AFRDestructibleTerrain& Terrain, float WorldX) const
-{
-	const float HalfWidth = Terrain.Width * 0.5f;
-	const float EdgePadding = FMath::Clamp(FootProbeHalfWidth, 0.0f, HalfWidth);
-	const float MinX = Terrain.GetActorLocation().X - HalfWidth + EdgePadding;
-	const float MaxX = Terrain.GetActorLocation().X + HalfWidth - EdgePadding;
-	if (MinX > MaxX)
-	{
-		return Terrain.GetActorLocation().X;
-	}
-
-	return FMath::Clamp(WorldX, MinX, MaxX);
-}
-
-void AFRBattleCharacter::UpdateBodyTerrainAlignment(const AFRDestructibleTerrain* Terrain)
-{
-	if (!BodyFrame)
-	{
-		return;
-	}
-
-	if (!Terrain)
-	{
-		UpdateCharacterRotation(0.0f);
-		return;
-	}
-
-	const FVector CurrentLocation = GetActorLocation();
-	const float CurrentFootZ = CurrentLocation.Z - FootOffsetZ;
-	const float ProbeHalfWidth = FMath::Max(BodySlopeProbeHalfWidth, Terrain->CellSize);
-	float LeftSurfaceZ = 0.0f;
-	float RightSurfaceZ = 0.0f;
-	const bool bLeftSurface = Terrain->FindSurfaceZAtWorldX(CurrentLocation.X - ProbeHalfWidth, CurrentFootZ + GroundSnapDistance, GroundSnapDistance + MaxStepDown, LeftSurfaceZ);
-	const bool bRightSurface = Terrain->FindSurfaceZAtWorldX(CurrentLocation.X + ProbeHalfWidth, CurrentFootZ + GroundSnapDistance, GroundSnapDistance + MaxStepDown, RightSurfaceZ);
-	if (!bLeftSurface || !bRightSurface)
-	{
-		UpdateCharacterRotation(0.0f);
-		return;
-	}
-
-	const float SurfaceDeltaZ = RightSurfaceZ - LeftSurfaceZ;
-	const float AbsSurfaceDeltaZ = FMath::Abs(SurfaceDeltaZ);
-	if (AbsSurfaceDeltaZ <= BodySlopeVisualDeadZoneHeight)
-	{
-		UpdateCharacterRotation(0.0f);
-		return;
-	}
-
-	const float SlopeAngleDegrees = FMath::RadiansToDegrees(FMath::Atan2(SurfaceDeltaZ, ProbeHalfWidth * 2.0f));
-	const float MaxSlopeDegrees = GetMaxCharacterSlopeDegrees();
-	const float ClampedPitch = FMath::Clamp(SlopeAngleDegrees, -MaxSlopeDegrees, MaxSlopeDegrees);
-	UpdateCharacterRotation(ClampedPitch);
-}
-
-void AFRBattleCharacter::ApplyTerrainGravity(float DeltaSeconds)
-{
-	if (IsDefeated())
-	{
-		return;
-	}
-
-	AFRDestructibleTerrain* Terrain = FindTerrain();
-	if (!Terrain)
-	{
-		return;
-	}
-
-	const FVector CurrentLocation = GetActorLocation();
-	const float ClampedWorldX = ClampWorldXToTerrainBounds(*Terrain, CurrentLocation.X);
-	const float CurrentFootZ = CurrentLocation.Z - FootOffsetZ;
-	float SurfaceZ = 0.0f;
-	if (FindFootprintSurfaceZ(*Terrain, ClampedWorldX, CurrentFootZ + GroundSnapDistance, GroundSnapDistance + 1.0f, SurfaceZ))
-	{
-		SetActorLocation(FVector(ClampedWorldX, CurrentLocation.Y, SurfaceZ + FootOffsetZ));
-		VerticalVelocity = 0.0f;
-		UpdateBodyTerrainAlignment(Terrain);
-		return;
-	}
-
 	bChargingShot = false;
-	VerticalVelocity = FMath::Max(VerticalVelocity - GravityAcceleration * DeltaSeconds, -MaxFallSpeed);
-	const float FallDistance = FMath::Abs(VerticalVelocity * DeltaSeconds);
-	if (FindFootprintSurfaceZ(*Terrain, ClampedWorldX, CurrentFootZ, FallDistance + GroundSnapDistance, SurfaceZ))
-	{
-		SetActorLocation(FVector(ClampedWorldX, CurrentLocation.Y, SurfaceZ + FootOffsetZ));
-		VerticalVelocity = 0.0f;
-		UpdateBodyTerrainAlignment(Terrain);
-		return;
-	}
-
-	SetActorLocation(FVector(ClampedWorldX, CurrentLocation.Y, CurrentLocation.Z + VerticalVelocity * DeltaSeconds));
-	UpdateBodyTerrainAlignment(nullptr);
-	CheckFallDeath();
 }
 
-bool AFRBattleCharacter::CheckFallDeath()
+void AFRBattleCharacter::HandleFellToDeath()
 {
-	AFRDestructibleTerrain* Terrain = FindTerrain();
-	if (!Terrain || IsDefeated())
-	{
-		return false;
-	}
-
-	if (GetActorLocation().Z >= Terrain->GetActorLocation().Z - FallDeathDepth)
-	{
-		return false;
-	}
-
 	bChargingShot = false;
-	VerticalVelocity = 0.0f;
 	ApplyDamage(GetMaxHealth());
-	return true;
-}
-
-void AFRBattleCharacter::SnapToTerrain()
-{
-	AFRDestructibleTerrain* Terrain = FindTerrain();
-	if (!Terrain)
-	{
-		return;
-	}
-
-	const FVector CurrentLocation = GetActorLocation();
-	const float ClampedWorldX = ClampWorldXToTerrainBounds(*Terrain, CurrentLocation.X);
-	float SurfaceZ = 0.0f;
-	if (FindFootprintSurfaceZ(*Terrain, ClampedWorldX, CurrentLocation.Z, 2000.0f, SurfaceZ))
-	{
-		SetActorLocation(FVector(ClampedWorldX, CurrentLocation.Y, SurfaceZ + FootOffsetZ));
-		VerticalVelocity = 0.0f;
-		UpdateBodyTerrainAlignment(Terrain);
-	}
 }
 
 void AFRBattleCharacter::SetFacingFromAxis(float Axis)
@@ -1849,6 +1606,7 @@ void AFRBattleCharacter::UpdateCharacterRotation(float PitchDegrees)
 
 void AFRBattleCharacter::UpdateBodyFrameChildrenLocalTransform()
 {
+	const float FootOffsetZ = TerrainMovement ? TerrainMovement->GetFootOffsetZ() : 45.0f;
 	if (BodyFrame)
 	{
 		BodyFrame->SetRelativeLocation(FVector(0.0f, 0.0f, -FootOffsetZ));
@@ -1886,15 +1644,16 @@ void AFRBattleCharacter::UpdateAimDrivenComponents()
 
 void AFRBattleCharacter::InitializeCharacterWidgets()
 {
+	const UFRGameFlowSettings* GameFlowSettings = GetDefault<UFRGameFlowSettings>();
+
 	if (AngleIndicatorWidget)
 	{
+		if (!AngleIndicatorWidgetClass && GameFlowSettings)
+		{
+			AngleIndicatorWidgetClass = GameFlowSettings->DefaultAimIndicatorWidgetClass.LoadSynchronous();
+		}
 		if (AngleIndicatorWidgetClass)
 		{
-			AngleIndicatorWidget->SetWidgetClass(AngleIndicatorWidgetClass);
-		}
-		else if (UClass* LoadedAimWidgetClass = LoadClass<UFRBattleCharacterAimIndicatorWidget>(nullptr, TEXT("/Game/FortRogue/Widget/Character/WBP_BattleCharacterAimIndicator.WBP_BattleCharacterAimIndicator_C")))
-		{
-			AngleIndicatorWidgetClass = LoadedAimWidgetClass;
 			AngleIndicatorWidget->SetWidgetClass(AngleIndicatorWidgetClass);
 		}
 		AngleIndicatorWidget->InitWidget();
@@ -1902,13 +1661,12 @@ void AFRBattleCharacter::InitializeCharacterWidgets()
 
 	if (HpWidget)
 	{
+		if (!HpWidgetClass && GameFlowSettings)
+		{
+			HpWidgetClass = GameFlowSettings->DefaultCharacterStatusWidgetClass.LoadSynchronous();
+		}
 		if (HpWidgetClass)
 		{
-			HpWidget->SetWidgetClass(HpWidgetClass);
-		}
-		else if (UClass* LoadedHpWidgetClass = LoadClass<UFRBattleCharacterStatusWidget>(nullptr, TEXT("/Game/FortRogue/Widget/Character/WBP_BattleCharacterStatus.WBP_BattleCharacterStatus_C")))
-		{
-			HpWidgetClass = LoadedHpWidgetClass;
 			HpWidget->SetWidgetClass(HpWidgetClass);
 		}
 		HpWidget->InitWidget();
@@ -1929,6 +1687,7 @@ void AFRBattleCharacter::RefreshCharacterWidgets()
 		HealthWidget->SetBattleCharacter(this);
 	}
 }
+
 void AFRBattleCharacter::SpawnFloatingDamageText(float DamageAmount)
 {
 	if (!GetWorld())
@@ -1969,7 +1728,12 @@ float AFRBattleCharacter::GetActorPitchDegrees() const
 
 FVector AFRBattleCharacter::GetProjectileLaunchDirection(float SpreadDegrees) const
 {
-	const float RelativeAimDegrees = FMath::Clamp(AimAngle + SpreadDegrees, GetMinAimAngle(), GetMaxAimAngle());
+	return GetLaunchDirectionForAim(AimAngle + SpreadDegrees);
+}
+
+FVector AFRBattleCharacter::GetLaunchDirectionForAim(float AimDegrees) const
+{
+	const float RelativeAimDegrees = FMath::Clamp(AimDegrees, GetMinAimAngle(), GetMaxAimAngle());
 	const FQuat AimLocalRotation = FRotator(RelativeAimDegrees, 0.0f, 0.0f).Quaternion();
 	if (BodyFrame)
 	{
@@ -2001,11 +1765,17 @@ FVector AFRBattleCharacter::GetMuzzleSpawnLocation() const
 {
 	return Muzzle ? Muzzle->GetComponentLocation() : GetProjectileSpawnLocation(GetProjectileLaunchDirection(0.0f));
 }
+
 float AFRBattleCharacter::GetEffectiveShotPower() const
+{
+	return GetEffectiveShotPowerFor(ShotPower);
+}
+
+float AFRBattleCharacter::GetEffectiveShotPowerFor(float InShotPower) const
 {
 	const float MinPower = FMath::Clamp(FMath::Min(MinShotPower, MaxShotPower), 0.0f, 1.0f);
 	const float MaxPower = FMath::Clamp(FMath::Max(MinShotPower, MaxShotPower), 0.0f, 1.0f);
-	return FMath::Clamp(FMath::Max(ShotPower, MinPower), MinPower, MaxPower);
+	return FMath::Clamp(FMath::Max(InShotPower, MinPower), MinPower, MaxPower);
 }
 
 int32 AFRBattleCharacter::SpawnShotSpecProjectiles(const FFRShotSpec& ShotSpec, bool bIncreasePendingProjectileCount)
@@ -2045,6 +1815,11 @@ int32 AFRBattleCharacter::SpawnShotSpecProjectiles(const FFRShotSpec& ShotSpec, 
 
 FFRShotSpec AFRBattleCharacter::BuildShotSpec(const FFRWeaponSpec& Weapon) const
 {
+	return BuildShotSpecForAim(Weapon, AimAngle, ShotPower);
+}
+
+FFRShotSpec AFRBattleCharacter::BuildShotSpecForAim(const FFRWeaponSpec& Weapon, float InAimAngle, float InShotPower) const
+{
 	FFRShotSpec ShotSpec;
 	ShotSpec.WeaponTag = Weapon.WeaponTag;
 	ShotSpec.EffectTags = Weapon.ShotEffectTags;
@@ -2058,7 +1833,7 @@ FFRShotSpec AFRBattleCharacter::BuildShotSpec(const FFRWeaponSpec& Weapon) const
 	ShotSpec.ExplosionFullDamageRadius = FMath::Clamp(Weapon.ExplosionFullDamageRadius, 0.0f, ShotSpec.BlastRadius);
 	ShotSpec.TerrainDamage = FMath::Max(0.0f, Weapon.TerrainDamage);
 	ShotSpec.TerrainFillRadius = 0.0f;
-	ShotSpec.LaunchSpeed = FMath::Max(0.0f, Weapon.ProjectileSpeed * GetEffectiveShotPower() * CombatSet->GetShotPowerMultiplier());
+	ShotSpec.LaunchSpeed = FMath::Max(0.0f, Weapon.ProjectileSpeed * GetEffectiveShotPowerFor(InShotPower) * CombatSet->GetShotPowerMultiplier());
 	ShotSpec.Gravity = FMath::Max(0.0f, Weapon.Gravity);
 	ShotSpec.ProjectileCount = FMath::Max(1, Weapon.ProjectilesPerShot + FMath::RoundToInt(CombatSet->GetProjectileCount()) - 1);
 	ShotSpec.SalvoCount = FMath::Max(1, Weapon.SalvoCount);
@@ -2072,20 +1847,19 @@ FFRShotSpec AFRBattleCharacter::BuildShotSpec(const FFRWeaponSpec& Weapon) const
 			ShotSpec.ProjectileEffects.Add(ProjectileEffect);
 		}
 	}
-	const AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
-	const float Wind = GameMode ? GameMode->GetWind() : 0.0f;
-	auto ApplyShotModifier = [this, &ShotSpec, Wind](const FFRShotModifierSpec& Modifier)
+	const float Wind = GetWorldWind();
+	auto ApplyShotModifier = [this, &ShotSpec, Wind, InAimAngle](const FFRShotModifierSpec& Modifier)
 	{
-		if (!Modifier.MeetsShotConditions(ShotSpec, AimAngle, Wind, bFacingRight))
+		if (!Modifier.MeetsShotConditions(ShotSpec, InAimAngle, Wind, bFacingRight))
 		{
 			return;
 		}
 
 		Modifier.ApplyToShotSpec(ShotSpec);
 	};
-	for (const FFRShotModifierSpec& Modifier : GrantedShotModifiers)
+	for (const FFRGrantedShotModifierEntry& Entry : GrantedShotModifierEntries)
 	{
-		ApplyShotModifier(Modifier);
+		ApplyShotModifier(Entry.Spec);
 	}
 	for (const FFRShotModifierSpec& Modifier : PendingShotModifiers)
 	{
@@ -2109,6 +1883,10 @@ void AFRBattleCharacter::EnsureDefaultLoadout()
 		for (UFRWeaponDefinition* WeaponDefinition : DefaultLoadoutDefinition->WeaponDefinitions)
 		{
 			AddWeaponDefinition(WeaponDefinition);
+		}
+		if (BasicAttackIndex == INDEX_NONE && WeaponLoadout.Num() > 0)
+		{
+			BasicAttackIndex = 0;
 		}
 	}
 

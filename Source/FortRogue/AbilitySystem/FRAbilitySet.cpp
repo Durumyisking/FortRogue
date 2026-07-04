@@ -276,3 +276,18 @@ void UFRAbilitySet::GiveToAbilitySystem(UFRAbilitySystemComponent* AbilitySystem
 		}
 	}
 }
+
+#if WITH_EDITOR
+#include "Misc/DataValidation.h"
+
+EDataValidationResult UFRAbilitySet::IsDataValid(FDataValidationContext& Context) const
+{
+	EDataValidationResult Result = Super::IsDataValid(Context);
+	const FText ValidationSummary = GetDataValidationSummary();
+	if (!ValidationSummary.IsEmpty())
+	{
+		Context.AddWarning(ValidationSummary);
+	}
+	return Result;
+}
+#endif
