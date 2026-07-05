@@ -131,7 +131,19 @@ UPaperFlipbook* LoadFlipbook(const TCHAR* AssetName)
 	return LoadObject<UPaperFlipbook>(nullptr, *ObjectPath);
 }
 
-void ConfigureCharacter(UFRCharacterDefinition* CharacterDefinition, const FText& DisplayName, UFRWeaponDefinition* BasicAttack, UFRWeaponDefinition* SpecialAttack, bool bCanUseSpecialAttack, float MaxHealth, float BonusDamage, float MaxMoveBudget, UPaperFlipbook* BodyFlipbook)
+/** <캐릭터 폴더 이름 소문자>_<애니>_flipbook 규칙으로 상태별 플립북 세트를 로드합니다. 없는 애니는 비워 둡니다. */
+FFRCharacterAnimationSet LoadAnimationSet(const TCHAR* CharacterName)
+{
+	FFRCharacterAnimationSet AnimationSet;
+	AnimationSet.Idle = LoadFlipbook(*FString::Printf(TEXT("%s_idle_flipbook"), CharacterName));
+	AnimationSet.Move = LoadFlipbook(*FString::Printf(TEXT("%s_move_flipbook"), CharacterName));
+	AnimationSet.Shoot = LoadFlipbook(*FString::Printf(TEXT("%s_shoot_flipbook"), CharacterName));
+	AnimationSet.Special = LoadFlipbook(*FString::Printf(TEXT("%s_special_flipbook"), CharacterName));
+	AnimationSet.Hurt = LoadFlipbook(*FString::Printf(TEXT("%s_hurt_flipbook"), CharacterName));
+	return AnimationSet;
+}
+
+void ConfigureCharacter(UFRCharacterDefinition* CharacterDefinition, const FText& DisplayName, UFRWeaponDefinition* BasicAttack, UFRWeaponDefinition* SpecialAttack, bool bCanUseSpecialAttack, float MaxHealth, float BonusDamage, float MaxMoveBudget, UPaperFlipbook* BodyFlipbook, const FFRCharacterAnimationSet& AnimationSet = FFRCharacterAnimationSet())
 {
 	if (!CharacterDefinition)
 	{
@@ -140,7 +152,8 @@ void ConfigureCharacter(UFRCharacterDefinition* CharacterDefinition, const FText
 
 	CharacterDefinition->Modify();
 	CharacterDefinition->DisplayName = DisplayName;
-	CharacterDefinition->BodyFlipbook = BodyFlipbook;
+	CharacterDefinition->BodyFlipbook = AnimationSet.Idle ? AnimationSet.Idle.Get() : BodyFlipbook;
+	CharacterDefinition->AnimationSet = AnimationSet;
 	CharacterDefinition->MaxHealth = MaxHealth;
 	CharacterDefinition->BonusDamage = BonusDamage;
 	CharacterDefinition->MaxMoveBudget = MaxMoveBudget;
@@ -263,12 +276,12 @@ int32 UFRGenerateCombatDataCommandlet::Main(const FString& Params)
 	UFRCharacterDefinition* EnemyGrunt = LoadOrCreateDataAsset<UFRCharacterDefinition>(CharacterPath, TEXT("CD_EnemyGrunt"));
 	UFRCharacterDefinition* EnemyMarauder = LoadOrCreateDataAsset<UFRCharacterDefinition>(CharacterPath, TEXT("CD_EnemyMarauder"));
 
-	ConfigureCharacter(Cannon, FText::FromString(TEXT("Cannon")), BasicShell, CannonSpecial, true, 115.0f, 4.0f, 390.0f, LoadFlipbook(TEXT("cannon_tank_flipbook")));
-	ConfigureCharacter(Bandit, FText::FromString(TEXT("Bandit")), BasicShell, BanditSpecial, true, 90.0f, 0.0f, 455.0f, LoadFlipbook(TEXT("multi_missile_tank_flipbook")));
-	ConfigureCharacter(Miner, FText::FromString(TEXT("Miner")), BasicShell, MinerSpecial, true, 105.0f, 0.0f, 405.0f, LoadFlipbook(TEXT("missile_tank_flipbook")));
-	ConfigureCharacter(Engineer, FText::FromString(TEXT("Engineer")), BasicShell, EngineerSpecial, true, 100.0f, 0.0f, 420.0f, LoadFlipbook(TEXT("laser_tank_flipbook")));
-	ConfigureCharacter(EnemyGrunt, FText::FromString(TEXT("Enemy Grunt")), BasicShell, nullptr, false, 75.0f, 0.0f, 360.0f, LoadFlipbook(TEXT("crossbow_tank_flipbook")));
-	ConfigureCharacter(EnemyMarauder, FText::FromString(TEXT("Enemy Marauder")), BasicShell, BanditSpecial, true, 85.0f, 0.0f, 430.0f, LoadFlipbook(TEXT("multi_missile_tank_flipbook")));
+	ConfigureCharacter(Cannon, FText::FromString(TEXT("Cannon")), BasicShell, CannonSpecial, true, 115.0f, 4.0f, 390.0f, LoadFlipbook(TEXT("cannon_tank_flipbook")), LoadAnimationSet(TEXT("cannon")));
+	ConfigureCharacter(Bandit, FText::FromString(TEXT("Bandit")), BasicShell, BanditSpecial, true, 90.0f, 0.0f, 455.0f, LoadFlipbook(TEXT("multi_missile_tank_flipbook")), LoadAnimationSet(TEXT("bandit")));
+	ConfigureCharacter(Miner, FText::FromString(TEXT("Miner")), BasicShell, MinerSpecial, true, 105.0f, 0.0f, 405.0f, LoadFlipbook(TEXT("missile_tank_flipbook")), LoadAnimationSet(TEXT("miner")));
+	ConfigureCharacter(Engineer, FText::FromString(TEXT("Engineer")), BasicShell, EngineerSpecial, true, 100.0f, 0.0f, 420.0f, LoadFlipbook(TEXT("laser_tank_flipbook")), LoadAnimationSet(TEXT("engineer")));
+	ConfigureCharacter(EnemyGrunt, FText::FromString(TEXT("Enemy Grunt")), BasicShell, nullptr, false, 75.0f, 0.0f, 360.0f, LoadFlipbook(TEXT("crossbow_tank_flipbook")), LoadAnimationSet(TEXT("bandit")));
+	ConfigureCharacter(EnemyMarauder, FText::FromString(TEXT("Enemy Marauder")), BasicShell, BanditSpecial, true, 85.0f, 0.0f, 430.0f, LoadFlipbook(TEXT("multi_missile_tank_flipbook")), LoadAnimationSet(TEXT("miner")));
 
 	UFRDefaultLoadoutDefinition* DefaultLoadout = LoadOrCreateDataAsset<UFRDefaultLoadoutDefinition>(LoadoutPath, TEXT("DA_DefaultLoadout"));
 	if (DefaultLoadout)

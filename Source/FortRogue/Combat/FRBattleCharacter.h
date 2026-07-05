@@ -19,6 +19,7 @@ class UFRDefaultLoadoutDefinition;
 class UFRBattleCharacterStatusWidget;
 class UFRBattleCharacterAimIndicatorWidget;
 class UFRTerrainMovementComponent;
+class UFRCharacterSpriteAnimator;
 class UWidgetComponent;
 class UBoxComponent;
 class UPaperFlipbookComponent;
@@ -468,6 +469,9 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "FortRogue")
 	TObjectPtr<UPaperFlipbookComponent> BodySprite;
+
+	UPROPERTY(VisibleAnywhere, Category = "FortRogue", meta = (ToolTip = "전투 상태(대기/이동/발사/피격)에 맞춰 BodySprite 플립북을 전환하는 연출 컴포넌트입니다."))
+	TObjectPtr<UFRCharacterSpriteAnimator> SpriteAnimator;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "FortRogue|Combat", meta = (AllowPrivateAccess = "true", ToolTip = "투사체 생성 위치와 발사 방향의 기준이 되는 총구입니다. BodyFrame 스케일을 따라 위치 오프셋도 함께 커집니다."))
 	TObjectPtr<USceneComponent> Muzzle;

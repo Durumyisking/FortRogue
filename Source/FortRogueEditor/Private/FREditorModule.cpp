@@ -14,6 +14,7 @@
 #include "Framework/Docking/TabManager.h"
 #include "HAL/FileManager.h"
 #include "IAssetTools.h"
+#include "Internationalization/Regex.h"
 #include "Materials/MaterialInterface.h"
 #include "Misc/PackageName.h"
 #include "Misc/Paths.h"
@@ -48,6 +49,7 @@ constexpr int32 GeneratedSpriteSheetColumns = 4;
 constexpr int32 GeneratedSpriteSheetRows = 3;
 constexpr int32 GeneratedSpriteFrameRun = 1;
 constexpr float GeneratedSpriteFramesPerSecond = 8.0f;
+constexpr float GeneratedCharacterSpriteFramesPerSecond = 12.0f;
 constexpr uint8 GeneratedSpriteMagentaTolerance = 32;
 static const TCHAR* GeneratedSpriteSourcePath = TEXT("/Game/GeneratedSprites");
 static const TCHAR* GeneratedSpriteSourceRelativePath = TEXT("GeneratedSprites");
@@ -157,9 +159,15 @@ static void ApplyGeneratedSpriteTextureAlphaKey(UTexture2D* Texture, TArray<UPac
 
 static TArray<UTexture2D*> ImportGeneratedSpriteTextures(TArray<UPackage*>& OutPackagesToSave)
 {
-	TArray<FString> SourceFiles;
+	// 하위 캐릭터 폴더(<캐릭터>/<애니>_<열>x<행>.png)는 캐릭터 파이프라인이 처리하므로 최상위 파일만 가져옵니다.
+	TArray<FString> SourceFileNames;
 	const FString SourceDirectory = FPaths::Combine(FPaths::ProjectContentDir(), GeneratedSpriteSourceRelativePath);
-	IFileManager::Get().FindFilesRecursive(SourceFiles, *SourceDirectory, TEXT("*.png"), true, false);
+	IFileManager::Get().FindFiles(SourceFileNames, *FPaths::Combine(SourceDirectory, TEXT("*.png")), true, false);
+	TArray<FString> SourceFiles;
+	for (const FString& FileName : SourceFileNames)
+	{
+		SourceFiles.Add(FPaths::Combine(SourceDirectory, FileName));
+	}
 	SourceFiles.Sort();
 
 	TArray<UTexture2D*> Textures;
@@ -268,7 +276,7 @@ static UPaperSprite* GetOrCreateGeneratedSprite(UTexture2D* Texture, const FStri
 	return CreatedSprite;
 }
 
-static UPaperFlipbook* GetOrCreateGeneratedFlipbook(const FString& AssetName, const TArray<UPaperSprite*>& Sprites, TArray<UPackage*>& OutPackagesToSave)
+static UPaperFlipbook* GetOrCreateGeneratedFlipbook(const FString& AssetName, const TArray<UPaperSprite*>& Sprites, TArray<UPackage*>& OutPackagesToSave, float FramesPerSecond = GeneratedSpriteFramesPerSecond)
 {
 	UPaperFlipbook* Flipbook = LoadGeneratedSpriteAsset<UPaperFlipbook>(AssetName);
 	if (!Flipbook)
@@ -282,7 +290,7 @@ static UPaperFlipbook* GetOrCreateGeneratedFlipbook(const FString& AssetName, co
 	{
 		Flipbook->Modify();
 		FScopedFlipbookMutator FlipbookMutator(Flipbook);
-		FlipbookMutator.FramesPerSecond = GeneratedSpriteFramesPerSecond;
+		FlipbookMutator.FramesPerSecond = FramesPerSecond;
 		FlipbookMutator.KeyFrames.Reset();
 		for (UPaperSprite* Sprite : Sprites)
 		{
@@ -322,6 +330,113 @@ static void NormalizeExistingGeneratedSprites(FAssetRegistryModule& AssetRegistr
 			FIntPoint(FMath::RoundToInt(SourceSize.X), FMath::RoundToInt(SourceSize.Y)),
 			OutPackagesToSave);
 	}
+}
+
+/**
+ * 캐릭터 폴더 파이프라인: Content/GeneratedSprites/<캐릭터>/<애니>_<열>x<행>.png 시트를
+ * 텍스처로 임포트하고 셀 단위 스프라이트와 <캐릭터>_<애니>_flipbook을 생성합니다.
+ * 프레임은 알파 채널을 그대로 사용합니다 (마젠타 크로마키 아님).
+ */
+static int32 GenerateCharacterSpriteFlipbooks(TArray<UPackage*>& OutPackagesToSave)
+{
+	const FString SourceDirectory = FPaths::Combine(FPaths::ProjectContentDir(), GeneratedSpriteSourceRelativePath);
+	TArray<FString> CharacterDirs;
+	IFileManager::Get().FindFiles(CharacterDirs, *FPaths::Combine(SourceDirectory, TEXT("*")), false, true);
+	CharacterDirs.Sort();
+
+	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
+	const FRegexPattern SheetNamePattern(TEXT("^(.+)_(\\d+)x(\\d+)$"));
+
+	int32 GeneratedFlipbooks = 0;
+	for (const FString& CharacterDir : CharacterDirs)
+	{
+		const FString CharacterName = CharacterDir;
+		TArray<FString> SheetFileNames;
+		IFileManager::Get().FindFiles(SheetFileNames, *FPaths::Combine(SourceDirectory, CharacterDir, TEXT("*.png")), true, false);
+		SheetFileNames.Sort();
+
+		for (const FString& SheetFileName : SheetFileNames)
+		{
+			const FString BaseFilename = FPaths::GetBaseFilename(SheetFileName);
+			FRegexMatcher Matcher(SheetNamePattern, BaseFilename);
+			if (!Matcher.FindNext())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("FortRogue sprite sheet '%s/%s' skipped: name must be <Anim>_<Cols>x<Rows>.png"), *CharacterDir, *SheetFileName);
+				continue;
+			}
+			const FString AnimName = Matcher.GetCaptureGroup(1);
+			const int32 Columns = FCString::Atoi(*Matcher.GetCaptureGroup(2));
+			const int32 Rows = FCString::Atoi(*Matcher.GetCaptureGroup(3));
+			if (Columns <= 0 || Rows <= 0)
+			{
+				continue;
+			}
+
+			// 텍스처 임포트 (이미 있으면 재사용)
+			const FString TexturePackageDir = FString::Printf(TEXT("%s/%s"), GeneratedSpriteSourcePath, *CharacterName);
+			const FString TexturePackagePath = FString::Printf(TEXT("%s/%s"), *TexturePackageDir, *BaseFilename);
+			UTexture2D* Texture = nullptr;
+			const FString TexturePackageFilename = FPackageName::LongPackageNameToFilename(TexturePackagePath, FPackageName::GetAssetPackageExtension());
+			if (FPaths::FileExists(TexturePackageFilename))
+			{
+				Texture = LoadObject<UTexture2D>(nullptr, *FString::Printf(TEXT("%s.%s"), *TexturePackagePath, *BaseFilename));
+			}
+			if (!Texture)
+			{
+				UAssetImportTask* ImportTask = NewObject<UAssetImportTask>();
+				ImportTask->Filename = FPaths::Combine(SourceDirectory, CharacterDir, SheetFileName);
+				ImportTask->DestinationPath = TexturePackageDir;
+				ImportTask->DestinationName = BaseFilename;
+				ImportTask->bAutomated = true;
+				ImportTask->bAsync = false;
+				ImportTask->bReplaceExisting = false;
+				ImportTask->bSave = true;
+				AssetToolsModule.Get().ImportAssetTasks({ ImportTask });
+				for (UObject* ImportedObject : ImportTask->GetObjects())
+				{
+					Texture = Cast<UTexture2D>(ImportedObject);
+					if (Texture)
+					{
+						OutPackagesToSave.AddUnique(Texture->GetPackage());
+						break;
+					}
+				}
+			}
+			if (!Texture)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("FortRogue sprite sheet '%s/%s' import failed."), *CharacterDir, *SheetFileName);
+				continue;
+			}
+
+			const FIntPoint TextureSize = Texture->GetImportedSize();
+			const int32 FrameWidth = TextureSize.X / Columns;
+			const int32 FrameHeight = TextureSize.Y / Rows;
+			if (FrameWidth <= 0 || FrameHeight <= 0)
+			{
+				continue;
+			}
+
+			const FString AssetBaseName = FString::Printf(TEXT("%s_%s"), *CharacterName.ToLower(), *AnimName.ToLower());
+			TArray<UPaperSprite*> FrameSprites;
+			for (int32 Row = 0; Row < Rows; ++Row)
+			{
+				for (int32 Column = 0; Column < Columns; ++Column)
+				{
+					const int32 FrameIndex = Row * Columns + Column;
+					const FString SpriteName = FString::Printf(TEXT("%s_frame_%02d"), *AssetBaseName, FrameIndex);
+					const FIntPoint SourceUV(Column * FrameWidth, Row * FrameHeight);
+					FrameSprites.Add(GetOrCreateGeneratedSprite(Texture, SpriteName, SourceUV, FIntPoint(FrameWidth, FrameHeight), OutPackagesToSave));
+				}
+			}
+
+			if (GetOrCreateGeneratedFlipbook(FString::Printf(TEXT("%s_flipbook"), *AssetBaseName), FrameSprites, OutPackagesToSave, GeneratedCharacterSpriteFramesPerSecond))
+			{
+				++GeneratedFlipbooks;
+			}
+		}
+	}
+
+	return GeneratedFlipbooks;
 }
 
 int32 GenerateSpriteFlipbooks()
@@ -397,6 +512,8 @@ int32 GenerateSpriteFlipbooks()
 			}
 		}
 	}
+
+	GeneratedFlipbooks += FREditor::GenerateCharacterSpriteFlipbooks(PackagesToSave);
 
 	FREditor::NormalizeExistingGeneratedSprites(AssetRegistryModule, PackagesToSave);
 

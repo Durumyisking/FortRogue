@@ -5,6 +5,7 @@
 #include "AbilitySystem/FRAbilitySet.h"
 #include "AbilitySystem/FRAbilitySystemComponent.h"
 #include "AbilitySystem/Attributes/FRCombatSet.h"
+#include "Combat/FRCharacterSpriteAnimator.h"
 #include "Combat/FRDestructibleTerrain.h"
 #include "Combat/FRProjectile.h"
 #include "Combat/FRShotAimSolver.h"
@@ -128,6 +129,8 @@ AFRBattleCharacter::AFRBattleCharacter()
 	BodySprite->SetRelativeScale3D(FVector::OneVector);
 	BodySprite->SetVisibility(false);
 
+	SpriteAnimator = CreateDefaultSubobject<UFRCharacterSpriteAnimator>(TEXT("SpriteAnimator"));
+
 	Muzzle = CreateDefaultSubobject<USceneComponent>(TEXT("Muzzle"));
 	Muzzle->SetupAttachment(BodyFrame);
 	Muzzle->SetRelativeScale3D(FVector::OneVector);
@@ -211,11 +214,17 @@ void AFRBattleCharacter::InitializeFromDefinition(UFRCharacterDefinition* InChar
 	StartupAbilitySets = InCharacterDefinition->StartupAbilitySets;
 	if (BodySprite)
 	{
+		const bool bHasAnySprite = InCharacterDefinition->BodyFlipbook != nullptr
+			|| InCharacterDefinition->AnimationSet.HasAnyAnimation();
 		BodySprite->SetFlipbook(InCharacterDefinition->BodyFlipbook);
-		BodySprite->SetVisibility(InCharacterDefinition->BodyFlipbook != nullptr);
+		BodySprite->SetVisibility(bHasAnySprite);
 		if (Body)
 		{
-			Body->SetVisibility(InCharacterDefinition->BodyFlipbook == nullptr);
+			Body->SetVisibility(!bHasAnySprite);
+		}
+		if (SpriteAnimator)
+		{
+			SpriteAnimator->Initialize(BodySprite, InCharacterDefinition->AnimationSet, InCharacterDefinition->BodyFlipbook);
 		}
 	}
 
@@ -321,6 +330,10 @@ void AFRBattleCharacter::MoveHorizontal(float Axis, float DeltaSeconds)
 	}
 
 	CombatSet->SetMoveBudget(Budget - FMath::Abs(ActualDelta));
+	if (SpriteAnimator)
+	{
+		SpriteAnimator->NotifyMoving();
+	}
 }
 
 void AFRBattleCharacter::AdjustAim(float Axis, float DeltaSeconds)
@@ -474,6 +487,12 @@ int32 AFRBattleCharacter::FireSelectedWeapon()
 	bChargingShot = false;
 	bFiredThisTurn = true;
 
+	if (SpriteAnimator)
+	{
+		const bool bSpecialShot = SpecialAttackIndex != INDEX_NONE && SelectedWeaponIndex == SpecialAttackIndex;
+		SpriteAnimator->NotifyShoot(bSpecialShot);
+	}
+
 	const FFRWeaponSpec& Weapon = GetCurrentWeapon();
 	const FFRShotSpec ShotSpec = BuildShotSpec(Weapon);
 	const int32 ProjectileCount = ShotSpec.ProjectileCount;
@@ -588,6 +607,10 @@ void AFRBattleCharacter::ApplyDamage(float DamageAmount)
 	if (AppliedDamage > KINDA_SMALL_NUMBER)
 	{
 		SpawnFloatingDamageText(AppliedDamage);
+		if (SpriteAnimator)
+		{
+			SpriteAnimator->NotifyHurt();
+		}
 	}
 	RefreshCharacterWidgets();
 }

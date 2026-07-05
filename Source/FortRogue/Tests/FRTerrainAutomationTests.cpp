@@ -9,6 +9,7 @@
 #include "Characters/FRCharacterDefinition.h"
 #include "Combat/FRBattleCamera.h"
 #include "Combat/FRBattleCharacter.h"
+#include "Combat/FRCharacterSpriteAnimator.h"
 #include "Combat/FRDestructibleTerrain.h"
 #include "Combat/FRProjectile.h"
 #include "Combat/FRTerrainMapDefinition.h"
@@ -31,6 +32,7 @@
 #include "Items/FRItemDefinition.h"
 #include "Items/FRItemEffect.h"
 #include "Kismet/GameplayStatics.h"
+#include "PaperFlipbook.h"
 #include "PaperFlipbookComponent.h"
 #include "Perks/FRPerkDefinition.h"
 #include "ProjectileEffects/FRProjectileEffect.h"
@@ -1652,6 +1654,93 @@ bool FFRBattleCharacterSpriteLocalRotationTest::RunTest(const FString& Parameter
 	Character->ConfigureAsEnemy(false);
 	TestEqual(TEXT("Battle character actor root turns right"), static_cast<float>(Character->GetActorRotation().Yaw), 0.0f);
 	TestEqual(TEXT("Battle character sprite local rotation is normalized while actor turns right"), BodySprite->GetRelativeRotation(), FRotator::ZeroRotator);
+
+	CleanupWorld();
+	return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FFRCharacterSpriteAnimatorStateTest, "FortRogue.Character.SpriteAnimator.StateTransitions", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FFRCharacterSpriteAnimatorStateTest::RunTest(const FString& Parameters)
+{
+	UGameInstance* GameInstance = NewObject<UGameInstance>(GEngine);
+	UWorld* World = UWorld::CreateWorld(EWorldType::Game, false);
+	if (!GameInstance || !World)
+	{
+		TestNotNull(TEXT("Transient test world is created"), World);
+		return false;
+	}
+
+	World->SetShouldTick(false);
+	World->AddToRoot();
+	FWorldContext& WorldContext = GEngine->CreateNewWorldContext(EWorldType::Game);
+	WorldContext.OwningGameInstance = GameInstance;
+	World->SetGameInstance(GameInstance);
+	WorldContext.SetCurrentWorld(World);
+	GameInstance->Init();
+
+	auto CleanupWorld = [&World, &GameInstance]()
+	{
+		World->RemoveFromRoot();
+		GameInstance->Shutdown();
+		GEngine->DestroyWorldContext(World);
+		World->DestroyWorld(false);
+	};
+
+	FActorSpawnParameters SpawnParams;
+	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	AFRBattleCharacter* Character = World->SpawnActor<AFRBattleCharacter>(AFRBattleCharacter::StaticClass(), FVector::ZeroVector, FRotator::ZeroRotator, SpawnParams);
+	UPaperFlipbookComponent* BodySprite = Character ? Cast<UPaperFlipbookComponent>(Character->GetDefaultSubobjectByName(TEXT("BodySprite"))) : nullptr;
+	UFRCharacterSpriteAnimator* Animator = Character ? Character->FindComponentByClass<UFRCharacterSpriteAnimator>() : nullptr;
+	TestNotNull(TEXT("Battle character sprite animator exists"), Animator);
+	if (!Character || !BodySprite || !Animator)
+	{
+		CleanupWorld();
+		return false;
+	}
+
+	FFRCharacterAnimationSet AnimationSet;
+	AnimationSet.Idle = NewObject<UPaperFlipbook>(GetTransientPackage());
+	AnimationSet.Move = NewObject<UPaperFlipbook>(GetTransientPackage());
+	AnimationSet.Shoot = NewObject<UPaperFlipbook>(GetTransientPackage());
+	AnimationSet.Special = NewObject<UPaperFlipbook>(GetTransientPackage());
+	AnimationSet.Hurt = NewObject<UPaperFlipbook>(GetTransientPackage());
+
+	Animator->Initialize(BodySprite, AnimationSet, nullptr);
+	TestEqual(TEXT("Animator starts in idle"), Animator->GetAnimState(), EFRCharacterAnimState::Idle);
+	TestTrue(TEXT("Idle flipbook is applied"), BodySprite->GetFlipbook() == AnimationSet.Idle);
+
+	Animator->NotifyMoving();
+	TestEqual(TEXT("Moving switches to move state"), Animator->GetAnimState(), EFRCharacterAnimState::Move);
+	TestTrue(TEXT("Move flipbook is applied"), BodySprite->GetFlipbook() == AnimationSet.Move);
+
+	Animator->NotifyShoot(false);
+	TestEqual(TEXT("Shooting switches to shoot state"), Animator->GetAnimState(), EFRCharacterAnimState::Shoot);
+	TestTrue(TEXT("Shoot flipbook is applied"), BodySprite->GetFlipbook() == AnimationSet.Shoot);
+
+	BodySprite->OnFinishedPlaying.Broadcast();
+	TestEqual(TEXT("Shoot one-shot reverts to idle"), Animator->GetAnimState(), EFRCharacterAnimState::Idle);
+	TestTrue(TEXT("Idle flipbook is restored"), BodySprite->GetFlipbook() == AnimationSet.Idle);
+
+	Animator->NotifyShoot(true);
+	TestEqual(TEXT("Special shot switches to special state"), Animator->GetAnimState(), EFRCharacterAnimState::Special);
+	TestTrue(TEXT("Special flipbook is applied"), BodySprite->GetFlipbook() == AnimationSet.Special);
+
+	Animator->NotifyHurt();
+	TestEqual(TEXT("Damage interrupts into hurt state"), Animator->GetAnimState(), EFRCharacterAnimState::Hurt);
+	TestTrue(TEXT("Hurt flipbook is applied"), BodySprite->GetFlipbook() == AnimationSet.Hurt);
+
+	BodySprite->OnFinishedPlaying.Broadcast();
+	TestEqual(TEXT("Hurt one-shot reverts to idle"), Animator->GetAnimState(), EFRCharacterAnimState::Idle);
+
+	// 상태별 플립북이 비어 있으면 대체 규칙을 따릅니다: Special→Shoot, Move→Idle 아트 유지.
+	FFRCharacterAnimationSet PartialSet;
+	PartialSet.Idle = NewObject<UPaperFlipbook>(GetTransientPackage());
+	PartialSet.Shoot = NewObject<UPaperFlipbook>(GetTransientPackage());
+	Animator->Initialize(BodySprite, PartialSet, nullptr);
+	Animator->NotifyShoot(true);
+	TestEqual(TEXT("Special without special flipbook falls back to shoot"), Animator->GetAnimState(), EFRCharacterAnimState::Shoot);
+	TestTrue(TEXT("Fallback shoot flipbook is applied"), BodySprite->GetFlipbook() == PartialSet.Shoot);
 
 	CleanupWorld();
 	return true;
