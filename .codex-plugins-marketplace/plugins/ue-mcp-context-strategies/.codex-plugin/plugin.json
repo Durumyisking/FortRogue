@@ -1,0 +1,35 @@
+{
+  "name": "ue-mcp-context-strategies",
+  "version": "1.1.6+codex.20260705120725",
+  "description": "Codex integration for ue-mcp Context Strategies, skills, and feedback hooks.",
+  "author": {
+    "name": "David Bingham / FortRogue Codex port",
+    "url": "https://github.com/db-lyon/ue-mcp"
+  },
+  "homepage": "https://db-lyon.github.io/ue-mcp/",
+  "repository": "https://github.com/db-lyon/ue-mcp",
+  "license": "MIT",
+  "keywords": [
+    "unreal-engine",
+    "mcp",
+    "codex",
+    "context-strategy"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "ue-mcp Context Strategies for Codex",
+    "shortDescription": "Use full, lean, or micro Unreal MCP context.",
+    "longDescription": "The complete ue-mcp skill set and feedback hook adapted for Codex, including micro-gateway call syntax and strategy management.",
+    "developerName": "db-lyon / FortRogue",
+    "category": "Development",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Inspect my ue-mcp context strategy.",
+      "Edit this Unreal Blueprint through ue-mcp.",
+      "Author an Unreal C++ class through ue-mcp."
+    ]
+  }
+}

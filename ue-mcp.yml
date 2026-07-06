@@ -1,0 +1,6 @@
+ue-mcp:
+  version: 1
+  context:
+    strategy: micro
+tasks: {}
+flows: {}

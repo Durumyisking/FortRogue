@@ -1,0 +1,4 @@
+interface:
+  display_name: "ue-mcp Blueprint"
+  short_description: "Author Unreal Blueprints through ue-mcp"
+  default_prompt: "Use $ue-mcp-blueprint to inspect and edit this Unreal Blueprint."

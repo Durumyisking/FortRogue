@@ -1,0 +1,4 @@
+interface:
+  display_name: "ue-mcp Workflow"
+  short_description: "Drive Unreal safely through the ue-mcp bridge"
+  default_prompt: "Use $ue-mcp-workflow to inspect and modify this Unreal project safely."

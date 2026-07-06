@@ -1,0 +1,4 @@
+interface:
+  display_name: "UE MCP Context Strategies"
+  short_description: "Switch and use full, lean, or micro context"
+  default_prompt: "Use $ue-mcp-context-strategies to inspect and optimize this Unreal MCP context strategy."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "ue-mcp Niagara"
+  short_description: "Author Unreal Niagara systems through ue-mcp"
+  default_prompt: "Use $ue-mcp-niagara to create or edit this Niagara effect."

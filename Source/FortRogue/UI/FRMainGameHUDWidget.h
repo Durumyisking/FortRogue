@@ -25,6 +25,7 @@ public:
 
 protected:
 	virtual void NativeOnInitialized() override;
+	virtual void NativeDestruct() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 	UPROPERTY(BlueprintReadOnly, Category = "FortRogue|HUD")
@@ -175,9 +176,14 @@ private:
 	void BindButtonEvents();
 	void RefreshHUD();
 	void RefreshGameInfo(AFRGameMode* GameMode);
+	void RefreshRewardInfo(AFRGameMode* GameMode);
 	void RefreshPlayerInfo(AFRGameMode* GameMode);
+	void ApplyRewardChoice(int32 ChoiceIndex);
+	void SetRewardInputMode(bool bActive);
 	void ApplyWeaponSlot(const FFRHUDLoadoutSlotViewData& SlotData, UButton* Button, UTextBlock* NameText, UTextBlock* IndexText);
 	void ApplyItemSlot(const FFRHUDLoadoutSlotViewData& SlotData, UButton* Button, UTextBlock* NameText, UTextBlock* ChargesText);
+
+	bool bRewardInputModeActive = false;
 
 	UFUNCTION()
 	void HandleFirePressed();
@@ -214,4 +220,13 @@ private:
 
 	UFUNCTION()
 	void HandleItemSlot5Clicked();
+
+	UFUNCTION()
+	void HandleRewardChoice1Clicked();
+
+	UFUNCTION()
+	void HandleRewardChoice2Clicked();
+
+	UFUNCTION()
+	void HandleRewardChoice3Clicked();
 };

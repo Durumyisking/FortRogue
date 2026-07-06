@@ -1,0 +1,7 @@
+Upstream: EpicGames/unreal-engine-skills-for-claude-code-plugin 3.0.3
+License: MIT
+
+This Codex adaptation preserves all three upstream skills and both Unreal MCP
+reference files. Claude-specific client setup text and the SessionStart hook
+were adapted to Codex. The Unreal MCP server itself is not forked; Codex uses
+Epic's native Unreal Engine 5.8 MCP endpoint.

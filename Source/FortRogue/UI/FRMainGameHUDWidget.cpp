@@ -72,6 +72,12 @@ void UFRMainGameHUDWidget::NativeOnInitialized()
 	BindButtonEvents();
 }
 
+void UFRMainGameHUDWidget::NativeDestruct()
+{
+	SetRewardInputMode(false);
+	Super::NativeDestruct();
+}
+
 void UFRMainGameHUDWidget::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
@@ -128,12 +134,26 @@ void UFRMainGameHUDWidget::BindButtonEvents()
 	{
 		ItemSlot5Button->OnClicked.AddDynamic(this, &UFRMainGameHUDWidget::HandleItemSlot5Clicked);
 	}
+
+	if (UButton* RewardChoice1Button = Cast<UButton>(GetWidgetFromName(TEXT("RewardChoice1Button"))))
+	{
+		RewardChoice1Button->OnClicked.AddDynamic(this, &UFRMainGameHUDWidget::HandleRewardChoice1Clicked);
+	}
+	if (UButton* RewardChoice2Button = Cast<UButton>(GetWidgetFromName(TEXT("RewardChoice2Button"))))
+	{
+		RewardChoice2Button->OnClicked.AddDynamic(this, &UFRMainGameHUDWidget::HandleRewardChoice2Clicked);
+	}
+	if (UButton* RewardChoice3Button = Cast<UButton>(GetWidgetFromName(TEXT("RewardChoice3Button"))))
+	{
+		RewardChoice3Button->OnClicked.AddDynamic(this, &UFRMainGameHUDWidget::HandleRewardChoice3Clicked);
+	}
 }
 
 void UFRMainGameHUDWidget::RefreshHUD()
 {
 	AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
 	RefreshGameInfo(GameMode);
+	RefreshRewardInfo(GameMode);
 	RefreshPlayerInfo(GameMode);
 }
 
@@ -175,6 +195,108 @@ void UFRMainGameHUDWidget::RefreshGameInfo(AFRGameMode* GameMode)
 		WindArrowVisualWidget->SetVisibility(ESlateVisibility::HitTestInvisible);
 		WindArrowVisualWidget->SetRenderScale(FVector2D(Wind < 0.0f ? -1.0f : 1.0f, 1.0f));
 		WindArrowVisualWidget->SetRenderOpacity(FMath::IsNearlyZero(Wind) ? 0.25f : 0.9f);
+	}
+}
+
+void UFRMainGameHUDWidget::RefreshRewardInfo(AFRGameMode* GameMode)
+{
+	const bool bShowRewards = GameMode
+		&& GameMode->GetBattleState() == EFRBattleState::Reward
+		&& GameMode->GetRewardChoiceCount() > 0;
+
+	if (UWidget* RewardPanel = GetWidgetFromName(TEXT("RewardPanel")))
+	{
+		RewardPanel->SetVisibility(bShowRewards ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+	}
+
+	static const FName ButtonNames[] = {
+		TEXT("RewardChoice1Button"),
+		TEXT("RewardChoice2Button"),
+		TEXT("RewardChoice3Button")
+	};
+	static const FName NameTextNames[] = {
+		TEXT("RewardChoice1NameText"),
+		TEXT("RewardChoice2NameText"),
+		TEXT("RewardChoice3NameText")
+	};
+	static const FName DescriptionTextNames[] = {
+		TEXT("RewardChoice1DescriptionText"),
+		TEXT("RewardChoice2DescriptionText"),
+		TEXT("RewardChoice3DescriptionText")
+	};
+
+	for (int32 ChoiceIndex = 0; ChoiceIndex < UE_ARRAY_COUNT(ButtonNames); ++ChoiceIndex)
+	{
+		UButton* Button = Cast<UButton>(GetWidgetFromName(ButtonNames[ChoiceIndex]));
+		UTextBlock* NameText = Cast<UTextBlock>(GetWidgetFromName(NameTextNames[ChoiceIndex]));
+		UTextBlock* DescriptionText = Cast<UTextBlock>(GetWidgetFromName(DescriptionTextNames[ChoiceIndex]));
+		const bool bHasChoice = bShowRewards && ChoiceIndex < GameMode->GetRewardChoiceCount();
+
+		if (Button)
+		{
+			Button->SetVisibility(bHasChoice ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
+			Button->SetIsEnabled(bHasChoice && GameMode->CanApplyRewardChoice(ChoiceIndex));
+		}
+
+		if (bHasChoice)
+		{
+			const FFRRewardChoice RewardChoice = GameMode->GetRewardChoice(ChoiceIndex);
+			SetTextBlockText(NameText, RewardChoice.GetResolvedDisplayName());
+			SetTextBlockText(DescriptionText, RewardChoice.Description.IsEmpty()
+				? GameMode->GetRewardChoiceSummary(ChoiceIndex)
+				: RewardChoice.Description);
+		}
+		else
+		{
+			SetTextBlockText(NameText, FText::GetEmpty());
+			SetTextBlockText(DescriptionText, FText::GetEmpty());
+		}
+	}
+
+	if (UWidget* RewardChoice4Button = GetWidgetFromName(TEXT("RewardChoice4Button")))
+	{
+		RewardChoice4Button->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	if (UWidget* RewardChoice5Button = GetWidgetFromName(TEXT("RewardChoice5Button")))
+	{
+		RewardChoice5Button->SetVisibility(ESlateVisibility::Collapsed);
+	}
+
+	SetRewardInputMode(bShowRewards);
+}
+
+void UFRMainGameHUDWidget::ApplyRewardChoice(int32 ChoiceIndex)
+{
+	AFRGameMode* GameMode = GetWorld() ? GetWorld()->GetAuthGameMode<AFRGameMode>() : nullptr;
+	if (GameMode && GameMode->CanApplyRewardChoice(ChoiceIndex))
+	{
+		GameMode->ApplyRewardChoice(ChoiceIndex);
+	}
+}
+
+void UFRMainGameHUDWidget::SetRewardInputMode(bool bActive)
+{
+	if (bRewardInputModeActive == bActive)
+	{
+		return;
+	}
+
+	bRewardInputModeActive = bActive;
+	if (APlayerController* PlayerController = GetOwningPlayer())
+	{
+		PlayerController->bShowMouseCursor = bActive;
+		if (bActive)
+		{
+			FInputModeGameAndUI InputMode;
+			InputMode.SetWidgetToFocus(TakeWidget());
+			InputMode.SetHideCursorDuringCapture(false);
+			InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+			PlayerController->SetInputMode(InputMode);
+		}
+		else
+		{
+			PlayerController->SetInputMode(FInputModeGameOnly());
+		}
 	}
 }
 
@@ -330,4 +452,19 @@ void UFRMainGameHUDWidget::HandleItemSlot5Clicked()
 	{
 		PlayerController->UseHUDItem(4);
 	}
+}
+
+void UFRMainGameHUDWidget::HandleRewardChoice1Clicked()
+{
+	ApplyRewardChoice(0);
+}
+
+void UFRMainGameHUDWidget::HandleRewardChoice2Clicked()
+{
+	ApplyRewardChoice(1);
+}
+
+void UFRMainGameHUDWidget::HandleRewardChoice3Clicked()
+{
+	ApplyRewardChoice(2);
 }

@@ -1,0 +1,4 @@
+interface:
+  display_name: "ue-mcp Native C++"
+  short_description: "Author Unreal C++ classes through ue-mcp"
+  default_prompt: "Use $ue-mcp-native-cpp to implement this Unreal C++ class."

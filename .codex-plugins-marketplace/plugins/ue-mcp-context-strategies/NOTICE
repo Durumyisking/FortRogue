@@ -1,0 +1,7 @@
+Upstream: db-lyon/ue-mcp 1.1.6
+License: MIT
+
+The ue-mcp server and Context Strategies implementation are used unmodified
+through their native Codex support. This plugin preserves all four upstream
+skills, adapts their calls for micro mode, adds Codex strategy guidance, and
+adapts the upstream PostToolUse feedback hook for Codex and the micro gateway.

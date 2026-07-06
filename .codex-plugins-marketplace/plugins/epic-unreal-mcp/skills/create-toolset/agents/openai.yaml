@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Unreal Toolset"
+  short_description: "Author AI-callable Unreal Engine toolsets"
+  default_prompt: "Use $create-toolset to add an AI-callable tool to this Unreal project."

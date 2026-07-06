@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/hooks/unreal-context.mjs\"",
+            "timeout": 5,
+            "statusMessage": "Detecting Unreal Engine project context"
+          }
+        ]
+      }
+    ]
+  }
+}
