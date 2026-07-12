@@ -59,8 +59,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
 	bool bShowMouseCursor = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI", meta = (ToolTip = "HUD 위젯 트리에서 이 이름의 버튼을 찾아 캐릭터 선택 화면 진입에 바인딩합니다. None이면 바인딩하지 않습니다."))
+	FName OpenCharacterSelectButtonName = NAME_None;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
 	FName StartMainGameButtonName = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Character Select", meta = (ToolTip = "캐릭터 선택 화면에서 고를 수 있는 플레이어 캐릭터 데이터 목록입니다."))
+	TArray<TObjectPtr<UFRCharacterDefinition>> SelectableCharacterDefinitions;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Pawn")
 	TSoftClassPtr<APawn> EntryPawnClass;

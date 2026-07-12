@@ -42,6 +42,11 @@ int32 UFRRunSubsystem::RandRangeInt(int32 Min, int32 Max)
 	return RunRandom.RandRange(Min, Max);
 }
 
+void UFRRunSubsystem::SetPendingPlayerDefinition(UFRCharacterDefinition* CharacterDefinition)
+{
+	PendingPlayerDefinition = CharacterDefinition;
+}
+
 void UFRRunSubsystem::RecordChosenRewardTag(const FGameplayTag& RewardTag)
 {
 	if (RewardTag.IsValid())

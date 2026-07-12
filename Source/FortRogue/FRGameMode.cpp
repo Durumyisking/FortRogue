@@ -110,6 +110,11 @@ void AFRGameMode::StartBattleRun()
 	if (UFRRunSubsystem* RunSubsystem = GetRunSubsystem())
 	{
 		RunSubsystem->StartRun();
+		// 캐릭터 선택 화면에서 고른 캐릭터가 있으면 모드 데이터 기본값보다 우선합니다.
+		if (UFRCharacterDefinition* SelectedDefinition = RunSubsystem->GetPendingPlayerDefinition())
+		{
+			PlayerDefinition = SelectedDefinition;
+		}
 	}
 	if (StageRunDefinition)
 	{

@@ -23,6 +23,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Game Flow")
 	bool StartMainMenu();
 
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Game Flow", meta = (ToolTip = "캐릭터 선택 화면 모드로 전환합니다."))
+	bool StartCharacterSelect();
+
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Game Flow")
 	bool StartMainGame();
 
@@ -41,10 +44,14 @@ private:
 	bool StartModeInternal(UFRGameModeDataAsset* ModeData);
 	bool ShouldTravelToModeLevel(const UFRGameModeDataAsset* ModeData, FString& OutLevelPackageName) const;
 	void BindModeWidgetActions();
+	void BindModeButton(const FName& ButtonName, const FName& HandlerFunctionName);
 	void ClearActiveHUD();
 
 	UFUNCTION()
 	void HandleStartMainGameClicked();
+
+	UFUNCTION()
+	void HandleOpenCharacterSelectClicked();
 
 	UPROPERTY(Transient)
 	TObjectPtr<UFRGameModeDataAsset> CurrentModeData;

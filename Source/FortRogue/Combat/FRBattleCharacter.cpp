@@ -26,6 +26,7 @@
 #include "Engine/GameInstance.h"
 #include "Engine/StaticMesh.h"
 #include "PaperFlipbook.h"
+#include "PaperSprite.h"
 #include "PaperFlipbookComponent.h"
 #include "UI/FRBattleCharacterAimIndicatorWidget.h"
 #include "UI/FRBattleCharacterStatusWidget.h"
@@ -218,6 +219,9 @@ void AFRBattleCharacter::InitializeFromDefinition(UFRCharacterDefinition* InChar
 			|| InCharacterDefinition->AnimationSet.HasAnyAnimation();
 		BodySprite->SetFlipbook(InCharacterDefinition->BodyFlipbook);
 		BodySprite->SetVisibility(bHasAnySprite);
+		const float CharacterSpriteScale = FMath::Max(0.05f, InCharacterDefinition->SpriteScale);
+		BodySprite->SetRelativeScale3D(FVector(CharacterSpriteScale));
+		RefreshHurtboxToSpriteBounds(CharacterSpriteScale);
 		if (Body)
 		{
 			Body->SetVisibility(!bHasAnySprite);
@@ -280,6 +284,28 @@ void AFRBattleCharacter::InitializeFromDefinition(UFRCharacterDefinition* InChar
 			ItemStack.Charges = ItemStack.ItemDefinition->InitialCharges;
 		}
 	}
+}
+
+void AFRBattleCharacter::RefreshHurtboxToSpriteBounds(float InSpriteScale)
+{
+	if (!Hurtbox || !BodySprite)
+	{
+		return;
+	}
+
+	UPaperFlipbook* ReferenceFlipbook = BodySprite->GetFlipbook();
+	UPaperSprite* ReferenceSprite = ReferenceFlipbook ? ReferenceFlipbook->GetSpriteAtFrame(0) : nullptr;
+	if (!ReferenceSprite)
+	{
+		return;
+	}
+
+	// 스프라이트 렌더 지오메트리는 알파 기준으로 트리밍되므로, 보이는 실루엣과 판정이 일치하게 됩니다.
+	const FBoxSphereBounds RenderBounds = ReferenceSprite->GetRenderBounds();
+	const FVector ScaledExtent = RenderBounds.BoxExtent * InSpriteScale;
+	const FVector ScaledOrigin = RenderBounds.Origin * InSpriteScale;
+	Hurtbox->SetBoxExtent(FVector(FMath::Max(4.0f, ScaledExtent.X), Hurtbox->GetUnscaledBoxExtent().Y, FMath::Max(4.0f, ScaledExtent.Z)));
+	Hurtbox->SetRelativeLocation(FVector(ScaledOrigin.X, 0.0f, ScaledOrigin.Z));
 }
 
 void AFRBattleCharacter::ConfigureAsEnemy(bool bNewEnemy)

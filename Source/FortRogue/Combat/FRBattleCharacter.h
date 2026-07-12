@@ -435,6 +435,10 @@ private:
 	void SetFacingFromAxis(float Axis);
 	void UpdateCharacterRotation(float PitchDegrees);
 	void UpdateBodyFrameChildrenLocalTransform();
+
+	/** 피격 판정 박스를 현재 스프라이트의 렌더 바운드(투명 여백 제외)에 맞춥니다. 스프라이트가 없으면 기본 크기를 유지합니다. */
+	void RefreshHurtboxToSpriteBounds(float InSpriteScale);
+
 	void UpdateAimDrivenComponents();
 	void InitializeCharacterWidgets();
 	void RefreshCharacterWidgets();

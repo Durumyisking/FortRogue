@@ -46,6 +46,12 @@ public:
 	float RandRange(float Min, float Max);
 	int32 RandRangeInt(int32 Min, int32 Max);
 
+	UFUNCTION(BlueprintCallable, Category = "FortRogue|Run", meta = (ToolTip = "다음 런에서 플레이어가 사용할 캐릭터를 지정합니다. 캐릭터 선택 화면에서 호출합니다."))
+	void SetPendingPlayerDefinition(UFRCharacterDefinition* CharacterDefinition);
+
+	UFUNCTION(BlueprintPure, Category = "FortRogue|Run", meta = (ToolTip = "캐릭터 선택 화면에서 고른 플레이어 캐릭터입니다. 없으면 nullptr을 반환합니다."))
+	UFRCharacterDefinition* GetPendingPlayerDefinition() const { return PendingPlayerDefinition; }
+
 	void RecordChosenRewardTag(const FGameplayTag& RewardTag);
 
 	UFUNCTION(BlueprintCallable, Category = "FortRogue|Run")
@@ -70,6 +76,10 @@ private:
 	int32 RunSeed = 0;
 	int32 CurrentStage = 1;
 	FRandomStream RunRandom;
+
+	/** 캐릭터 선택 화면에서 고른 플레이어 캐릭터입니다. 런 시작 시 GameMode가 읽어 갑니다. */
+	UPROPERTY(Transient)
+	TObjectPtr<UFRCharacterDefinition> PendingPlayerDefinition;
 
 	UPROPERTY(Transient)
 	TArray<FGameplayTag> ChosenRewardTags;

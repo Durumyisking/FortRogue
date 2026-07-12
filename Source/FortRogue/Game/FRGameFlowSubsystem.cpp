@@ -27,6 +27,14 @@ bool UFRGameFlowSubsystem::StartMainMenu()
 	return StartModeInternal(LoadModeData(Settings ? Settings->MainMenuModeData : TSoftObjectPtr<UFRGameModeDataAsset>()));
 }
 
+bool UFRGameFlowSubsystem::StartCharacterSelect()
+{
+	const UFRGameFlowSettings* Settings = GetDefault<UFRGameFlowSettings>();
+	UE_LOG(LogFortRogue, Log, TEXT("GameFlow: StartCharacterSelect requested. CharacterSelectModeData=%s"),
+		Settings ? *Settings->CharacterSelectModeData.ToSoftObjectPath().ToString() : TEXT("<no settings>"));
+	return StartModeInternal(LoadModeData(Settings ? Settings->CharacterSelectModeData : TSoftObjectPtr<UFRGameModeDataAsset>()));
+}
+
 bool UFRGameFlowSubsystem::StartMainGame()
 {
 	const UFRGameFlowSettings* Settings = GetDefault<UFRGameFlowSettings>();
@@ -187,12 +195,22 @@ void UFRGameFlowSubsystem::ApplyCurrentModeToPlayerController(APlayerController*
 
 void UFRGameFlowSubsystem::BindModeWidgetActions()
 {
-	if (!ActiveHUDWidget || !CurrentModeData || CurrentModeData->StartMainGameButtonName.IsNone())
+	if (!ActiveHUDWidget || !CurrentModeData)
 	{
-		UE_LOG(LogFortRogue, Log, TEXT("GameFlow: StartMainGame button binding skipped. HUD=%s Mode=%s Button=%s"),
+		UE_LOG(LogFortRogue, Log, TEXT("GameFlow: Mode widget binding skipped. HUD=%s Mode=%s"),
 			*GetNameSafe(ActiveHUDWidget),
-			*GetNameSafe(CurrentModeData),
-			CurrentModeData ? *CurrentModeData->StartMainGameButtonName.ToString() : TEXT("<no mode>"));
+			*GetNameSafe(CurrentModeData));
+		return;
+	}
+
+	BindModeButton(CurrentModeData->StartMainGameButtonName, GET_FUNCTION_NAME_CHECKED(UFRGameFlowSubsystem, HandleStartMainGameClicked));
+	BindModeButton(CurrentModeData->OpenCharacterSelectButtonName, GET_FUNCTION_NAME_CHECKED(UFRGameFlowSubsystem, HandleOpenCharacterSelectClicked));
+}
+
+void UFRGameFlowSubsystem::BindModeButton(const FName& ButtonName, const FName& HandlerFunctionName)
+{
+	if (ButtonName.IsNone() || !ActiveHUDWidget)
+	{
 		return;
 	}
 
@@ -204,23 +222,33 @@ void UFRGameFlowSubsystem::BindModeWidgetActions()
 		return;
 	}
 
-	UWidget* StartWidget = WidgetTree->FindWidget(CurrentModeData->StartMainGameButtonName);
-	if (UButton* StartButton = Cast<UButton>(StartWidget))
+	UWidget* FoundWidget = WidgetTree->FindWidget(ButtonName);
+	if (UButton* Button = Cast<UButton>(FoundWidget))
 	{
-		StartButton->OnClicked.RemoveDynamic(this, &UFRGameFlowSubsystem::HandleStartMainGameClicked);
-		StartButton->OnClicked.AddDynamic(this, &UFRGameFlowSubsystem::HandleStartMainGameClicked);
-		UE_LOG(LogFortRogue, Log, TEXT("GameFlow: Bound UButton StartMainGame widget '%s' on HUD %s."),
-			*CurrentModeData->StartMainGameButtonName.ToString(),
+		FScriptDelegate ClickDelegate;
+		ClickDelegate.BindUFunction(this, HandlerFunctionName);
+		Button->OnClicked.Remove(ClickDelegate);
+		Button->OnClicked.Add(ClickDelegate);
+		UE_LOG(LogFortRogue, Log, TEXT("GameFlow: Bound UButton '%s' to %s on HUD %s."),
+			*ButtonName.ToString(),
+			*HandlerFunctionName.ToString(),
 			*GetNameSafe(ActiveHUDWidget));
 		return;
 	}
 
-	if (UCommonButtonBase* CommonStartButton = Cast<UCommonButtonBase>(StartWidget))
+	if (UCommonButtonBase* CommonButton = Cast<UCommonButtonBase>(FoundWidget))
 	{
-		CommonStartButton->OnClicked().RemoveAll(this);
-		CommonStartButton->OnClicked().AddUObject(this, &UFRGameFlowSubsystem::HandleStartMainGameClicked);
-		UE_LOG(LogFortRogue, Log, TEXT("GameFlow: Bound CommonButton StartMainGame widget '%s' on HUD %s."),
-			*CurrentModeData->StartMainGameButtonName.ToString(),
+		CommonButton->OnClicked().RemoveAll(this);
+		CommonButton->OnClicked().AddWeakLambda(this, [this, HandlerFunctionName]()
+		{
+			if (UFunction* HandlerFunction = FindFunction(HandlerFunctionName))
+			{
+				ProcessEvent(HandlerFunction, nullptr);
+			}
+		});
+		UE_LOG(LogFortRogue, Log, TEXT("GameFlow: Bound CommonButton '%s' to %s on HUD %s."),
+			*ButtonName.ToString(),
+			*HandlerFunctionName.ToString(),
 			*GetNameSafe(ActiveHUDWidget));
 		return;
 	}
@@ -230,10 +258,10 @@ void UFRGameFlowSubsystem::BindModeWidgetActions()
 	{
 		WidgetNames.Add(FString::Printf(TEXT("%s:%s"), *GetNameSafe(Widget), *GetNameSafe(Widget ? Widget->GetClass() : nullptr)));
 	});
-	UE_LOG(LogFortRogue, Warning, TEXT("GameFlow: Could not bind StartMainGame widget '%s' in HUD %s. Found=%s Widgets=[%s]"),
-		*CurrentModeData->StartMainGameButtonName.ToString(),
+	UE_LOG(LogFortRogue, Warning, TEXT("GameFlow: Could not bind widget '%s' in HUD %s. Found=%s Widgets=[%s]"),
+		*ButtonName.ToString(),
 		*GetNameSafe(ActiveHUDWidget),
-		*GetNameSafe(StartWidget),
+		*GetNameSafe(FoundWidget),
 		*FString::Join(WidgetNames, TEXT(", ")));
 }
 
@@ -251,4 +279,11 @@ void UFRGameFlowSubsystem::HandleStartMainGameClicked()
 	UE_LOG(LogFortRogue, Log, TEXT("GameFlow: StartMainGame button clicked."));
 	const bool bStarted = StartMainGame();
 	UE_LOG(LogFortRogue, Log, TEXT("GameFlow: StartMainGame button result=%s."), bStarted ? TEXT("true") : TEXT("false"));
+}
+
+void UFRGameFlowSubsystem::HandleOpenCharacterSelectClicked()
+{
+	UE_LOG(LogFortRogue, Log, TEXT("GameFlow: OpenCharacterSelect button clicked."));
+	const bool bStarted = StartCharacterSelect();
+	UE_LOG(LogFortRogue, Log, TEXT("GameFlow: OpenCharacterSelect button result=%s."), bStarted ? TEXT("true") : TEXT("false"));
 }

@@ -24,6 +24,9 @@ public:
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Game Flow")
 	TSoftObjectPtr<UFRGameModeDataAsset> MainMenuModeData;
 
+	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Game Flow", meta = (ToolTip = "메인메뉴에서 게임 시작을 누르면 진입하는 캐릭터 선택 화면 모드 데이터입니다."))
+	TSoftObjectPtr<UFRGameModeDataAsset> CharacterSelectModeData;
+
 	UPROPERTY(Config, EditAnywhere, BlueprintReadOnly, Category = "Game Flow")
 	TSoftObjectPtr<UFRGameModeDataAsset> MainGameModeData;
 

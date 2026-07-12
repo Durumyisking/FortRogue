@@ -25,7 +25,9 @@ public class FortRogueEditor : ModuleRules
 			"AssetTools",
 			"AssetRegistry",
 			"Paper2D",
-			"Paper2DEditor"
+			"Paper2DEditor",
+			"CommonUI",
+			"Kismet"
 		});
 	}
 }

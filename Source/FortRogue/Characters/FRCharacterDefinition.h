@@ -47,11 +47,17 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Character", meta = (ToolTip = "에디터와 UI에 표시할 캐릭터 이름입니다."))
 	FText DisplayName = FText::FromString(TEXT("Rookie Tank"));
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Character", meta = (MultiLine = true, ToolTip = "캐릭터 선택창 등 UI에 표시할 캐릭터 소개 문구입니다."))
+	FText Description;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visual", meta = (ToolTip = "전투에서 캐릭터 몸체로 표시할 Paper2D flipbook입니다. AnimationSet.Idle이 있으면 그쪽이 우선합니다."))
 	TObjectPtr<UPaperFlipbook> BodyFlipbook;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visual", meta = (ToolTip = "전투 상태(대기/이동/발사/특수/피격)별 스프라이트 플립북 모음입니다."))
 	FFRCharacterAnimationSet AnimationSet;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Visual", meta = (ClampMin = "0.05", ToolTip = "전투에서 캐릭터 스프라이트에 곱할 월드 스케일입니다. 1.0이면 512px 셀이 200uu로 렌더됩니다. 피격 판정도 이 스케일을 따라갑니다."))
+	float SpriteScale = 1.0f;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Stats", meta = (ClampMin = "1.0", ToolTip = "캐릭터의 최대 체력입니다. 1 이상 값을 사용하세요."))
 	float MaxHealth = 100.0f;

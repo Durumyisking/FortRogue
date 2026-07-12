@@ -143,7 +143,7 @@ FFRCharacterAnimationSet LoadAnimationSet(const TCHAR* CharacterName)
 	return AnimationSet;
 }
 
-void ConfigureCharacter(UFRCharacterDefinition* CharacterDefinition, const FText& DisplayName, UFRWeaponDefinition* BasicAttack, UFRWeaponDefinition* SpecialAttack, bool bCanUseSpecialAttack, float MaxHealth, float BonusDamage, float MaxMoveBudget, UPaperFlipbook* BodyFlipbook, const FFRCharacterAnimationSet& AnimationSet = FFRCharacterAnimationSet())
+void ConfigureCharacter(UFRCharacterDefinition* CharacterDefinition, const FText& DisplayName, const FText& Description, UFRWeaponDefinition* BasicAttack, UFRWeaponDefinition* SpecialAttack, bool bCanUseSpecialAttack, float MaxHealth, float BonusDamage, float MaxMoveBudget, UPaperFlipbook* BodyFlipbook, const FFRCharacterAnimationSet& AnimationSet = FFRCharacterAnimationSet())
 {
 	if (!CharacterDefinition)
 	{
@@ -152,8 +152,11 @@ void ConfigureCharacter(UFRCharacterDefinition* CharacterDefinition, const FText
 
 	CharacterDefinition->Modify();
 	CharacterDefinition->DisplayName = DisplayName;
+	CharacterDefinition->Description = Description;
 	CharacterDefinition->BodyFlipbook = AnimationSet.Idle ? AnimationSet.Idle.Get() : BodyFlipbook;
 	CharacterDefinition->AnimationSet = AnimationSet;
+	// 512px 셀 원본(200uu)은 전장에 비해 너무 커서 절반 크기로 내립니다. 피격 판정은 이 스케일을 따라갑니다.
+	CharacterDefinition->SpriteScale = 0.5f;
 	CharacterDefinition->MaxHealth = MaxHealth;
 	CharacterDefinition->BonusDamage = BonusDamage;
 	CharacterDefinition->MaxMoveBudget = MaxMoveBudget;
@@ -182,7 +185,7 @@ FFRRewardChoice MakeWeaponReward(UObject* Outer, UFRWeaponDefinition* WeaponDefi
 	Reward.Grants.Add(WeaponGrant);
 	return Reward;
 }
-TArray<UObject*> ConfigureGameFlowModeDataAssets(UFRCharacterDefinition* Cannon, UFRStageRunDefinition* DefaultRun, UFRTerrainMapDefinition* TestMap)
+TArray<UObject*> ConfigureGameFlowModeDataAssets(UFRCharacterDefinition* Cannon, UFRStageRunDefinition* DefaultRun, UFRTerrainMapDefinition* TestMap, const TArray<UFRCharacterDefinition*>& SelectableCharacters)
 {
 	UFRGameModeDataAsset* MainMenuMode = LoadOrCreateDataAsset<UFRGameModeDataAsset>(ModePath, TEXT("DA_MainMenuMode"));
 	if (MainMenuMode)
@@ -194,10 +197,38 @@ TArray<UObject*> ConfigureGameFlowModeDataAssets(UFRCharacterDefinition* Cannon,
 		MainMenuMode->HUDWidgetClass = TSoftClassPtr<UUserWidget>(FSoftObjectPath(TEXT("/Game/FortRogue/Widget/MainMenu/WBP_MainMenuHUD.WBP_MainMenuHUD_C")));
 		MainMenuMode->InputMode = EFRGameFlowInputMode::UIOnly;
 		MainMenuMode->bShowMouseCursor = true;
-		MainMenuMode->StartMainGameButtonName = TEXT("GameStartButton");
+		// 메인메뉴의 GameStartButton은 바로 게임을 시작하지 않고 캐릭터 선택 화면으로 넘어갑니다.
+		MainMenuMode->StartMainGameButtonName = NAME_None;
+		MainMenuMode->OpenCharacterSelectButtonName = TEXT("GameStartButton");
 		MainMenuMode->EntryPawnClass = nullptr;
 		MainMenuMode->bStartBattleOnEnter = false;
 		MainMenuMode->MarkPackageDirty();
+	}
+
+	UFRGameModeDataAsset* CharacterSelectMode = LoadOrCreateDataAsset<UFRGameModeDataAsset>(ModePath, TEXT("DA_CharacterSelectMode"));
+	if (CharacterSelectMode)
+	{
+		CharacterSelectMode->Modify();
+		CharacterSelectMode->ModeName = TEXT("CharacterSelect");
+		CharacterSelectMode->DisplayName = FText::FromString(TEXT("Character Select"));
+		CharacterSelectMode->Level = TSoftObjectPtr<UWorld>(FSoftObjectPath(TEXT("/Game/FortRogue/Level/GameLevel.GameLevel")));
+		CharacterSelectMode->HUDWidgetClass = TSoftClassPtr<UUserWidget>(FSoftObjectPath(TEXT("/Game/FortRogue/Widget/CharacterSelect/WBP_CharacterSelectHUD.WBP_CharacterSelectHUD_C")));
+		CharacterSelectMode->InputMode = EFRGameFlowInputMode::UIOnly;
+		CharacterSelectMode->bShowMouseCursor = true;
+		// 게임 시작 버튼은 위젯이 직접 처리합니다(선택한 캐릭터 기록 후 메인 게임 시작).
+		CharacterSelectMode->StartMainGameButtonName = NAME_None;
+		CharacterSelectMode->OpenCharacterSelectButtonName = NAME_None;
+		CharacterSelectMode->EntryPawnClass = nullptr;
+		CharacterSelectMode->bStartBattleOnEnter = false;
+		CharacterSelectMode->SelectableCharacterDefinitions.Reset();
+		for (UFRCharacterDefinition* SelectableCharacter : SelectableCharacters)
+		{
+			if (SelectableCharacter)
+			{
+				CharacterSelectMode->SelectableCharacterDefinitions.Add(SelectableCharacter);
+			}
+		}
+		CharacterSelectMode->MarkPackageDirty();
 	}
 
 	UFRGameModeDataAsset* MainGameMode = LoadOrCreateDataAsset<UFRGameModeDataAsset>(ModePath, TEXT("DA_MainGameMode"));
@@ -223,17 +254,20 @@ TArray<UObject*> ConfigureGameFlowModeDataAssets(UFRCharacterDefinition* Cannon,
 		MainGameMode->MarkPackageDirty();
 	}
 
-	return { MainMenuMode, MainGameMode };
+	return { MainMenuMode, CharacterSelectMode, MainGameMode };
 }
 
 int32 GenerateGameFlowModeDataAssetsOnly()
 {
 	UFRCharacterDefinition* Cannon = LoadOrCreateDataAsset<UFRCharacterDefinition>(CharacterPath, TEXT("CD_Cannon"));
+	UFRCharacterDefinition* Bandit = LoadOrCreateDataAsset<UFRCharacterDefinition>(CharacterPath, TEXT("CD_Bandit"));
+	UFRCharacterDefinition* Miner = LoadOrCreateDataAsset<UFRCharacterDefinition>(CharacterPath, TEXT("CD_Miner"));
+	UFRCharacterDefinition* Engineer = LoadOrCreateDataAsset<UFRCharacterDefinition>(CharacterPath, TEXT("CD_Engineer"));
 	UFRTerrainMapDefinition* TestMap = LoadOrCreateDataAsset<UFRTerrainMapDefinition>(MapPath, TEXT("TestMapDefinition"));
 	UFRStageRunDefinition* DefaultRun = LoadOrCreateDataAsset<UFRStageRunDefinition>(RunPath, TEXT("DA_DefaultStageRun"));
 
 	bool bSavedAll = true;
-	for (UObject* Asset : ConfigureGameFlowModeDataAssets(Cannon, DefaultRun, TestMap))
+	for (UObject* Asset : ConfigureGameFlowModeDataAssets(Cannon, DefaultRun, TestMap, { Cannon, Bandit, Miner, Engineer }))
 	{
 		bSavedAll &= SaveDataAsset(Asset);
 	}
@@ -276,12 +310,12 @@ int32 UFRGenerateCombatDataCommandlet::Main(const FString& Params)
 	UFRCharacterDefinition* EnemyGrunt = LoadOrCreateDataAsset<UFRCharacterDefinition>(CharacterPath, TEXT("CD_EnemyGrunt"));
 	UFRCharacterDefinition* EnemyMarauder = LoadOrCreateDataAsset<UFRCharacterDefinition>(CharacterPath, TEXT("CD_EnemyMarauder"));
 
-	ConfigureCharacter(Cannon, FText::FromString(TEXT("Cannon")), BasicShell, CannonSpecial, true, 115.0f, 4.0f, 390.0f, LoadFlipbook(TEXT("cannon_tank_flipbook")), LoadAnimationSet(TEXT("cannon")));
-	ConfigureCharacter(Bandit, FText::FromString(TEXT("Bandit")), BasicShell, BanditSpecial, true, 90.0f, 0.0f, 455.0f, LoadFlipbook(TEXT("multi_missile_tank_flipbook")), LoadAnimationSet(TEXT("bandit")));
-	ConfigureCharacter(Miner, FText::FromString(TEXT("Miner")), BasicShell, MinerSpecial, true, 105.0f, 0.0f, 405.0f, LoadFlipbook(TEXT("missile_tank_flipbook")), LoadAnimationSet(TEXT("miner")));
-	ConfigureCharacter(Engineer, FText::FromString(TEXT("Engineer")), BasicShell, EngineerSpecial, true, 100.0f, 0.0f, 420.0f, LoadFlipbook(TEXT("laser_tank_flipbook")), LoadAnimationSet(TEXT("engineer")));
-	ConfigureCharacter(EnemyGrunt, FText::FromString(TEXT("Enemy Grunt")), BasicShell, nullptr, false, 75.0f, 0.0f, 360.0f, LoadFlipbook(TEXT("crossbow_tank_flipbook")), LoadAnimationSet(TEXT("bandit")));
-	ConfigureCharacter(EnemyMarauder, FText::FromString(TEXT("Enemy Marauder")), BasicShell, BanditSpecial, true, 85.0f, 0.0f, 430.0f, LoadFlipbook(TEXT("multi_missile_tank_flipbook")), LoadAnimationSet(TEXT("miner")));
+	ConfigureCharacter(Cannon, FText::FromString(TEXT("Cannon")), FText::FromString(TEXT("Tough frontline artillery. Extra health and bonus damage on every shot, with a pinpoint high-damage special.")), BasicShell, CannonSpecial, true, 115.0f, 4.0f, 390.0f, LoadFlipbook(TEXT("cannon_tank_flipbook")), LoadAnimationSet(TEXT("cannon")));
+	ConfigureCharacter(Bandit, FText::FromString(TEXT("Bandit")), FText::FromString(TEXT("Fragile but fast skirmisher. Covers the most ground per turn and scatters nine shells at once with its special.")), BasicShell, BanditSpecial, true, 90.0f, 0.0f, 455.0f, LoadFlipbook(TEXT("multi_missile_tank_flipbook")), LoadAnimationSet(TEXT("bandit")));
+	ConfigureCharacter(Miner, FText::FromString(TEXT("Miner")), FText::FromString(TEXT("Terrain specialist. The drill shot digs deep into the ground, opening tunnels toward buried enemies.")), BasicShell, MinerSpecial, true, 105.0f, 0.0f, 405.0f, LoadFlipbook(TEXT("missile_tank_flipbook")), LoadAnimationSet(TEXT("miner")));
+	ConfigureCharacter(Engineer, FText::FromString(TEXT("Engineer")), FText::FromString(TEXT("Battlefield shaper. Raises terrain pillars with the special shot to build cover or block enemy fire.")), BasicShell, EngineerSpecial, true, 100.0f, 0.0f, 420.0f, LoadFlipbook(TEXT("laser_tank_flipbook")), LoadAnimationSet(TEXT("engineer")));
+	ConfigureCharacter(EnemyGrunt, FText::FromString(TEXT("Enemy Grunt")), FText::GetEmpty(), BasicShell, nullptr, false, 75.0f, 0.0f, 360.0f, LoadFlipbook(TEXT("crossbow_tank_flipbook")), LoadAnimationSet(TEXT("bandit")));
+	ConfigureCharacter(EnemyMarauder, FText::FromString(TEXT("Enemy Marauder")), FText::GetEmpty(), BasicShell, BanditSpecial, true, 85.0f, 0.0f, 430.0f, LoadFlipbook(TEXT("multi_missile_tank_flipbook")), LoadAnimationSet(TEXT("miner")));
 
 	UFRDefaultLoadoutDefinition* DefaultLoadout = LoadOrCreateDataAsset<UFRDefaultLoadoutDefinition>(LoadoutPath, TEXT("DA_DefaultLoadout"));
 	if (DefaultLoadout)
@@ -297,19 +331,20 @@ int32 UFRGenerateCombatDataCommandlet::Main(const FString& Params)
 	if (TestMap)
 	{
 		TestMap->Modify();
-		TestMap->PlayerSpawnLocal = FVector(-448.0f, 0.0f, TestMap->CellsZ * TestMap->CellSize + 80.0f);
-		TestMap->EnemySpawnLocal = FVector(448.0f, 0.0f, TestMap->CellsZ * TestMap->CellSize + 80.0f);
+		// 캐릭터가 작아진 만큼 시작 거리를 벌려 포물선 조준이 의미 있는 간격을 만듭니다.
+		TestMap->PlayerSpawnLocal = FVector(-800.0f, 0.0f, TestMap->CellsZ * TestMap->CellSize + 80.0f);
+		TestMap->EnemySpawnLocal = FVector(800.0f, 0.0f, TestMap->CellsZ * TestMap->CellSize + 80.0f);
 		TestMap->EnemyPlacements.Reset();
 
 		FFREnemyPlacement GruntPlacement;
 		GruntPlacement.CharacterDefinition = EnemyGrunt;
-		GruntPlacement.SpawnLocal = FVector(360.0f, 0.0f, TestMap->CellsZ * TestMap->CellSize + 80.0f);
+		GruntPlacement.SpawnLocal = FVector(650.0f, 0.0f, TestMap->CellsZ * TestMap->CellSize + 80.0f);
 		GruntPlacement.bUseSpecialAttack = false;
 		TestMap->EnemyPlacements.Add(GruntPlacement);
 
 		FFREnemyPlacement MarauderPlacement;
 		MarauderPlacement.CharacterDefinition = EnemyMarauder;
-		MarauderPlacement.SpawnLocal = FVector(620.0f, 0.0f, TestMap->CellsZ * TestMap->CellSize + 80.0f);
+		MarauderPlacement.SpawnLocal = FVector(1000.0f, 0.0f, TestMap->CellsZ * TestMap->CellSize + 80.0f);
 		MarauderPlacement.bUseSpecialAttack = true;
 		TestMap->EnemyPlacements.Add(MarauderPlacement);
 		TestMap->MarkPackageDirty();
@@ -332,7 +367,7 @@ int32 UFRGenerateCombatDataCommandlet::Main(const FString& Params)
 		DefaultRun->MarkPackageDirty();
 	}
 
-	TArray<UObject*> ModeAssets = ConfigureGameFlowModeDataAssets(Cannon, DefaultRun, TestMap);
+	TArray<UObject*> ModeAssets = ConfigureGameFlowModeDataAssets(Cannon, DefaultRun, TestMap, { Cannon, Bandit, Miner, Engineer });
 	TArray<UObject*> AssetsToSave = {
 		BasicShell, CannonSpecial, BanditSpecial, MinerSpecial, EngineerSpecial,
 		Cannon, Bandit, Miner, Engineer, EnemyGrunt, EnemyMarauder,

@@ -2,7 +2,6 @@
 
 #include "UI/FRMainGameHUDWidget.h"
 
-#include "Components/Button.h"
 #include "Components/Image.h"
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
@@ -10,6 +9,7 @@
 #include "FRGameMode.h"
 #include "FRPlayerController.h"
 #include "Game/FRTurnBasedGameState.h"
+#include "UI/FRCommonButtonWidgets.h"
 
 namespace
 {
@@ -89,63 +89,44 @@ void UFRMainGameHUDWidget::BindButtonEvents()
 {
 	if (FireButton)
 	{
-		FireButton->OnPressed.AddDynamic(this, &UFRMainGameHUDWidget::HandleFirePressed);
-		FireButton->OnReleased.AddDynamic(this, &UFRMainGameHUDWidget::HandleFireReleased);
+		FireButton->OnPressed().AddUObject(this, &UFRMainGameHUDWidget::HandleFirePressed);
+		FireButton->OnReleased().AddUObject(this, &UFRMainGameHUDWidget::HandleFireReleased);
 	}
 
-	if (WeaponSlot1Button)
+	UFRLoadoutSlotButton* WeaponSlotButtons[] = { WeaponSlot1Button, WeaponSlot2Button, WeaponSlot3Button, WeaponSlot4Button, WeaponSlot5Button };
+	for (int32 SlotIndex = 0; SlotIndex < UE_ARRAY_COUNT(WeaponSlotButtons); ++SlotIndex)
 	{
-		WeaponSlot1Button->OnClicked.AddDynamic(this, &UFRMainGameHUDWidget::HandleWeaponSlot1Clicked);
-	}
-	if (WeaponSlot2Button)
-	{
-		WeaponSlot2Button->OnClicked.AddDynamic(this, &UFRMainGameHUDWidget::HandleWeaponSlot2Clicked);
-	}
-	if (WeaponSlot3Button)
-	{
-		WeaponSlot3Button->OnClicked.AddDynamic(this, &UFRMainGameHUDWidget::HandleWeaponSlot3Clicked);
-	}
-	if (WeaponSlot4Button)
-	{
-		WeaponSlot4Button->OnClicked.AddDynamic(this, &UFRMainGameHUDWidget::HandleWeaponSlot4Clicked);
-	}
-	if (WeaponSlot5Button)
-	{
-		WeaponSlot5Button->OnClicked.AddDynamic(this, &UFRMainGameHUDWidget::HandleWeaponSlot5Clicked);
+		if (WeaponSlotButtons[SlotIndex])
+		{
+			WeaponSlotButtons[SlotIndex]->OnClicked().AddWeakLambda(this, [this, SlotIndex]()
+			{
+				HandleWeaponSlotClicked(SlotIndex);
+			});
+		}
 	}
 
-	if (ItemSlot1Button)
+	UFRLoadoutSlotButton* ItemSlotButtons[] = { ItemSlot1Button, ItemSlot2Button, ItemSlot3Button, ItemSlot4Button, ItemSlot5Button };
+	for (int32 SlotIndex = 0; SlotIndex < UE_ARRAY_COUNT(ItemSlotButtons); ++SlotIndex)
 	{
-		ItemSlot1Button->OnClicked.AddDynamic(this, &UFRMainGameHUDWidget::HandleItemSlot1Clicked);
-	}
-	if (ItemSlot2Button)
-	{
-		ItemSlot2Button->OnClicked.AddDynamic(this, &UFRMainGameHUDWidget::HandleItemSlot2Clicked);
-	}
-	if (ItemSlot3Button)
-	{
-		ItemSlot3Button->OnClicked.AddDynamic(this, &UFRMainGameHUDWidget::HandleItemSlot3Clicked);
-	}
-	if (ItemSlot4Button)
-	{
-		ItemSlot4Button->OnClicked.AddDynamic(this, &UFRMainGameHUDWidget::HandleItemSlot4Clicked);
-	}
-	if (ItemSlot5Button)
-	{
-		ItemSlot5Button->OnClicked.AddDynamic(this, &UFRMainGameHUDWidget::HandleItemSlot5Clicked);
+		if (ItemSlotButtons[SlotIndex])
+		{
+			ItemSlotButtons[SlotIndex]->OnClicked().AddWeakLambda(this, [this, SlotIndex]()
+			{
+				HandleItemSlotClicked(SlotIndex);
+			});
+		}
 	}
 
-	if (UButton* RewardChoice1Button = Cast<UButton>(GetWidgetFromName(TEXT("RewardChoice1Button"))))
+	UFRRewardChoiceButton* RewardButtons[] = { RewardChoice1Button, RewardChoice2Button, RewardChoice3Button };
+	for (int32 ChoiceIndex = 0; ChoiceIndex < UE_ARRAY_COUNT(RewardButtons); ++ChoiceIndex)
 	{
-		RewardChoice1Button->OnClicked.AddDynamic(this, &UFRMainGameHUDWidget::HandleRewardChoice1Clicked);
-	}
-	if (UButton* RewardChoice2Button = Cast<UButton>(GetWidgetFromName(TEXT("RewardChoice2Button"))))
-	{
-		RewardChoice2Button->OnClicked.AddDynamic(this, &UFRMainGameHUDWidget::HandleRewardChoice2Clicked);
-	}
-	if (UButton* RewardChoice3Button = Cast<UButton>(GetWidgetFromName(TEXT("RewardChoice3Button"))))
-	{
-		RewardChoice3Button->OnClicked.AddDynamic(this, &UFRMainGameHUDWidget::HandleRewardChoice3Clicked);
+		if (RewardButtons[ChoiceIndex])
+		{
+			RewardButtons[ChoiceIndex]->OnClicked().AddWeakLambda(this, [this, ChoiceIndex]()
+			{
+				ApplyRewardChoice(ChoiceIndex);
+			});
+		}
 	}
 }
 
@@ -204,62 +185,34 @@ void UFRMainGameHUDWidget::RefreshRewardInfo(AFRGameMode* GameMode)
 		&& GameMode->GetBattleState() == EFRBattleState::Reward
 		&& GameMode->GetRewardChoiceCount() > 0;
 
-	if (UWidget* RewardPanel = GetWidgetFromName(TEXT("RewardPanel")))
+	if (RewardPanel)
 	{
 		RewardPanel->SetVisibility(bShowRewards ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 	}
 
-	static const FName ButtonNames[] = {
-		TEXT("RewardChoice1Button"),
-		TEXT("RewardChoice2Button"),
-		TEXT("RewardChoice3Button")
-	};
-	static const FName NameTextNames[] = {
-		TEXT("RewardChoice1NameText"),
-		TEXT("RewardChoice2NameText"),
-		TEXT("RewardChoice3NameText")
-	};
-	static const FName DescriptionTextNames[] = {
-		TEXT("RewardChoice1DescriptionText"),
-		TEXT("RewardChoice2DescriptionText"),
-		TEXT("RewardChoice3DescriptionText")
-	};
-
-	for (int32 ChoiceIndex = 0; ChoiceIndex < UE_ARRAY_COUNT(ButtonNames); ++ChoiceIndex)
+	UFRRewardChoiceButton* RewardButtons[] = { RewardChoice1Button, RewardChoice2Button, RewardChoice3Button };
+	for (int32 ChoiceIndex = 0; ChoiceIndex < UE_ARRAY_COUNT(RewardButtons); ++ChoiceIndex)
 	{
-		UButton* Button = Cast<UButton>(GetWidgetFromName(ButtonNames[ChoiceIndex]));
-		UTextBlock* NameText = Cast<UTextBlock>(GetWidgetFromName(NameTextNames[ChoiceIndex]));
-		UTextBlock* DescriptionText = Cast<UTextBlock>(GetWidgetFromName(DescriptionTextNames[ChoiceIndex]));
-		const bool bHasChoice = bShowRewards && ChoiceIndex < GameMode->GetRewardChoiceCount();
-
-		if (Button)
+		UFRRewardChoiceButton* RewardButton = RewardButtons[ChoiceIndex];
+		if (!RewardButton)
 		{
-			Button->SetVisibility(bHasChoice ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
-			Button->SetIsEnabled(bHasChoice && GameMode->CanApplyRewardChoice(ChoiceIndex));
+			continue;
 		}
 
+		const bool bHasChoice = bShowRewards && ChoiceIndex < GameMode->GetRewardChoiceCount();
+		RewardButton->SetVisibility(bHasChoice ? ESlateVisibility::Visible : ESlateVisibility::Collapsed);
 		if (bHasChoice)
 		{
+			RewardButton->SetIsInteractionEnabled(GameMode->CanApplyRewardChoice(ChoiceIndex));
 			const FFRRewardChoice RewardChoice = GameMode->GetRewardChoice(ChoiceIndex);
-			SetTextBlockText(NameText, RewardChoice.GetResolvedDisplayName());
-			SetTextBlockText(DescriptionText, RewardChoice.Description.IsEmpty()
-				? GameMode->GetRewardChoiceSummary(ChoiceIndex)
-				: RewardChoice.Description);
+			RewardButton->SetRewardDisplay(
+				RewardChoice.GetResolvedDisplayName(),
+				RewardChoice.Description.IsEmpty() ? GameMode->GetRewardChoiceSummary(ChoiceIndex) : RewardChoice.Description);
 		}
 		else
 		{
-			SetTextBlockText(NameText, FText::GetEmpty());
-			SetTextBlockText(DescriptionText, FText::GetEmpty());
+			RewardButton->SetRewardDisplay(FText::GetEmpty(), FText::GetEmpty());
 		}
-	}
-
-	if (UWidget* RewardChoice4Button = GetWidgetFromName(TEXT("RewardChoice4Button")))
-	{
-		RewardChoice4Button->SetVisibility(ESlateVisibility::Collapsed);
-	}
-	if (UWidget* RewardChoice5Button = GetWidgetFromName(TEXT("RewardChoice5Button")))
-	{
-		RewardChoice5Button->SetVisibility(ESlateVisibility::Collapsed);
 	}
 
 	SetRewardInputMode(bShowRewards);
@@ -322,40 +275,34 @@ void UFRMainGameHUDWidget::RefreshPlayerInfo(AFRGameMode* GameMode)
 
 	if (FireButton)
 	{
-		FireButton->SetIsEnabled(PlayerViewModel->bCanFire);
+		FireButton->SetIsInteractionEnabled(PlayerViewModel->bCanFire);
 	}
 
-	ApplyWeaponSlot(PlayerViewModel->GetWeaponSlot(0), WeaponSlot1Button, WeaponSlot1Text, WeaponSlot1IndexText);
-	ApplyWeaponSlot(PlayerViewModel->GetWeaponSlot(1), WeaponSlot2Button, WeaponSlot2Text, WeaponSlot2IndexText);
-	ApplyWeaponSlot(PlayerViewModel->GetWeaponSlot(2), WeaponSlot3Button, WeaponSlot3Text, WeaponSlot3IndexText);
-	ApplyWeaponSlot(PlayerViewModel->GetWeaponSlot(3), WeaponSlot4Button, WeaponSlot4Text, WeaponSlot4IndexText);
-	ApplyWeaponSlot(PlayerViewModel->GetWeaponSlot(4), WeaponSlot5Button, WeaponSlot5Text, WeaponSlot5IndexText);
+	ApplyLoadoutSlot(PlayerViewModel->GetWeaponSlot(0), WeaponSlot1Button, false);
+	ApplyLoadoutSlot(PlayerViewModel->GetWeaponSlot(1), WeaponSlot2Button, false);
+	ApplyLoadoutSlot(PlayerViewModel->GetWeaponSlot(2), WeaponSlot3Button, false);
+	ApplyLoadoutSlot(PlayerViewModel->GetWeaponSlot(3), WeaponSlot4Button, false);
+	ApplyLoadoutSlot(PlayerViewModel->GetWeaponSlot(4), WeaponSlot5Button, false);
 
-	ApplyItemSlot(PlayerViewModel->GetItemSlot(0), ItemSlot1Button, ItemSlot1Text, ItemSlot1ChargesText);
-	ApplyItemSlot(PlayerViewModel->GetItemSlot(1), ItemSlot2Button, ItemSlot2Text, ItemSlot2ChargesText);
-	ApplyItemSlot(PlayerViewModel->GetItemSlot(2), ItemSlot3Button, ItemSlot3Text, ItemSlot3ChargesText);
-	ApplyItemSlot(PlayerViewModel->GetItemSlot(3), ItemSlot4Button, ItemSlot4Text, ItemSlot4ChargesText);
-	ApplyItemSlot(PlayerViewModel->GetItemSlot(4), ItemSlot5Button, ItemSlot5Text, ItemSlot5ChargesText);
+	ApplyLoadoutSlot(PlayerViewModel->GetItemSlot(0), ItemSlot1Button, true);
+	ApplyLoadoutSlot(PlayerViewModel->GetItemSlot(1), ItemSlot2Button, true);
+	ApplyLoadoutSlot(PlayerViewModel->GetItemSlot(2), ItemSlot3Button, true);
+	ApplyLoadoutSlot(PlayerViewModel->GetItemSlot(3), ItemSlot4Button, true);
+	ApplyLoadoutSlot(PlayerViewModel->GetItemSlot(4), ItemSlot5Button, true);
 }
 
-void UFRMainGameHUDWidget::ApplyWeaponSlot(const FFRHUDLoadoutSlotViewData& SlotData, UButton* Button, UTextBlock* NameText, UTextBlock* IndexText)
+void UFRMainGameHUDWidget::ApplyLoadoutSlot(const FFRHUDLoadoutSlotViewData& SlotData, UFRLoadoutSlotButton* SlotButton, bool bShowChargesAsHotkey)
 {
-	if (Button)
+	if (!SlotButton)
 	{
-		Button->SetIsEnabled(SlotData.bEnabled);
+		return;
 	}
-	SetTextBlockText(NameText, SlotData.bOccupied ? SlotData.DisplayName : FText::GetEmpty());
-	SetTextBlockText(IndexText, SlotData.InputText);
-}
 
-void UFRMainGameHUDWidget::ApplyItemSlot(const FFRHUDLoadoutSlotViewData& SlotData, UButton* Button, UTextBlock* NameText, UTextBlock* ChargesText)
-{
-	if (Button)
-	{
-		Button->SetIsEnabled(SlotData.bEnabled);
-	}
-	SetTextBlockText(NameText, SlotData.bOccupied ? SlotData.DisplayName : FText::GetEmpty());
-	SetTextBlockText(ChargesText, SlotData.bOccupied ? FText::AsNumber(SlotData.Charges) : FText::GetEmpty());
+	SlotButton->SetIsInteractionEnabled(SlotData.bEnabled);
+	const FText HotkeyText = bShowChargesAsHotkey
+		? (SlotData.bOccupied ? FText::AsNumber(SlotData.Charges) : FText::GetEmpty())
+		: SlotData.InputText;
+	SlotButton->SetSlotDisplay(SlotData.bOccupied ? SlotData.DisplayName : FText::GetEmpty(), HotkeyText);
 }
 
 void UFRMainGameHUDWidget::HandleFirePressed()
@@ -374,97 +321,18 @@ void UFRMainGameHUDWidget::HandleFireReleased()
 	}
 }
 
-void UFRMainGameHUDWidget::HandleWeaponSlot1Clicked()
+void UFRMainGameHUDWidget::HandleWeaponSlotClicked(int32 SlotIndex)
 {
 	if (AFRPlayerController* PlayerController = GetFortRoguePlayerController(*this))
 	{
-		PlayerController->SelectHUDWeapon(0);
+		PlayerController->SelectHUDWeapon(SlotIndex);
 	}
 }
 
-void UFRMainGameHUDWidget::HandleWeaponSlot2Clicked()
+void UFRMainGameHUDWidget::HandleItemSlotClicked(int32 SlotIndex)
 {
 	if (AFRPlayerController* PlayerController = GetFortRoguePlayerController(*this))
 	{
-		PlayerController->SelectHUDWeapon(1);
+		PlayerController->UseHUDItem(SlotIndex);
 	}
-}
-
-void UFRMainGameHUDWidget::HandleWeaponSlot3Clicked()
-{
-	if (AFRPlayerController* PlayerController = GetFortRoguePlayerController(*this))
-	{
-		PlayerController->SelectHUDWeapon(2);
-	}
-}
-
-void UFRMainGameHUDWidget::HandleWeaponSlot4Clicked()
-{
-	if (AFRPlayerController* PlayerController = GetFortRoguePlayerController(*this))
-	{
-		PlayerController->SelectHUDWeapon(3);
-	}
-}
-
-void UFRMainGameHUDWidget::HandleWeaponSlot5Clicked()
-{
-	if (AFRPlayerController* PlayerController = GetFortRoguePlayerController(*this))
-	{
-		PlayerController->SelectHUDWeapon(4);
-	}
-}
-
-void UFRMainGameHUDWidget::HandleItemSlot1Clicked()
-{
-	if (AFRPlayerController* PlayerController = GetFortRoguePlayerController(*this))
-	{
-		PlayerController->UseHUDItem(0);
-	}
-}
-
-void UFRMainGameHUDWidget::HandleItemSlot2Clicked()
-{
-	if (AFRPlayerController* PlayerController = GetFortRoguePlayerController(*this))
-	{
-		PlayerController->UseHUDItem(1);
-	}
-}
-
-void UFRMainGameHUDWidget::HandleItemSlot3Clicked()
-{
-	if (AFRPlayerController* PlayerController = GetFortRoguePlayerController(*this))
-	{
-		PlayerController->UseHUDItem(2);
-	}
-}
-
-void UFRMainGameHUDWidget::HandleItemSlot4Clicked()
-{
-	if (AFRPlayerController* PlayerController = GetFortRoguePlayerController(*this))
-	{
-		PlayerController->UseHUDItem(3);
-	}
-}
-
-void UFRMainGameHUDWidget::HandleItemSlot5Clicked()
-{
-	if (AFRPlayerController* PlayerController = GetFortRoguePlayerController(*this))
-	{
-		PlayerController->UseHUDItem(4);
-	}
-}
-
-void UFRMainGameHUDWidget::HandleRewardChoice1Clicked()
-{
-	ApplyRewardChoice(0);
-}
-
-void UFRMainGameHUDWidget::HandleRewardChoice2Clicked()
-{
-	ApplyRewardChoice(1);
-}
-
-void UFRMainGameHUDWidget::HandleRewardChoice3Clicked()
-{
-	ApplyRewardChoice(2);
 }

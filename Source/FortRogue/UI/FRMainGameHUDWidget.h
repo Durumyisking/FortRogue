@@ -8,12 +8,20 @@
 #include "FRMainGameHUDWidget.generated.h"
 
 class AFRGameMode;
-class UButton;
+class UFRCommonTextButton;
+class UFRLoadoutSlotButton;
+class UFRRewardChoiceButton;
 class UImage;
 class UProgressBar;
 class UTextBlock;
 class UTexture2D;
+class UWidget;
 
+/**
+ * 전투 HUD 위젯입니다. 무기/아이템 슬롯과 발사·보상 버튼은 CommonUI 기반
+ * (UFRLoadoutSlotButton / UFRCommonTextButton / UFRRewardChoiceButton)이며,
+ * 슬롯 내부 텍스트는 각 버튼 위젯이 소유합니다.
+ */
 UCLASS()
 class FORTROGUE_API UFRMainGameHUDWidget : public UUserWidget
 {
@@ -80,97 +88,49 @@ protected:
 	TObjectPtr<UTextBlock> CurrentShotText;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> FireButton;
+	TObjectPtr<UFRCommonTextButton> FireButton;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> WeaponSlot1Button;
+	TObjectPtr<UFRLoadoutSlotButton> WeaponSlot1Button;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> WeaponSlot2Button;
+	TObjectPtr<UFRLoadoutSlotButton> WeaponSlot2Button;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> WeaponSlot3Button;
+	TObjectPtr<UFRLoadoutSlotButton> WeaponSlot3Button;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> WeaponSlot4Button;
+	TObjectPtr<UFRLoadoutSlotButton> WeaponSlot4Button;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> WeaponSlot5Button;
+	TObjectPtr<UFRLoadoutSlotButton> WeaponSlot5Button;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> WeaponSlot1Text;
+	TObjectPtr<UFRLoadoutSlotButton> ItemSlot1Button;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> WeaponSlot2Text;
+	TObjectPtr<UFRLoadoutSlotButton> ItemSlot2Button;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> WeaponSlot3Text;
+	TObjectPtr<UFRLoadoutSlotButton> ItemSlot3Button;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> WeaponSlot4Text;
+	TObjectPtr<UFRLoadoutSlotButton> ItemSlot4Button;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> WeaponSlot5Text;
+	TObjectPtr<UFRLoadoutSlotButton> ItemSlot5Button;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> WeaponSlot1IndexText;
+	TObjectPtr<UWidget> RewardPanel;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> WeaponSlot2IndexText;
+	TObjectPtr<UFRRewardChoiceButton> RewardChoice1Button;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> WeaponSlot3IndexText;
+	TObjectPtr<UFRRewardChoiceButton> RewardChoice2Button;
 
 	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> WeaponSlot4IndexText;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> WeaponSlot5IndexText;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> ItemSlot1Button;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> ItemSlot2Button;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> ItemSlot3Button;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> ItemSlot4Button;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UButton> ItemSlot5Button;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> ItemSlot1Text;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> ItemSlot2Text;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> ItemSlot3Text;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> ItemSlot4Text;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> ItemSlot5Text;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> ItemSlot1ChargesText;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> ItemSlot2ChargesText;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> ItemSlot3ChargesText;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> ItemSlot4ChargesText;
-
-	UPROPERTY(meta = (BindWidgetOptional))
-	TObjectPtr<UTextBlock> ItemSlot5ChargesText;
+	TObjectPtr<UFRRewardChoiceButton> RewardChoice3Button;
 
 private:
 	void BindButtonEvents();
@@ -180,53 +140,11 @@ private:
 	void RefreshPlayerInfo(AFRGameMode* GameMode);
 	void ApplyRewardChoice(int32 ChoiceIndex);
 	void SetRewardInputMode(bool bActive);
-	void ApplyWeaponSlot(const FFRHUDLoadoutSlotViewData& SlotData, UButton* Button, UTextBlock* NameText, UTextBlock* IndexText);
-	void ApplyItemSlot(const FFRHUDLoadoutSlotViewData& SlotData, UButton* Button, UTextBlock* NameText, UTextBlock* ChargesText);
+	void ApplyLoadoutSlot(const FFRHUDLoadoutSlotViewData& SlotData, UFRLoadoutSlotButton* SlotButton, bool bShowChargesAsHotkey);
+	void HandleFirePressed();
+	void HandleFireReleased();
+	void HandleWeaponSlotClicked(int32 SlotIndex);
+	void HandleItemSlotClicked(int32 SlotIndex);
 
 	bool bRewardInputModeActive = false;
-
-	UFUNCTION()
-	void HandleFirePressed();
-
-	UFUNCTION()
-	void HandleFireReleased();
-
-	UFUNCTION()
-	void HandleWeaponSlot1Clicked();
-
-	UFUNCTION()
-	void HandleWeaponSlot2Clicked();
-
-	UFUNCTION()
-	void HandleWeaponSlot3Clicked();
-
-	UFUNCTION()
-	void HandleWeaponSlot4Clicked();
-
-	UFUNCTION()
-	void HandleWeaponSlot5Clicked();
-
-	UFUNCTION()
-	void HandleItemSlot1Clicked();
-
-	UFUNCTION()
-	void HandleItemSlot2Clicked();
-
-	UFUNCTION()
-	void HandleItemSlot3Clicked();
-
-	UFUNCTION()
-	void HandleItemSlot4Clicked();
-
-	UFUNCTION()
-	void HandleItemSlot5Clicked();
-
-	UFUNCTION()
-	void HandleRewardChoice1Clicked();
-
-	UFUNCTION()
-	void HandleRewardChoice2Clicked();
-
-	UFUNCTION()
-	void HandleRewardChoice3Clicked();
 };
